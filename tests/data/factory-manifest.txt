@@ -1,0 +1,77 @@
+# Factory
+Factory/Presets/Ah Eh Ee Oh.vital
+Factory/Presets/FM Drum Circle.vital
+Factory/Presets/Plucked String.vital
+Factory/Presets/Shepard Tone Template.vital
+Factory/Presets/Staggered Phrases.vital
+Factory/Presets/Text To Wavetable Template.vital
+Factory/Presets/Touch Tone.vital
+# Packs
+Afro/Presets/Banana Wob.vital
+Afro/Presets/Kick Drum 1.vital
+Afro/Presets/Random Amp Growl.vital
+Billain/Presets/Factory Presets/Cinema Bells.vital
+Billain/Presets/Factory Presets/Railgun.vital
+Databroth/Presets/Factory Presets/Ceramic.vital
+Databroth/Presets/Factory Presets/Disrupt.vital
+Databroth/Presets/Factory Presets/Feeder.vital
+Databroth/Presets/Factory Presets/Fleet.vital
+Databroth/Presets/Factory Presets/Gorgled.vital
+Databroth/Presets/Factory Presets/Snowcrash.vital
+Glorkglunk/Presets/Digestive Trauma.vital
+Glorkglunk/Presets/Special Glitch Thing.vital
+Glorkglunk/Presets/Squish Clicker.vital
+Glorkglunk/Presets/THUNK.vital
+Glorkglunk/Presets/Thumpus.vital
+Halcyon Future Riddim Vol 1/Presets/Aweminus/Swiss Army Knife.vital
+Halcyon Future Riddim Vol 1/Presets/Oolacile/Boot Scre3n.vital
+Halcyon Future Riddim Vol 1/Presets/Oolacile/Memory Leak.vital
+Halcyon Future Riddim Vol 1/Presets/Oolacile/Oolacile Evil Dubstep Bass.vital
+Halcyon Future Riddim Vol 1/Presets/Oolacile/Satellites.vital
+Halcyon Future Riddim Vol 1/Presets/Oolacile/Space Station.vital
+Halcyon Future Riddim Vol 1/Presets/Phonon/Simple Weoum.vital
+Halcyon Future Riddim Vol 1/Presets/Voltra/VLT Future Gun.vital
+In The Mix/Presets/Analog Pad.vital
+In The Mix/Presets/Distant Majestic Lead.vital
+In The Mix/Presets/Growl Bass Sidechain.vital
+In The Mix/Presets/Moog Pluck.vital
+In The Mix/Presets/Strings Section.vital
+Level 8/Presets/Factory Presets/Complex Electro 1.vital
+Level 8/Presets/Factory Presets/Crescendo Bells.vital
+Level 8/Presets/Factory Presets/Damped Horn.vital
+Level 8/Presets/Factory Presets/FM Mode.vital
+Level 8/Presets/Factory Presets/Horror of Melbourne 1.vital
+Level 8/Presets/Factory Presets/Smoker's Lounge.vital
+Mr Bill/Presets/Cursed Steps.vital
+Mr Bill/Presets/E4 One Note Metallophone.vital
+Mr Bill/Presets/Float Chords.vital
+Mr Bill/Presets/Honk Wub.vital
+Mr Bill/Presets/LORN Style Lead.vital
+Mr Bill/Presets/Real Squarepusher Hours.vital
+Mr Bill/Presets/Remedial Shikari.vital
+Mr Bill/Presets/Super Nice Pluck.vital
+Navi Retlav Studio/Presets/Factory Presets/Dispersed Grit.vital
+Navi Retlav Studio/Presets/Factory Presets/Drowning Machine.vital
+Navi Retlav Studio/Presets/Factory Presets/Phaser Man.vital
+Navi Retlav Studio/Presets/Factory Presets/Physical Tension.vital
+Navi Retlav Studio/Presets/Factory Presets/Skew Resandal.vital
+Navi Retlav Studio/Presets/Factory Presets/Super Pluck.vital
+Unsystematic Fragmentation/Presets/Factory Presets/A happy ending of the world.vital
+Unsystematic Fragmentation/Presets/Factory Presets/Chorusy Keys.vital
+Unsystematic Fragmentation/Presets/Factory Presets/Fun Pulse.vital
+Unsystematic Fragmentation/Presets/Factory Presets/Moving Harmonics.vital
+Unsystematic Fragmentation/Presets/Factory Presets/Phaser Entropy .vital
+Unsystematic Fragmentation/Presets/Factory Presets/corrupted_...+=boot-_.vital
+Yuli Yolo/Presets/Factory Presets/A Night in Kalyan.vital
+Yuli Yolo/Presets/Factory Presets/Abbysun.vital
+Yuli Yolo/Presets/Factory Presets/DIY.vital
+Yuli Yolo/Presets/Factory Presets/Destruction.vital
+Yuli Yolo/Presets/Factory Presets/Easy Mallet.vital
+Yuli Yolo/Presets/Factory Presets/Jupiter Bass.vital
+Yuli Yolo/Presets/Factory Presets/Keystation.vital
+Yuli Yolo/Presets/Factory Presets/Metal Head.vital
+Yuli Yolo/Presets/Factory Presets/Salomon.vital
+Yuli Yolo/Presets/Factory Presets/Synthetic Quartet.vital
+inktome/Presets/Big Stomp.vital
+inktome/Presets/Digital roller.vital
+inktome/Presets/Piano from the yard sale.vital

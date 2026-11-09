@@ -14,6 +14,17 @@ writes the entry, in that commit
 
 ### Changed
 
+- Revision after the review of PR 6, `agent-os/specs/2026-11-09-1610-revision-after-pr-6-review/`:
+  sixteen findings at `6d7f747`, fifteen addressed and one, `json.decoder.WHITESPACE`, declined with
+  its reason. The version stays 0.0.1.
+  - `dump` writes a temporary file and renames it over the target, so a failure leaves the file as
+    it was; a path `pathlib` refuses is `PresetFileError`.
+  - `diff` compares floats as written, so `is_empty` means the two presets write the same bytes.
+  - A preset can be pickled and deep-copied.
+  - A lone surrogate is refused where it comes in; a section holding `NaN` or stray whitespace, a
+    `null` name and text after the object are refused too.
+  - A new key in a routing entry, and a non-float under an unknown name, are `UnknownSettingError`,
+    naming the key, not `MalformedPresetError`.
 - Revision after the review of PR 5, `agent-os/specs/2026-11-09-1433-revision-after-pr-5-review/`:
   all eleven findings of the review at `d638b39` addressed. The version stays 0.0.1.
   - `tests/unit/test_package.py` holds the pinned `patchbay-core` to the declared range, which uv
@@ -47,6 +58,13 @@ writes the entry, in that commit
 
 ### Added
 
+- The `.vital` format, issue #2, `agent-os/specs/2026-11-09-1509-the-vital-format/`: `load`, `loads`,
+  `dump`, `dumps` and `diff` over typed models on `PatchbayModel`, every section the package does not
+  interpret kept as the file held it. `dumps(loads(text)) == text` on every one of the 75 presets
+  Vital installs, held by an integration test against a committed manifest, floats written through
+  a port of nlohmann::json's Grisu2 that matches the library on 1,286,646 compared values. `pydantic`
+  joins the runtime dependencies. The first project standards, `agent-os/standards/vital/`. The
+  version stays 0.0.1.
 - `patchbay-core>=0.0.1,<1` as the first runtime dependency, taken from its public repository at
   `dd2bcad` by `[tool.uv.sources]`, and the `integration` pytest marker, for issue #2 to build on. A
   gate spec, issue #4, `agent-os/specs/2026-11-09-1405-gate-patchbay-core-source-and-marker/`;

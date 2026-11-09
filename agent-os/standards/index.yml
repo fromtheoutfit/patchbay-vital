@@ -25,3 +25,10 @@ base:
     description: Distinct keys are distinct NewTypes, a protocol's data members are read-only properties and its method parameters positional-only with isinstance the only runtime check, generics use PEP 695 syntax as ruff asks, a module re-exports through __all__ under implicit_reexport false, and no module whose annotations pydantic reads carries the future annotations import
   testing/tests:
     description: Tests mirror the source one module per module, every module under tests a basename of its own with no __init__.py and one conftest.py at most above every test taking its fixtures, files read from pytest's root, strategies that generate only valid inputs with known counterexamples pinned, [0-9] and never \d, and coded type ignores holding mypy's refusals; the contract suite ships in the protocol package's testing subpackage as unprefixed functions listed in one tuple, fails with an AssertionError subclass with fields and never with assert or pytest, works out its expectations from the contract with values one float past a bound, and is proven by a fake broken each way asserting its reason and passed by a correct one at the widest bounds
+vital:
+  float-writer:
+    description: A float in a preset is written by a port of nlohmann's Grisu2 and format, never repr or a rule fitted to the corpus, held to the library's own output by a recorded vectors file
+  preset-file:
+    description: Where each part of a .vital file lives and how it is held, known keys meaning Vital has ever written them, a per-slot float joined to its slot reversibly, all 64 slots kept, a section as the text the file held, a key Vital is not known to write refused wherever it is and an unknown section kept, nothing after the object but one newline, a file replaced whole or not at all, and two presets the same when they write the same bytes
+  preset-tests:
+    description: No preset or media of Vital's is committed, a test reads the installed presets against a committed manifest whose length is the count, skips saying so where they are absent, and the unit suite's one real file is an owner's save with its media replaced

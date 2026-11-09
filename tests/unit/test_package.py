@@ -7,6 +7,9 @@ from packaging.requirements import Requirement
 from patchbay import PatchbayError, PatchbayModel, PresetKey
 
 import patchbay_vital
+import patchbay_vital.errors
+import patchbay_vital.format
+import patchbay_vital.preset
 
 
 def _is_own_submodule(value: object) -> bool:
@@ -57,3 +60,29 @@ def test_the_names_the_adapter_builds_on_come_from_patchbay_core() -> None:
     assert PatchbayModel.__module__ == "patchbay.models"
     assert PresetKey.__module__ == "patchbay.models"
     assert PatchbayError.__module__ == "patchbay.errors"
+
+
+def test_the_package_re_exports_what_a_consumer_uses() -> None:
+    """Each name the root exports is the very object its module defines, not a copy."""
+    surface = {
+        patchbay_vital.errors: (
+            "MalformedPresetError",
+            "PresetFileError",
+            "UnknownSettingError",
+            "VitalFormatError",
+        ),
+        patchbay_vital.format: ("diff", "dump", "dumps", "load", "loads"),
+        patchbay_vital.preset: (
+            "MetadataChange",
+            "Modulation",
+            "ModulationChange",
+            "OpaqueChange",
+            "PresetDiff",
+            "SettingChange",
+            "VitalPreset",
+            "VitalSettings",
+        ),
+    }
+    for module, names in surface.items():
+        for name in names:
+            assert getattr(patchbay_vital, name) is getattr(module, name)

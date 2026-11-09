@@ -4,17 +4,31 @@ patchbay adapter for Vital: the `.vital` preset format, the VST3 parameter map a
 conversions, and sound-design semantics as data.
 
 This is an experiment, not a product. The distribution name is `patchbay-vital` and the import name
-is `patchbay_vital`. No adapter code ships yet: the package holds its version, and each module joins
-it with the spec that adds it (`agent-os/product/mission.md`).
+is `patchbay_vital`. It reads, writes and compares a `.vital` preset file; the VST3 parameter map and
+the sound-design semantics join with the specs that add them (`agent-os/product/mission.md`).
+
+```python
+from patchbay_vital import diff, dump, load
+
+preset = load("Plucked String.vital")   # typed models, every unread section kept as it was
+dump(preset, "copy.vital")              # byte for byte what Vital wrote
+diff(preset, load("copy.vital")).is_empty
+```
 
 ## Layout
 
-- `src/patchbay_vital/`: the package, src layout, typed (`py.typed`). `__init__.py` holds
-  `__version__`, read from the installed package's metadata so `pyproject.toml` is the one place the
-  version is written, and `__all__`. The package is imported installed (`uv sync`): from a bare
-  `src/` on `sys.path` the import fails rather than invent a version.
-- `tests/`: pytest's tree, `unit/` for now. Not a package (no `__init__.py`), so one basename per
-  test file across it, which mypy holds.
+- `src/patchbay_vital/`: the package, src layout, typed (`py.typed`). `preset.py` holds the models,
+  `format.py` reads, writes and compares a file, `grisu2.py` writes a float as Vital does, `errors.py`
+  holds the exceptions, and `settings_keys.txt` lists every float key Vital has been seen to write.
+  `__init__.py` holds the re-exports, `__version__`, read from the installed package's metadata so
+  `pyproject.toml` is the one place the version is written, and `__all__`. The package is imported
+  installed (`uv sync`): from a bare `src/` on `sys.path` the import fails rather than invent a
+  version.
+- `tests/`: pytest's tree. Not a package (no `__init__.py`), so one basename per test file across it,
+  which mypy holds. `unit/` mirrors `src/`. `integration/` round-trips every preset Vital installed
+  under `~/Music/Vital` against `data/factory-manifest.txt`, and skips, saying so, where they are
+  absent, CI among them. `data/` holds no preset of Vital's, whose license forbids that: its one
+  `.vital` is a 1.6.4 save with the media replaced.
 - `pyproject.toml`: the one configuration file. Every tool the gate runs is configured under
   `[tool.*]` there and nowhere else, with no `setup.py`, `setup.cfg`, `requirements*.txt`,
   `tox.ini`, `.flake8`, `mypy.ini`, `pytest.ini`, `.ruff.toml` or `uv.toml`. The `[tool.*]` sections
@@ -55,8 +69,9 @@ required-version` pins it, so any other uv refuses every command that reads this
 (`uv sync` and `uv run` among them), and CI's setup-uv reads the same key to install it. `uv sync`
 reads `.python-version` (3.12), fetches uv's own build of that interpreter
 (`[tool.uv] python-preference`) into uv's Python directory (`uv python dir`) if it is not there,
-creates `.venv/` and installs into it the package, its runtime dependency `patchbay-core` (fetched
-from GitHub at the commit `[tool.uv.sources]` pins, so the first sync needs the network) and the
+creates `.venv/` and installs into it the package, its runtime dependencies, `pydantic` and
+`patchbay-core` (fetched from GitHub at the commit `[tool.uv.sources]` pins, so the first sync needs
+the network) and the
 locked dev toolchain: ruff, mypy, pytest,
 hypothesis, packaging and pre-commit, each pinned exactly in `pyproject.toml`'s `[dependency-groups] dev` with
 the date it was published. `uv.lock` resolves them. Outside the repository uv writes only that interpreter and its own cache.

@@ -485,6 +485,7 @@ version = "0.0.1"
 source = { editable = "." }
 dependencies = [
     { name = "patchbay-core" },
+    { name = "pydantic" },
 ]
 
 [package.dev-dependencies]
@@ -498,7 +499,10 @@ dev = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "patchbay-core", git = "https://github.com/fromtheoutfit/patchbay?rev=dd2bcad69dadeb38c6e1e660b2e0ddced13861eb" }]
+requires-dist = [
+    { name = "patchbay-core", git = "https://github.com/fromtheoutfit/patchbay?rev=dd2bcad69dadeb38c6e1e660b2e0ddced13861eb" },
+    { name = "pydantic", specifier = ">=2.14.3,<3" },
+]
 
 [package.metadata.requires-dev]
 dev = [
