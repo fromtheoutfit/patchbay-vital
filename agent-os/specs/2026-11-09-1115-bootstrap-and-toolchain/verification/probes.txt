@@ -1,0 +1,265 @@
+Probes of the bootstrap spec, 2026-11-09 on branch feature/1-bootstrap-and-toolchain-shape-spec-claudemd-gate-ci-pyprojecttoml-readme-changelog, at the pins in uv.lock. Each case on a scratch export of the tree (p/). They rest the three additions the issue names on this repository's own run; the uncommitted revision after the review of patchbay PR 15 was prior art only. The gate's side of each is held by harness cases q and s.
+
+### setup: the pins, and the clean copy
+
+$ uv --version
+uv 0.13.7 (Homebrew 2026-11-03 aarch64-apple-darwin)
+exit=0
+
+$ uv sync --locked --quiet
+exit=0
+
+$ uv run --locked ruff --version
+ruff 0.17.4
+exit=0
+
+$ uv run --locked mypy --version
+mypy 2.4.1 (compiled: yes)
+exit=0
+
+$ uv run --locked pytest --version
+pytest 9.2.0
+exit=0
+
+
+### 1. uv.toml: read ahead of [tool.uv], and no flag keeps [tool.uv] while ignoring it
+
+Claims to tell apart: uv.toml beats [tool.uv]; or [tool.uv] beats uv.toml; or the two merge.
+$ cat uv.toml
+required-version = "==0.13.6"
+exit=0
+
+1a. uv.toml naming a uv that is not running, pyproject.toml pinning the one that is:
+$ uv sync --locked
+warning: Found both a `uv.toml` file and a `[tool.uv]` section in an adjacent `pyproject.toml`. The following fields from `[tool.uv]` will be ignored in favor of the `uv.toml` file:
+- required-version
+error: Required uv version `==0.13.6` does not match the running version `0.13.7`
+exit=2
+
+1b. the same refusal from [tool.uv] alone, no uv.toml present, for 1c to be read against:
+$ grep -n ^required-version pyproject.toml
+44:required-version = "==0.13.6"
+exit=0
+
+$ uv sync --locked
+error: Required uv version `==0.13.6` does not match the running version `0.13.7`
+exit=2
+
+1c. --no-config on that same file: if it passes, --no-config drops [tool.uv] required-version too, so it cannot be how the gate ignores uv.toml:
+$ uv --no-config sync --dry-run
+Would use project environment at: .venv
+Resolved 26 packages in 2ms
+Found up-to-date lockfile at: uv.lock
+Would download 1 package
+Would uninstall 1 package
+Would install 1 package
+ - patchbay-vital==0.0.1 (from file://<scratch>/p)
+ + patchbay-vital @ file://<scratch>/p
+exit=0
+
+1d. --config-file given pyproject.toml, the form ruff and mypy take:
+$ uv --config-file pyproject.toml sync --dry-run
+warning: The `--config-file` argument expects to receive a `uv.toml` file, not a `pyproject.toml`. If you're trying to run a command from another project, use the `--project` argument instead.
+error: Failed to parse: pyproject.toml
+  cause: TOML parse error at line 16, column 2
+            |
+         16 | [project]
+            |  ^^^^^^^
+         unknown field `project`, expected one of `required-version`, `system-certs`, `native-tls`, `offline`, `no-cache`, `cache-dir`, `preview`, `preview-features`, `python-preference`, `python-downloads`, `concurrent-downloads`, `concurrent-builds`, `concurrent-installs`, `index`, `index-url`, `extra-index-url`, `no-index`, `find-links`, `index-strategy`, `keyring-provider`, `http-proxy`, `https-proxy`, `no-proxy`, `allow-insecure-host`, `resolution`, `prerelease`, `prerelease-package`, `fork-strategy`, `dependency-metadata`, `config-settings`, `config-settings-package`, `no-build-isolation`, `require-build-hashes`, `no-build-isolation-package`, `extra-build-dependencies`, `extra-build-variables`, `exclude-newer`, `exclude-newer-package`, `link-mode`, `compile-bytecode`, `no-sources`, `no-sources-package`, `upgrade`, `upgrade-package`, `reinstall`, `reinstall-package`, `no-build`, `no-build-package`, `no-binary`, `no-binary-package`, `torch-backend`, `python-install-mirror`, `pypy-install-mirror`, `graalpy-install-mirror`, `pyodide-install-mirror`, `python-downloads-json-url`, `publish-url`, `trusted-publishing`, `check-url`, `add-bounds`, `audit`, `pip`, `cache-keys`, `override-dependencies`, `exclude-dependencies`, `constraint-dependencies`, `build-constraint-dependencies`, `environments`, `required-environments`, `minimum-libc-version`, `conflicts`, `workspace`, `sources`, `managed`, `package`, `default-groups`, `dependency-groups`, `dev-dependencies`, `build-backend`
+exit=2
+
+
+### 2. ruff: a config file beside or below pyproject.toml, with and without --config
+
+The setup, shown: the line length ruff resolves in each form.
+2a. ruff.toml at the root, no flag:
+Settings path: "<scratch>/p/ruff.toml"
+linter.line_length = 40
+
+$ uv run --locked ruff check -- src/patchbay_vital/_unused.py
+All checks passed!
+exit=0
+
+2b. the same, --config pyproject.toml:
+Settings path: "<scratch>/p/pyproject.toml"
+linter.line_length = 100
+
+$ uv run --locked ruff check --config pyproject.toml --output-format=concise -- src/patchbay_vital/_unused.py
+src/patchbay_vital/_unused.py:3:8: F401 [*] `os` imported but unused
+Found 1 error.
+[*] 1 fixable with `--fix`.
+exit=1
+
+2c. .ruff.toml at the root, no flag, then with it:
+$ uv run --locked ruff check -- src/patchbay_vital/_unused.py
+All checks passed!
+exit=0
+
+$ uv run --locked ruff check --config pyproject.toml --output-format=concise -- src/patchbay_vital/_unused.py
+src/patchbay_vital/_unused.py:3:8: F401 [*] `os` imported but unused
+Found 1 error.
+[*] 1 fixable with `--fix`.
+exit=1
+
+2d. a nested tests/ruff.toml, no flag, then with it:
+$ uv run --locked ruff check -- tests/unit/test_unused.py
+All checks passed!
+exit=0
+
+$ uv run --locked ruff check --config pyproject.toml --output-format=concise -- tests/unit/test_unused.py
+tests/unit/test_unused.py:3:8: F401 [*] `os` imported but unused
+Found 1 error.
+[*] 1 fixable with `--fix`.
+exit=1
+
+
+### 3. mypy: a config file beside pyproject.toml, with and without --config-file
+
+3a. mypy.ini, no flag, then with it:
+$ uv run --locked mypy -- src/patchbay_vital/_any.py
+Success: no issues found in 1 source file
+exit=0
+
+$ uv run --locked mypy --config-file pyproject.toml -- src/patchbay_vital/_any.py
+src/patchbay_vital/_any.py:8: error: Returning Any from function declared to return "int"  [no-any-return]
+Found 1 error in 1 file (checked 1 source file)
+exit=1
+
+3b. .mypy.ini, no flag, then with it:
+$ uv run --locked mypy -- src/patchbay_vital/_any.py
+Success: no issues found in 1 source file
+exit=0
+
+$ uv run --locked mypy --config-file pyproject.toml -- src/patchbay_vital/_any.py
+src/patchbay_vital/_any.py:8: error: Returning Any from function declared to return "int"  [no-any-return]
+Found 1 error in 1 file (checked 1 source file)
+exit=1
+
+
+### 4. pytest: which root files it reads ahead of pyproject.toml, and -p no:doctest
+
+Claims to tell apart: the four names step 5 refuses are read ahead of pyproject.toml; tox.ini and setup.cfg are not, so step 5 has no reason to refuse them.
+--- pytest.toml at the root (its addopts deselect every test if it is the file pytest reads):
+$ uv run --locked pytest
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.2.0, pluggy-1.7.0
+rootdir: <scratch>/p
+configfile: pytest.toml (WARNING: ignoring pytest config in pyproject.toml!)
+plugins: platformdirs-4.14.5, hypothesis-6.170.14
+collected 7 items / 7 deselected / 0 selected
+
+============================ 7 deselected in 1.14s =============================
+exit=5
+
+--- .pytest.toml at the root (its addopts deselect every test if it is the file pytest reads):
+$ uv run --locked pytest
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.2.0, pluggy-1.7.0
+rootdir: <scratch>/p
+configfile: .pytest.toml (WARNING: ignoring pytest config in pyproject.toml!)
+plugins: platformdirs-4.14.5, hypothesis-6.170.14
+collected 7 items / 7 deselected / 0 selected
+
+============================ 7 deselected in 0.07s =============================
+exit=5
+
+--- pytest.ini at the root (its addopts deselect every test if it is the file pytest reads):
+$ uv run --locked pytest
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.2.0, pluggy-1.7.0
+rootdir: <scratch>/p
+configfile: pytest.ini (WARNING: ignoring pytest config in pyproject.toml!)
+plugins: platformdirs-4.14.5, hypothesis-6.170.14
+collected 7 items / 7 deselected / 0 selected
+
+============================ 7 deselected in 0.07s =============================
+exit=5
+
+--- .pytest.ini at the root (its addopts deselect every test if it is the file pytest reads):
+$ uv run --locked pytest
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.2.0, pluggy-1.7.0
+rootdir: <scratch>/p
+configfile: .pytest.ini (WARNING: ignoring pytest config in pyproject.toml!)
+plugins: platformdirs-4.14.5, hypothesis-6.170.14
+collected 7 items / 7 deselected / 0 selected
+
+============================ 7 deselected in 0.06s =============================
+exit=5
+
+--- tox.ini at the root (its addopts deselect every test if it is the file pytest reads):
+$ uv run --locked pytest
+.......                                                                  [100%]
+7 passed in 0.66s
+exit=0
+
+--- setup.cfg at the root (its addopts deselect every test if it is the file pytest reads):
+$ uv run --locked pytest
+   Building patchbay-vital @ file://<scratch>/p
+      Built patchbay-vital @ file://<scratch>/p
+Uninstalled 1 package in 0.54ms
+Installed 1 package in 1ms
+.......                                                                  [100%]
+7 passed in 0.11s
+exit=0
+
+--- setup.cfg holding a bare [pytest] section, which pytest parses though pyproject.toml is the file it reads: a loud failure, so nothing a step would have to refuse (last line of the output):
+$ uv run --locked pytest
+Failed: [pytest] section in setup.cfg files is no longer supported, change to [tool:pytest] instead.
+exit=1
+
+4a. a failing doctest in tests/unit/test_local.txt and in tests/unit/local.txt, bare pytest (the plugin collects the glob test*.txt, so only the first):
+$ uv run --locked pytest
+   Building patchbay-vital @ file://<scratch>/p
+      Built patchbay-vital @ file://<scratch>/p
+Uninstalled 1 package in 0.72ms
+Installed 1 package in 1ms
+F.......                                                                 [100%]
+=================================== FAILURES ===================================
+___________________________ [doctest] test_local.txt ___________________________
+001 A doctest that fails.
+002 
+003 >>> 1 + 1
+Expected:
+    3
+Got:
+    2
+
+<scratch>/p/tests/unit/test_local.txt:3: DocTestFailure
+=========================== short test summary info ============================
+FAILED tests/unit/test_local.txt::test_local.txt
+1 failed, 7 passed in 0.13s
+exit=1
+
+4b. the same, -p no:doctest, the gate's form:
+$ uv run --locked pytest -p no:doctest
+.......                                                                  [100%]
+7 passed in 0.12s
+exit=0
+
+
+### 5. git: which .gitignore files --exclude-per-directory reads (Decision 11)
+
+Claims to tell apart: only committed .gitignore files count (the sentence in verification-gate.md and in dd2bcad's header); or the work tree's do.
+The setup, shown: the committed .gitignore is empty, and kept.py is tracked.
+$ git show HEAD:.gitignore
+exit=0
+
+$ git ls-files
+.gitignore
+kept.py
+exit=0
+
+5a. the committed state: nothing listed.
+$ git ls-files --cached --ignored --exclude-per-directory=.gitignore -- .
+exit=0
+
+5b. .gitignore edited in the work tree, not committed, not staged, to match kept.py: if only committed files counted, this would still list nothing.
+$ git status --short
+ M .gitignore
+exit=0
+
+$ git ls-files --cached --ignored --exclude-per-directory=.gitignore -- .
+kept.py
+exit=0
+
