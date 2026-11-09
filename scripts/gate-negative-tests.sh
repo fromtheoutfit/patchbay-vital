@@ -42,7 +42,7 @@
 # an earlier run kept as evidence, a failing one before a fix, goes in a file of its own.
 #
 # Usage: scripts/gate-negative-tests.sh [test ...]   (default: every test but j; "all" adds j)
-#   tests: a b c d e f g h i k l m n o p q r s u v w x j
+#   tests: a b c d e f g h i k l m n o p q r s t u v w x y j
 #   a  an unparsable script under scripts/: gate.sh stops at step 1, exit 1, step 2 never reached
 #   b  one byte appended to a file under agent-os/standards/base/: step 6 names it changed alone
 #   c  a hand-edited entry in the base: section of the index: step 6 reports the section alone
@@ -89,6 +89,9 @@
 #      mypy.ini or .mypy.ini cannot hide a fault from its step, where the tool without the flag
 #      reports nothing; a uv.toml at the root, untracked, ignored, tracked or a symlink to nothing,
 #      fails step 2 by name before uv reads it, where a bare uv sync obeys it
+#   t  patchbay-core's source is read: its rev in [tool.uv.sources] edited to an earlier commit
+#      without re-locking: step 2's uv sync --locked fails, uv naming the stale lockfile, with the
+#      sync's reason; ruff never runs, exit 1
 #   u  not run as the gate: --help and a stray argument exit 2 with the usage line, a script that
 #      cannot enter the repository root exits 2 saying so, no step run; the clean copy exits 0
 #   v  the guards with no case above, each by name: git lists no file under scripts/; no .py or
@@ -99,10 +102,13 @@
 #   x  [tool.uv] python-preference is read: uv refuses a Python 3.12 on PATH as the file says, and
 #      takes it when told otherwise; a key or value uv cannot use, which it only warns about,
 #      fails step 2 by name
+#   y  the integration marker is registered: a test marked with it passes the gate; with the markers
+#      entry removed, and separately with the mark misspelled, step 5 names the unknown marker, exit 1
 #   j  the CI replay: the run steps of .github/workflows/gate.yml on a clean copy and a broken one
 # Needs git and uv (steps 2-5 of the gate run through it; j reads the workflow with pyyaml at the
 # version uv.lock resolves, through uv run --with, from uv's cache or the network, and writes
-# nothing in the project). Needs ../patchbay-standards beside this repository,
+# nothing in the project; t resolves an earlier commit of patchbay, from uv's cache or GitHub).
+# Needs ../patchbay-standards beside this repository,
 # as the gate does. g's upper-case runs (upper_run, after upper says so) are skipped on a
 # case-sensitive file system. g and r put a git that refuses one call on PATH (shim), g a mktemp
 # that makes no directory, and v a PATH with no uv and a uv that removes a file after ruff check, in
@@ -130,6 +136,7 @@ F2FMT="FAIL  step 2/6: a file is not formatted as ruff format would write it, or
 F2UV="FAIL  step 2/6: uv.toml is at the root, where uv reads it ahead of [tool.uv] in pyproject.toml; remove it, uv is configured in pyproject.toml alone"
 F2SET="FAIL  step 2/6: uv could not use a setting in [tool.uv] of pyproject.toml, warned and went on without it; correct the key or value it names (see above)"
 F5T=$'FAILED tests/unit/test_probe_fail.py::test_probe_fail\nFAIL  step 5/6: a test failed, or pytest could not read its configuration (see above)'
+F5RUN="FAIL  step 5/6: a test failed, or pytest could not read its configuration (see above)"
 F6="FAIL  step 6/6: drift from patchbay-standards at the pinned commit, or the sibling checkout ../patchbay-standards unusable (see above)"
 USAGE="usage: scripts/gate.sh   (no arguments; exits 1 at the first failing step, 2 on usage)"
 
@@ -235,8 +242,8 @@ mk() {  # mk <case>: <case>/patchbay-vital, a copy of the gate's inputs, git-add
 broken() { printf '#!/usr/bin/env bash\nif true; then\n' > "$NEG/$1/patchbay-vital/scripts/broken.sh" || die "broken $1"; }   # broken <case>: an unparsable script in the copy
 
 tests=("$@")
-[ "${#tests[@]}" -eq 0 ] && tests=(a b c d e f g h i k l m n o p q r s u v w x)
-[ "${tests[*]}" = all ] && tests=(a b c d e f g h i k l m n o p q r s u v w x j)
+[ "${#tests[@]}" -eq 0 ] && tests=(a b c d e f g h i k l m n o p q r s t u v w x y)
+[ "${tests[*]}" = all ] && tests=(a b c d e f g h i k l m n o p q r s t u v w x y j)
 
 for t in "${tests[@]}"; do case "$t" in
 a) hdr "a (unparsable script scripts/broken.sh: gate.sh must fail at step 1 naming it, exit 1, and never print 2/6)"
@@ -645,6 +652,13 @@ SRC
    ln -s nowhere.toml "$NEG/s/patchbay-vital/uv.toml" || die "s: ln uv.toml"
    note "uv.toml a symlink to nothing (must fail step 2 by name, exit 1):"
    run s 1 "$F2UV" scripts/gate.sh ;;
+t) hdr "t (patchbay-core's rev in [tool.uv.sources] changed to an earlier commit of patchbay's main in the copy's pyproject.toml, uv.lock untouched: step 2's uv sync --locked must fail with uv naming the stale lockfile and the sync's reason, ruff never run, exit 1)"
+   mk t
+   sed -i.bak 's/rev = "dd2bcad69dadeb38c6e1e660b2e0ddced13861eb"/rev = "912987a"/' "$NEG/t/patchbay-vital/pyproject.toml" || die "t: sed rev"
+   rm "$NEG/t/patchbay-vital/pyproject.toml.bak" || die "t: rm .bak"
+   grep -q '^patchbay-core = .*rev = "912987a"' "$NEG/t/patchbay-vital/pyproject.toml" || die "t: rev not rewritten"
+   run t 0 grep -n '^patchbay-core' pyproject.toml
+   run t 1 $'error: The lockfile at `uv.lock` needs to be updated, but `--locked` was provided.\n'"$F2SYNC" scripts/gate.sh ;;
 u) hdr "u (not run as the gate: --help and a stray argument each exit 2 with the usage line and run no step; a script that cannot enter the repository root exits 2 saying so; the clean copy exits 0)"
    mk u
    note "clean copy (must pass, exit 0):"
@@ -737,6 +751,35 @@ x) hdr "x ([tool.uv] python-preference is read: with no managed interpreter and 
      times 0 'ok   the locked toolchain synced'
    done
    cp "$NEG/x-saved" "$pp" || die "x: restore pyproject.toml" ;;
+y) hdr "y (the integration marker is registered: a test marked with it passes the gate; the markers entry removed, and separately the mark misspelled, step 5 must name the unknown marker with its reason, exit 1, and never print 6/6)"
+   mk y
+   pp="$NEG/y/patchbay-vital/pyproject.toml"
+   tf="$NEG/y/patchbay-vital/tests/unit/test_marked.py"
+   cat > "$tf" <<'SRC' || die "y: write"
+"""A test under the integration marker."""
+
+import pytest
+
+
+@pytest.mark.integration
+def test_under_the_marker() -> None:
+    """Passes: the marker is registered."""
+SRC
+   note "a test under @pytest.mark.integration, the entry in place (must pass the gate, exit 0):"
+   run y 0 scripts/gate.sh
+   holds 'ok   every test passed'
+   cp "$pp" "$NEG/y-saved" || die "y: save pyproject.toml"
+   sed -i.bak '/^markers = \[$/,/^\]$/d' "$pp" || die "y: sed markers"
+   rm "$pp.bak" || die "y: rm .bak"
+   ! grep -q '^markers' "$pp" || die "y: markers not removed"
+   note "the markers entry removed from the copy's pyproject.toml (step 5 must name the marker, exit 1):"
+   run y 1 "'integration' not found in \`markers\` configuration option"$'\n'"$F5RUN" scripts/gate.sh
+   cp "$NEG/y-saved" "$pp" || die "y: restore pyproject.toml"
+   sed -i.bak 's/@pytest.mark.integration/@pytest.mark.integratoin/' "$tf" || die "y: sed mark"
+   rm "$tf.bak" || die "y: rm test .bak"
+   grep -q '@pytest.mark.integratoin' "$tf" || die "y: mark not misspelled"
+   note "the entry back in place and the mark misspelled integratoin (step 5 must name the misspelling, exit 1):"
+   run y 1 "'integratoin' not found in \`markers\` configuration option"$'\n'"$F5RUN" scripts/gate.sh ;;
 j) hdr "j (CI replay: the run steps of .github/workflows/gate.yml, in order, on a clean copy and on a copy with a broken script)"
    cat <<'TXT'
 The workflow is not run on a hosting service here. The job's steps are read from the workflow file

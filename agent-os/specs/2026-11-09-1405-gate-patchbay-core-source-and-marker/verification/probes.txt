@@ -1,0 +1,79 @@
+
+=== setup
+A scratch copy of the tracked tree of this branch, never the tree itself. Its pyproject.toml given
+dependencies = ["patchbay-core>=0.0.1,<1"] and the [tool.uv.sources] table below, then uv lock.
+Every case starts from that pair of files and restores them after.
+uv 0.13.7 (Homebrew 2026-11-03 aarch64-apple-darwin)
+31:dependencies = ["patchbay-core>=0.0.1,<1"]
+51:patchbay-core = { git = "https://github.com/fromtheoutfit/patchbay", rev = "dd2bcad69dadeb38c6e1e660b2e0ddced13861eb" }
+
+=== P1 uv locks the git source to the commit
+Resolved 32 packages in 2ms
+[exit 0]
+475:source = { git = "https://github.com/fromtheoutfit/patchbay?rev=dd2bcad69dadeb38c6e1e660b2e0ddced13861eb#dd2bcad69dadeb38c6e1e660b2e0ddced13861eb" }
+500:requires-dist = [{ name = "patchbay-core", git = "https://github.com/fromtheoutfit/patchbay?rev=dd2bcad69dadeb38c6e1e660b2e0ddced13861eb" }]
+
+=== P2 rev edited to an earlier commit of patchbay main (912987a), uv.lock left: uv sync --locked
+51:patchbay-core = { git = "https://github.com/fromtheoutfit/patchbay", rev = "912987a" }
+Resolved 32 packages in 251ms
+error: The lockfile at `uv.lock` needs to be updated, but `--locked` was provided.
+
+hint: To update the lockfile, run `uv lock`.
+[exit 1]
+
+=== P3 rev edited to a commit that does not exist, uv.lock left: uv sync --locked
+  cause: process didn't exit successfully: `/usr/bin/git fetch --force --update-head-ok 'https://github.com/fromtheoutfit/patchbay' '+0000000000000000000000000000000000000000:refs/commit/0000000000000000000000000000000000000000'` (exit status: 128)
+         --- stderr
+         fatal: remote error: upload-pack: not our ref 0000000000000000000000000000000000000000
+[exit 1]
+
+=== P4 the range edited to one the pinned commit (0.0.1) cannot meet, >=9,<10, uv.lock left: uv sync --locked
+31:dependencies = ["patchbay-core>=9,<10"]
+ ~ patchbay-vital==0.0.1 (from file://<copy>)
+[exit 0]
+
+=== P4b the same range: uv lock, then what it resolved
+Resolved 32 packages in 2ms
+[exit 0]
+473:name = "patchbay-core"
+474-version = "0.0.1"
+--
+
+=== P5 the source table with no dependency declaring it: uv lock
+31:dependencies = []
+Removed annotated-types v0.8.0
+Removed numpy v2.5.4
+Removed patchbay-core v0.0.1 (dd2bcad6)
+Removed pydantic v2.14.3
+Removed pydantic-core v2.50.4
+Removed typing-inspection v0.4.5
+[exit 0]
+
+=== P6 what the built wheel says about the dependency
+Successfully built dist/patchbay_vital-0.0.1-py3-none-any.whl
+Name: patchbay-vital
+Version: 0.0.1
+Requires-Dist: patchbay-core>=0.0.1,<1
+Requires-Python: >=3.12
+and of the source:
+0
+
+=== P7 pytest 9.2.0, no markers entry, a marked test under --strict-markers
+'integration' not found in `markers` configuration option
+!!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
+1 error in 0.08s
+[exit 2]
+
+=== P8 markers registered as a list
+1 passed in 0.05s
+[exit 0]
+
+=== P9 markers = 3, a value it cannot use
+'integration' not found in `markers` configuration option
+!!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
+1 error in 0.08s
+[exit 2]
+
+=== P10 markers as a bare string
+1 passed in 0.05s
+[exit 0]

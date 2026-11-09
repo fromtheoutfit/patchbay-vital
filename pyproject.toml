@@ -4,8 +4,9 @@
 #
 # Two kinds of entry. The gate's: the [tool.*] sections, and the pins in [dependency-groups] dev of
 # the tools the gate runs (ruff, mypy and pytest) with what uv.lock resolves for them. [tool.uv]
-# pins the uv that gate steps 2-5 of scripts/gate.sh run under, and the rest are the rule set those
-# steps read (ruff format, ruff check, mypy, pytest), each told by flag to read this file. They are
+# pins the uv that gate steps 2-5 of scripts/gate.sh run under, [tool.uv.sources] the commit of
+# patchbay-core they install, and the rest are the rule set those steps read (ruff format, ruff
+# check, mypy, pytest), each told by flag to read this file. They are
 # gate files and change only in the gate's own spec, with a person
 # (agent-os/standards/base/process/verification-gate.md, "Pinned" and "The gate's own files change
 # only in their own spec"). The package's: [project], [build-system] and the rest of
@@ -26,9 +27,16 @@ authors = [
     { name = "Michael Witwicki", email = "michael@theout.fit" }
 ]
 requires-python = ">=3.12"
-# None yet. A runtime dependency is added by the spec that first imports it, patchbay-core among
-# them, as a Decision there, and as a range: the version the gate ran to the next major.
-dependencies = []
+# A range, not an exact pin: the floor is the version the gate ran, the ceiling the next major
+# (agent-os/standards/base/python/toolchain.md, "Dependencies"). Each is a Decision in the spec that
+# added it. patchbay-core came with a gate spec, one spec ahead of the code that imports it,
+# because its source below is the gate's
+# (agent-os/specs/2026-11-09-1405-gate-patchbay-core-source-and-marker/shape.md). uv holds a git
+# source to its commit and does not check this range against it (that spec's
+# verification/probes.txt, P4): the range is what the built wheel declares.
+dependencies = [
+    "patchbay-core>=0.0.1,<1",  # the models, errors and Instrument protocol an adapter plugs into
+]
 
 [build-system]
 requires = ["uv_build>=0.13.7,<0.14.0"]
@@ -46,6 +54,13 @@ required-version = "==0.13.7"
 # system Python where one exists, as ubuntu-24.04's 3.12.3 is (the review of PR 3, finding 3). The
 # patch is the newest 3.12 the uv pinned above ships, and moves only when that pin does.
 python-preference = "only-managed"
+
+# Where patchbay-core comes from: it is on no index and has no tag or release, so uv takes it from
+# its repository, public so CI needs no credential, at the head of its main when this was written.
+# A rev edited without re-locking fails step 2's sync by name (negative test t). Moved deliberately,
+# in the gate's own spec, and the gate rerun. The wheel carries the range and not this source.
+[tool.uv.sources]
+patchbay-core = { git = "https://github.com/fromtheoutfit/patchbay", rev = "dd2bcad69dadeb38c6e1e660b2e0ddced13861eb" }
 
 # Every entry pinned exactly, each with the date it was published, and resolved in uv.lock; each is
 # a Decision in the spec that added it. ruff, mypy and pytest are the tools the gate runs, under
@@ -129,3 +144,8 @@ testpaths = ["tests"]
 # and hypothesis"). The gate adds -c pyproject.toml and -p no:doctest on its own command line, so
 # pytest reads this file alone and no .txt under tests/; this line stays as that standard fixes it.
 addopts = "-q --strict-markers --strict-config"
+# Every marker, with its meaning (that standard). The gate deselects nothing, so an integration test
+# runs at step 5 wherever what it needs is present (negative test y).
+markers = [
+    "integration: needs an installed Vital's presets; skipped with its reason where they are absent",
+]

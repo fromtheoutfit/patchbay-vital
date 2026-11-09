@@ -36,6 +36,11 @@ writes the entry, in that commit
 
 ### Added
 
+- `patchbay-core>=0.0.1,<1` as the first runtime dependency, taken from its public repository at
+  `dd2bcad` by `[tool.uv.sources]`, and the `integration` pytest marker, for issue #2 to build on. A
+  gate spec, issue #4, `agent-os/specs/2026-11-09-1405-gate-patchbay-core-source-and-marker/`;
+  negative tests t and y. `uv.lock` adds six packages and moves no existing pin. The version stays
+  0.0.1.
 - sync base standards: e31f7dbfb474752339a43fe08a37ab26c7956f5c, the first sync. Written by the spec
   after it (`agent-os/specs/2026-11-09-1115-bootstrap-and-toolchain/`), since the sync's commit
   `fe84938` came before this file existed.
