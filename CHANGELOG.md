@@ -12,6 +12,28 @@ writes the entry, in that commit
 
 ## [Unreleased]
 
+### Changed
+
+- Revision after the review of PR 3, `agent-os/specs/2026-11-09-1311-revision-after-pr-3-review/`:
+  findings 1 to 8 and 15 of the review at `5dff391` fixed, 9's wording corrected, 9 proposed upstream
+  (`fromtheoutfit/patchbay-standards#29`), 10 declined by the owner, 11 to 14 left. Findings that
+  hold in patchbay too are `fromtheoutfit/patchbay#17`. The version stays 0.0.1.
+  - `scripts/gate.sh` step 5 runs `pytest -c pyproject.toml -p no:doctest`, so a root `pytest.ini`,
+    `.pytest.ini`, `pytest.toml` or `.pytest.toml`, tracked or ignored, cannot replace the test
+    rules; the four filename refusals are gone, the `uv.toml` refusal stays.
+  - `[tool.uv] python-preference = "only-managed"`: a local run and CI both use uv's own build of
+    the interpreter, CPython 3.12.16 at this uv pin, where CI had taken the runner's 3.12.3.
+  - Step 2 fails by name when uv warns it cannot use a key or value in `[tool.uv]`, where uv goes on
+    without it and the gate passed.
+  - `scripts/gate.sh` and the harness empty `CDPATH` for the `cd` to the repository root.
+  - The pre-commit hooks read `pyproject.toml` alone (`--config`), as the gate does.
+  - `tests/unit/test_package.py` exempts only the package's own submodules from the public surface.
+  - The harness: q holds each of the four files, ignored and tracked; new cases w (`CDPATH`) and x
+    (`python-preference`); j pins pyyaml. `verification/guard-mutations.txt`: each guard's mutation
+    caught.
+  - Docs: where uv puts the interpreter, what CI runs besides the gate, and that `CLAUDE.md` opens
+    with `## Git`. The bootstrap spec records its hosted run, 42668230570.
+
 ### Added
 
 - sync base standards: e31f7dbfb474752339a43fe08a37ab26c7956f5c, the first sync. Written by the spec

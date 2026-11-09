@@ -1,0 +1,1240 @@
+The guard mutations of the revision after the review of PR 3, run 2026-11-09 on branch
+feature/1-bootstrap-and-toolchain-shape-spec-claudemd-gate-ci-pyprojecttoml-readme-changelog,
+after the last edit to the gate's scripts. Each mutation is a fresh copy of the tree as git lists it (tracked plus
+untracked-not-ignored), made in a scratch directory outside the repository and not a git repository itself, with one
+guard deleted or its status ignored, and the harness case that covers it run from that copy. Every mutation must come
+back UNEXPECTED, harness exit 1, except the ones marked "must: pass": those remove the harness assertion that caught
+the mutation above them, and passing shows that assertion alone caught it. The unmutated runs of the same cases are in
+gate-negative-tests.txt. Below each mutation: the diff, then the UNEXPECTED runs of the harness, each with the lines
+above it, and the count. Nothing here is a gate step or part of the harness; it is the evidence that the cases
+discriminate.
+
+### M1: the cd's own failure line and exit 2, deleted
+--- scripts/gate.sh (as shipped)
++++ scripts/gate.sh (mutated)
+@@ -81,3 +81,3 @@
+ # CDPATH is emptied for this one cd: exported, it can resolve scripts/.. under another directory.
+-CDPATH= cd -- "$(dirname "$0")/.." || { echo "gate: cannot enter the repository root, $(dirname "$0")/..; not run as the gate" >&2; exit 2; }
++CDPATH= cd -- "$(dirname "$0")/.."
+ 
+$ scripts/gate-negative-tests.sh u   (in the mutated copy)
+exit=2
+-- the copy's gate.sh run as bash -c with $0 under a directory that does not exist, so its cd to the repository root fails (exit 2 saying so, no step banner):
+<copy u>/patchbay-vital/nowhere/scripts/gate.sh: line 81: cd: <copy u>/patchbay-vital/nowhere/scripts/..: No such file or directory
+exit=1  UNEXPECTED (expected 2)
+--
+4 runs, 1 unexpected
+harness exit=1
+must: come back UNEXPECTED, harness exit 1
+result: as required
+
+### M2: the gate's cd without CDPATH emptied
+--- scripts/gate.sh (as shipped)
++++ scripts/gate.sh (mutated)
+@@ -81,3 +81,3 @@
+ # CDPATH is emptied for this one cd: exported, it can resolve scripts/.. under another directory.
+-CDPATH= cd -- "$(dirname "$0")/.." || { echo "gate: cannot enter the repository root, $(dirname "$0")/..; not run as the gate" >&2; exit 2; }
++cd -- "$(dirname "$0")/.." || { echo "gate: cannot enter the repository root, $(dirname "$0")/..; not run as the gate" >&2; exit 2; }
+ 
+$ scripts/gate-negative-tests.sh w   (in the mutated copy)
+
+== 2/6  uv sync --locked, then uv run --locked ruff format --check over the .py and .pyi files git lists (the locked toolchain; the formatter)
+FAIL  step 2/6: git lists no .py or .pyi file
+exit=1  UNEXPECTED (expected 0)
+--
+== 2/6  uv sync --locked, then uv run --locked ruff format --check over the .py and .pyi files git lists (the locked toolchain; the formatter)
+FAIL  step 2/6: git lists no .py or .pyi file
+exit=1  UNEXPECTED (expected 0)
+holds=ok   scripts/gate.sh  UNEXPECTED (not in the output, in order)
+--
+FAIL  step 2/6: git lists no .py or .pyi file
+exit=1  UNEXPECTED (expected 0)
+holds=ok   scripts/gate.sh  UNEXPECTED (not in the output, in order)
+times=0 x ok   scripts/decoy.sh  UNEXPECTED (found 1)
+--
+2 runs, 3 unexpected
+harness exit=1
+must: come back UNEXPECTED, harness exit 1
+result: as required
+
+### M3: the usage check, deleted
+--- scripts/gate.sh (as shipped)
++++ scripts/gate.sh (mutated)
+@@ -83,6 +83,2 @@
+ 
+-if [ $# -ne 0 ]; then
+-  echo "usage: scripts/gate.sh   (no arguments; exits 1 at the first failing step, 2 on usage)" >&2
+-  exit 2
+-fi
+ 
+$ scripts/gate-negative-tests.sh u   (in the mutated copy)
+ok   agent-os/standards/base and the base: section of agent-os/standards/index.yml match patchbay-standards at e31f7dbfb474752339a43fe08a37ab26c7956f5c
+
+Gate steps 1-6 passed. Steps 7-9 are judgment, recorded in shape.md: Docs, Version, the standards retrospective.
+exit=0  UNEXPECTED (expected 2)
+--
+ok   agent-os/standards/base and the base: section of agent-os/standards/index.yml match patchbay-standards at e31f7dbfb474752339a43fe08a37ab26c7956f5c
+
+Gate steps 1-6 passed. Steps 7-9 are judgment, recorded in shape.md: Docs, Version, the standards retrospective.
+exit=0  UNEXPECTED (expected 2)
+--
+4 runs, 2 unexpected
+harness exit=1
+must: come back UNEXPECTED, harness exit 1
+result: as required
+
+### M4: step 1's root guard without --is-inside-work-tree
+--- scripts/gate.sh (as shipped)
++++ scripts/gate.sh (mutated)
+@@ -105,4 +105,3 @@
+ root=$(pwd -P)
+-inside=$(git rev-parse --is-inside-work-tree 2>/dev/null) && [ "$inside" = true ] &&
+-  cdup=$(git rev-parse --show-cdup 2>/dev/null) && [ -z "$cdup" ] ||
++cdup=$(git rev-parse --show-cdup 2>/dev/null) && [ -z "$cdup" ] ||
+   fail 1/6 "not a git work tree rooted at $root; the gate lists files with git ls-files"
+$ scripts/gate-negative-tests.sh g   (in the mutated copy)
+== 1/6  bash -n on every shell script under scripts/ (tracked or untracked, not ignored), in a tree with no tracked file a .gitignore ignores
+fatal: this operation must be run in a work tree
+FAIL  step 1/6: git could not list the tracked files a .gitignore ignores (see above)
+exit=1  UNEXPECTED (the output does not say: FAIL  step 1/6: not a git work tree rooted at <copy gg>/.git/tree/patchbay-vital; the gate lists files with git ls-files)
+--
+== 1/6  bash -n on every shell script under scripts/ (tracked or untracked, not ignored), in a tree with no tracked file a .gitignore ignores
+fatal: this operation must be run in a work tree
+FAIL  step 1/6: git could not list the tracked files a .gitignore ignores (see above)
+exit=1  UNEXPECTED (the output does not say: FAIL  step 1/6: not a git work tree rooted at <copy gb>.git/tree/patchbay-vital; the gate lists files with git ls-files)
+--
+21 runs, 2 unexpected
+harness exit=1
+must: come back UNEXPECTED, harness exit 1
+result: as required
+
+### M5: step 1's root guard without --show-cdup
+--- scripts/gate.sh (as shipped)
++++ scripts/gate.sh (mutated)
+@@ -105,4 +105,3 @@
+ root=$(pwd -P)
+-inside=$(git rev-parse --is-inside-work-tree 2>/dev/null) && [ "$inside" = true ] &&
+-  cdup=$(git rev-parse --show-cdup 2>/dev/null) && [ -z "$cdup" ] ||
++inside=$(git rev-parse --is-inside-work-tree 2>/dev/null) && [ "$inside" = true ] ||
+   fail 1/6 "not a git work tree rooted at $root; the gate lists files with git ls-files"
+$ scripts/gate-negative-tests.sh g   (in the mutated copy)
+== 6/6  scripts/sync-standards.sh --check: agent-os/standards/base/, the base: section and the script match patchbay-standards at the commit in .version (../patchbay-standards)
+FAIL  run from the consuming project's root, the top of its git work tree (here: <copy go>/copy/patchbay-vital)
+FAIL  step 6/6: drift from patchbay-standards at the pinned commit, or the sibling checkout ../patchbay-standards unusable (see above)
+exit=1  UNEXPECTED (the output does not say: FAIL  step 1/6: not a git work tree rooted at <copy go>/copy/patchbay-vital; the gate lists files with git ls-files)
+--
+21 runs, 1 unexpected
+harness exit=1
+must: come back UNEXPECTED, harness exit 1
+result: as required
+
+### M6: step 1's mktemp check, deleted
+--- scripts/gate.sh (as shipped)
++++ scripts/gate.sh (mutated)
+@@ -108,4 +108,3 @@
+   fail 1/6 "not a git work tree rooted at $root; the gate lists files with git ls-files"
+-tmp=$(mktemp -d) && [ -n "$tmp" ] && [ -d "$tmp" ] ||
+-  fail 1/6 "mktemp -d made no temporary directory for git's listings (see above)"
++tmp=$(mktemp -d) || true
+ trap 'rm -rf "$tmp"' EXIT
+$ scripts/gate-negative-tests.sh g   (in the mutated copy)
+mktemp (test shim): refusing
+scripts/gate.sh: line 91: /ignored.raw: Read-only file system
+FAIL  step 1/6: git could not list the tracked files a .gitignore ignores (see above)
+exit=1  UNEXPECTED (the output does not say: mktemp (test shim): refusing
+--
+21 runs, 1 unexpected
+harness exit=1
+must: come back UNEXPECTED, harness exit 1
+result: as required
+
+### M7: step 1's refusal listing, its status ignored
+--- scripts/gate.sh (as shipped)
++++ scripts/gate.sh (mutated)
+@@ -111,4 +111,3 @@
+ trap 'rm -rf "$tmp"' EXIT
+-git_list "$tmp/ignored" --cached --ignored --exclude-per-directory=.gitignore -- . ||
+-  fail 1/6 "git could not list the tracked files a .gitignore ignores (see above)"
++git_list "$tmp/ignored" --cached --ignored --exclude-per-directory=.gitignore -- . || true
+ if [ -s "$tmp/ignored" ]; then
+$ scripts/gate-negative-tests.sh g   (in the mutated copy)
+fatal: .git/index: index file smaller than expected
+fatal: .git/index: index file smaller than expected
+FAIL  step 1/6: git could not list the files under scripts/ (see above)
+exit=1  UNEXPECTED (the output does not say: index file smaller than expected
+--
+21 runs, 1 unexpected
+harness exit=1
+must: come back UNEXPECTED, harness exit 1
+result: as required
+
+### M8: step 1's refusal, deleted
+--- scripts/gate.sh (as shipped)
++++ scripts/gate.sh (mutated)
+@@ -113,5 +113,2 @@
+   fail 1/6 "git could not list the tracked files a .gitignore ignores (see above)"
+-if [ -s "$tmp/ignored" ]; then
+-  fail_list 1/6 "tracked, but a .gitignore ignores them; stop ignoring each (a ! pattern, and for a file under an ignored directory, ignore dir/* rather than dir/ first) or stop tracking it (git rm --cached)" "$tmp/ignored"
+-fi
+ listed "$tmp/scripts" scripts || fail 1/6 "git could not list the files under scripts/ (see above)"
+$ scripts/gate-negative-tests.sh p   (in the mutated copy)
+
+1 file would be reformatted, 3 files already formatted
+FAIL  step 2/6: a file is not formatted as ruff format would write it, or ruff could not read its settings (see above)
+exit=1  UNEXPECTED (the output does not say: FAIL  step 1/6: tracked, but a .gitignore ignores them; stop ignoring each (a ! pattern, and for a file under an ignored directory, ignore dir/* rather than dir/ first) or stop tracking it (git rm --cached):)
+--
+1 file would be reformatted, 3 files already formatted
+FAIL  step 2/6: a file is not formatted as ruff format would write it, or ruff could not read its settings (see above)
+exit=1  UNEXPECTED (the output does not say: FAIL  step 1/6: tracked, but a .gitignore ignores them; stop ignoring each (a ! pattern, and for a file under an ignored directory, ignore dir/* rather than dir/ first) or stop tracking it (git rm --cached):)
+named=src/patchbay_vital/local_settings.py  UNEXPECTED (listed: )
+--
+
+1 file would be reformatted, 4 files already formatted
+FAIL  step 2/6: a file is not formatted as ruff format would write it, or ruff could not read its settings (see above)
+exit=1  UNEXPECTED (the output does not say: FAIL  step 1/6: tracked, but a .gitignore ignores them; stop ignoring each (a ! pattern, and for a file under an ignored directory, ignore dir/* rather than dir/ first) or stop tracking it (git rm --cached):)
+--
+1 file would be reformatted, 4 files already formatted
+FAIL  step 2/6: a file is not formatted as ruff format would write it, or ruff could not read its settings (see above)
+exit=1  UNEXPECTED (the output does not say: FAIL  step 1/6: tracked, but a .gitignore ignores them; stop ignoring each (a ! pattern, and for a file under an ignored directory, ignore dir/* rather than dir/ first) or stop tracking it (git rm --cached):)
+named=src/patchbay_vital/local_settings.py tests/unit/local_settings.py  UNEXPECTED (listed: )
+--
+17 runs, 4 unexpected
+harness exit=1
+must: come back UNEXPECTED, harness exit 1
+result: as required
+
+### M9: step 1's refusal reading --exclude-standard
+--- scripts/gate.sh (as shipped)
++++ scripts/gate.sh (mutated)
+@@ -111,3 +111,3 @@
+ trap 'rm -rf "$tmp"' EXIT
+-git_list "$tmp/ignored" --cached --ignored --exclude-per-directory=.gitignore -- . ||
++git_list "$tmp/ignored" --cached --ignored --exclude-standard -- . ||
+   fail 1/6 "git could not list the tracked files a .gitignore ignores (see above)"
+$ scripts/gate-negative-tests.sh p   (in the mutated copy)
+== 1/6  bash -n on every shell script under scripts/ (tracked or untracked, not ignored), in a tree with no tracked file a .gitignore ignores
+FAIL  step 1/6: tracked, but a .gitignore ignores them; stop ignoring each (a ! pattern, and for a file under an ignored directory, ignore dir/* rather than dir/ first) or stop tracking it (git rm --cached):
+        src/patchbay_vital/local_settings.py
+exit=1  UNEXPECTED (the output does not say: ok   scripts/sync-standards.sh
+--
+== 1/6  bash -n on every shell script under scripts/ (tracked or untracked, not ignored), in a tree with no tracked file a .gitignore ignores
+FAIL  step 1/6: tracked, but a .gitignore ignores them; stop ignoring each (a ! pattern, and for a file under an ignored directory, ignore dir/* rather than dir/ first) or stop tracking it (git rm --cached):
+        src/patchbay_vital/local_settings.py
+exit=1  UNEXPECTED (the output does not say: ok   scripts/sync-standards.sh
+--
+17 runs, 2 unexpected
+harness exit=1
+must: come back UNEXPECTED, harness exit 1
+result: as required
+
+### M10: fail_list stopping at the first path
+--- scripts/gate.sh (as shipped)
++++ scripts/gate.sh (mutated)
+@@ -95,3 +95,3 @@
+   printf 'FAIL  step %s: %s:\n' "$1" "$2" >&2
+-  while IFS= read -r -d '' f; do printf '        %s\n' "$f" >&2; done < "$3"
++  while IFS= read -r -d '' f; do printf '        %s\n' "$f" >&2; break; done < "$3"
+   exit 1
+$ scripts/gate-negative-tests.sh p   (in the mutated copy)
+FAIL  step 1/6: tracked, but a .gitignore ignores them; stop ignoring each (a ! pattern, and for a file under an ignored directory, ignore dir/* rather than dir/ first) or stop tracking it (git rm --cached):
+        src/patchbay_vital/local_settings.py
+exit=1
+named=src/patchbay_vital/local_settings.py tests/unit/local_settings.py  UNEXPECTED (listed: src/patchbay_vital/local_settings.py)
+--
+17 runs, 1 unexpected
+harness exit=1
+must: come back UNEXPECTED, harness exit 1
+result: as required
+
+### M11: each path once: git_list sorting without -u
+--- scripts/gate.sh (as shipped)
++++ scripts/gate.sh (mutated)
+@@ -90,3 +90,3 @@
+ fail() { printf 'FAIL  step %s: %s\n' "$1" "$2" >&2; exit 1; }   # fail <step> <reason>
+-git_list() { local out=$1; shift; git ls-files -z "$@" > "$out.raw" && LC_ALL=C sort -zu "$out.raw" > "$out"; }   # git_list <file> <ls-files args...>: git's list into <file>, NUL-separated, sorted, each path once; fails when git cannot list
++git_list() { local out=$1; shift; git ls-files -z "$@" > "$out.raw" && LC_ALL=C sort -z "$out.raw" > "$out"; }   # git_list <file> <ls-files args...>: git's list into <file>, NUL-separated, sorted, each path once; fails when git cannot list
+ listed() { local out=$1; shift; git_list "$out" --cached --others --exclude-standard -- "$@"; }   # listed <file> <path...>: what git lists under the paths, tracked or untracked not ignored
+$ scripts/gate-negative-tests.sh g   (in the mutated copy)
+
+Gate steps 1-6 passed. Steps 7-9 are judgment, recorded in shape.md: Docs, Version, the standards retrospective.
+exit=0
+times=1 x ok   scripts/conflict.sh  UNEXPECTED (found 3)
+--
+21 runs, 1 unexpected
+harness exit=1
+must: come back UNEXPECTED, harness exit 1
+result: as required
+
+### M12: step 1's scripts/ listing, its status ignored
+--- scripts/gate.sh (as shipped)
++++ scripts/gate.sh (mutated)
+@@ -116,3 +116,3 @@
+ fi
+-listed "$tmp/scripts" scripts || fail 1/6 "git could not list the files under scripts/ (see above)"
++listed "$tmp/scripts" scripts || true
+ n=0
+$ scripts/gate-negative-tests.sh g   (in the mutated copy)
+git (test shim): refusing: ls-files -z --cached --others --exclude-standard -- scripts
+scripts/gate.sh: line 127: /var/folders/l4/jz4g7psj5h1gxvk_6zp29rvm0000gn/T/tmp.RQkJcDYoGb/scripts: No such file or directory
+FAIL  step 1/6: git lists no file under scripts/
+exit=1  UNEXPECTED (the output does not say: git (test shim): refusing
+--
+21 runs, 1 unexpected
+harness exit=1
+must: come back UNEXPECTED, harness exit 1
+result: as required
+
+### M13: present: the symlink-to-nothing line, deleted
+--- scripts/gate.sh (as shipped)
++++ scripts/gate.sh (mutated)
+@@ -99,3 +99,2 @@
+ present() {  # present <step> <path>: fail the step unless the listed path is on the disk
+-  if [ -L "$2" ] && [ ! -e "$2" ]; then fail "$1" "$2 is a symlink to nothing"; fi
+   [ -e "$2" ] || fail "$1" "$2 is tracked but missing from the disk"
+$ scripts/gate-negative-tests.sh g   (in the mutated copy)
+
+== 1/6  bash -n on every shell script under scripts/ (tracked or untracked, not ignored), in a tree with no tracked file a .gitignore ignores
+FAIL  step 1/6: scripts/dangling.sh is tracked but missing from the disk
+exit=1  UNEXPECTED (the output does not say: FAIL  step 1/6: scripts/dangling.sh is a symlink to nothing)
+--
+21 runs, 1 unexpected
+harness exit=1
+must: come back UNEXPECTED, harness exit 1
+result: as required
+
+### M14: present: the missing-from-disk line, deleted
+--- scripts/gate.sh (as shipped)
++++ scripts/gate.sh (mutated)
+@@ -100,3 +100,2 @@
+   if [ -L "$2" ] && [ ! -e "$2" ]; then fail "$1" "$2 is a symlink to nothing"; fi
+-  [ -e "$2" ] || fail "$1" "$2 is tracked but missing from the disk"
+ }
+$ scripts/gate-negative-tests.sh g   (in the mutated copy)
+== 1/6  bash -n on every shell script under scripts/ (tracked or untracked, not ignored), in a tree with no tracked file a .gitignore ignores
+bash: scripts/gate-negative-tests.sh: No such file or directory
+FAIL  step 1/6: scripts/gate-negative-tests.sh does not parse
+exit=1  UNEXPECTED (the output does not say: FAIL  step 1/6: scripts/gate-negative-tests.sh is tracked but missing from the disk)
+--
+21 runs, 1 unexpected
+harness exit=1
+must: come back UNEXPECTED, harness exit 1
+result: as required
+
+### M15: step 1's refusal of a non-shell file, deleted
+--- scripts/gate.sh (as shipped)
++++ scripts/gate.sh (mutated)
+@@ -122,3 +122,3 @@
+     *.sh) ;;
+-    *) head -n 1 "$f" | grep -Eq '^#!.*bash' || fail 1/6 "$f is not a shell script; only shell scripts live under scripts/" ;;
++    *) ;;
+   esac
+$ scripts/gate-negative-tests.sh g   (in the mutated copy)
+ok   agent-os/standards/base and the base: section of agent-os/standards/index.yml match patchbay-standards at e31f7dbfb474752339a43fe08a37ab26c7956f5c
+
+Gate steps 1-6 passed. Steps 7-9 are judgment, recorded in shape.md: Docs, Version, the standards retrospective.
+exit=0  UNEXPECTED (expected 1)
+--
+21 runs, 1 unexpected
+harness exit=1
+must: come back UNEXPECTED, harness exit 1
+result: as required
+
+### M16: step 1's no-file check, deleted
+--- scripts/gate.sh (as shipped)
++++ scripts/gate.sh (mutated)
+@@ -127,3 +127,2 @@
+ done < "$tmp/scripts"
+-[ "$n" -gt 0 ] || fail 1/6 "git lists no file under scripts/"
+ 
+$ scripts/gate-negative-tests.sh v   (in the mutated copy)
+ok   agent-os/standards/base and the base: section of agent-os/standards/index.yml match patchbay-standards at e31f7dbfb474752339a43fe08a37ab26c7956f5c
+
+Gate steps 1-6 passed. Steps 7-9 are judgment, recorded in shape.md: Docs, Version, the standards retrospective.
+exit=0  UNEXPECTED (expected 1)
+--
+8 runs, 1 unexpected
+harness exit=1
+must: come back UNEXPECTED, harness exit 1
+result: as required
+
+### M17: step 1's bash -n, its status ignored
+--- scripts/gate.sh (as shipped)
++++ scripts/gate.sh (mutated)
+@@ -124,3 +124,3 @@
+   esac
+-  bash -n "$f" || fail 1/6 "$f does not parse"
++  bash -n "$f" || true
+   echo "ok   $f"; n=$((n + 1))
+$ scripts/gate-negative-tests.sh a   (in the mutated copy)
+ok   agent-os/standards/base and the base: section of agent-os/standards/index.yml match patchbay-standards at e31f7dbfb474752339a43fe08a37ab26c7956f5c
+
+Gate steps 1-6 passed. Steps 7-9 are judgment, recorded in shape.md: Docs, Version, the standards retrospective.
+exit=0  UNEXPECTED (expected 1)
+--
+1 runs, 1 unexpected
+harness exit=1
+must: come back UNEXPECTED, harness exit 1
+result: as required
+
+### M18: step 2's listing, its status ignored
+--- scripts/gate.sh (as shipped)
++++ scripts/gate.sh (mutated)
+@@ -130,3 +130,3 @@
+ step "2/6  uv sync --locked, then uv run --locked ruff format --check over the .py and .pyi files git lists (the locked toolchain; the formatter)"
+-listed "$tmp/tree" . || fail 2/6 "git could not list the files of the tree (see above)"
++listed "$tmp/tree" . || true
+ py=()
+$ scripts/gate-negative-tests.sh r   (in the mutated copy)
+git (test shim): refusing: ls-files -z --cached --others --exclude-standard -- .
+scripts/gate.sh: line 135: /var/folders/l4/jz4g7psj5h1gxvk_6zp29rvm0000gn/T/tmp.qpkZEtnnc5/tree: No such file or directory
+FAIL  step 2/6: git lists no .py or .pyi file
+exit=1  UNEXPECTED (the output does not say: git (test shim): refusing
+--
+3 runs, 1 unexpected
+harness exit=1
+must: come back UNEXPECTED, harness exit 1
+result: as required
+
+### M19: step 2's no-.py check, deleted
+--- scripts/gate.sh (as shipped)
++++ scripts/gate.sh (mutated)
+@@ -135,3 +135,2 @@
+ done < "$tmp/tree"
+-[ "${#py[@]}" -gt 0 ] || fail 2/6 "git lists no .py or .pyi file"
+ command -v uv >/dev/null 2>&1 || fail 2/6 "uv is not on PATH; steps 2-5 run the pinned tools through uv run --locked"
+$ scripts/gate-negative-tests.sh v   (in the mutated copy)
+ + virtualenv==21.15.6
+ok   the locked toolchain synced
+scripts/gate.sh: line 145: py[@]: unbound variable
+exit=0  UNEXPECTED (expected 1)
+--
+8 runs, 1 unexpected
+harness exit=1
+must: come back UNEXPECTED, harness exit 1
+result: as required
+
+### M20: step 2's present, deleted
+--- scripts/gate.sh (as shipped)
++++ scripts/gate.sh (mutated)
+@@ -133,3 +133,3 @@
+ while IFS= read -r -d '' f; do
+-  case "$f" in *.py|*.pyi) present 2/6 "$f"; py+=("$f") ;; esac
++  case "$f" in *.py|*.pyi) py+=("$f") ;; esac
+ done < "$tmp/tree"
+$ scripts/gate-negative-tests.sh v   (in the mutated copy)
+
+3 files already formatted
+FAIL  step 2/6: a file is not formatted as ruff format would write it, or ruff could not read its settings (see above)
+exit=1  UNEXPECTED (the output does not say: FAIL  step 2/6: src/patchbay_vital/_gone.py is tracked but missing from the disk)
+--
+
+3 files already formatted
+FAIL  step 2/6: a file is not formatted as ruff format would write it, or ruff could not read its settings (see above)
+exit=1  UNEXPECTED (the output does not say: FAIL  step 2/6: src/patchbay_vital/_dangling.py is a symlink to nothing)
+--
+8 runs, 2 unexpected
+harness exit=1
+must: come back UNEXPECTED, harness exit 1
+result: as required
+
+### M21: step 2's uv-on-PATH check, deleted
+--- scripts/gate.sh (as shipped)
++++ scripts/gate.sh (mutated)
+@@ -136,3 +136,2 @@
+ [ "${#py[@]}" -gt 0 ] || fail 2/6 "git lists no .py or .pyi file"
+-command -v uv >/dev/null 2>&1 || fail 2/6 "uv is not on PATH; steps 2-5 run the pinned tools through uv run --locked"
+ [ ! -e uv.toml ] && [ ! -L uv.toml ] ||
+$ scripts/gate-negative-tests.sh v   (in the mutated copy)
+== 2/6  uv sync --locked, then uv run --locked ruff format --check over the .py and .pyi files git lists (the locked toolchain; the formatter)
+scripts/gate.sh: line 139: uv: command not found
+FAIL  step 2/6: uv could not sync the locked toolchain: uv.lock does not match pyproject.toml, uv could not read them or build the package, or this uv is not the version [tool.uv] requires (see above)
+exit=1  UNEXPECTED (the output does not say: FAIL  step 2/6: uv is not on PATH; steps 2-5 run the pinned tools through uv run --locked)
+--
+8 runs, 1 unexpected
+harness exit=1
+must: come back UNEXPECTED, harness exit 1
+result: as required
+
+### M22: step 2's uv.toml refusal, deleted
+--- scripts/gate.sh (as shipped)
++++ scripts/gate.sh (mutated)
+@@ -137,4 +137,2 @@
+ command -v uv >/dev/null 2>&1 || fail 2/6 "uv is not on PATH; steps 2-5 run the pinned tools through uv run --locked"
+-[ ! -e uv.toml ] && [ ! -L uv.toml ] ||
+-  fail 2/6 "uv.toml is at the root, where uv reads it ahead of [tool.uv] in pyproject.toml; remove it, uv is configured in pyproject.toml alone"
+ uv sync --locked 2>&1 | tee "$tmp/sync" ||
+$ scripts/gate-negative-tests.sh s   (in the mutated copy)
+- python-preference
+error: Required uv version `==0.13.6` does not match the running version `0.13.7`
+FAIL  step 2/6: uv could not sync the locked toolchain: uv.lock does not match pyproject.toml, uv could not read them or build the package, or this uv is not the version [tool.uv] requires (see above)
+exit=1  UNEXPECTED (the output does not say: FAIL  step 2/6: uv.toml is at the root, where uv reads it ahead of [tool.uv] in pyproject.toml; remove it, uv is configured in pyproject.toml alone)
+--
+- python-preference
+error: Required uv version `==0.13.6` does not match the running version `0.13.7`
+FAIL  step 2/6: uv could not sync the locked toolchain: uv.lock does not match pyproject.toml, uv could not read them or build the package, or this uv is not the version [tool.uv] requires (see above)
+exit=1  UNEXPECTED (the output does not say: FAIL  step 2/6: uv.toml is at the root, where uv reads it ahead of [tool.uv] in pyproject.toml; remove it, uv is configured in pyproject.toml alone)
+--
+- python-preference
+error: Required uv version `==0.13.6` does not match the running version `0.13.7`
+FAIL  step 2/6: uv could not sync the locked toolchain: uv.lock does not match pyproject.toml, uv could not read them or build the package, or this uv is not the version [tool.uv] requires (see above)
+exit=1  UNEXPECTED (the output does not say: FAIL  step 2/6: uv.toml is at the root, where uv reads it ahead of [tool.uv] in pyproject.toml; remove it, uv is configured in pyproject.toml alone)
+--
+ok   agent-os/standards/base and the base: section of agent-os/standards/index.yml match patchbay-standards at e31f7dbfb474752339a43fe08a37ab26c7956f5c
+
+Gate steps 1-6 passed. Steps 7-9 are judgment, recorded in shape.md: Docs, Version, the standards retrospective.
+exit=0  UNEXPECTED (expected 1)
+--
+18 runs, 4 unexpected
+harness exit=1
+must: come back UNEXPECTED, harness exit 1
+result: as required
+
+### M23: step 2's uv.toml refusal, the symlink test deleted
+--- scripts/gate.sh (as shipped)
++++ scripts/gate.sh (mutated)
+@@ -137,3 +137,3 @@
+ command -v uv >/dev/null 2>&1 || fail 2/6 "uv is not on PATH; steps 2-5 run the pinned tools through uv run --locked"
+-[ ! -e uv.toml ] && [ ! -L uv.toml ] ||
++[ ! -e uv.toml ] ||
+   fail 2/6 "uv.toml is at the root, where uv reads it ahead of [tool.uv] in pyproject.toml; remove it, uv is configured in pyproject.toml alone"
+$ scripts/gate-negative-tests.sh s   (in the mutated copy)
+ok   agent-os/standards/base and the base: section of agent-os/standards/index.yml match patchbay-standards at e31f7dbfb474752339a43fe08a37ab26c7956f5c
+
+Gate steps 1-6 passed. Steps 7-9 are judgment, recorded in shape.md: Docs, Version, the standards retrospective.
+exit=0  UNEXPECTED (expected 1)
+--
+18 runs, 1 unexpected
+harness exit=1
+must: come back UNEXPECTED, harness exit 1
+result: as required
+
+### M24: step 2's ruff format without --config
+--- scripts/gate.sh (as shipped)
++++ scripts/gate.sh (mutated)
+@@ -145,3 +145,3 @@
+ echo "ok   the locked toolchain synced"
+-uv run --locked ruff format --config pyproject.toml --check -- "${py[@]}" ||
++uv run --locked ruff format --check -- "${py[@]}" ||
+   fail 2/6 "a file is not formatted as ruff format would write it, or ruff could not read its settings (see above)"
+$ scripts/gate-negative-tests.sh s   (in the mutated copy)
+
+3 files would be reformatted, 1 file already formatted
+FAIL  step 2/6: a file is not formatted as ruff format would write it, or ruff could not read its settings (see above)
+exit=1  UNEXPECTED (the output does not say: ok   the locked toolchain synced
+--
+
+3 files would be reformatted, 1 file already formatted
+FAIL  step 2/6: a file is not formatted as ruff format would write it, or ruff could not read its settings (see above)
+exit=1  UNEXPECTED (the output does not say: ok   the locked toolchain synced
+--
+
+2 files would be reformatted, 2 files already formatted
+FAIL  step 2/6: a file is not formatted as ruff format would write it, or ruff could not read its settings (see above)
+exit=1  UNEXPECTED (the output does not say: ok   the locked toolchain synced
+--
+18 runs, 3 unexpected
+harness exit=1
+must: come back UNEXPECTED, harness exit 1
+result: as required
+
+### M25: step 2's sync, its status ignored
+--- scripts/gate.sh (as shipped)
++++ scripts/gate.sh (mutated)
+@@ -139,4 +139,3 @@
+   fail 2/6 "uv.toml is at the root, where uv reads it ahead of [tool.uv] in pyproject.toml; remove it, uv is configured in pyproject.toml alone"
+-uv sync --locked 2>&1 | tee "$tmp/sync" ||
+-  fail 2/6 "uv could not sync the locked toolchain: uv.lock does not match pyproject.toml, uv could not read them or build the package, or this uv is not the version [tool.uv] requires (see above)"
++uv sync --locked 2>&1 | tee "$tmp/sync" || true
+ if grep -Fq 'during settings discovery' "$tmp/sync"; then
+$ scripts/gate-negative-tests.sh n   (in the mutated copy)
+
+hint: To update the lockfile, run `uv lock`.
+FAIL  step 2/6: a file is not formatted as ruff format would write it, or ruff could not read its settings (see above)
+exit=1  UNEXPECTED (the output does not say: error: The lockfile at `uv.lock` needs to be updated, but `--locked` was provided.
+--
+2 runs, 1 unexpected
+harness exit=1
+must: come back UNEXPECTED, harness exit 1
+result: as required
+
+### M26: step 2's sync, pipefail removed so tee's status is the pipe's
+--- scripts/gate.sh (as shipped)
++++ scripts/gate.sh (mutated)
+@@ -79,3 +79,3 @@
+ # else is installed to run the gate.
+-set -euo pipefail
++set -eu
+ # CDPATH is emptied for this one cd: exported, it can resolve scripts/.. under another directory.
+$ scripts/gate-negative-tests.sh n   (in the mutated copy)
+
+hint: To update the lockfile, run `uv lock`.
+FAIL  step 2/6: a file is not formatted as ruff format would write it, or ruff could not read its settings (see above)
+exit=1  UNEXPECTED (the output does not say: error: The lockfile at `uv.lock` needs to be updated, but `--locked` was provided.
+--
+2 runs, 1 unexpected
+harness exit=1
+must: come back UNEXPECTED, harness exit 1
+result: as required
+
+### M27: step 2's refusal of uv's settings warning, deleted
+--- scripts/gate.sh (as shipped)
++++ scripts/gate.sh (mutated)
+@@ -141,5 +141,2 @@
+   fail 2/6 "uv could not sync the locked toolchain: uv.lock does not match pyproject.toml, uv could not read them or build the package, or this uv is not the version [tool.uv] requires (see above)"
+-if grep -Fq 'during settings discovery' "$tmp/sync"; then
+-  fail 2/6 "uv could not use a setting in [tool.uv] of pyproject.toml, warned and went on without it; correct the key or value it names (see above)"
+-fi
+ echo "ok   the locked toolchain synced"
+$ scripts/gate-negative-tests.sh x   (in the mutated copy)
+ok   agent-os/standards/base and the base: section of agent-os/standards/index.yml match patchbay-standards at e31f7dbfb474752339a43fe08a37ab26c7956f5c
+
+Gate steps 1-6 passed. Steps 7-9 are judgment, recorded in shape.md: Docs, Version, the standards retrospective.
+exit=0  UNEXPECTED (expected 1)
+--
+
+Gate steps 1-6 passed. Steps 7-9 are judgment, recorded in shape.md: Docs, Version, the standards retrospective.
+exit=0  UNEXPECTED (expected 1)
+times=0 x ok   the locked toolchain synced  UNEXPECTED (found 1)
+--
+ok   agent-os/standards/base and the base: section of agent-os/standards/index.yml match patchbay-standards at e31f7dbfb474752339a43fe08a37ab26c7956f5c
+
+Gate steps 1-6 passed. Steps 7-9 are judgment, recorded in shape.md: Docs, Version, the standards retrospective.
+exit=0  UNEXPECTED (expected 1)
+--
+
+Gate steps 1-6 passed. Steps 7-9 are judgment, recorded in shape.md: Docs, Version, the standards retrospective.
+exit=0  UNEXPECTED (expected 1)
+times=0 x ok   the locked toolchain synced  UNEXPECTED (found 1)
+--
+4 runs, 4 unexpected
+harness exit=1
+must: come back UNEXPECTED, harness exit 1
+result: as required
+
+### M28: step 2's format, its status ignored
+--- scripts/gate.sh (as shipped)
++++ scripts/gate.sh (mutated)
+@@ -145,4 +145,3 @@
+ echo "ok   the locked toolchain synced"
+-uv run --locked ruff format --config pyproject.toml --check -- "${py[@]}" ||
+-  fail 2/6 "a file is not formatted as ruff format would write it, or ruff could not read its settings (see above)"
++uv run --locked ruff format --config pyproject.toml --check -- "${py[@]}" || true
+ echo "ok   ${#py[@]} file(s) formatted"
+$ scripts/gate-negative-tests.sh h   (in the mutated copy)
+ok   agent-os/standards/base and the base: section of agent-os/standards/index.yml match patchbay-standards at e31f7dbfb474752339a43fe08a37ab26c7956f5c
+
+Gate steps 1-6 passed. Steps 7-9 are judgment, recorded in shape.md: Docs, Version, the standards retrospective.
+exit=0  UNEXPECTED (expected 1)
+--
+1 runs, 1 unexpected
+harness exit=1
+must: come back UNEXPECTED, harness exit 1
+result: as required
+
+### M29: step 3's ruff check without --config
+--- scripts/gate.sh (as shipped)
++++ scripts/gate.sh (mutated)
+@@ -150,3 +150,3 @@
+ step "3/6  uv run --locked ruff check over the same files (the linter: [tool.ruff.lint] of pyproject.toml)"
+-uv run --locked ruff check --config pyproject.toml -- "${py[@]}" || fail 3/6 "ruff check found a violation, or could not read its rule set (see above)"
++uv run --locked ruff check -- "${py[@]}" || fail 3/6 "ruff check found a violation, or could not read its rule set (see above)"
+ echo "ok   no violation"
+$ scripts/gate-negative-tests.sh s   (in the mutated copy)
+ok   agent-os/standards/base and the base: section of agent-os/standards/index.yml match patchbay-standards at e31f7dbfb474752339a43fe08a37ab26c7956f5c
+
+Gate steps 1-6 passed. Steps 7-9 are judgment, recorded in shape.md: Docs, Version, the standards retrospective.
+exit=0  UNEXPECTED (expected 1)
+--
+ok   agent-os/standards/base and the base: section of agent-os/standards/index.yml match patchbay-standards at e31f7dbfb474752339a43fe08a37ab26c7956f5c
+
+Gate steps 1-6 passed. Steps 7-9 are judgment, recorded in shape.md: Docs, Version, the standards retrospective.
+exit=0  UNEXPECTED (expected 1)
+--
+ok   agent-os/standards/base and the base: section of agent-os/standards/index.yml match patchbay-standards at e31f7dbfb474752339a43fe08a37ab26c7956f5c
+
+Gate steps 1-6 passed. Steps 7-9 are judgment, recorded in shape.md: Docs, Version, the standards retrospective.
+exit=0  UNEXPECTED (expected 1)
+--
+18 runs, 3 unexpected
+harness exit=1
+must: come back UNEXPECTED, harness exit 1
+result: as required
+
+### M30: step 3's check, its status ignored
+--- scripts/gate.sh (as shipped)
++++ scripts/gate.sh (mutated)
+@@ -150,3 +150,3 @@
+ step "3/6  uv run --locked ruff check over the same files (the linter: [tool.ruff.lint] of pyproject.toml)"
+-uv run --locked ruff check --config pyproject.toml -- "${py[@]}" || fail 3/6 "ruff check found a violation, or could not read its rule set (see above)"
++uv run --locked ruff check --config pyproject.toml -- "${py[@]}" || true
+ echo "ok   no violation"
+$ scripts/gate-negative-tests.sh i   (in the mutated copy)
+ok   agent-os/standards/base and the base: section of agent-os/standards/index.yml match patchbay-standards at e31f7dbfb474752339a43fe08a37ab26c7956f5c
+
+Gate steps 1-6 passed. Steps 7-9 are judgment, recorded in shape.md: Docs, Version, the standards retrospective.
+exit=0  UNEXPECTED (expected 1)
+--
+1 runs, 1 unexpected
+harness exit=1
+must: come back UNEXPECTED, harness exit 1
+result: as required
+
+### M31: step 4's listing, its status ignored
+--- scripts/gate.sh (as shipped)
++++ scripts/gate.sh (mutated)
+@@ -154,3 +154,3 @@
+ step "4/6  uv run --locked mypy over the .py and .pyi files git lists under src/ and tests/ ([tool.mypy] of pyproject.toml: strict)"
+-listed "$tmp/src" src tests || fail 4/6 "git could not list the files under src/ and tests/ (see above)"
++listed "$tmp/src" src tests || true
+ src=()
+$ scripts/gate-negative-tests.sh r   (in the mutated copy)
+git (test shim): refusing: ls-files -z --cached --others --exclude-standard -- src tests
+scripts/gate.sh: line 159: /var/folders/l4/jz4g7psj5h1gxvk_6zp29rvm0000gn/T/tmp.EiFWb0kr5O/src: No such file or directory
+FAIL  step 4/6: git lists no .py or .pyi file under src/ or tests/
+exit=1  UNEXPECTED (the output does not say: ok   no violation
+--
+3 runs, 1 unexpected
+harness exit=1
+must: come back UNEXPECTED, harness exit 1
+result: as required
+
+### M32: step 4's none-listed check, deleted
+--- scripts/gate.sh (as shipped)
++++ scripts/gate.sh (mutated)
+@@ -159,3 +159,2 @@
+ done < "$tmp/src"
+-[ "${#src[@]}" -gt 0 ] || fail 4/6 "git lists no .py or .pyi file under src/ or tests/"
+ uv run --locked mypy --config-file pyproject.toml -- "${src[@]}" || fail 4/6 "mypy found a type error (see above)"
+$ scripts/gate-negative-tests.sh v   (in the mutated copy)
+
+== 4/6  uv run --locked mypy over the .py and .pyi files git lists under src/ and tests/ ([tool.mypy] of pyproject.toml: strict)
+scripts/gate.sh: line 160: src[@]: unbound variable
+exit=0  UNEXPECTED (expected 1)
+--
+8 runs, 1 unexpected
+harness exit=1
+must: come back UNEXPECTED, harness exit 1
+result: as required
+
+### M33: step 4's present, deleted
+--- scripts/gate.sh (as shipped)
++++ scripts/gate.sh (mutated)
+@@ -157,3 +157,3 @@
+ while IFS= read -r -d '' f; do
+-  case "$f" in *.py|*.pyi) present 4/6 "$f"; src+=("$f") ;; esac
++  case "$f" in *.py|*.pyi) src+=("$f") ;; esac
+ done < "$tmp/src"
+$ scripts/gate-negative-tests.sh v   (in the mutated copy)
+src/patchbay_vital/_late.py: error: Cannot read file: No such file or directory
+Found 1 error in 1 file (errors prevented further checking)
+FAIL  step 4/6: mypy found a type error (see above)
+exit=1  UNEXPECTED (the output does not say: ok   no violation
+--
+8 runs, 1 unexpected
+harness exit=1
+must: come back UNEXPECTED, harness exit 1
+result: as required
+
+### M34: step 4's mypy without --config-file
+--- scripts/gate.sh (as shipped)
++++ scripts/gate.sh (mutated)
+@@ -160,3 +160,3 @@
+ [ "${#src[@]}" -gt 0 ] || fail 4/6 "git lists no .py or .pyi file under src/ or tests/"
+-uv run --locked mypy --config-file pyproject.toml -- "${src[@]}" || fail 4/6 "mypy found a type error (see above)"
++uv run --locked mypy -- "${src[@]}" || fail 4/6 "mypy found a type error (see above)"
+ echo "ok   no type error"
+$ scripts/gate-negative-tests.sh s   (in the mutated copy)
+ok   agent-os/standards/base and the base: section of agent-os/standards/index.yml match patchbay-standards at e31f7dbfb474752339a43fe08a37ab26c7956f5c
+
+Gate steps 1-6 passed. Steps 7-9 are judgment, recorded in shape.md: Docs, Version, the standards retrospective.
+exit=0  UNEXPECTED (expected 1)
+--
+ok   agent-os/standards/base and the base: section of agent-os/standards/index.yml match patchbay-standards at e31f7dbfb474752339a43fe08a37ab26c7956f5c
+
+Gate steps 1-6 passed. Steps 7-9 are judgment, recorded in shape.md: Docs, Version, the standards retrospective.
+exit=0  UNEXPECTED (expected 1)
+--
+18 runs, 2 unexpected
+harness exit=1
+must: come back UNEXPECTED, harness exit 1
+result: as required
+
+### M35: step 4's mypy, its status ignored
+--- scripts/gate.sh (as shipped)
++++ scripts/gate.sh (mutated)
+@@ -160,3 +160,3 @@
+ [ "${#src[@]}" -gt 0 ] || fail 4/6 "git lists no .py or .pyi file under src/ or tests/"
+-uv run --locked mypy --config-file pyproject.toml -- "${src[@]}" || fail 4/6 "mypy found a type error (see above)"
++uv run --locked mypy --config-file pyproject.toml -- "${src[@]}" || true
+ echo "ok   no type error"
+$ scripts/gate-negative-tests.sh k   (in the mutated copy)
+ok   agent-os/standards/base and the base: section of agent-os/standards/index.yml match patchbay-standards at e31f7dbfb474752339a43fe08a37ab26c7956f5c
+
+Gate steps 1-6 passed. Steps 7-9 are judgment, recorded in shape.md: Docs, Version, the standards retrospective.
+exit=0  UNEXPECTED (expected 1)
+--
+1 runs, 1 unexpected
+harness exit=1
+must: come back UNEXPECTED, harness exit 1
+result: as required
+
+### M36: step 5's listing, its status ignored
+--- scripts/gate.sh (as shipped)
++++ scripts/gate.sh (mutated)
+@@ -164,4 +164,3 @@
+ step "5/6  uv run --locked pytest -c pyproject.toml -p no:doctest ([tool.pytest.ini_options] of pyproject.toml, over tests/, once nothing pytest would read is one git ignores)"
+-git_list "$tmp/pytest" --others --ignored --exclude-standard -- tests conftest.py ||
+-  fail 5/6 "git could not list what it ignores under tests/ and at the root conftest.py (see above)"
++git_list "$tmp/pytest" --others --ignored --exclude-standard -- tests conftest.py || true
+ while IFS= read -r -d '' f; do
+$ scripts/gate-negative-tests.sh r   (in the mutated copy)
+ok   agent-os/standards/base and the base: section of agent-os/standards/index.yml match patchbay-standards at e31f7dbfb474752339a43fe08a37ab26c7956f5c
+
+Gate steps 1-6 passed. Steps 7-9 are judgment, recorded in shape.md: Docs, Version, the standards retrospective.
+exit=0  UNEXPECTED (expected 1)
+--
+3 runs, 1 unexpected
+harness exit=1
+must: come back UNEXPECTED, harness exit 1
+result: as required
+
+### M37: step 5's .py arm, deleted
+--- scripts/gate.sh (as shipped)
++++ scripts/gate.sh (mutated)
+@@ -169,3 +169,2 @@
+     */__pycache__/*) ;;
+-    *.py) fail 5/6 "$f is a .py file git ignores, which pytest would read; remove it, or stop ignoring it" ;;
+   esac
+$ scripts/gate-negative-tests.sh q   (in the mutated copy)
+FAILED tests/unit/test_local.py::test_local - AssertionError: assert '0.0.1' ...
+1 failed, 7 passed in 1.10s
+FAIL  step 5/6: a test failed, or pytest could not read its configuration (see above)
+exit=1  UNEXPECTED (the output does not say: ok   no type error
+--
+ok   agent-os/standards/base and the base: section of agent-os/standards/index.yml match patchbay-standards at e31f7dbfb474752339a43fe08a37ab26c7956f5c
+
+Gate steps 1-6 passed. Steps 7-9 are judgment, recorded in shape.md: Docs, Version, the standards retrospective.
+exit=0  UNEXPECTED (expected 1)
+--
+    raise RuntimeError("an ignored root conftest was imported")
+E   RuntimeError: an ignored root conftest was imported
+FAIL  step 5/6: a test failed, or pytest could not read its configuration (see above)
+exit=1  UNEXPECTED (the output does not say: ok   no type error
+--
+32 runs, 3 unexpected
+harness exit=1
+must: come back UNEXPECTED, harness exit 1
+result: as required
+
+### M38: step 5's pytest without -c pyproject.toml
+--- scripts/gate.sh (as shipped)
++++ scripts/gate.sh (mutated)
+@@ -172,3 +172,3 @@
+ done < "$tmp/pytest"
+-uv run --locked pytest -c pyproject.toml -p no:doctest || fail 5/6 "a test failed, or pytest could not read its configuration (see above)"
++uv run --locked pytest -p no:doctest || fail 5/6 "a test failed, or pytest could not read its configuration (see above)"
+ echo "ok   every test passed"
+$ scripts/gate-negative-tests.sh q   (in the mutated copy)
+ok   agent-os/standards/base and the base: section of agent-os/standards/index.yml match patchbay-standards at e31f7dbfb474752339a43fe08a37ab26c7956f5c
+
+Gate steps 1-6 passed. Steps 7-9 are judgment, recorded in shape.md: Docs, Version, the standards retrospective.
+exit=0  UNEXPECTED (expected 1)
+--
+ok   agent-os/standards/base and the base: section of agent-os/standards/index.yml match patchbay-standards at e31f7dbfb474752339a43fe08a37ab26c7956f5c
+
+Gate steps 1-6 passed. Steps 7-9 are judgment, recorded in shape.md: Docs, Version, the standards retrospective.
+exit=0  UNEXPECTED (expected 1)
+--
+ok   agent-os/standards/base and the base: section of agent-os/standards/index.yml match patchbay-standards at e31f7dbfb474752339a43fe08a37ab26c7956f5c
+
+Gate steps 1-6 passed. Steps 7-9 are judgment, recorded in shape.md: Docs, Version, the standards retrospective.
+exit=0  UNEXPECTED (expected 1)
+--
+ok   agent-os/standards/base and the base: section of agent-os/standards/index.yml match patchbay-standards at e31f7dbfb474752339a43fe08a37ab26c7956f5c
+
+Gate steps 1-6 passed. Steps 7-9 are judgment, recorded in shape.md: Docs, Version, the standards retrospective.
+exit=0  UNEXPECTED (expected 1)
+--
+... and 4 more UNEXPECTED
+32 runs, 8 unexpected
+harness exit=1
+must: come back UNEXPECTED, harness exit 1
+result: as required
+
+### M39: step 5's __pycache__ arm, deleted
+--- scripts/gate.sh (as shipped)
++++ scripts/gate.sh (mutated)
+@@ -168,3 +168,2 @@
+   case "$f" in
+-    */__pycache__/*) ;;
+     *.py) fail 5/6 "$f is a .py file git ignores, which pytest would read; remove it, or stop ignoring it" ;;
+$ scripts/gate-negative-tests.sh q   (in the mutated copy)
+
+== 5/6  uv run --locked pytest -c pyproject.toml -p no:doctest ([tool.pytest.ini_options] of pyproject.toml, over tests/, once nothing pytest would read is one git ignores)
+FAIL  step 5/6: tests/unit/__pycache__/test_stray.py is a .py file git ignores, which pytest would read; remove it, or stop ignoring it
+exit=1  UNEXPECTED (expected 0)
+--
+32 runs, 1 unexpected
+harness exit=1
+must: come back UNEXPECTED, harness exit 1
+result: as required
+
+### M40: step 5's -p no:doctest, deleted
+--- scripts/gate.sh (as shipped)
++++ scripts/gate.sh (mutated)
+@@ -172,3 +172,3 @@
+ done < "$tmp/pytest"
+-uv run --locked pytest -c pyproject.toml -p no:doctest || fail 5/6 "a test failed, or pytest could not read its configuration (see above)"
++uv run --locked pytest -c pyproject.toml || fail 5/6 "a test failed, or pytest could not read its configuration (see above)"
+ echo "ok   every test passed"
+$ scripts/gate-negative-tests.sh q   (in the mutated copy)
+FAILED tests/unit/test_local.txt::test_local.txt
+1 failed, 7 passed in 0.12s
+FAIL  step 5/6: a test failed, or pytest could not read its configuration (see above)
+exit=1  UNEXPECTED (expected 0)
+--
+32 runs, 1 unexpected
+harness exit=1
+must: come back UNEXPECTED, harness exit 1
+result: as required
+
+### M41: step 5's pytest, its status ignored
+--- scripts/gate.sh (as shipped)
++++ scripts/gate.sh (mutated)
+@@ -172,3 +172,3 @@
+ done < "$tmp/pytest"
+-uv run --locked pytest -c pyproject.toml -p no:doctest || fail 5/6 "a test failed, or pytest could not read its configuration (see above)"
++uv run --locked pytest -c pyproject.toml -p no:doctest || true
+ echo "ok   every test passed"
+$ scripts/gate-negative-tests.sh l   (in the mutated copy)
+ok   agent-os/standards/base and the base: section of agent-os/standards/index.yml match patchbay-standards at e31f7dbfb474752339a43fe08a37ab26c7956f5c
+
+Gate steps 1-6 passed. Steps 7-9 are judgment, recorded in shape.md: Docs, Version, the standards retrospective.
+exit=0  UNEXPECTED (expected 1)
+--
+1 runs, 1 unexpected
+harness exit=1
+must: come back UNEXPECTED, harness exit 1
+result: as required
+
+### M42: [tool.uv] python-preference, deleted
+--- pyproject.toml (as shipped)
++++ pyproject.toml (mutated)
+@@ -47,3 +47,2 @@
+ # patch is the newest 3.12 the uv pinned above ships, and moves only when that pin does.
+-python-preference = "only-managed"
+ 
+$ scripts/gate-negative-tests.sh x   (in the mutated copy)
+holds=<copy syspy>/python3.12
+-- the same with nothing on the command line, so the file decides (must be refused, exit 2):
+<copy syspy>/python3.12
+exit=0  UNEXPECTED (expected 2)
+--
+4 runs, 1 unexpected
+harness exit=1
+must: come back UNEXPECTED, harness exit 1
+result: as required
+
+### M43: step 6's check, its status ignored
+--- scripts/gate.sh (as shipped)
++++ scripts/gate.sh (mutated)
+@@ -176,4 +176,3 @@
+ step "6/6  scripts/sync-standards.sh --check: agent-os/standards/base/, the base: section and the script match patchbay-standards at the commit in .version (../patchbay-standards)"
+-scripts/sync-standards.sh --check ||
+-  fail 6/6 "drift from patchbay-standards at the pinned commit, or the sibling checkout ../patchbay-standards unusable (see above)"
++scripts/sync-standards.sh --check || true
+ 
+$ scripts/gate-negative-tests.sh b   (in the mutated copy)
+FAIL  drift from patchbay-standards at e31f7dbfb474752339a43fe08a37ab26c7956f5c (see above)
+
+Gate steps 1-6 passed. Steps 7-9 are judgment, recorded in shape.md: Docs, Version, the standards retrospective.
+exit=0  UNEXPECTED (expected 1)
+--
+2 runs, 1 unexpected
+harness exit=1
+must: come back UNEXPECTED, harness exit 1
+result: as required
+
+### M44: gate: fail exits 3 (reason and steps as before)
+--- scripts/gate.sh (as shipped)
++++ scripts/gate.sh (mutated)
+@@ -89,3 +89,3 @@
+ step() { printf '\n== %s\n' "$1"; }
+-fail() { printf 'FAIL  step %s: %s\n' "$1" "$2" >&2; exit 1; }   # fail <step> <reason>
++fail() { printf 'FAIL  step %s: %s\n' "$1" "$2" >&2; exit 3; }   # fail <step> <reason>
+ git_list() { local out=$1; shift; git ls-files -z "$@" > "$out.raw" && LC_ALL=C sort -zu "$out.raw" > "$out"; }   # git_list <file> <ls-files args...>: git's list into <file>, NUL-separated, sorted, each path once; fails when git cannot list
+$ scripts/gate-negative-tests.sh a   (in the mutated copy)
+== 1/6  bash -n on every shell script under scripts/ (tracked or untracked, not ignored), in a tree with no tracked file a .gitignore ignores
+scripts/broken.sh: line 3: syntax error: unexpected end of file
+FAIL  step 1/6: scripts/broken.sh does not parse
+exit=3  UNEXPECTED (expected 1)
+--
+1 runs, 1 unexpected
+harness exit=1
+must: come back UNEXPECTED, harness exit 1
+result: as required
+
+### M45: the same, check's status comparison removed
+--- scripts/gate.sh (as shipped)
++++ scripts/gate.sh (mutated)
+@@ -89,3 +89,3 @@
+ step() { printf '\n== %s\n' "$1"; }
+-fail() { printf 'FAIL  step %s: %s\n' "$1" "$2" >&2; exit 1; }   # fail <step> <reason>
++fail() { printf 'FAIL  step %s: %s\n' "$1" "$2" >&2; exit 3; }   # fail <step> <reason>
+ git_list() { local out=$1; shift; git ls-files -z "$@" > "$out.raw" && LC_ALL=C sort -zu "$out.raw" > "$out"; }   # git_list <file> <ls-files args...>: git's list into <file>, NUL-separated, sorted, each path once; fails when git cannot list
+--- scripts/gate-negative-tests.sh (as shipped)
++++ scripts/gate-negative-tests.sh (mutated)
+@@ -151,3 +151,3 @@
+   esac
+-  if [ "$2" -ne "$1" ]; then
++  if false; then
+     echo "exit=$2  UNEXPECTED (expected $1)"; unexpected=$((unexpected + 1))
+$ scripts/gate-negative-tests.sh a   (in the mutated copy)
+1 runs, 0 unexpected
+harness exit=0
+must: pass, harness exit 0: the assertion removed is what caught the mutation above
+result: as required
+
+### M46: gate: step 1's reason reworded (status and steps as before)
+--- scripts/gate.sh (as shipped)
++++ scripts/gate.sh (mutated)
+@@ -124,3 +124,3 @@
+   esac
+-  bash -n "$f" || fail 1/6 "$f does not parse"
++  bash -n "$f" || fail 1/6 "$f is broken"
+   echo "ok   $f"; n=$((n + 1))
+$ scripts/gate-negative-tests.sh a   (in the mutated copy)
+== 1/6  bash -n on every shell script under scripts/ (tracked or untracked, not ignored), in a tree with no tracked file a .gitignore ignores
+scripts/broken.sh: line 3: syntax error: unexpected end of file
+FAIL  step 1/6: scripts/broken.sh is broken
+exit=1  UNEXPECTED (the output does not say: scripts/broken.sh: line 3: syntax error: unexpected end of file
+--
+1 runs, 1 unexpected
+harness exit=1
+must: come back UNEXPECTED, harness exit 1
+result: as required
+
+### M47: the same, check's says removed
+--- scripts/gate.sh (as shipped)
++++ scripts/gate.sh (mutated)
+@@ -124,3 +124,3 @@
+   esac
+-  bash -n "$f" || fail 1/6 "$f does not parse"
++  bash -n "$f" || fail 1/6 "$f is broken"
+   echo "ok   $f"; n=$((n + 1))
+--- scripts/gate-negative-tests.sh (as shipped)
++++ scripts/gate-negative-tests.sh (mutated)
+@@ -153,3 +153,3 @@
+     echo "exit=$2  UNEXPECTED (expected $1)"; unexpected=$((unexpected + 1))
+-  elif { [ "$1" -ne 0 ] || [ -n "${3:-}" ]; } && ! { [ -n "${3:-}" ] && says "$3" "$4"; }; then
++  elif false; then
+     echo "exit=$2  UNEXPECTED (the output does not say: ${3:-<no reason named>})"; unexpected=$((unexpected + 1))
+$ scripts/gate-negative-tests.sh a   (in the mutated copy)
+1 runs, 0 unexpected
+harness exit=0
+must: pass, harness exit 0: the assertion removed is what caught the mutation above
+result: as required
+
+### M48: gate: step 1 reports and goes on, exit 1 at the end
+--- scripts/gate.sh (as shipped)
++++ scripts/gate.sh (mutated)
+@@ -124,3 +124,3 @@
+   esac
+-  bash -n "$f" || fail 1/6 "$f does not parse"
++  bash -n "$f" || { printf 'FAIL  step 1/6: %s does not parse\n' "$f" >&2; failed=1; }
+   echo "ok   $f"; n=$((n + 1))
+@@ -180 +180,2 @@
+ printf '\nGate steps 1-6 passed. Steps 7-9 are judgment, recorded in shape.md: Docs, Version, the standards retrospective.\n'
++[ -z "${failed:-}" ]
+$ scripts/gate-negative-tests.sh a   (in the mutated copy)
+ok   agent-os/standards/base and the base: section of agent-os/standards/index.yml match patchbay-standards at e31f7dbfb474752339a43fe08a37ab26c7956f5c
+
+Gate steps 1-6 passed. Steps 7-9 are judgment, recorded in shape.md: Docs, Version, the standards retrospective.
+exit=1  UNEXPECTED (a step after step 1 was reached)
+--
+1 runs, 1 unexpected
+harness exit=1
+must: come back UNEXPECTED, harness exit 1
+result: as required
+
+### M49: the same, check's later removed
+--- scripts/gate.sh (as shipped)
++++ scripts/gate.sh (mutated)
+@@ -124,3 +124,3 @@
+   esac
+-  bash -n "$f" || fail 1/6 "$f does not parse"
++  bash -n "$f" || { printf 'FAIL  step 1/6: %s does not parse\n' "$f" >&2; failed=1; }
+   echo "ok   $f"; n=$((n + 1))
+@@ -180 +180,2 @@
+ printf '\nGate steps 1-6 passed. Steps 7-9 are judgment, recorded in shape.md: Docs, Version, the standards retrospective.\n'
++[ -z "${failed:-}" ]
+--- scripts/gate-negative-tests.sh (as shipped)
++++ scripts/gate-negative-tests.sh (mutated)
+@@ -155,3 +155,3 @@
+     echo "exit=$2  UNEXPECTED (the output does not say: ${3:-<no reason named>})"; unexpected=$((unexpected + 1))
+-  elif [ -n "$n" ] && later "$n" "$4"; then
++  elif false; then
+     echo "exit=$2  UNEXPECTED (a step after step $n was reached)"; unexpected=$((unexpected + 1))
+$ scripts/gate-negative-tests.sh a   (in the mutated copy)
+1 runs, 0 unexpected
+harness exit=0
+must: pass, harness exit 0: the assertion removed is what caught the mutation above
+result: as required
+
+### M50: sync script edited in the copy: step 6 lists a second drift
+--- scripts/sync-standards.sh (as shipped)
++++ scripts/sync-standards.sh (mutated)
+@@ -380 +380,3 @@
+ echo "ok   synced to $sha" >&2
++
++# a second drift beside the one case b makes
+$ scripts/gate-negative-tests.sh b   (in the mutated copy)
+FAIL  drift from patchbay-standards at e31f7dbfb474752339a43fe08a37ab26c7956f5c (see above)
+FAIL  step 6/6: drift from patchbay-standards at the pinned commit, or the sibling checkout ../patchbay-standards unusable (see above)
+exit=1
+only=changed  process/ownership.md; index    base: section identical; script   scripts/sync-standards.sh matches;  UNEXPECTED (listed: changed  process/ownership.md;index    base: section identical;script   scripts/sync-standards.sh differs)
+--
+2 runs, 1 unexpected
+harness exit=1
+must: come back UNEXPECTED, harness exit 1
+result: as required
+
+### M51: the same, only's comparison removed
+--- scripts/sync-standards.sh (as shipped)
++++ scripts/sync-standards.sh (mutated)
+@@ -380 +380,3 @@
+ echo "ok   synced to $sha" >&2
++
++# a second drift beside the one case b makes
+--- scripts/gate-negative-tests.sh (as shipped)
++++ scripts/gate-negative-tests.sh (mutated)
+@@ -176,3 +176,3 @@
+   got=$(awk '/^check base standards against / { f = 1; next } f && /^  [^ ]/' "$NEG/run.out")
+-  if [ "$got" = "$want" ]; then
++  if true; then
+     echo "only=$(printf '%s; ' "$@")"
+$ scripts/gate-negative-tests.sh b   (in the mutated copy)
+2 runs, 0 unexpected
+harness exit=0
+must: pass, harness exit 0: the assertion removed is what caught the mutation above
+result: as required
+
+### M52: fail_list stopping at the first path, named's comparison removed
+--- scripts/gate.sh (as shipped)
++++ scripts/gate.sh (mutated)
+@@ -95,3 +95,3 @@
+   printf 'FAIL  step %s: %s:\n' "$1" "$2" >&2
+-  while IFS= read -r -d '' f; do printf '        %s\n' "$f" >&2; done < "$3"
++  while IFS= read -r -d '' f; do printf '        %s\n' "$f" >&2; break; done < "$3"
+   exit 1
+--- scripts/gate-negative-tests.sh (as shipped)
++++ scripts/gate-negative-tests.sh (mutated)
+@@ -186,3 +186,3 @@
+   got=$(grep '^        ' "$NEG/run.out")
+-  if [ "$got" = "$want" ]; then
++  if true; then
+     echo "named=$*"
+$ scripts/gate-negative-tests.sh p   (in the mutated copy)
+17 runs, 0 unexpected
+harness exit=0
+must: pass, harness exit 0: the assertion removed is what caught the mutation above
+result: as required
+
+### M53: p's holds given text mypy does not print
+--- scripts/gate-negative-tests.sh (as shipped)
++++ scripts/gate-negative-tests.sh (mutated)
+@@ -434,3 +434,3 @@
+    run p 0 uv run --locked mypy --exclude-gitignore
+-   holds 'Success: no issues found in'
++   holds 'Success: nothing of the kind'
+    printf 'import os\ndef f(x)->int:\n  return x\n' > "$NEG/p/patchbay-vital/src/patchbay_vital/local_settings.py" || die "p: write again"
+$ scripts/gate-negative-tests.sh p   (in the mutated copy)
+-- mypy walking files = [src, tests] under exclude_gitignore, the walk a list replaces, on the same file typed wrong and still force-added: it skips the tracked file .gitignore matches and passes (why the gate gives mypy git's list):
+Success: no issues found in 3 source files
+exit=0
+holds=Success: nothing of the kind  UNEXPECTED (not in the output, in order)
+--
+17 runs, 1 unexpected
+harness exit=1
+must: come back UNEXPECTED, harness exit 1
+result: as required
+
+### M54: the same, holds's comparison removed
+--- scripts/gate-negative-tests.sh (as shipped)
++++ scripts/gate-negative-tests.sh (mutated)
+@@ -193,3 +193,3 @@
+ holds() {  # holds <text>: after run, its output holds each line of the text, in order (a passing run's named lines); a mismatch is UNEXPECTED, an assertion on that run
+-  if says "$1" "$NEG/run.out"; then echo "holds=$(printf '%s' "$1" | paste -sd ';' -)"
++  if true; then echo "holds=$(printf '%s' "$1" | paste -sd ';' -)"
+   else echo "holds=$(printf '%s' "$1" | paste -sd ';' -)  UNEXPECTED (not in the output, in order)"; unexpected=$((unexpected + 1)); fi
+@@ -434,3 +434,3 @@
+    run p 0 uv run --locked mypy --exclude-gitignore
+-   holds 'Success: no issues found in'
++   holds 'Success: nothing of the kind'
+    printf 'import os\ndef f(x)->int:\n  return x\n' > "$NEG/p/patchbay-vital/src/patchbay_vital/local_settings.py" || die "p: write again"
+$ scripts/gate-negative-tests.sh p   (in the mutated copy)
+17 runs, 0 unexpected
+harness exit=0
+must: pass, harness exit 0: the assertion removed is what caught the mutation above
+result: as required
+
+### M55: each path once removed, times's comparison removed
+--- scripts/gate.sh (as shipped)
++++ scripts/gate.sh (mutated)
+@@ -90,3 +90,3 @@
+ fail() { printf 'FAIL  step %s: %s\n' "$1" "$2" >&2; exit 1; }   # fail <step> <reason>
+-git_list() { local out=$1; shift; git ls-files -z "$@" > "$out.raw" && LC_ALL=C sort -zu "$out.raw" > "$out"; }   # git_list <file> <ls-files args...>: git's list into <file>, NUL-separated, sorted, each path once; fails when git cannot list
++git_list() { local out=$1; shift; git ls-files -z "$@" > "$out.raw" && LC_ALL=C sort -z "$out.raw" > "$out"; }   # git_list <file> <ls-files args...>: git's list into <file>, NUL-separated, sorted, each path once; fails when git cannot list
+ listed() { local out=$1; shift; git_list "$out" --cached --others --exclude-standard -- "$@"; }   # listed <file> <path...>: what git lists under the paths, tracked or untracked not ignored
+--- scripts/gate-negative-tests.sh (as shipped)
++++ scripts/gate-negative-tests.sh (mutated)
+@@ -199,3 +199,3 @@
+   got=$(grep -cxF -- "$2" "$NEG/run.out")
+-  if [ "$got" -eq "$1" ]; then echo "times=$1 x $2"
++  if true; then echo "times=$1 x $2"
+   else echo "times=$1 x $2  UNEXPECTED (found $got)"; unexpected=$((unexpected + 1)); fi
+$ scripts/gate-negative-tests.sh g   (in the mutated copy)
+21 runs, 0 unexpected
+harness exit=0
+must: pass, harness exit 0: the assertion removed is what caught the mutation above
+result: as required
+
+### M56: the scratch directory refused inside the repository (a mktemp on PATH whose first answer is a directory inside the copy)
+the harness as shipped:
+$ PATH=<shim>:$PATH scripts/gate-negative-tests.sh a
+harness: the scratch directory <copy>/inside is inside this repository; refusing to use it
+harness exit=2
+--- scripts/gate-negative-tests.sh (as shipped)
++++ scripts/gate-negative-tests.sh (mutated)
+@@ -118,5 +118,2 @@
+ NEG=$(cd "$NEG" && pwd -P) || die "the scratch directory cannot be entered"   # physical, as the scripts print it
+-case "$NEG" in
+-  "$REPO"|"$REPO"/*) die "the scratch directory $NEG is inside this repository; refusing to use it" ;;
+-esac
+ trap 'rm -rf "${NEG:?}"' EXIT
+$ PATH=<shim>:$PATH scripts/gate-negative-tests.sh a   (guard deleted)
+1 runs, 0 unexpected
+harness exit=0
+must: exit 2 by name as shipped; with the guard deleted the harness goes on and uses a directory inside the tree
+result: as required
+
+### M57: the harness's cd without CDPATH emptied (run under a CDPATH naming a directory with a scripts/ in it)
+the harness as shipped:
+$ CDPATH=<decoy> scripts/gate-negative-tests.sh a
+1 runs, 0 unexpected
+harness exit=0
+--- scripts/gate-negative-tests.sh (as shipped)
++++ scripts/gate-negative-tests.sh (mutated)
+@@ -111,3 +111,3 @@
+ die() { echo "harness: $1" >&2; exit 2; }   # die <reason>: a setup failure, not a test result
+-CDPATH= cd -- "$(dirname "$0")/.." || die "cannot enter the repository root"
++cd -- "$(dirname "$0")/.." || die "cannot enter the repository root"
+ REPO=$(pwd -P)
+$ CDPATH=<decoy> scripts/gate-negative-tests.sh a   (CDPATH= deleted)
+<scratch>/elsewhere/decoy
+harness: ../patchbay-standards is missing; the gate and these tests need it beside this repository
+harness exit=2
+must: pass as shipped; with CDPATH= deleted the harness enters the decoy and stops by name there, exit 2
+result: as required
+
+57 mutations, 57 as required

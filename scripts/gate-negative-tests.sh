@@ -42,7 +42,7 @@
 # an earlier run kept as evidence, a failing one before a fix, goes in a file of its own.
 #
 # Usage: scripts/gate-negative-tests.sh [test ...]   (default: every test but j; "all" adds j)
-#   tests: a b c d e f g h i k l m n o p q r s u v j
+#   tests: a b c d e f g h i k l m n o p q r s u v w x j
 #   a  an unparsable script under scripts/: gate.sh stops at step 1, exit 1, step 2 never reached
 #   b  one byte appended to a file under agent-os/standards/base/: step 6 names it changed alone
 #   c  a hand-edited entry in the base: section of the index: step 6 reports the section alone
@@ -77,8 +77,9 @@
 #      worktree, a module hidden only by .git/info/exclude passes the gate, where that walk names it
 #   q  step 5 refuses what pytest would read that git ignores: an ignored failing test, an ignored
 #      tests/unit/conftest.py that deselects a tracked failing test (pytest given --ignore for it
-#      passes), an ignored conftest.py at the root, and an ignored pytest.toml, .pytest.toml,
-#      pytest.ini or .pytest.ini at the root that deselects one, each by name; an ignored failing
+#      passes), and an ignored conftest.py at the root, each by name; a pytest.toml, .pytest.toml,
+#      pytest.ini or .pytest.ini at the root, ignored or tracked, cannot deselect a tracked failing
+#      test, pytest told to read pyproject.toml, where pytest without -c does; an ignored failing
 #      test_local.txt passes the gate, -p no:doctest reading no .txt, where a bare pytest fails on
 #      it; an ignored .py under __pycache__ passes
 #   r  a listing git cannot make fails its step by name: a git that refuses the listing call of
@@ -93,16 +94,22 @@
 #   v  the guards with no case above, each by name: git lists no file under scripts/; no .py or
 #      .pyi file; none under src/ or tests/; uv not on PATH; a listed .py missing from the disk, and
 #      a symlink to nothing, at step 2; a listed .py gone from the disk by step 4
+#   w  an exported CDPATH naming a decoy git top with a scripts/ directory: the gate runs on its own
+#      tree, where a plain cd lands in the decoy
+#   x  [tool.uv] python-preference is read: uv refuses a Python 3.12 on PATH as the file says, and
+#      takes it when told otherwise; a key or value uv cannot use, which it only warns about,
+#      fails step 2 by name
 #   j  the CI replay: the run steps of .github/workflows/gate.yml on a clean copy and a broken one
-# Needs git and uv (steps 2-5 of the gate run through it; j reads the workflow with pyyaml,
-# through uv run --with, installing nothing). Needs ../patchbay-standards beside this repository,
+# Needs git and uv (steps 2-5 of the gate run through it; j reads the workflow with pyyaml at the
+# version uv.lock resolves, through uv run --with, from uv's cache or the network, and writes
+# nothing in the project). Needs ../patchbay-standards beside this repository,
 # as the gate does. g's upper-case runs (upper_run, after upper says so) are skipped on a
 # case-sensitive file system. g and r put a git that refuses one call on PATH (shim), g a mktemp
 # that makes no directory, and v a PATH with no uv and a uv that removes a file after ruff check, in
 # the scratch directory.
 set -uo pipefail
 die() { echo "harness: $1" >&2; exit 2; }   # die <reason>: a setup failure, not a test result
-cd "$(dirname "$0")/.." || die "cannot enter the repository root"
+CDPATH= cd -- "$(dirname "$0")/.." || die "cannot enter the repository root"
 REPO=$(pwd -P)
 SIBLING=$(cd "$REPO/../patchbay-standards" 2>/dev/null && pwd -P) ||
   die "../patchbay-standards is missing; the gate and these tests need it beside this repository"
@@ -121,6 +128,8 @@ F1IGN="FAIL  step 1/6: tracked, but a .gitignore ignores them; stop ignoring eac
 F2SYNC="FAIL  step 2/6: uv could not sync the locked toolchain: uv.lock does not match pyproject.toml, uv could not read them or build the package, or this uv is not the version [tool.uv] requires (see above)"
 F2FMT="FAIL  step 2/6: a file is not formatted as ruff format would write it, or ruff could not read its settings (see above)"
 F2UV="FAIL  step 2/6: uv.toml is at the root, where uv reads it ahead of [tool.uv] in pyproject.toml; remove it, uv is configured in pyproject.toml alone"
+F2SET="FAIL  step 2/6: uv could not use a setting in [tool.uv] of pyproject.toml, warned and went on without it; correct the key or value it names (see above)"
+F5T=$'FAILED tests/unit/test_probe_fail.py::test_probe_fail\nFAIL  step 5/6: a test failed, or pytest could not read its configuration (see above)'
 F6="FAIL  step 6/6: drift from patchbay-standards at the pinned commit, or the sibling checkout ../patchbay-standards unusable (see above)"
 USAGE="usage: scripts/gate.sh   (no arguments; exits 1 at the first failing step, 2 on usage)"
 
@@ -226,8 +235,8 @@ mk() {  # mk <case>: <case>/patchbay-vital, a copy of the gate's inputs, git-add
 broken() { printf '#!/usr/bin/env bash\nif true; then\n' > "$NEG/$1/patchbay-vital/scripts/broken.sh" || die "broken $1"; }   # broken <case>: an unparsable script in the copy
 
 tests=("$@")
-[ "${#tests[@]}" -eq 0 ] && tests=(a b c d e f g h i k l m n o p q r s u v)
-[ "${tests[*]}" = all ] && tests=(a b c d e f g h i k l m n o p q r s u v j)
+[ "${#tests[@]}" -eq 0 ] && tests=(a b c d e f g h i k l m n o p q r s u v w x)
+[ "${tests[*]}" = all ] && tests=(a b c d e f g h i k l m n o p q r s u v w x j)
 
 for t in "${tests[@]}"; do case "$t" in
 a) hdr "a (unparsable script scripts/broken.sh: gate.sh must fail at step 1 naming it, exit 1, and never print 2/6)"
@@ -467,7 +476,7 @@ SRC
    run pwt 1 'src/patchbay_vital/_excluded.py:8: error: Returning Any from function declared to return "int"  [no-any-return]' uv run --locked mypy --exclude-gitignore
    note "the gate in the worktree (must pass, exit 0: git's list does not hold the file):"
    run pwt 0 scripts/gate.sh ;;
-q) hdr "q (step 5 refuses what pytest would read that git ignores: an ignored failing tests/unit/test_local.py; an ignored tests/unit/conftest.py that deselects a tracked failing test, which pytest given --ignore for it passes; an ignored conftest.py at the root; an ignored pytest.toml, .pytest.toml, pytest.ini or .pytest.ini at the root that deselects a tracked failing test; each must fail step 5 by name before pytest runs, exit 1, 6/6 never printed; an ignored failing test_local.txt passes the gate, -p no:doctest reading no .txt, where a bare pytest fails on it; an ignored .py under __pycache__ passes)"
+q) hdr "q (step 5 refuses what pytest would read that git ignores: an ignored failing tests/unit/test_local.py; an ignored tests/unit/conftest.py that deselects a tracked failing test, which pytest given --ignore for it passes; an ignored conftest.py at the root; each must fail step 5 by name before pytest runs, exit 1, 6/6 never printed; a pytest.toml, .pytest.toml, pytest.ini or .pytest.ini at the root that deselects a tracked failing test, ignored or tracked, must leave step 5 failing by pytest's own reason, as pytest without -c would not; an ignored failing test_local.txt passes the gate, -p no:doctest reading no .txt, where a bare pytest fails on it; an ignored .py under __pycache__ passes)"
    mk q; printf 'tests/unit/test_local.py\n' >> "$NEG/q/patchbay-vital/.gitignore" || die "q: ignore test_local"
    cat > "$NEG/q/patchbay-vital/tests/unit/test_local.py" <<'SRC' || die "q: write test_local"
 """A local test that states the wrong version."""
@@ -536,10 +545,20 @@ SRC
        *.toml) printf '[pytest]\naddopts = ["-k", "not probe_fail"]\n' ;;
        *) printf '[pytest]\naddopts = -k "not probe_fail"\n' ;;
      esac > "$NEG/q/patchbay-vital/$cfg" || die "q: write $cfg"
+     cp "$NEG/q/patchbay-vital/.gitignore" "$NEG/q-gitignore" || die "q: save .gitignore"
      printf '/%s\n' "$cfg" >> "$NEG/q/patchbay-vital/.gitignore" || die "q: ignore $cfg"
-     note "an ignored $cfg at the root, whose addopts deselect a tracked failing test (must fail at step 5 naming it before pytest runs, exit 1):"
+     note "an ignored $cfg at the root, whose addopts deselect a tracked failing test; pytest without -c reads it in place of pyproject.toml and deselects the test (why the gate passes -c):"
      run q 0 git check-ignore -v "$cfg"
-     run q 1 $'ok   no type error\nFAIL  step 5/6: '"$cfg"' is a pytest configuration file git ignores, which pytest would read in place of pyproject.toml; remove it, or stop ignoring it' scripts/gate.sh
+     run q 0 uv run --locked pytest -p no:doctest
+     holds '1 deselected'
+     note "the gate on the same (must fail step 5 naming the test, by pytest's own reason, exit 1, 6/6 never printed):"
+     run q 1 "$F5T" scripts/gate.sh
+     cp "$NEG/q-gitignore" "$NEG/q/patchbay-vital/.gitignore" || die "q: restore .gitignore"
+     git -C "$NEG/q/patchbay-vital" add "$cfg" || die "q: add $cfg"
+     note "the same $cfg tracked, as a pull request would carry it (must fail the same way, exit 1, 6/6 never printed):"
+     run q 0 git ls-files "$cfg"
+     run q 1 "$F5T" scripts/gate.sh
+     git -C "$NEG/q/patchbay-vital" rm -q --cached "$cfg" || die "q: rm --cached $cfg"
      rm "$NEG/q/patchbay-vital/$cfg" || die "q: rm $cfg"
    done
    git -C "$NEG/q/patchbay-vital" rm -q --cached tests/unit/test_probe_fail.py || die "q: rm --cached test_probe_fail"
@@ -564,7 +583,7 @@ r) hdr "r (a listing git cannot make fails its step by name: a git on PATH that 
    note "the listing of step 4 (git ls-files ... -- src tests) refused:"
    run r 1 $'ok   no violation\ngit (test shim): refusing\nFAIL  step 4/6: git could not list the files under src/ and tests/ (see above)' env PATH="$NEG/shim:$PATH" GATE_TEST_REFUSE=' -- src tests ' scripts/gate.sh
    note "the listing of step 5 (git ls-files --others --ignored ...) refused, step 1's --cached --ignored passing first:"
-   run r 1 $'ok   no type error\ngit (test shim): refusing\nFAIL  step 5/6: git could not list what it ignores under tests/ (see above)' env PATH="$NEG/shim:$PATH" GATE_TEST_REFUSE=' --others --ignored ' scripts/gate.sh ;;
+   run r 1 $'ok   no type error\ngit (test shim): refusing\nFAIL  step 5/6: git could not list what it ignores under tests/ and at the root conftest.py (see above)' env PATH="$NEG/shim:$PATH" GATE_TEST_REFUSE=' --others --ignored ' scripts/gate.sh ;;
 s) hdr "s (the rule set is pyproject.toml's alone: a ruff.toml, .ruff.toml, nested tests/ruff.toml, mypy.ini or .mypy.ini cannot hide a fault from its step, where the tool without the flag reports nothing; a uv.toml at the root, untracked, ignored, tracked or a symlink to nothing, must fail step 2 by name before uv reads it, 3/6 never printed)"
    mk s
    printf '"""A module with an import nothing uses."""\n\nimport os\n' > "$NEG/s/patchbay-vital/src/patchbay_vital/_unused.py" || die "s: write _unused"
@@ -685,6 +704,39 @@ SH
    chmod +x "$NEG/uvshim/uv" || die "vl: chmod uv shim"
    note "a uv on PATH that removes src/patchbay_vital/_late.py after ruff check, so the file is listed and read at steps 2-3 and gone by step 4 (must fail at step 4 naming it, exit 1, 5/6 never printed):"
    run vl 1 $'ok   no violation\nFAIL  step 4/6: src/patchbay_vital/_late.py is tracked but missing from the disk' env PATH="$NEG/uvshim:$PATH" GATE_TEST_GONE=src/patchbay_vital/_late.py scripts/gate.sh ;;
+w) hdr "w (an exported CDPATH naming a decoy git top with a scripts/ directory: the gate must run on its own tree, passing, the decoy's script never listed)"
+   mk w
+   mkdir -p "$NEG/decoy/scripts" || die "w: mkdir decoy"
+   git -c init.defaultBranch=main -C "$NEG/decoy" init -q || die "w: git init decoy"
+   printf '#!/usr/bin/env bash\n' > "$NEG/decoy/scripts/decoy.sh" || die "w: write decoy.sh"
+   git -C "$NEG/decoy" add scripts/decoy.sh || die "w: add decoy.sh"
+   note "from the copy, under that CDPATH, a plain cd scripts/.. lands in the decoy (why the gate empties CDPATH for its cd):"
+   run w 0 env CDPATH="$NEG/decoy" bash -c 'cd scripts/.. && pwd -P'
+   holds '<copy decoy>'
+   note "the gate under that CDPATH (must pass, exit 0, on its own tree):"
+   run w 0 env CDPATH="$NEG/decoy" scripts/gate.sh
+   holds 'ok   scripts/gate.sh'
+   times 0 'ok   scripts/decoy.sh' ;;
+x) hdr "x ([tool.uv] python-preference is read: with no managed interpreter and downloads off, uv refuses a Python 3.12 on PATH as the file says, and takes it when told otherwise; a key or value uv cannot use, which it only warns about, fails step 2 by name)"
+   mk x
+   managed=$(cd "$NEG/x/patchbay-vital" && uv python find --python-preference only-managed 3.12) || die "x: no managed 3.12 to stand in for a system one"
+   mkdir "$NEG/syspy" "$NEG/nopython" || die "x: mkdir"
+   ln -s "$managed" "$NEG/syspy/python3.12" || die "x: ln python3.12"
+   note "a python3.12 first on PATH, an empty managed directory and downloads off; told --python-preference managed, as uv's default is, uv takes the one on PATH (the case CI met):"
+   run x 0 env PATH="$NEG/syspy:$PATH" UV_PYTHON_INSTALL_DIR="$NEG/nopython" UV_PYTHON_DOWNLOADS=never uv python find --python-preference managed 3.12
+   holds '<copy syspy>/python3.12'
+   note "the same with nothing on the command line, so the file decides (must be refused, exit 2):"
+   run x 2 'managed installations' env PATH="$NEG/syspy:$PATH" UV_PYTHON_INSTALL_DIR="$NEG/nopython" UV_PYTHON_DOWNLOADS=never uv python find 3.12
+   pp="$NEG/x/patchbay-vital/pyproject.toml"
+   cp "$pp" "$NEG/x-saved" || die "x: save pyproject.toml"
+   for line in 'python-preference = "nonsense"' 'python-prefrence = "only-managed"'; do
+     grep -v '^python-preference = ' "$NEG/x-saved" | LINE=$line awk '{ print } /^\[tool\.uv\]$/ { print ENVIRON["LINE"] }' > "$pp" || die "x: write $line"
+     grep -qxF "$line" "$pp" || die "x: $line not written"
+     note "$line under [tool.uv], which uv only warns about and goes on without (step 2 must fail by name on the warning, exit 1, 3/6 never printed):"
+     run x 1 $'during settings discovery\n'"$F2SET" scripts/gate.sh
+     times 0 'ok   the locked toolchain synced'
+   done
+   cp "$NEG/x-saved" "$pp" || die "x: restore pyproject.toml" ;;
 j) hdr "j (CI replay: the run steps of .github/workflows/gate.yml, in order, on a clean copy and on a copy with a broken script)"
    cat <<'TXT'
 The workflow is not run on a hosting service here. The job's steps are read from the workflow file
@@ -705,7 +757,7 @@ TXT
    replay() {  # replay <case> <expected status> [<expected text>]: the workflow's steps against $NEG/<case> as the workspace
      local c=$1 want=$2 text=${3:-} got
      : > "$NEG/$c/github-output" || die "replay $c: github-output"
-     GITHUB_OUTPUT="$NEG/$c/github-output" uv run --quiet --no-project --with pyyaml python -u - "$NEG/$c" .github/workflows/gate.yml > "$NEG/run.raw" 2>&1 <<'PY'
+     GITHUB_OUTPUT="$NEG/$c/github-output" uv run --quiet --no-project --with pyyaml==6.0.3 python -u - "$NEG/$c" .github/workflows/gate.yml > "$NEG/run.raw" 2>&1 <<'PY'
 import os, subprocess, sys, yaml
 ws, wf = sys.argv[1], sys.argv[2]
 w = yaml.safe_load(open(wf)); on = w[True] if True in w else w["on"]; job = w["jobs"]["gate"]

@@ -1,0 +1,292 @@
+Probes of the revision after the review of PR 3, 2026-11-09 on branch feature/1-bootstrap-and-toolchain-shape-spec-claudemd-gate-ci-pyprojecttoml-readme-changelog, at the pins in uv.lock. Each on a scratch export of the tree (p/). The gate's side of section 1 is held by harness case q, and of section 3 by case x.
+
+### setup: the pins
+
+$ uv --version
+uv 0.13.7 (Homebrew 2026-11-03 aarch64-apple-darwin)
+exit=0
+
+$ uv sync --locked --quiet
+exit=0
+
+$ uv run --locked pytest --version
+pytest 9.2.0
+exit=0
+
+$ uv run --locked ruff --version
+ruff 0.17.4
+exit=0
+
+$ uv run --locked pre-commit --version
+pre-commit 4.7.0
+exit=0
+
+
+### 1. pytest: the four root files, without and with -c pyproject.toml (finding 1)
+
+Claims to tell apart: -c makes pytest read pyproject.toml alone; or a root file still wins. A failing test is added, and each file's addopts deselect it.
+--- pytest.toml, no -c:
+$ uv run --locked pytest -p no:doctest
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.2.0, pluggy-1.7.0
+rootdir: <scratch>/p
+configfile: pytest.toml (WARNING: ignoring pytest config in pyproject.toml!)
+plugins: platformdirs-4.14.5, hypothesis-6.170.14
+collected 8 items / 1 deselected / 7 selected
+
+tests/unit/test_package.py ...                                           [ 42%]
+tests/unit/test_version.py ....                                          [100%]
+
+======================= 7 passed, 1 deselected in 1.31s ========================
+exit=0
+
+--- pytest.toml, -c pyproject.toml, the gate's form:
+$ uv run --locked pytest -c pyproject.toml -p no:doctest
+...F....                                                                 [100%]
+=================================== FAILURES ===================================
+_______________________________ test_probe_fail ________________________________
+
+    def test_probe_fail() -> None:
+        """Fails."""
+>       assert 1 == 2  # noqa: PLR0133
+        ^^^^^^^^^^^^^
+E       assert 1 == 2
+
+tests/unit/test_probe_fail.py:6: AssertionError
+=========================== short test summary info ============================
+FAILED tests/unit/test_probe_fail.py::test_probe_fail - assert 1 == 2
+1 failed, 7 passed in 0.13s
+exit=1
+
+--- .pytest.toml, no -c:
+$ uv run --locked pytest -p no:doctest
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.2.0, pluggy-1.7.0
+rootdir: <scratch>/p
+configfile: .pytest.toml (WARNING: ignoring pytest config in pyproject.toml!)
+plugins: platformdirs-4.14.5, hypothesis-6.170.14
+collected 8 items / 1 deselected / 7 selected
+
+tests/unit/test_package.py ...                                           [ 42%]
+tests/unit/test_version.py ....                                          [100%]
+
+======================= 7 passed, 1 deselected in 0.12s ========================
+exit=0
+
+--- .pytest.toml, -c pyproject.toml, the gate's form:
+$ uv run --locked pytest -c pyproject.toml -p no:doctest
+...F....                                                                 [100%]
+=================================== FAILURES ===================================
+_______________________________ test_probe_fail ________________________________
+
+    def test_probe_fail() -> None:
+        """Fails."""
+>       assert 1 == 2  # noqa: PLR0133
+        ^^^^^^^^^^^^^
+E       assert 1 == 2
+
+tests/unit/test_probe_fail.py:6: AssertionError
+=========================== short test summary info ============================
+FAILED tests/unit/test_probe_fail.py::test_probe_fail - assert 1 == 2
+1 failed, 7 passed in 0.12s
+exit=1
+
+--- pytest.ini, no -c:
+$ uv run --locked pytest -p no:doctest
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.2.0, pluggy-1.7.0
+rootdir: <scratch>/p
+configfile: pytest.ini (WARNING: ignoring pytest config in pyproject.toml!)
+plugins: platformdirs-4.14.5, hypothesis-6.170.14
+collected 8 items / 1 deselected / 7 selected
+
+tests/unit/test_package.py ...                                           [ 42%]
+tests/unit/test_version.py ....                                          [100%]
+
+======================= 7 passed, 1 deselected in 0.12s ========================
+exit=0
+
+--- pytest.ini, -c pyproject.toml, the gate's form:
+$ uv run --locked pytest -c pyproject.toml -p no:doctest
+...F....                                                                 [100%]
+=================================== FAILURES ===================================
+_______________________________ test_probe_fail ________________________________
+
+    def test_probe_fail() -> None:
+        """Fails."""
+>       assert 1 == 2  # noqa: PLR0133
+        ^^^^^^^^^^^^^
+E       assert 1 == 2
+
+tests/unit/test_probe_fail.py:6: AssertionError
+=========================== short test summary info ============================
+FAILED tests/unit/test_probe_fail.py::test_probe_fail - assert 1 == 2
+1 failed, 7 passed in 0.12s
+exit=1
+
+--- .pytest.ini, no -c:
+$ uv run --locked pytest -p no:doctest
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.2.0, pluggy-1.7.0
+rootdir: <scratch>/p
+configfile: .pytest.ini (WARNING: ignoring pytest config in pyproject.toml!)
+plugins: platformdirs-4.14.5, hypothesis-6.170.14
+collected 8 items / 1 deselected / 7 selected
+
+tests/unit/test_package.py ...                                           [ 42%]
+tests/unit/test_version.py ....                                          [100%]
+
+======================= 7 passed, 1 deselected in 0.13s ========================
+exit=0
+
+--- .pytest.ini, -c pyproject.toml, the gate's form:
+$ uv run --locked pytest -c pyproject.toml -p no:doctest
+...F....                                                                 [100%]
+=================================== FAILURES ===================================
+_______________________________ test_probe_fail ________________________________
+
+    def test_probe_fail() -> None:
+        """Fails."""
+>       assert 1 == 2  # noqa: PLR0133
+        ^^^^^^^^^^^^^
+E       assert 1 == 2
+
+tests/unit/test_probe_fail.py:6: AssertionError
+=========================== short test summary info ============================
+FAILED tests/unit/test_probe_fail.py::test_probe_fail - assert 1 == 2
+1 failed, 7 passed in 0.13s
+exit=1
+
+
+### 2. pre-commit: the hooks beside a root ruff.toml, without and with --config (finding 2)
+
+The setup: a git work tree, a root ruff.toml narrowing the line to 40 and ignoring every rule, and a module with an unused import. PRE_COMMIT_HOME is a scratch directory.
+$ grep -n entry: .pre-commit-config.yaml
+16:        entry: uv run --locked ruff check --config pyproject.toml --fix
+23:        entry: uv run --locked ruff format --config pyproject.toml
+exit=0
+
+2a. as shipped, --config pyproject.toml on both hooks: ruff check --fix applies pyproject.toml's rules and removes the import; ruff format keeps its width, so no other file changes:
+$ uv run --locked pre-commit run --all-files
+ruff check --fix (uv run --locked; the gate's ruff and rules).......................Failed
+- hook id: ruff-check
+- files were modified by this hook
+
+Found 1 error (1 fixed, 0 remaining).
+
+ruff format (uv run --locked; the gate's ruff and rules)............................Failed
+- hook id: ruff-format
+- files were modified by this hook
+
+1 file reformatted, 3 files left unchanged
+
+exit=1
+
+$ git diff --stat
+ src/patchbay_vital/_unused.py | 2 --
+ 1 file changed, 2 deletions(-)
+exit=0
+
+$ grep -n entry: .pre-commit-config.yaml
+16:        entry: uv run --locked ruff check --fix
+23:        entry: uv run --locked ruff format
+exit=0
+
+2b. the hooks as they were, no --config: ruff obeys ruff.toml, finds nothing, and rewrites the files at width 40:
+$ uv run --locked pre-commit run --all-files
+ruff check --fix (uv run --locked; the gate's ruff and rules).......................Passed
+ruff format (uv run --locked; the gate's ruff and rules)............................Failed
+- hook id: ruff-format
+- files were modified by this hook
+
+3 files reformatted, 1 file left unchanged
+
+exit=1
+
+$ git diff --stat
+ src/patchbay_vital/__init__.py |  4 ++-
+ tests/unit/test_package.py     | 57 ++++++++++++++++++++++++--------
+ tests/unit/test_version.py     | 74 +++++++++++++++++++++++++++++++++---------
+ 3 files changed, 106 insertions(+), 29 deletions(-)
+exit=0
+
+
+### 3. The interpreter: what only-managed resolves, and the version chosen (finding 3, Decision 3)
+
+$ grep -n python-preference pyproject.toml
+48:python-preference = "only-managed"
+exit=0
+
+$ cat .python-version
+3.12
+exit=0
+
+3a. in a project with no .venv, as CI's first sync is:
+$ uv python find 3.12
+/Users/michaelwitwicki/.local/share/uv/python/cpython-3.12-macos-aarch64-none/bin/python3.12
+exit=0
+
+3b. the build a sync makes:
+$ uv sync --locked --quiet
+exit=0
+
+$ uv run --locked python -VV
+Python 3.12.16 (main, Oct 26 2026, 13:59:40) [Clang 23.1.3 ]
+exit=0
+
+3c. the newest 3.12 uv 0.13.7 ships for CI's platform:
+$ uv python list 3.12 --all-platforms --all-arches --only-downloads | grep cpython.*linux-x86_64 (--all-arches: without it the list holds this machine's architecture alone)
+cpython-3.12.16-linux-x86_64-gnu         <download available
+cpython-3.12.16-linux-x86_64-musl        <download available
+cpython-3.12.16-linux-x86_64_v2-gnu      <download available
+cpython-3.12.16-linux-x86_64_v2-musl     <download available
+cpython-3.12.16-linux-x86_64_v3-gnu      <download available
+cpython-3.12.16-linux-x86_64_v3-musl     <download available
+cpython-3.12.16-linux-x86_64_v4-gnu      <download available
+cpython-3.12.16-linux-x86_64_v4-musl     <download available
+
+### 4. uv: a key or value it cannot use in [tool.uv] is a warning, not a refusal
+
+Claims to tell apart: uv refuses it; or it warns and goes on; and, if it goes on, whether required-version still holds.
+$ grep -nE ^(required-version|python-preference) pyproject.toml
+44:required-version = "==0.13.6"
+48:python-preference = "only-managed"
+exit=0
+
+4a. the control: a required-version that is not the running uv, the section otherwise valid, is refused:
+$ uv sync --locked
+error: Required uv version `==0.13.6` does not match the running version `0.13.7`
+exit=2
+
+$ grep -nE ^(required-version|python-preference) pyproject.toml
+44:required-version = "==0.13.6"
+48:python-preference = "nonsense"
+exit=0
+
+4b. the same required-version, with python-preference a value uv cannot use: whether required-version still holds:
+$ uv sync --locked
+error: Required uv version `==0.13.6` does not match the running version `0.13.7`
+exit=2
+
+4c. a misspelled key in the section:
+$ grep -nE ^python-pref pyproject.toml
+48:python-prefrence = "only-managed"
+exit=0
+
+$ uv sync --locked
+warning: Failed to parse `pyproject.toml` during settings discovery:
+  TOML parse error at line 48, column 1
+     |
+  48 | python-prefrence = "only-managed"
+     | ^^^^^^^^^^^^^^^^
+  unknown field `python-prefrence`, expected one of `required-version`, `system-certs`, `native-tls`, `offline`, `no-cache`, `cache-dir`, `preview`, `preview-features`, `python-preference`, `python-downloads`, `concurrent-downloads`, `concurrent-builds`, `concurrent-installs`, `index`, `index-url`, `extra-index-url`, `no-index`, `find-links`, `index-strategy`, `keyring-provider`, `http-proxy`, `https-proxy`, `no-proxy`, `allow-insecure-host`, `resolution`, `prerelease`, `prerelease-package`, `fork-strategy`, `dependency-metadata`, `config-settings`, `config-settings-package`, `no-build-isolation`, `require-build-hashes`, `no-build-isolation-package`, `extra-build-dependencies`, `extra-build-variables`, `exclude-newer`, `exclude-newer-package`, `link-mode`, `compile-bytecode`, `no-sources`, `no-sources-package`, `upgrade`, `upgrade-package`, `reinstall`, `reinstall-package`, `no-build`, `no-build-package`, `no-binary`, `no-binary-package`, `torch-backend`, `python-install-mirror`, `pypy-install-mirror`, `graalpy-install-mirror`, `pyodide-install-mirror`, `python-downloads-json-url`, `publish-url`, `trusted-publishing`, `check-url`, `add-bounds`, `audit`, `pip`, `cache-keys`, `override-dependencies`, `exclude-dependencies`, `constraint-dependencies`, `build-constraint-dependencies`, `environments`, `required-environments`, `minimum-libc-version`, `conflicts`, `workspace`, `sources`, `managed`, `package`, `default-groups`, `dependency-groups`, `dev-dependencies`, `build-backend`
+
+Resolved 26 packages in 2ms
+   Building patchbay-vital @ file://<scratch>/p
+      Built patchbay-vital @ file://<scratch>/p
+Prepared 1 package in 3ms
+Uninstalled 1 package in 0.65ms
+Installed 1 package in 1ms
+ ~ patchbay-vital==0.0.1 (from file://<scratch>/p)
+exit=0
+

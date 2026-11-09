@@ -36,8 +36,9 @@ it with the spec that adds it (`agent-os/product/mission.md`).
   when it was shaped, and `verification/` holding the gate transcripts.
 - `.claude/commands/agent-os/`: the Agent OS commands; `shape-spec.md` is customized for this
   repository's gate, the rest are stock.
-- `.github/workflows/gate.yml`: CI, which runs the gate and nothing else.
-- `CLAUDE.md`: the rules for an agent working here, ownership first.
+- `.github/workflows/gate.yml`: CI, which installs the locked toolchain and runs the gate, and
+  checks nothing the gate does not.
+- `CLAUDE.md`: the rules for an agent working here, `## Git` and `## Ownership` first.
 
 ## Install
 
@@ -48,11 +49,12 @@ uv sync
 uv is the one tool this repository assumes, at 0.13.7: `pyproject.toml`'s `[tool.uv]
 required-version` pins it, so any other uv refuses every command that reads this project's settings
 (`uv sync` and `uv run` among them), and CI's setup-uv reads the same key to install it. `uv sync`
-reads `.python-version` (3.12), fetches that interpreter into uv's cache if it is not there, creates
-`.venv/` and installs into it the package and the locked dev toolchain: ruff, mypy, pytest,
+reads `.python-version` (3.12), fetches uv's own build of that interpreter
+(`[tool.uv] python-preference`) into uv's Python directory (`uv python dir`) if it is not there,
+creates `.venv/` and installs into it the package and the locked dev toolchain: ruff, mypy, pytest,
 hypothesis and pre-commit, each pinned exactly in `pyproject.toml`'s `[dependency-groups] dev` with
-the date it was published. `uv.lock` resolves them. Nothing is installed outside the repository. Run
-a tool as `uv run --locked <tool>`, as the gate does.
+the date it was published. `uv.lock` resolves them. Outside the repository uv writes only that interpreter and its own cache.
+Run a tool as `uv run --locked <tool>`, as the gate does.
 
 ## The gate
 
@@ -75,20 +77,20 @@ script cannot enter the repository root):
    with its reason.
 4. `uv run --locked mypy --config-file pyproject.toml` over the `.py` and `.pyi` files git lists
    under `src/` and `tests/`: no type error under `strict`.
-5. `uv run --locked pytest -p no:doctest`: every test under `tests/` passes, once no `.py` file
-   there, and no `conftest.py` at the root or root file pytest reads ahead of `pyproject.toml`
-   (`pytest.toml`, `.pytest.toml`, `pytest.ini`, `.pytest.ini`), is one git ignores.
+5. `uv run --locked pytest -c pyproject.toml -p no:doctest`: every test under `tests/` passes, once
+   no `.py` file there, and no `conftest.py` at the root, is one git ignores.
 6. `scripts/sync-standards.sh --check`: `agent-os/standards/base/`, the `base:` section of
    `agent-os/standards/index.yml` and the sync script itself are byte-identical to
    `patchbay-standards` at the pinned commit.
 
 Step 2 opens with `uv sync --locked`, which installs exactly what `uv.lock` names and fails the step
 as the sync, before any tool runs, when a pin was edited in `pyproject.toml` without `uv lock` (the
-lockfile is never rewritten), when uv cannot read either file or build the package from them, or
-when the running uv is not the required one; so the gate writes nothing but the ignored `.venv/` and
+lockfile is never rewritten), when uv cannot read either file or build the package from them, when
+the running uv is not the required one, or when uv warns it cannot use a setting in `[tool.uv]`; so
+the gate writes nothing but the ignored `.venv/` and
 caches. Steps 2 to 5 then run each tool under `--locked`, the one `uv.lock` names, and read only the
-files git lists: ruff and mypy are told by flag to read `pyproject.toml` alone and are given git's
-list itself, so git alone decides what is ignored; pytest, which loads the `conftest.py` of every
+files git lists: ruff, mypy and pytest are told by flag to read `pyproject.toml` alone, and ruff and
+mypy are given git's list itself, so git alone decides what is ignored; pytest, which loads the `conftest.py` of every
 directory it collects from, walks `tests/` only once nothing it would read is ignored. Step 6 reads
 the sibling checkout at `../patchbay-standards`, so clone `patchbay-standards` beside this repository
 first; CI checks it out there at the pinned commit, installs uv with `astral-sh/setup-uv` at the
@@ -127,5 +129,5 @@ filed as an issue on `patchbay-standards`, whose own spec lands it as a pull req
 ## Specs
 
 Work is shaped with `/agent-os:shape-spec` in plan mode and ends with the gate. `CLAUDE.md` holds the
-rules an agent follows here, `## Ownership` first: a person owns every commit, pull request and
+rules an agent follows here, `## Git` and `## Ownership` first: a person owns every commit, pull request and
 merge.

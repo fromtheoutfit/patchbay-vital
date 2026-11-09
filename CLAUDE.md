@@ -53,11 +53,10 @@ prohibition is on attribution markers, not on citing the work.
   ignores (any other file there fails the step); `uv sync --locked` with no `uv.toml` at the root,
   then `uv run --locked ruff format --config pyproject.toml --check`; `uv run --locked ruff check
   --config pyproject.toml`; `uv run --locked mypy --config-file pyproject.toml`; `uv run --locked
-  pytest -p no:doctest`, the four reading their rules from the `[tool.*]` sections of
+  pytest -c pyproject.toml -p no:doctest`, the four reading their rules from the `[tool.*]` sections of
   `pyproject.toml` and their pins from its `[dependency-groups] dev` as `uv.lock` resolves them,
   under the uv its `[tool.uv] required-version` pins, and reading only the files git lists (ruff and mypy are given git's list of `.py` and `.pyi` files; pytest walks
-  `tests/` once no `.py` file there, and no root `conftest.py` or root file pytest reads ahead of
-  `pyproject.toml`, is one git ignores); and
+  `tests/` once no `.py` file there, and no root `conftest.py`, is one git ignores); and
   `scripts/sync-standards.sh --check`, holding
   `agent-os/standards/base/`, the `base:` section of `agent-os/standards/index.yml` and the sync
   script byte-identical to `patchbay-standards` at the pinned commit, read from the sibling
@@ -67,8 +66,8 @@ prohibition is on attribution markers, not on citing the work.
   documentation the change touches reads true after it. Version: the change is recorded under
   `[Unreleased]` in `CHANGELOG.md`. CI (`.github/workflows/gate.yml`) checks `patchbay-standards`
   out beside this repository, installs the uv `pyproject.toml` pins and runs `uv sync --locked`,
-  then runs `scripts/gate.sh` on every pull request and every push to `main`, and nothing else;
-  the judgment steps are never run by a machine.
+  then runs `scripts/gate.sh` on every pull request and every push to `main`, and checks nothing
+  the script does not; the judgment steps are never run by a machine.
 - The retrospective is the gate's last step: check what the spec taught against the standards,
   add the pattern it invented, correct what it proved stale, keep `index.yml` in step — or
   record `Standards retrospective: no changes` in the spec's `shape.md`. "No changes" is valid;

@@ -1,0 +1,14 @@
+The hosted run of .github/workflows/gate.yml on PR 3, recorded 2026-11-09 by the revision after the review of that PR (base/process/verification-gate.md, "CI").
+
+$ gh run view 42668230570 --json databaseId,conclusion,headSha,headBranch,event,createdAt,updatedAt,url
+run id:     42668230570
+conclusion: success
+head:       5dff3910a8592d124b0b476e2b8a3a23d56f72b8
+branch:     feature/1-bootstrap-and-toolchain-shape-spec-claudemd-gate-ci-pyprojecttoml-readme-changelog
+event:      pull_request
+started:    2026-11-09T17:48:41Z
+finished:   2026-11-09T17:49:02Z
+url:        https://github.com/fromtheoutfit/patchbay-vital/actions/runs/42668230570
+
+The interpreter it used, from the log of its `uv sync --locked` step (the review of PR 3, finding 3, is why this is noted):
+2026-11-09T17:48:51.7588967Z Using CPython 3.12.3 interpreter at: /usr/bin/python3.12

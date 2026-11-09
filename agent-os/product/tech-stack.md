@@ -11,7 +11,8 @@ here includes (Step 5a of `/agent-os:shape-spec`).
   runs are pinned exactly in `pyproject.toml`'s `[dependency-groups] dev`, resolved in `uv.lock`, and
   run through `uv run --locked`. uv itself is pinned by `[tool.uv] required-version`, which CI's
   setup-uv reads too.
-- **Python >= 3.12** (`requires-python`; `.python-version` pins the interpreter).
+- **Python >= 3.12** (`requires-python`; `.python-version` names the interpreter, and
+  `[tool.uv] python-preference = "only-managed"` has uv use its own build of it, locally and in CI).
 - **ruff** for linting and formatting, with `select = ["ALL"]`; every disabled rule is named with
   its reason.
 - **mypy --strict** over the package and the tests.

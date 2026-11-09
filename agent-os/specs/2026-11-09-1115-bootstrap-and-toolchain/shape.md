@@ -146,8 +146,8 @@ this order: Docs, Version, then the standards retrospective below.
   corrected to `[tool:pytest]` and the refusal kept as its own observation.
 - `verification/ruff-all-empty-ignore.txt`: `ALL` over this tree with the list empty.
 - The wheel built by `uv build` in a scratch copy holds `LICENSE` and `py.typed`.
-- The hosted CI run cannot exist until the owner opens the pull request; its run id and conclusion go
-  in `verification/` then (`base/process/verification-gate.md`, "CI").
+- The hosted CI run on PR 3: run 42668230570, `success`, at `5dff391`,
+  `verification/hosted-ci-run.txt` (`base/process/verification-gate.md`, "CI").
 
 **Docs (step 7):** checked and reads true against the shipped files:
 - `README.md`: the layout, the install, the six steps with their flags, pre-commit, the sync; every

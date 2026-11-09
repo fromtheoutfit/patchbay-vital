@@ -216,15 +216,14 @@ Run the full verification gate, in order. The spec is not complete until every s
    `[tool.ruff.lint]` in `pyproject.toml`
 4. `uv run --locked mypy --config-file pyproject.toml` over the `.py` and `.pyi` files git lists
    under `src/` and `tests/` — no type error under `[tool.mypy]` (strict)
-5. `uv run --locked pytest -p no:doctest` — every test under `tests/` passes
+5. `uv run --locked pytest -c pyproject.toml -p no:doctest` — every test under `tests/` passes
    (`[tool.pytest.ini_options]`), once no `.py` file under `tests/`, and no `conftest.py` at the
-   root or root file pytest reads ahead of `pyproject.toml` (`pytest.toml`, `.pytest.toml`,
-   `pytest.ini`, `.pytest.ini`), is one git ignores
+   root, is one git ignores
    — steps 2–5 run the tools pinned in `pyproject.toml`'s `[dependency-groups] dev` as `uv.lock`
    resolves them, under the uv `[tool.uv] required-version` pins; step 2's sync fails, before
-   any tool runs, when the lockfile no longer matches `pyproject.toml` or the running uv is not
-   the required one; ruff and mypy are told by flag to read `pyproject.toml` alone and are given
-   git's list itself, and pytest walks `tests/` only
+   any tool runs, when the lockfile no longer matches `pyproject.toml`, the running uv is not
+   the required one, or uv warns it cannot use a setting in `[tool.uv]`; ruff, mypy and pytest are told by flag to read `pyproject.toml` alone, ruff
+   and mypy are given git's list itself, and pytest walks `tests/` only
    once nothing it would read is ignored
 6. `scripts/sync-standards.sh --check` — `agent-os/standards/base/`, the `base:` section of
    `agent-os/standards/index.yml` and the script itself are byte-identical to `patchbay-standards`
@@ -278,7 +277,7 @@ scripts git lists under `scripts/`, `uv sync --locked` then
 `uv run --locked ruff format --config pyproject.toml --check`,
 `uv run --locked ruff check --config pyproject.toml`,
 `uv run --locked mypy --config-file pyproject.toml`,
-`uv run --locked pytest -p no:doctest`, `scripts/sync-standards.sh --check` — then Docs, Version and the
+`uv run --locked pytest -c pyproject.toml -p no:doctest`, `scripts/sync-standards.sh --check` — then Docs, Version and the
 standards retrospective) as the last task in every plan, regardless of feature size. Do not skip
 this for "small" changes — a one-file fix is exactly the kind of spec that quietly invents a
 pattern.
@@ -359,7 +358,7 @@ under `scripts/` as git lists them, with no tracked file a `.gitignore` ignores;
 `uv run --locked ruff format --config pyproject.toml --check`,
 `uv run --locked ruff check --config pyproject.toml`,
 `uv run --locked mypy --config-file pyproject.toml`
-and `uv run --locked pytest -p no:doctest` under `pyproject.toml`'s `[tool.*]` rule set and
+and `uv run --locked pytest -c pyproject.toml -p no:doctest` under `pyproject.toml`'s `[tool.*]` rule set and
 `uv.lock`'s pins;
 and `scripts/sync-standards.sh --check` against `../patchbay-standards` at the commit in
 `agent-os/standards/base/.version` — and the three judgment steps are recorded, in this order:
