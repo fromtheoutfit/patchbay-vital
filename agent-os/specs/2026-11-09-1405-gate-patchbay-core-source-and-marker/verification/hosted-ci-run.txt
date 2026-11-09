@@ -1,0 +1,19 @@
+The hosted run of .github/workflows/gate.yml on PR 5, the first of the git source, recorded 2026-11-09 by the revision after the review of that PR (base/process/verification-gate.md, "CI").
+
+$ gh run view 42681632482 --json databaseId,conclusion,headSha,headBranch,event,createdAt,updatedAt,url
+run id:     42681632482
+conclusion: success
+head:       d638b3976c28595497587086427f3465e3f62197
+branch:     feature/4-gate-the-patchbay-core-source-and-the-integration-marker
+event:      pull_request
+started:    2026-11-09T19:15:40Z
+finished:   2026-11-09T19:16:01Z
+url:        https://github.com/fromtheoutfit/patchbay-vital/actions/runs/42681632482
+
+From its log: the interpreter, the build of the git source, and the gate:
+2026-11-09T19:15:50.9049520Z Using CPython 3.12.16
+2026-11-09T19:15:51.6181374Z    Building patchbay-core @ git+https://github.com/fromtheoutfit/patchbay@dd2bcad69dadeb38c6e1e660b2e0ddced13861eb
+2026-11-09T19:15:51.6209172Z       Built patchbay-core @ git+https://github.com/fromtheoutfit/patchbay@dd2bcad69dadeb38c6e1e660b2e0ddced13861eb
+2026-11-09T19:15:51.6675283Z  + patchbay-core==0.0.1 (from git+https://github.com/fromtheoutfit/patchbay@dd2bcad69dadeb38c6e1e660b2e0ddced13861eb)
+2026-11-09T19:15:56.7295211Z 7 passed in 1.54s
+2026-11-09T19:15:56.9538330Z Gate steps 1-6 passed. Steps 7-9 are judgment, recorded in shape.md: Docs, Version, the standards retrospective.

@@ -22,4 +22,5 @@ here includes (Step 5a of `/agent-os:shape-spec`).
 - **`patchbay-core`** is the one runtime dependency, `>=0.0.1,<1` in `[project] dependencies`, taken
   from its public repository at the commit `[tool.uv.sources]` pins, being on no index. Issue #4's
   spec added it (`agent-os/specs/2026-11-09-1405-gate-patchbay-core-source-and-marker/`), and issue
-  #2's is the first to import it.
+  #2's is the first whose package code imports it; `tests/unit/test_package.py` holds the pin to the
+  range.

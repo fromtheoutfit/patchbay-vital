@@ -1,7 +1,10 @@
-"""The package's surface is __all__, and its distribution carries the license."""
+"""The package's surface is __all__, and its distribution carries the license and its range."""
 
 import importlib.metadata
 import types
+
+from packaging.requirements import Requirement
+from patchbay import PatchbayError, PatchbayModel, PresetKey
 
 import patchbay_vital
 
@@ -37,3 +40,20 @@ def test_distribution_names_its_license_file() -> None:
     metadata = importlib.metadata.metadata("patchbay-vital")
     assert metadata["License-Expression"] == "MIT"
     assert metadata.get_all("License-File") == ["LICENSE"]
+
+
+def test_the_pinned_patchbay_core_is_in_the_declared_range() -> None:
+    """The commit [tool.uv.sources] pins is a version the range the wheel declares admits.
+
+    uv does not check the range against a git source, so nothing else holds the two together.
+    """
+    declared = [Requirement(line) for line in importlib.metadata.requires("patchbay-vital") or ()]
+    core = next(requirement for requirement in declared if requirement.name == "patchbay-core")
+    assert core.specifier.contains(importlib.metadata.version("patchbay-core"))
+
+
+def test_the_names_the_adapter_builds_on_come_from_patchbay_core() -> None:
+    """A pinned commit lacking one fails here, ahead of the first adapter module to import it."""
+    assert PatchbayModel.__module__ == "patchbay.models"
+    assert PresetKey.__module__ == "patchbay.models"
+    assert PatchbayError.__module__ == "patchbay.errors"

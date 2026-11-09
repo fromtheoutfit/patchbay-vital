@@ -491,6 +491,7 @@ dependencies = [
 dev = [
     { name = "hypothesis" },
     { name = "mypy" },
+    { name = "packaging" },
     { name = "pre-commit" },
     { name = "pytest" },
     { name = "ruff" },
@@ -503,6 +504,7 @@ requires-dist = [{ name = "patchbay-core", git = "https://github.com/fromtheoutf
 dev = [
     { name = "hypothesis", specifier = "==6.170.14" },
     { name = "mypy", specifier = "==2.4.1" },
+    { name = "packaging", specifier = "==26.3" },
     { name = "pre-commit", specifier = "==4.7.0" },
     { name = "pytest", specifier = "==9.2.0" },
     { name = "ruff", specifier = "==0.17.4" },

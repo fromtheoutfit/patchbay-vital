@@ -14,6 +14,17 @@ writes the entry, in that commit
 
 ### Changed
 
+- Revision after the review of PR 5, `agent-os/specs/2026-11-09-1433-revision-after-pr-5-review/`:
+  all eleven findings of the review at `d638b39` addressed. The version stays 0.0.1.
+  - `tests/unit/test_package.py` holds the pinned `patchbay-core` to the declared range, which uv
+    does not check against a git source, and the names the adapter builds on to the pinned commit.
+    `packaging==26.3` joins the dev group for it.
+  - `scripts/gate.sh` step 2's reason names a locked package that could not be fetched.
+  - Case t survives a pin move and covers a failed fetch and an unmet range; case y's marked test
+    fails on purpose, so step 5 shows it ran. `verification/guard-mutations.txt` shows both
+    discriminate.
+  - The hosted run of the git source is recorded, and `CLAUDE.md` and `README.md` say what the gate
+    owns, that `uv sync` calls git, and that the wheel installs only where `patchbay-core` resolves.
 - Revision after the review of PR 3, `agent-os/specs/2026-11-09-1311-revision-after-pr-3-review/`:
   findings 1 to 8 and 15 of the review at `5dff391` fixed, 9's wording corrected, 9 proposed upstream
   (`fromtheoutfit/patchbay-standards#29`), 10 declined by the owner, 11 to 14 left. Findings that

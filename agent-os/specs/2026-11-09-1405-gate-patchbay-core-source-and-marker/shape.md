@@ -88,8 +88,8 @@ Gate files changed, so the whole harness was rerun: `verification/gate-negative-
 `139 runs, 0 unexpected` (t and y among them) and `verification/ci-negative-test.txt` `3 runs, 0
 unexpected`. No harness assertion changed, so no mutation is owed. `verification/lock-change.txt`:
 six packages added, none removed, no version moved. `uv run --locked python -c "from patchbay import
-PatchbayModel, PresetKey"` imports 0.0.1 from the pin. The first hosted run of the git source waits
-for the owner's push.
+PatchbayModel, PresetKey"` imports 0.0.1 from the pin. The first hosted run of the git source is
+run 42681632482, success at `d638b39`, `verification/hosted-ci-run.txt`.
 
 **Docs (step 7):** checked and reads true against the shipped files:
 - `pyproject.toml`: the header now names `[tool.uv.sources]`, and the comment on `dependencies` says
