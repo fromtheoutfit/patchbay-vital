@@ -1,0 +1,76 @@
+Probe of src/patchbay_vital/grisu2.py against nlohmann::json itself, 2026-11-09.
+
+Setup: nlohmann/json v3.11.3 single_include/nlohmann/json.hpp, sha256
+9bea4c8066ef4a1c206b2be5a36302f8926f7fdc6087af5d20b417d0cf103ea6, fetched into a scratch directory outside
+this repository, and Apple clang version 21.0.0 (clang-2100.4.1.1). A driver reads one IEEE-754 double per line as 16
+hex digits and prints nlohmann::json(value).dump():
+
+    // Reads one IEEE-754 double per line as 16 hex digits and prints nlohmann::json's dump of it.
+    #include <cstdint>
+    #include <cstring>
+    #include <iostream>
+    #include <string>
+    #include "json.hpp"
+    int main() {
+      std::ios::sync_with_stdio(false);
+      std::string line;
+      while (std::getline(std::cin, line)) {
+        std::uint64_t bits = std::stoull(line, nullptr, 16);
+        double value;
+        std::memcpy(&value, &bits, sizeof value);
+        std::cout << nlohmann::json(value).dump() << '\n';
+      }
+    }
+
+Each value below went through that program and through format_float, and the two strings were
+compared. The version of nlohmann::json Vital 1.6.4 links is not recorded in its binary as far as was
+checked; the 77 files' values are the check on it (the line beginning "nlohmann's dump equals").
+
+The cases tell the claims apart: repr agrees with the files on all but 32 values and with nlohmann on
+fewer, so a port that were really repr would fail these runs.
+
+$ uv run --locked python compare.py
+cached powers: header 79 computed 79 identical True
+distinct float values in the 77 files: 3920 ; values with more than one spelling: 1
+the 77 files' values: 3920 values, 0 differ from nlohmann; repr differs from nlohmann on 32
+nlohmann's dump equals the file's token: 3920 of 3920
+edge cases and powers: 2726 values, 0 differ from nlohmann; repr differs from nlohmann on 13
+float32, any bit pattern: 400000 values, 0 differ from nlohmann; repr differs from nlohmann on 8044
+float32 in -1..1: 400000 values, 0 differ from nlohmann; repr differs from nlohmann on 981
+float32, 20000 per binade from 2^-12 to 2^2: 280000 values, 0 differ from nlohmann; repr differs from nlohmann on 540
+double, any bit pattern: 200000 values, 0 differ from nlohmann; repr differs from nlohmann on 550
+TOTAL values differing: 0
+in the random float pool: Grisu2 longer than shortest on 2728 ; same length, other digits on 1784 ; corpus values repr gets wrong: 32 ; vectors written: 792
+[exit 0]
+
+
+
+== The integration tests, each claim shown to fail. 2026-11-09.
+
+The tree of this branch, run through .venv/bin/python -m pytest, HOME set as each case says.
+
+-- HOME with no Music/Vital: every installed-preset test skips saying why, and the count test runs
+tests/integration/test_factory_round_trip.py:79: no installed Vital presets at /nonexistent/Music/Vital
+tests/integration/test_factory_round_trip.py:93: no installed Vital presets at /nonexistent/Music/Vital
+tests/integration/test_factory_round_trip.py:98: no installed Vital presets at /nonexistent/Music/Vital
+1 passed, 76 skipped in 0.12s
+
+-- every listed path present (empty files) plus a save under User/: the walk leaves User/ out, the set test passes
+1 passed, 76 deselected in 0.11s
+
+-- one listed file removed: the test names it
+E       AssertionError: listed in the manifest and not installed
+E       assert ['Factory/Pre...h Tone.vital'] == []
+E         Left contains one more item: 'Factory/Presets/Touch Tone.vital'
+1 failed, 76 deselected in 0.12s
+
+-- all listed present and a new pack installed: the test names it
+E       AssertionError: installed and not listed in the manifest
+E       assert ['New Pack/Pr.../Fresh.vital'] == []
+E         Left contains one more item: 'New Pack/Presets/Fresh.vital'
+1 failed, 76 deselected in 0.12s
+
+-- the round trip discriminates: the 75 manifest files against the writer with one part taken away
+as shipped: 0 of 75 files differ
+format_float replaced by repr: 27 of 75 files differ
+trailing newline dropped: 3 of 75 files differ

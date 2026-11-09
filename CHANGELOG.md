@@ -47,6 +47,13 @@ writes the entry, in that commit
 
 ### Added
 
+- The `.vital` format, issue #2, `agent-os/specs/2026-11-09-1509-the-vital-format/`: `load`, `loads`,
+  `dump`, `dumps` and `diff` over typed models on `PatchbayModel`, every section the package does not
+  interpret kept as the file held it. `dumps(loads(text)) == text` on every one of the 75 presets
+  Vital installs, held by an integration test against a committed manifest, floats written through
+  a port of nlohmann::json's Grisu2 that matches the library on 1,286,646 compared values. `pydantic`
+  joins the runtime dependencies. The first project standards, `agent-os/standards/vital/`. The
+  version stays 0.0.1.
 - `patchbay-core>=0.0.1,<1` as the first runtime dependency, taken from its public repository at
   `dd2bcad` by `[tool.uv.sources]`, and the `integration` pytest marker, for issue #2 to build on. A
   gate spec, issue #4, `agent-os/specs/2026-11-09-1405-gate-patchbay-core-source-and-marker/`;

@@ -19,7 +19,9 @@ here includes (Step 5a of `/agent-os:shape-spec`).
 - **pytest** for tests and **hypothesis** for property-based ones.
 - **src layout**: `src/patchbay_vital/`, typed (`py.typed`); distribution `patchbay-vital`, import
   `patchbay_vital`.
-- **`patchbay-core`** is the one runtime dependency, `>=0.0.1,<1` in `[project] dependencies`, taken
+- **`pydantic`** builds the models, `>=2.14.3,<3` in `[project] dependencies`, declared beside the
+  dependency that brings it in because `preset.py` imports it.
+- **`patchbay-core`** is the adapter's contract, `>=0.0.1,<1` in `[project] dependencies`, taken
   from its public repository at the commit `[tool.uv.sources]` pins, being on no index. Issue #4's
   spec added it (`agent-os/specs/2026-11-09-1405-gate-patchbay-core-source-and-marker/`), and issue
   #2's is the first whose package code imports it; `tests/unit/test_package.py` holds the pin to the
