@@ -29,6 +29,6 @@ vital:
   float-writer:
     description: A float in a preset is written by a port of nlohmann's Grisu2 and format, never repr or a rule fitted to the corpus, held to the library's own output by a recorded vectors file
   preset-file:
-    description: Where each part of a .vital file lives and how it is held, known keys meaning Vital has ever written them, a per-slot float joined to its slot reversibly, all 64 slots kept, a section as the text the file held, an unknown float or top-level key refused and an unknown section kept
+    description: Where each part of a .vital file lives and how it is held, known keys meaning Vital has ever written them, a per-slot float joined to its slot reversibly, all 64 slots kept, a section as the text the file held, a key Vital is not known to write refused wherever it is and an unknown section kept, nothing after the object but one newline, a file replaced whole or not at all, and two presets the same when they write the same bytes
   preset-tests:
     description: No preset or media of Vital's is committed, a test reads the installed presets against a committed manifest whose length is the count, skips saying so where they are absent, and the unit suite's one real file is an owner's save with its media replaced

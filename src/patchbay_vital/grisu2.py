@@ -40,8 +40,7 @@ from patchbay_vital.errors import MalformedPresetError
 
 _WORD = 64  # the significand width, in bits, of the algorithm's fixed-point numbers
 _ROUND_HALF = 1 << (_WORD - 1)
-_WORD_MASK = (1 << _WORD) - 1
-_EXPONENT_BITS, _SIGNIFICAND_BITS, _EXPONENT_MASK = 52, 52, 0x7FF
+_SIGNIFICAND_BITS, _EXPONENT_MASK = 52, 0x7FF
 _DENORMAL_EXPONENT, _BIAS = -1074, 1075
 
 # The cached powers of ten: every eighth one from 1e-300 to 1e324, and how one is chosen.
@@ -93,13 +92,13 @@ def _cached_power(e: int) -> tuple[int, int, int]:
 
 def _multiply(x: _Fp, y: _Fp) -> _Fp:
     """Multiply two fixed-point numbers, keeping the top 64 bits, rounded half up."""
-    return ((x[0] * y[0] + _ROUND_HALF) >> _WORD) & _WORD_MASK, x[1] + y[1] + _WORD
+    return (x[0] * y[0] + _ROUND_HALF) >> _WORD, x[1] + y[1] + _WORD
 
 
 def _boundaries(value: float) -> tuple[_Fp, _Fp, _Fp]:
     """Return a positive double and the two midpoints to its neighbours, at one exponent."""
     bits = int.from_bytes(struct.pack(">d", value))
-    biased = (bits >> _EXPONENT_BITS) & _EXPONENT_MASK
+    biased = (bits >> _SIGNIFICAND_BITS) & _EXPONENT_MASK
     fraction = bits & ((1 << _SIGNIFICAND_BITS) - 1)
     f, e = (
         (fraction, _DENORMAL_EXPONENT)

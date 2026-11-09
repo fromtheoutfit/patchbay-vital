@@ -14,6 +14,17 @@ writes the entry, in that commit
 
 ### Changed
 
+- Revision after the review of PR 6, `agent-os/specs/2026-11-09-1610-revision-after-pr-6-review/`:
+  sixteen findings at `6d7f747`, fifteen addressed and one, `json.decoder.WHITESPACE`, declined with
+  its reason. The version stays 0.0.1.
+  - `dump` writes a temporary file and renames it over the target, so a failure leaves the file as
+    it was; a path `pathlib` refuses is `PresetFileError`.
+  - `diff` compares floats as written, so `is_empty` means the two presets write the same bytes.
+  - A preset can be pickled and deep-copied.
+  - A lone surrogate is refused where it comes in; a section holding `NaN` or stray whitespace, a
+    `null` name and text after the object are refused too.
+  - A new key in a routing entry, and a non-float under an unknown name, are `UnknownSettingError`,
+    naming the key, not `MalformedPresetError`.
 - Revision after the review of PR 5, `agent-os/specs/2026-11-09-1433-revision-after-pr-5-review/`:
   all eleven findings of the review at `d638b39` addressed. The version stays 0.0.1.
   - `tests/unit/test_package.py` holds the pinned `patchbay-core` to the declared range, which uv

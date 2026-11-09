@@ -19,14 +19,15 @@ import json
 import re
 from collections.abc import Mapping
 from types import MappingProxyType
-from typing import Annotated, ClassVar, Literal, Self
+from typing import Annotated, Any, ClassVar, Literal, Self
 
 from patchbay import PatchbayModel, PresetKey
 from pydantic import (
+    AfterValidator,
     ConfigDict,
     Field,
     SerializerFunctionWrapHandler,
-    field_serializer,
+    WrapSerializer,
     field_validator,
     model_validator,
 )
@@ -43,9 +44,7 @@ SLOT_FIELDS = ("amount", "bipolar", "bypass", "power", "stereo")
 NEWER_SLOT_FIELDS = ("ramp_down", "ramp_up")
 """The per-slot floats only newer files hold: 1.6.4 has them, 1.0.0 and earlier do not."""
 
-SLOT_KEY = re.compile(
-    r"modulation_(?P<slot>[1-9][0-9]*)_(?P<field>amount|bipolar|bypass|power|ramp_down|ramp_up|stereo)"
-)
+SLOT_KEY = re.compile(f"modulation_[1-9][0-9]*_({'|'.join((*SLOT_FIELDS, *NEWER_SLOT_FIELDS))})")
 """A per-slot float's key in `settings`; `Modulation` holds these, so `VitalSettings` does not."""
 
 KNOWN_SETTINGS = frozenset(
@@ -57,20 +56,97 @@ KNOWN_SETTINGS = frozenset(
 )
 """Every float key but the per-slot ones that Vital has been seen to write."""
 
+
+def _refuse_constant(name: str) -> object:
+    """Refuse the NaN and Infinity tokens Python's JSON parser would otherwise accept."""
+    msg = f"{name} is not a number a preset can hold"
+    raise ValueError(msg)
+
+
+DECODER = json.JSONDecoder(parse_constant=_refuse_constant)
+"""How everything here reads JSON: a preset holds no NaN or Infinity, at any depth."""
+
+
+def _utf_8(text: str) -> str:
+    """Return `text` when UTF-8 can hold it, as a file must: a lone surrogate it cannot."""
+    try:
+        text.encode("utf-8")
+    except UnicodeEncodeError as error:
+        msg = "text is written as UTF-8, which cannot hold a lone surrogate"
+        raise ValueError(msg) from error
+    return text
+
+
+def _sorted_read_only[V](mapping: Mapping[PresetKey, V]) -> Mapping[PresetKey, V]:
+    """Return a mapping sorted by key that cannot be changed under a frozen model."""
+    return MappingProxyType(dict(sorted(mapping.items())))
+
+
+def _as_plain_dict[V](
+    mapping: Mapping[PresetKey, V], handler: SerializerFunctionWrapHandler
+) -> object:
+    """Hand pydantic a dict, since it cannot serialize a mapping proxy."""
+    return handler(dict(mapping))
+
+
 type _Key = Annotated[PresetKey, Field(min_length=1)]
+type _Text = Annotated[str, AfterValidator(_utf_8)]
+type _ReadOnly[V] = Annotated[
+    Mapping[_Key, V], AfterValidator(_sorted_read_only), WrapSerializer(_as_plain_dict)
+]
 
 
 def _json_section(raw: bytes) -> bytes:
-    """Return `raw` when it is the text of one JSON array or object, and refuse it otherwise."""
+    """Return `raw` when it is exactly the text of one JSON array or object, else refuse it."""
     if raw[:1] not in {b"[", b"{"}:
         msg = "a section is the text of a JSON array or object"
         raise ValueError(msg)
+    text = raw.decode("utf-8")
     try:
-        json.loads(raw.decode("utf-8"))
+        _, end = DECODER.raw_decode(text)
     except RecursionError as error:
         msg = "a section nests too deeply to read"
         raise ValueError(msg) from error
+    if end != len(text):
+        msg = "a section is one JSON array or object with nothing after it"
+        raise ValueError(msg)
     return raw
+
+
+class _PicklableMappings(PatchbayModel, frozen=True):
+    """A model holding read-only mappings that can still be pickled and deep-copied.
+
+    A mapping proxy can be neither, so the pickled state holds each as a plain dict, and a deep copy
+    is a shallow one: everything such a model holds is immutable. pydantic deep-copies field by
+    field when `model_copy` is given an update, so `deep` is dropped there too.
+    """
+
+    def __getstate__(self) -> dict[Any, Any]:
+        """Return the state with each read-only mapping as a plain dict."""
+        state = super().__getstate__()
+        fields = state["__dict__"]
+        state["__dict__"] = {
+            name: dict(value) if isinstance(value, MappingProxyType) else value
+            for name, value in fields.items()
+        }
+        return state
+
+    def __setstate__(self, state: dict[Any, Any]) -> None:
+        """Restore the state, each plain dict read-only again."""
+        fields = {
+            name: MappingProxyType(value) if isinstance(value, dict) else value
+            for name, value in state["__dict__"].items()
+        }
+        super().__setstate__({**state, "__dict__": fields})
+
+    def __deepcopy__(self, memo: dict[int, Any] | None = None) -> Self:
+        """Return a new model sharing what it holds, all of which is immutable."""
+        return self.__copy__()
+
+    def model_copy(self, *, update: Mapping[str, Any] | None = None, deep: bool = False) -> Self:
+        """Return a copy with `update` applied; `deep` changes nothing, all being immutable."""
+        del deep
+        return super().model_copy(update=update)
 
 
 class Modulation(PatchbayModel, frozen=True):
@@ -83,7 +159,7 @@ class Modulation(PatchbayModel, frozen=True):
 
     model_config = ConfigDict(ser_json_bytes="base64", val_json_bytes="base64")
 
-    source: Annotated[str, Field(min_length=1)] | None
+    source: Annotated[str, Field(min_length=1), AfterValidator(_utf_8)] | None
     destination: _Key | None
     amount: float
     bipolar: float
@@ -112,37 +188,29 @@ class Modulation(PatchbayModel, frozen=True):
         return self
 
 
-class VitalSettings(PatchbayModel, frozen=True):
+class VitalSettings(_PicklableMappings, frozen=True):
     """A preset's float settings by key: every float but the per-slot ones `Modulation` holds.
 
     Sorted by key and read-only. Each key is one Vital is known to write; a key a file lacks is
     simply absent, older files lacking those Vital has added since.
     """
 
-    values: Mapping[_Key, float]
+    values: _ReadOnly[float]
 
     # Unhashable, said the way Python says it: pydantic's frozen hash would raise on a mapping.
     __hash__: ClassVar[None] = None  # type: ignore[assignment]
 
     @field_validator("values", mode="after")
     @classmethod
-    def _known_sorted_and_read_only(
-        cls, values: Mapping[PresetKey, float]
-    ) -> Mapping[PresetKey, float]:
+    def _keys_are_known(cls, values: Mapping[PresetKey, float]) -> Mapping[PresetKey, float]:
         unknown = sorted(set(values) - KNOWN_SETTINGS)
         if unknown:
             msg = f"not keys Vital is known to write: {unknown!r}"
             raise ValueError(msg)
-        return MappingProxyType(dict(sorted(values.items())))
-
-    @field_serializer("values", mode="wrap")
-    def _values_as_plain_dict(
-        self, values: Mapping[PresetKey, float], handler: SerializerFunctionWrapHandler
-    ) -> object:
-        return handler(dict(values))
+        return values
 
 
-class VitalPreset(PatchbayModel, frozen=True):
+class VitalPreset(_PicklableMappings, frozen=True):
     """A whole `.vital` file: its metadata, settings, modulations and the sections left unread.
 
     `modulations` is always every slot, its position the slot's number less one. `opaque` holds each
@@ -153,20 +221,20 @@ class VitalPreset(PatchbayModel, frozen=True):
 
     model_config = ConfigDict(ser_json_bytes="base64", val_json_bytes="base64")
 
-    author: str
-    comments: str
-    macro1: str
-    macro2: str
-    macro3: str
-    macro4: str
-    preset_name: str | None = None
-    preset_style: str
-    synth_version: str
+    author: _Text
+    comments: _Text
+    macro1: _Text
+    macro2: _Text
+    macro3: _Text
+    macro4: _Text
+    preset_name: _Text | None = None
+    preset_style: _Text
+    synth_version: _Text
     settings: VitalSettings
     modulations: tuple[Modulation, ...] = Field(
         min_length=MODULATION_SLOTS, max_length=MODULATION_SLOTS
     )
-    opaque: Mapping[_Key, bytes]
+    opaque: _ReadOnly[bytes]
     trailing_newline: bool = False
 
     # Unhashable, said the way Python says it: pydantic's frozen hash would raise on a mapping.
@@ -174,7 +242,7 @@ class VitalPreset(PatchbayModel, frozen=True):
 
     @field_validator("opaque", mode="after")
     @classmethod
-    def _sections_are_json_sorted_and_read_only(
+    def _sections_are_json_under_their_own_keys(
         cls, opaque: Mapping[PresetKey, bytes]
     ) -> Mapping[PresetKey, bytes]:
         for key, raw in opaque.items():
@@ -182,13 +250,7 @@ class VitalPreset(PatchbayModel, frozen=True):
                 msg = f"{key!r} is a key this package reads, so it is not an unread section"
                 raise ValueError(msg)
             _json_section(raw)
-        return MappingProxyType(dict(sorted(opaque.items())))
-
-    @field_serializer("opaque", mode="wrap")
-    def _opaque_as_plain_dict(
-        self, opaque: Mapping[PresetKey, bytes], handler: SerializerFunctionWrapHandler
-    ) -> object:
-        return handler(dict(opaque))
+        return opaque
 
 
 class SettingChange(PatchbayModel, frozen=True):
@@ -236,5 +298,5 @@ class PresetDiff(PatchbayModel, frozen=True):
 
     @property
     def is_empty(self) -> bool:
-        """Say whether the two presets are the same."""
+        """Say whether the two presets write the same bytes."""
         return not (self.settings or self.modulations or self.metadata or self.opaque)

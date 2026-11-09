@@ -6,7 +6,8 @@ from collections.abc import Callable
 from pathlib import Path
 
 import pytest
-from hypothesis import given
+from builders import EMPTY_SLOT, FLOATS, KEYS, make_preset
+from hypothesis import example, given
 from hypothesis import strategies as st
 from patchbay import PatchbayValidationError, PresetKey
 
@@ -26,40 +27,14 @@ from patchbay_vital.preset import (
     MODULATION_SLOTS,
     NEWER_SLOT_FIELDS,
     SLOT_FIELDS,
-    Modulation,
-    VitalPreset,
     VitalSettings,
 )
 
 _EMPTY_ENTRY = '{"destination":"","source":""}'
-_FLOATS = st.floats(allow_nan=False, allow_infinity=False, width=32)
-_KEYS = st.sampled_from(sorted(KNOWN_SETTINGS))
-_SETTINGS = st.dictionaries(_KEYS, _FLOATS, max_size=20)
-_EMPTY = Modulation(
-    source=None, destination=None, amount=0.0, bipolar=0.0, bypass=0.0, power=0.0, stereo=0.0
-)
-_ROUTED = _EMPTY.model_copy(update={"source": "lfo_1", "destination": PresetKey("volume")})
-_METADATA = {
-    "author": "",
-    "comments": "",
-    "macro1": "M1",
-    "macro2": "M2",
-    "macro3": "M3",
-    "macro4": "M4",
-    "preset_style": "",
-    "synth_version": "1.6.4",
-}
-
-
-def _preset(**changes: object) -> VitalPreset:
-    """Return a valid preset of empty slots with `changes` applied."""
-    fields = {
-        **_METADATA,
-        "settings": VitalSettings(values={}),
-        "modulations": (_EMPTY,) * MODULATION_SLOTS,
-        "opaque": {},
-    }
-    return VitalPreset.model_validate({**fields, **changes})
+_NO_SPACE = "no space left"
+_RESTRICTED = 0o640
+_SETTINGS = st.dictionaries(KEYS, FLOATS, max_size=20)
+_ROUTED = EMPTY_SLOT.model_copy(update={"source": "lfo_1", "destination": PresetKey("volume")})
 
 
 @pytest.fixture
@@ -132,7 +107,7 @@ def test_a_trailing_newline_survives(fixture_text: str) -> None:
 
 def test_strings_are_written_as_vital_writes_them() -> None:
     """UTF-8 stays raw and only what JSON requires is escaped, as nlohmann::json does."""
-    text = dumps(_preset(comments='a\n"\\/é\x01'))
+    text = dumps(make_preset(comments='a\n"\\/é\x01'))
     assert '"comments":"a\\n\\"\\\\/é\\u0001"' in text
     assert loads(text).comments == 'a\n"\\/é\x01'
 
@@ -160,12 +135,15 @@ _MALFORMED: dict[str, Callable[[str], str]] = {
         _EMPTY_ENTRY, '{"destination":"volume","source":""}', 1
     ),
     "slot float missing": lambda t: re.sub(r'"modulation_1_amount":[^,]+,', "", t, count=1),
-    "unknown slot key": lambda t: t.replace(
-        _EMPTY_ENTRY, '{"destination":"","source":"","x":1}', 1
-    ),
     "source a number": lambda t: t.replace(_EMPTY_ENTRY, '{"destination":"","source":1}', 1),
     "nesting too deep": lambda t: _insert_setting(t, '"deep":' + "[" * 200_000 + "]" * 200_000),
     "lone surrogate": lambda t: _insert_setting(t, '"s":["\ud800"]'),
+    "surrogate metadata": lambda t: t.replace('"author":""', '"author":"\\ud800"', 1),
+    "null name": lambda t: t.replace('"preset_name":"fixture"', '"preset_name":null', 1),
+    "two newlines": lambda t: t + "\n\n",
+    "carriage return": lambda t: t + "\r\n",
+    "trailing space": lambda t: t + " ",
+    "NaN in a section": lambda t: _insert_setting(t, '"zz":[NaN]'),
 }
 
 
@@ -191,6 +169,30 @@ def test_an_unknown_float_is_named(fixture_text: str, member: str, key: str) -> 
     with pytest.raises(UnknownSettingError) as caught:
         loads(_insert_setting(fixture_text, member))
     assert caught.value.key == key
+
+
+def test_a_new_key_in_a_routing_entry_is_named(fixture_text: str) -> None:
+    """A newer Vital adding to an entry is a change of format, not a corrupt file."""
+    text = fixture_text.replace(_EMPTY_ENTRY, '{"destination":"","source":"","x":1}', 1)
+    with pytest.raises(UnknownSettingError) as caught:
+        loads(text)
+    assert caught.value.key == "x"
+
+
+@pytest.mark.parametrize("written", ["true", '"x"', "null", "1"])
+def test_a_non_float_under_an_unknown_name_is_named(fixture_text: str, written: str) -> None:
+    """The name is what is new, so it is reported whatever the value's type."""
+    with pytest.raises(UnknownSettingError) as caught:
+        loads(_insert_setting(fixture_text, f'"new_flag":{written}'))
+    assert caught.value.key == "new_flag"
+
+
+def test_whitespace_inside_a_preset_is_read_and_not_written_back(fixture_text: str) -> None:
+    """It carries no data, so a reformatted file loads and writes as Vital writes it."""
+    text = fixture_text.replace('{"author"', '{ "author"', 1).replace(
+        '"settings":{', '"settings" : {', 1
+    )
+    assert dumps(loads(text)) == fixture_text
 
 
 def test_an_unknown_top_level_key_is_named(fixture_text: str) -> None:
@@ -240,7 +242,7 @@ def test_a_missing_file_is_named(tmp_path: Path) -> None:
 def test_a_file_that_cannot_be_written_is_named(tmp_path: Path) -> None:
     """No OSError leaves `dump`."""
     with pytest.raises(PresetFileError) as caught:
-        dump(_preset(), tmp_path)
+        dump(make_preset(), tmp_path)
     assert caught.value.path == str(tmp_path)
 
 
@@ -253,9 +255,57 @@ def test_bytes_that_are_not_utf_8_are_malformed(tmp_path: Path) -> None:
 
 
 def test_a_string_utf_8_cannot_hold_is_malformed_on_writing(tmp_path: Path) -> None:
-    """A lone surrogate reaches `dump` only through a model built directly."""
+    """A lone surrogate reaches `dump` only past validation: `model_copy` validates nothing."""
     with pytest.raises(MalformedPresetError):
-        dump(_preset(comments="\ud800"), tmp_path / "a.vital")
+        dump(make_preset().model_copy(update={"comments": "\ud800"}), tmp_path / "a.vital")
+
+
+@pytest.mark.parametrize(
+    "read", [load, lambda path: dump(make_preset(), path)], ids=["load", "dump"]
+)
+def test_a_path_with_a_null_byte_is_named(read: Callable[[str], object]) -> None:
+    """A ValueError from pathlib is not one a caller of this package should meet."""
+    with pytest.raises(PresetFileError) as caught:
+        read("a\0b.vital")
+    assert caught.value.path == "a\0b.vital"
+
+
+def test_a_failed_write_leaves_the_file_as_it_was(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The file is replaced whole or not at all, and nothing is left beside it."""
+    path = tmp_path / "a.vital"
+    path.write_bytes(b"the original")
+
+    def refuse(_self: Path, _target: Path) -> Path:
+        raise OSError(_NO_SPACE)
+
+    monkeypatch.setattr(Path, "replace", refuse)
+    with pytest.raises(PresetFileError, match=_NO_SPACE):
+        dump(make_preset(), path)
+    assert path.read_bytes() == b"the original"
+    assert [entry.name for entry in tmp_path.iterdir()] == ["a.vital"]
+
+
+def test_writing_over_a_file_keeps_its_permissions(tmp_path: Path) -> None:
+    """A preset someone restricted is not widened by being saved."""
+    path = tmp_path / "a.vital"
+    path.write_bytes(b"the original")
+    path.chmod(_RESTRICTED)
+    dump(make_preset(), path)
+    assert path.stat().st_mode & 0o777 == _RESTRICTED
+    assert load(path) == make_preset()
+
+
+def test_writing_through_a_symlink_keeps_the_link(tmp_path: Path) -> None:
+    """The file behind the link is the one replaced."""
+    path = tmp_path / "a.vital"
+    path.write_bytes(b"the original")
+    link = tmp_path / "link.vital"
+    link.symlink_to(path)
+    dump(make_preset(), link)
+    assert link.is_symlink()
+    assert load(path) == make_preset()
 
 
 _ENTRY_NAMES = st.just(("", "")) | st.tuples(
@@ -264,10 +314,10 @@ _ENTRY_NAMES = st.just(("", "")) | st.tuples(
 _SLOT = st.tuples(
     _ENTRY_NAMES,
     st.none() | st.just(b'{"name":"Linear","points":[0.0,1.0]}'),
-    st.fixed_dictionaries(dict.fromkeys(SLOT_FIELDS, _FLOATS)),
+    st.fixed_dictionaries(dict.fromkeys(SLOT_FIELDS, FLOATS)),
     st.fixed_dictionaries(
         {},
-        optional=dict.fromkeys(NEWER_SLOT_FIELDS, _FLOATS),
+        optional=dict.fromkeys(NEWER_SLOT_FIELDS, FLOATS),
     ),
 )
 _SLOTS = st.lists(_SLOT, min_size=1, max_size=8)
@@ -310,6 +360,14 @@ def test_join_needs_every_slot_s_required_floats() -> None:
         join_modulations([("", "", None)], {PresetKey("modulation_1_amount"): 0.0})
 
 
+def test_join_refuses_a_half_routed_slot_as_the_package() -> None:
+    """Core's validation error is not one a caller of this function should have to catch."""
+    floats = {PresetKey(f"modulation_1_{field}"): 0.0 for field in SLOT_FIELDS}
+    with pytest.raises(MalformedPresetError) as caught:
+        join_modulations([("lfo_1", "", None)], floats)
+    assert isinstance(caught.value.__cause__, PatchbayValidationError)
+
+
 def test_join_names_a_float_beyond_the_slots() -> None:
     """A float for a slot that does not exist is a change of format."""
     floats = {PresetKey(f"modulation_1_{field}"): 0.0 for field in SLOT_FIELDS}
@@ -321,8 +379,26 @@ def test_join_names_a_float_beyond_the_slots() -> None:
 @given(_SETTINGS)
 def test_a_preset_does_not_differ_from_itself(values: dict[PresetKey, float]) -> None:
     """The diff of a preset against itself says nothing."""
-    preset = _preset(settings=VitalSettings(values=values))
+    preset = make_preset(settings=VitalSettings(values=values))
     assert diff(preset, preset).is_empty
+
+
+@given(_SETTINGS, _SETTINGS)
+@example({PresetKey("volume"): 0.0}, {PresetKey("volume"): -0.0})
+def test_a_diff_is_empty_exactly_when_the_presets_write_the_same(
+    old: dict[PresetKey, float], new: dict[PresetKey, float]
+) -> None:
+    """`is_empty` means the bytes are the same, which `0.0 == -0.0` does not."""
+    a, b = (make_preset(settings=VitalSettings(values=values)) for values in (old, new))
+    assert diff(a, b).is_empty == (dumps(a) == dumps(b))
+
+
+def test_a_diff_sees_the_sign_of_zero_in_a_slot() -> None:
+    """A slot's floats are compared as written too."""
+    minus = EMPTY_SLOT.model_copy(update={"amount": -0.0})
+    a = make_preset()
+    b = make_preset(modulations=(minus, *a.modulations[1:]))
+    assert [change.slot for change in diff(a, b).modulations] == [1]
 
 
 @given(_SETTINGS, _SETTINGS)
@@ -330,7 +406,7 @@ def test_a_diff_applied_gives_the_other_settings(
     old: dict[PresetKey, float], new: dict[PresetKey, float]
 ) -> None:
     """Setting each changed key to its new value, or dropping it, turns `a` into `b`."""
-    a, b = (_preset(settings=VitalSettings(values=values)) for values in (old, new))
+    a, b = (make_preset(settings=VitalSettings(values=values)) for values in (old, new))
     changes = diff(a, b).settings
     assert [change.key for change in changes] == sorted(change.key for change in changes)
     applied = dict(old)
@@ -339,20 +415,22 @@ def test_a_diff_applied_gives_the_other_settings(
             del applied[change.key]
         else:
             applied[change.key] = change.new
-    assert applied == new
+    assert {key: repr(value) for key, value in applied.items()} == {
+        key: repr(value) for key, value in new.items()
+    }
 
 
 def test_a_diff_says_how_each_slot_changed() -> None:
     """Routed where it was empty is added, emptied is removed, anything else changed; by slot."""
     louder = _ROUTED.model_copy(update={"amount": 0.5})
-    stale = _EMPTY.model_copy(update={"amount": 0.25})
-    a = list((_EMPTY,) * MODULATION_SLOTS)
+    stale = EMPTY_SLOT.model_copy(update={"amount": 0.25})
+    a = list((EMPTY_SLOT,) * MODULATION_SLOTS)
     b = list(a)
     a[4], b[4] = _ROUTED, louder
     b[0] = _ROUTED
     a[2] = _ROUTED
     b[9] = stale
-    changes = diff(_preset(modulations=tuple(a)), _preset(modulations=tuple(b))).modulations
+    changes = diff(make_preset(modulations=tuple(a)), make_preset(modulations=tuple(b))).modulations
     assert [(change.slot, change.kind) for change in changes] == [
         (1, "added"),
         (3, "removed"),
@@ -363,8 +441,8 @@ def test_a_diff_says_how_each_slot_changed() -> None:
 
 def test_a_diff_reports_metadata_by_field() -> None:
     """Each field that differs, in name order, a field one side lacks as None."""
-    a = _preset(author="a", preset_name="p")
-    b = _preset(author="b", trailing_newline=True)
+    a = make_preset(author="a", preset_name="p")
+    b = make_preset(author="b", trailing_newline=True)
     assert [(c.field, c.old, c.new) for c in diff(a, b).metadata] == [
         ("author", "a", "b"),
         ("preset_name", "p", None),
@@ -374,8 +452,8 @@ def test_a_diff_reports_metadata_by_field() -> None:
 
 def test_a_diff_reports_sections_by_name_and_size_only() -> None:
     """A section is not read, so a change is a name and two sizes."""
-    a = _preset(opaque={"lfos": b"[1.0]", "sample": b"{}", "wavetables": b"[]"})
-    b = _preset(opaque={"lfos": b"[2.0]", "wavetables": b"[]", "zeta": b"[1]"})
+    a = make_preset(opaque={"lfos": b"[1.0]", "sample": b"{}", "wavetables": b"[]"})
+    b = make_preset(opaque={"lfos": b"[2.0]", "wavetables": b"[]", "zeta": b"[1]"})
     assert [(c.name, c.old_size, c.new_size) for c in diff(a, b).opaque] == [
         ("lfos", 5, 5),
         ("sample", 2, None),

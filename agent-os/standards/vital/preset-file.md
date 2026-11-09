@@ -30,11 +30,14 @@ saves from Vital 1.6.4.
   silently. The list is deliberately plain: the two-namespace map makes it structured. Verified
   against `src/patchbay_vital/settings_keys.txt`, `preset.py` (`KNOWN_SETTINGS`) and
   `tests/unit/test_preset.py` (`test_the_known_keys_are_a_plain_sorted_list`).
-- **An unknown float in `settings` or an unknown top-level key is `UnknownSettingError`, naming it;
-  an unknown structured section under `settings` is kept.** So a change of format is noticed where
-  it would change meaning, and a new section still round-trips. Verified against `format.py` and
-  `test_an_unknown_float_is_named`, `test_an_unknown_top_level_key_is_named`,
-  `test_an_unknown_section_is_kept_and_written_back`.
+- **A key Vital is not known to write is `UnknownSettingError`, naming it, whatever its value's type
+  and wherever it is: in `settings`, in a routing entry or at the top level. The one exception is
+  an unknown structured section under `settings`, which is kept.** So a change of format is noticed
+  as one, with its key, and a new section still round-trips. A non-float under a *known* key is
+  malformed. `license` is a string in the Vital binary and no file has been seen with the key, so it
+  is not known. Verified against `format.py` and `test_an_unknown_float_is_named`,
+  `test_a_new_key_in_a_routing_entry_is_named`, `test_a_non_float_under_an_unknown_name_is_named`,
+  `test_an_unknown_top_level_key_is_named`, `test_an_unknown_section_is_kept_and_written_back`.
 
 ## Modulations
 
@@ -61,3 +64,15 @@ saves from Vital 1.6.4.
   presets end in a newline, which `trailing_newline` keeps. `dumps(loads(text)) == text` for a file
   Vital saved. How a float is written is `vital/float-writer.md`'s. Verified against `format.py`
   (`dumps`), `test_a_trailing_newline_survives` and the integration test.
+- **After the object a file may hold one newline and nothing else, and a metadata key is a string or
+  absent, never `null`.** Those would be lost on writing with nothing to say so. Whitespace inside the
+  object is read and normalized, carrying no data, and a file Vital saved has none. Verified against
+  `format.py` (`_parse`), `test_a_malformed_preset_is_refused_as_the_package` and
+  `test_whitespace_inside_a_preset_is_read_and_not_written_back`.
+- **`dump` replaces a file whole or not at all**, through a temporary beside it, keeping its
+  permissions and writing through a symlink, because a preset can be a person's only copy. Verified
+  against `format.py` (`_replace_file`), `test_a_failed_write_leaves_the_file_as_it_was`,
+  `test_writing_over_a_file_keeps_its_permissions` and `test_writing_through_a_symlink_keeps_the_link`.
+- **Two presets are the same when they write the same bytes**, so `diff` tells `0.0` from `-0.0`,
+  which compare equal. Verified against `format.py` (`_same`) and
+  `test_a_diff_is_empty_exactly_when_the_presets_write_the_same`.
