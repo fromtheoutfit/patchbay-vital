@@ -1,0 +1,172 @@
+The guard mutations of the revision after the review of PR 5, run 2026-11-09 on branch feature/4-gate-the-patchbay-core-source-and-the-integration-marker, after the last edit to the gate's scripts.
+Each mutation is a fresh copy of the tree as git lists it (tracked plus untracked-not-ignored), made in a scratch directory outside the repository and not a git repository itself, with one guard deleted, and the harness case that covers it run from that copy. Every mutation must come back UNEXPECTED, harness exit 1. The unmutated runs of the same cases are in gate-negative-tests.txt. Below each mutation: the diff, then the UNEXPECTED runs of the harness, each with the lines above it, and the count. Nothing here is a gate step or part of the harness; it is the evidence that the cases discriminate.
+
+### M1: step 2's sync loses --locked
+--- scripts/gate.sh (as shipped)
++++ scripts/gate.sh (mutated)
+@@ -140,3 +140,3 @@
+   fail 2/6 "uv.toml is at the root, where uv reads it ahead of [tool.uv] in pyproject.toml; remove it, uv is configured in pyproject.toml alone"
+-uv sync --locked 2>&1 | tee "$tmp/sync" ||
++uv sync 2>&1 | tee "$tmp/sync" ||
+   fail 2/6 "uv could not sync the locked toolchain: uv.lock does not match pyproject.toml, uv could not read them, fetch a locked package (the network, git, a commit gone) or build the package, or this uv is not the version [tool.uv] requires (see above)"
+$ scripts/gate-negative-tests.sh t   (in the mutated copy)
+ok   agent-os/standards/base and the base: section of agent-os/standards/index.yml match patchbay-standards at e31f7dbfb474752339a43fe08a37ab26c7956f5c
+
+Gate steps 1-6 passed. Steps 7-9 are judgment, recorded in shape.md: Docs, Version, the standards retrospective.
+exit=0  UNEXPECTED (expected 1)
+--
+4 runs, 1 unexpected
+harness exit=1
+must: come back UNEXPECTED, harness exit 1
+result: as required
+
+### M2: step 2's sync status ignored
+--- scripts/gate.sh (as shipped)
++++ scripts/gate.sh (mutated)
+@@ -140,4 +140,3 @@
+   fail 2/6 "uv.toml is at the root, where uv reads it ahead of [tool.uv] in pyproject.toml; remove it, uv is configured in pyproject.toml alone"
+-uv sync --locked 2>&1 | tee "$tmp/sync" ||
+-  fail 2/6 "uv could not sync the locked toolchain: uv.lock does not match pyproject.toml, uv could not read them, fetch a locked package (the network, git, a commit gone) or build the package, or this uv is not the version [tool.uv] requires (see above)"
++uv sync --locked 2>&1 | tee "$tmp/sync" || true
+ if grep -Fq 'during settings discovery' "$tmp/sync"; then
+$ scripts/gate-negative-tests.sh t   (in the mutated copy)
+
+hint: To update the lockfile, run `uv lock`.
+FAIL  step 2/6: a file is not formatted as ruff format would write it, or ruff could not read its settings (see above)
+exit=1  UNEXPECTED (the output does not say: error: The lockfile at `uv.lock` needs to be updated, but `--locked` was provided.
+--
+         --- stderr
+         fatal: remote error: upload-pack: not our ref 0000000000000000000000000000000000000000
+FAIL  step 2/6: a file is not formatted as ruff format would write it, or ruff could not read its settings (see above)
+exit=1  UNEXPECTED (the output does not say: failed to fetch commit `0000000000000000000000000000000000000000`
+--
+4 runs, 2 unexpected
+harness exit=1
+must: come back UNEXPECTED, harness exit 1
+result: as required
+
+### M3: step 2's reason put back as it was, naming no fetch
+--- scripts/gate.sh (as shipped)
++++ scripts/gate.sh (mutated)
+@@ -141,3 +141,3 @@
+ uv sync --locked 2>&1 | tee "$tmp/sync" ||
+-  fail 2/6 "uv could not sync the locked toolchain: uv.lock does not match pyproject.toml, uv could not read them, fetch a locked package (the network, git, a commit gone) or build the package, or this uv is not the version [tool.uv] requires (see above)"
++  fail 2/6 "uv could not sync the locked toolchain: uv.lock does not match pyproject.toml, uv could not read them or build the package, or this uv is not the version [tool.uv] requires (see above)"
+ if grep -Fq 'during settings discovery' "$tmp/sync"; then
+$ scripts/gate-negative-tests.sh t   (in the mutated copy)
+
+hint: To update the lockfile, run `uv lock`.
+FAIL  step 2/6: uv could not sync the locked toolchain: uv.lock does not match pyproject.toml, uv could not read them or build the package, or this uv is not the version [tool.uv] requires (see above)
+exit=1  UNEXPECTED (the output does not say: error: The lockfile at `uv.lock` needs to be updated, but `--locked` was provided.
+--
+         --- stderr
+         fatal: remote error: upload-pack: not our ref 0000000000000000000000000000000000000000
+FAIL  step 2/6: uv could not sync the locked toolchain: uv.lock does not match pyproject.toml, uv could not read them or build the package, or this uv is not the version [tool.uv] requires (see above)
+exit=1  UNEXPECTED (the output does not say: failed to fetch commit `0000000000000000000000000000000000000000`
+--
+4 runs, 2 unexpected
+harness exit=1
+must: come back UNEXPECTED, harness exit 1
+result: as required
+
+### M4: the range test asserts nothing about the range
+--- tests/unit/test_package.py (as shipped)
++++ tests/unit/test_package.py (mutated)
+@@ -51,3 +51,3 @@
+     core = next(requirement for requirement in declared if requirement.name == "patchbay-core")
+-    assert core.specifier.contains(importlib.metadata.version("patchbay-core"))
++    assert core.name == "patchbay-core"
+ 
+$ scripts/gate-negative-tests.sh t   (in the mutated copy)
+ok   agent-os/standards/base and the base: section of agent-os/standards/index.yml match patchbay-standards at e31f7dbfb474752339a43fe08a37ab26c7956f5c
+
+Gate steps 1-6 passed. Steps 7-9 are judgment, recorded in shape.md: Docs, Version, the standards retrospective.
+exit=0  UNEXPECTED (expected 1)
+--
+4 runs, 1 unexpected
+harness exit=1
+must: come back UNEXPECTED, harness exit 1
+result: as required
+
+### M5: -m 'not integration' in addopts
+--- pyproject.toml (as shipped)
++++ pyproject.toml (mutated)
+@@ -148,3 +148,3 @@
+ # pytest reads this file alone and no .txt under tests/; this line stays as that standard fixes it.
+-addopts = "-q --strict-markers --strict-config"
++addopts = "-q --strict-markers --strict-config -m 'not integration'"
+ # Every marker, with its meaning (that standard). The gate deselects nothing, so an integration test
+$ scripts/gate-negative-tests.sh y   (in the mutated copy)
+ok   agent-os/standards/base and the base: section of agent-os/standards/index.yml match patchbay-standards at e31f7dbfb474752339a43fe08a37ab26c7956f5c
+
+Gate steps 1-6 passed. Steps 7-9 are judgment, recorded in shape.md: Docs, Version, the standards retrospective.
+exit=0  UNEXPECTED (expected 1)
+--
+3 runs, 1 unexpected
+harness exit=1
+must: come back UNEXPECTED, harness exit 1
+result: as required
+
+### M6: -m 'not integration' on step 5's pytest line
+--- scripts/gate.sh (as shipped)
++++ scripts/gate.sh (mutated)
+@@ -173,3 +173,3 @@
+ done < "$tmp/pytest"
+-uv run --locked pytest -c pyproject.toml -p no:doctest || fail 5/6 "a test failed, or pytest could not read its configuration (see above)"
++uv run --locked pytest -c pyproject.toml -p no:doctest -m 'not integration' || fail 5/6 "a test failed, or pytest could not read its configuration (see above)"
+ echo "ok   every test passed"
+$ scripts/gate-negative-tests.sh y   (in the mutated copy)
+ok   agent-os/standards/base and the base: section of agent-os/standards/index.yml match patchbay-standards at e31f7dbfb474752339a43fe08a37ab26c7956f5c
+
+Gate steps 1-6 passed. Steps 7-9 are judgment, recorded in shape.md: Docs, Version, the standards retrospective.
+exit=0  UNEXPECTED (expected 1)
+--
+3 runs, 1 unexpected
+harness exit=1
+must: come back UNEXPECTED, harness exit 1
+result: as required
+
+### M7: the markers entry deleted
+--- pyproject.toml (as shipped)
++++ pyproject.toml (mutated)
+@@ -151,4 +151 @@
+ # runs at step 5 wherever what it needs is present (negative test y).
+-markers = [
+-    "integration: needs an installed Vital's presets; skipped with its reason where they are absent",
+-]
+$ scripts/gate-negative-tests.sh y   (in the mutated copy)
+!!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
+1 error in 1.28s
+FAIL  step 5/6: a test failed, or pytest could not read its configuration (see above)
+exit=1  UNEXPECTED (the output does not say: FAILED tests/unit/test_marked.py::test_under_the_marker
+--
+3 runs, 1 unexpected
+harness exit=1
+must: come back UNEXPECTED, harness exit 1
+result: as required
+
+### M8: --strict-markers dropped from addopts
+--- pyproject.toml (as shipped)
++++ pyproject.toml (mutated)
+@@ -148,3 +148,3 @@
+ # pytest reads this file alone and no .txt under tests/; this line stays as that standard fixes it.
+-addopts = "-q --strict-markers --strict-config"
++addopts = "-q --strict-config"
+ # Every marker, with its meaning (that standard). The gate deselects nothing, so an integration test
+$ scripts/gate-negative-tests.sh y   (in the mutated copy)
+FAILED tests/unit/test_marked.py::test_under_the_marker - AssertionError: ass...
+1 failed, 9 passed, 1 warning in 0.20s
+FAIL  step 5/6: a test failed, or pytest could not read its configuration (see above)
+exit=1  UNEXPECTED (the output does not say: 'integration' not found in `markers` configuration option
+--
+FAILED tests/unit/test_marked.py::test_under_the_marker - AssertionError: ass...
+1 failed, 9 passed, 1 warning in 0.19s
+FAIL  step 5/6: a test failed, or pytest could not read its configuration (see above)
+exit=1  UNEXPECTED (the output does not say: 'integratoin' not found in `markers` configuration option
+--
+3 runs, 2 unexpected
+harness exit=1
+must: come back UNEXPECTED, harness exit 1
+result: as required
+
+8 mutations, 8 as required

@@ -1,0 +1,12 @@
+uv.lock against d638b39: uv 0.13.7, uv lock after packaging==26.3 joined the dev group.
+
+packages at d638b39: 32  now: 32
+added: none
+removed: none
+version moved: none
+packaging: 26.3
+
+ uv.lock | 2 ++
+ 1 file changed, 2 insertions(+)
++    { name = "packaging" },
++    { name = "packaging", specifier = "==26.3" },

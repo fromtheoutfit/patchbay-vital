@@ -1,0 +1,25 @@
+uv.lock against main: uv 0.13.7, uv lock after pyproject.toml took the range and the source.
+
+Resolved 32 packages in 61ms
+Added annotated-types v0.8.0
+Added numpy v2.5.4
+Added patchbay-core v0.0.1 (dd2bcad6)
+Added pydantic v2.14.3
+Added pydantic-core v2.50.4
+Added typing-inspection v0.4.5
+
+packages at main: 26  now: 32
+added:
+  annotated-types 0.8.0
+  numpy 2.5.4
+  patchbay-core 0.0.1
+  pydantic 2.14.3
+  pydantic-core 2.50.4
+  typing-inspection 0.4.5
+removed: none
+version moved: none
+the tools the gate runs: {'ruff': '0.17.4', 'mypy': '2.4.1', 'pytest': '9.2.0'}
+patchbay-core source: {'git': 'https://github.com/fromtheoutfit/patchbay?rev=dd2bcad69dadeb38c6e1e660b2e0ddced13861eb#dd2bcad69dadeb38c6e1e660b2e0ddced13861eb'}
+
+ uv.lock | 232 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 232 insertions(+)

@@ -69,7 +69,8 @@
 # cannot parse fails its step. A pin or a rule is changed deliberately, in the gate's own spec
 # (agent-os/standards/base/process/verification-gate.md), and the gate rerun.
 #
-# Step 1 needs bash, git and mktemp. Steps 2-5 need git, which lists their files, tee and grep, uv
+# Step 1 needs bash, git and mktemp. Steps 2-5 need git, which lists their files and which uv calls
+# to fetch patchbay-core from its [tool.uv.sources] commit, tee and grep, uv
 # on PATH at the version [tool.uv] required-version pins (the one runtime this repository assumes;
 # agent-os/standards/base/process/ownership.md) and, the first time, network access to fetch the
 # locked packages into uv's cache and the interpreter .python-version names, uv-managed as [tool.uv]
@@ -138,7 +139,7 @@ command -v uv >/dev/null 2>&1 || fail 2/6 "uv is not on PATH; steps 2-5 run the 
 [ ! -e uv.toml ] && [ ! -L uv.toml ] ||
   fail 2/6 "uv.toml is at the root, where uv reads it ahead of [tool.uv] in pyproject.toml; remove it, uv is configured in pyproject.toml alone"
 uv sync --locked 2>&1 | tee "$tmp/sync" ||
-  fail 2/6 "uv could not sync the locked toolchain: uv.lock does not match pyproject.toml, uv could not read them or build the package, or this uv is not the version [tool.uv] requires (see above)"
+  fail 2/6 "uv could not sync the locked toolchain: uv.lock does not match pyproject.toml, uv could not read them, fetch a locked package (the network, git, a commit gone) or build the package, or this uv is not the version [tool.uv] requires (see above)"
 if grep -Fq 'during settings discovery' "$tmp/sync"; then
   fail 2/6 "uv could not use a setting in [tool.uv] of pyproject.toml, warned and went on without it; correct the key or value it names (see above)"
 fi
