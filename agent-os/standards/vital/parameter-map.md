@@ -1,0 +1,70 @@
+# The parameter map
+
+How the map between Vital's VST3 parameters and a preset's keys is made, held and converted. A rule
+here is about Vital's parameters; what any adapter's models do is `base/python/models.md`'s.
+Written from `src/patchbay_vital/parameters.py`, `float32.py`, `census.py` and
+`data/parameters.json`; the evidence is the `verification/` of the spec of issue #7
+(`agent-os/specs/2026-11-09-1907-the-host-and-the-parameter-map/`), measured on Vital 1.6.4 through
+pedalboard 0.9.26.
+
+## Where it comes from
+
+- **The map is measured from the plugin and committed as data, never written by hand or from Vital's
+  source.** `census.py` sets each hosted parameter on a grid of normalized values, reads which state
+  float moves and what the plugin displays, fits the scales and writes `data/parameters.json`; a
+  parameter it cannot fit is `CensusError`, naming it, and nothing is written. Vital's source is
+  GPLv3 and may be cited for corroboration, never copied. A new Vital is a new census in a spec.
+  Verified against `census.py` (`build_map`, `main`), `tests/unit/test_census.py`
+  (`test_a_scale_that_is_neither_is_named`, `test_texts_in_no_one_known_unit_are_named`) and
+  `tests/integration/test_vital_plugin.py` (`test_the_census_regenerates_the_committed_map`).
+- **A parameter's id is its preset key; pedalboard's key is `host_id`, read only by `host.py`.** 256
+  of the 903 differ (`envelope_1_attack` is `env_1_attack`), and the preset key is the one a file, a
+  diff and the instrument share. Verified against `parameters.py` (`MappedParameter.id`,
+  `ParameterMap.find`), `host.py` and `tests/unit/test_parameters.py`
+  (`test_a_map_finds_a_record_by_its_preset_key`).
+- **`settings_keys.txt` is derived from the map**: its ids but the per-slot ones, and
+  `PRESET_ONLY_KEYS` (`chorus_damping`, which old presets hold and no parameter does). The census
+  writes both files and a test holds the one to the other. Verified against
+  `ParameterMap.settings_keys` and `test_the_format_s_key_list_is_derived_from_the_committed_map`.
+
+## Two conversions
+
+- **Normalized ↔ preset is `linear` or `indexed`, exact in float32.** The preset value is
+  `r · span + minimum` rounded once to float32, a fused multiply-add as the arm64 build computes it
+  (`float32.fma32`, in `Fraction` and integer rounding; separately rounded arithmetic is wrong on 252
+  parameters); indexed rounds that to a whole number. No tolerance anywhere. Verified against
+  `parameters.py` (`NormalizedScale`), `float32.py`, `tests/unit/test_float32.py`
+  (`test_every_recorded_vector_is_the_plugin_s_value`) and `tests/data/fma-vectors.txt`.
+- **Preset ↔ display is a curve: `multiply · skew(preset) + offset`**, the skew one of the six
+  measured (linear, quadratic, quartic, square root, 2^x, 2^−x), its constants the shortest decimals
+  that print every display text at six significant digits. A record's `Parameter` is in display
+  units and its bounds and default are what the scale and curve compute, which the model holds.
+  Verified against `DisplayCurve`, `MappedParameter`, `census.py` (`_fit_curve`) and
+  `test_a_record_whose_parameter_is_not_its_scales_is_refused`,
+  `test_a_curve_and_its_unit_are_found_from_the_texts`.
+- **A displayed value comes back exactly; a preset value does too, but where a curve's offset absorbs
+  it.** `volume`'s presets at or below 2 ** -43 display within 3.4e-7 dB of −80 dB and share a
+  display; the sweep found no other. An arbitrary display value comes back as the nearest one the
+  parameter holds. Verified against `test_a_value_the_parameter_holds_comes_back_exactly`,
+  `test_where_volume_s_offset_absorbs_a_preset`, `test_every_committed_record_comes_back_exactly`
+  and `verification/census-run.txt`.
+
+## Units and kinds
+
+- **A unit is the display's suffix, renamed into `patchbay.Unit` by one table**: secs and s are
+  seconds, ms seconds (÷1000), dB db, % percent, semitones and c (÷100) semitones, Hz hz, and x, v,
+  voices and none none; `Beats Per Minute` is bpm by its label. An unknown suffix fails the census.
+  Verified against `census.py` (`SUFFIX_UNITS`, `LABEL_UNITS`) and
+  `test_the_label_names_a_unit_the_display_does_not_print`.
+- **A switch is a boolean, other names a choice, other numbers continuous.** An indexed parameter of
+  two values shown Off and On, or as numbers, is a boolean; one whose texts are other names is a
+  choice, two names included (`eq_low_mode` is Shelf or High Pass); a numeric one (transposes,
+  voices) is continuous on its indexed scale. A choice's value is its index, the preset value less
+  the scale's minimum (`delay_tempo` starts at 4). Verified against `fit_record`,
+  `test_a_parameter_of_two_values_is_a_switch_or_a_choice`,
+  `test_a_choice_is_its_index_from_the_scale_s_minimum` and
+  `test_numbers_on_an_indexed_scale_are_continuous`.
+- **Empty or repeated choice names are told apart by their index** (`option_<i>`, `<name>_<i>`), the
+  plugin's own names kept in `choice_labels`, so core's rule that choices are distinct and non-empty
+  holds. Six parameters need it. Verified against `census.py` (`_choices`) and
+  `test_the_committed_map_tells_its_choices_apart`.

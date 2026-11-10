@@ -2,7 +2,8 @@
 
 What this repository's tests may hold of Vital's and how they read the rest. The general form, a
 test over an instrument's installed content, is proposed upstream; what is here is the part about
-Vital. Written from `tests/integration/test_factory_round_trip.py` and `tests/data/`; the evidence
+Vital. Written from `tests/integration/test_factory_round_trip.py`, `test_vital_plugin.py` and
+`tests/data/`; the evidence
 is the `verification/probes.txt` of the spec of issue #2
 (`agent-os/specs/2026-11-09-1509-the-vital-format/`).
 
@@ -22,3 +23,12 @@ is the `verification/probes.txt` of the spec of issue #2
   missing, or present and unlisted, fails by name, and changing the manifest is a deliberate commit.
   Verified against `tests/integration/test_factory_round_trip.py`
   (`test_the_installed_presets_are_the_manifest_s`) and `verification/probes.txt`.
+- **A test of the hosted plugin runs where Vital is installed at the host's `DEFAULT_PATH` and skips
+  by name elsewhere**, CI among the places; it reads the same manifest and the same fixture, the
+  fixture loaded as the plugin's state. What the plugin reports about itself, its parameters'
+  names, ranges and display texts, is an interoperability fact and is committed as the parameter
+  map; the plugin's own state, which embeds its default media, is never committed. Verified against
+  `tests/integration/test_vital_plugin.py` (the `host` fixture,
+  `test_every_installed_preset_loads_as_state`,
+  `test_the_fixture_as_state_reads_back_but_its_sample_delayed`) and
+  `src/patchbay_vital/data/parameters.json`.

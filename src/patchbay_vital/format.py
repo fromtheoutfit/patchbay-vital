@@ -1,9 +1,9 @@
 """Reading, writing and comparing a `.vital` file, byte for byte.
 
 `loads` walks the top level and `settings` by span, so every section it does not interpret is kept
-as the very text the file held. `dumps` writes what Vital writes: keys sorted at every depth, no
-whitespace, raw UTF-8 and floats through `grisu2`, so `dumps(loads(text)) == text` for a file Vital
-saved.
+as the very text the file held, the plugin state's top-level `tuning` among them. `dumps` writes
+what Vital writes: keys sorted at every depth, no whitespace, raw UTF-8 and floats through `grisu2`,
+so `dumps(loads(text)) == text` for a file Vital saved.
 
 A key Vital is not known to write is `UnknownSettingError`, so a change of format is noticed, except
 that an unknown section under `settings` is kept with the unread ones. Anything else wrong with a
@@ -55,10 +55,11 @@ type _Reader = Callable[[str, int], tuple[object, int]]
 _SETTINGS_KEY = "settings"
 _SOURCE, _DESTINATION, _LINE_MAPPING = "source", "destination", "line_mapping"
 _TRAILING_NEWLINE = "trailing_newline"
+_TUNING = "tuning"
 _METADATA = tuple(
     sorted(
         set(VitalPreset.model_fields)
-        - {_SETTINGS_KEY, MODULATIONS_KEY, "opaque", _TRAILING_NEWLINE}
+        - {_SETTINGS_KEY, MODULATIONS_KEY, "opaque", _TUNING, _TRAILING_NEWLINE}
     )
 )
 _SLOT_FLOATS = (*SLOT_FIELDS, *NEWER_SLOT_FIELDS)
@@ -261,9 +262,14 @@ def _parse(text: str) -> VitalPreset:
         raise MalformedPresetError(msg)
     fields: dict[str, object] = {_TRAILING_NEWLINE: text.endswith("\n")}
     settings: _Settings | None = None
-    for name, _, _, value in members:
+    for name, first, end, value in members:
         if isinstance(value, _Settings):
             settings = value
+        elif name == _TUNING:
+            if not isinstance(value, dict):
+                msg = f"{_TUNING!r} is an object, here {value!r}"
+                raise MalformedPresetError(msg)
+            fields[_TUNING] = body[first:end].encode("utf-8")
         elif name not in _METADATA:
             raise UnknownSettingError(name)
         elif value is None:
@@ -342,6 +348,8 @@ def dumps(preset: VitalPreset) -> str:
         value: str | None = getattr(preset, name)
         if value is not None:
             members[name] = _string(value)
+    if preset.tuning is not None:
+        members[_TUNING] = preset.tuning.decode("utf-8")
     return _object(members) + ("\n" if preset.trailing_newline else "")
 
 
@@ -418,20 +426,28 @@ def _metadata_changes(a: VitalPreset, b: VitalPreset) -> tuple[MetadataChange, .
     return tuple(changes)
 
 
+def _opaque_change(name: str, before: bytes | None, after: bytes | None) -> OpaqueChange:
+    """Say that an unread section differs, by its name and sizes."""
+    return OpaqueChange(
+        name=PresetKey(name),
+        old_size=None if before is None else len(before),
+        new_size=None if after is None else len(after),
+    )
+
+
 def _opaque_changes(a: VitalPreset, b: VitalPreset) -> tuple[OpaqueChange, ...]:
-    """Return every unread section that differs, by name, saying only its size."""
+    """Return every unread section that differs, by name, saying only its size.
+
+    The sections under `settings` come by name, then the top-level `tuning`, which is unread too.
+    """
     old, new = a.opaque, b.opaque
-    changes: list[OpaqueChange] = []
-    for name in sorted(set(old) | set(new)):
-        before, after = old.get(name), new.get(name)
-        if before != after:
-            changes.append(
-                OpaqueChange(
-                    name=name,
-                    old_size=None if before is None else len(before),
-                    new_size=None if after is None else len(after),
-                )
-            )
+    changes = [
+        _opaque_change(name, old.get(name), new.get(name))
+        for name in sorted(set(old) | set(new))
+        if old.get(name) != new.get(name)
+    ]
+    if a.tuning != b.tuning:
+        changes.append(_opaque_change(_TUNING, a.tuning, b.tuning))
     return tuple(changes)
 
 

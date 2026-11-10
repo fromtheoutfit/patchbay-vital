@@ -3,12 +3,15 @@
 A `.vital` file is JSON whose `settings` object holds float scalars and structured sections side by
 side. `VitalSettings` holds the floats by key, `Modulation` a slot of the routing list joined with
 that slot's own floats, and `VitalPreset.opaque` the sections this package does not interpret, each
-as the text the file held, so it is written back byte for byte.
+as the text the file held, so it is written back byte for byte. The plugin's own state is the same
+text with one more top-level object, `tuning`, held as its text the same way.
 
 A key is *known* when Vital has ever been seen to write it, not when every file has it: Vital adds
 keys as it grows (723 settings at 0.6.1, 909 at 1.6.4), so a key absent from a file is legal and a
-key absent from `settings_keys.txt` is a change of format. That file is a plain sorted list; the
-two-namespace map turns it into structured data.
+key absent from `settings_keys.txt` is a change of format. That file is a plain sorted list derived
+from the parameter map, `data/parameters.json`: every key there but the per-slot ones, and the keys
+only presets hold, `parameters.PRESET_ONLY_KEYS`. The generator writes both and a unit test holds
+the one to the other.
 
 A model built directly refuses as patchbay's `PatchbayValidationError`; reading a file through
 `patchbay_vital.format` reports the same refusal as `MalformedPresetError`.
@@ -216,7 +219,9 @@ class VitalPreset(_PicklableMappings, frozen=True):
     `modulations` is always every slot, its position the slot's number less one. `opaque` holds each
     section this package does not interpret, as the text of its JSON, the form `patchbay.Patch`
     carries unread sections in. `preset_name` is None where the file lacks the key, as files before
-    1.6.4 do. `trailing_newline` says the file ended in one, as three of Vital's own presets do.
+    1.6.4 do. `tuning` is the top-level object the plugin's state adds, as its text, and None where
+    the text has none, as every `.vital` file seen. `trailing_newline` says the file ended in one,
+    as three of Vital's own presets do.
     """
 
     model_config = ConfigDict(ser_json_bytes="base64", val_json_bytes="base64")
@@ -235,10 +240,19 @@ class VitalPreset(_PicklableMappings, frozen=True):
         min_length=MODULATION_SLOTS, max_length=MODULATION_SLOTS
     )
     opaque: _ReadOnly[bytes]
+    tuning: bytes | None = None
     trailing_newline: bool = False
 
     # Unhashable, said the way Python says it: pydantic's frozen hash would raise on a mapping.
     __hash__: ClassVar[None] = None  # type: ignore[assignment]
+
+    @field_validator("tuning", mode="after")
+    @classmethod
+    def _tuning_is_an_object(cls, raw: bytes | None) -> bytes | None:
+        if raw is not None and not _json_section(raw).startswith(b"{"):
+            msg = "tuning is the text of a JSON object"
+            raise ValueError(msg)
+        return raw
 
     @field_validator("opaque", mode="after")
     @classmethod

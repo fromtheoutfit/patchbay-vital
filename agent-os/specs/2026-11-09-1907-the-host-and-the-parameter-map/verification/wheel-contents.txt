@@ -1,0 +1,34 @@
+# The wheel uv_build makes of this tree, 2026-11-09 21:28 EST, branch feature/7-the-host-and-the-parameter-map-load-vital-through-pedalboard-map-all-903-parameters-to-preset-keys-and-pass-cores-contract-tests-as-a-real-instrument
+# Command: uv build --wheel --out-dir <scratch>; its files and its declared requirements:
+
+$ unzip -l patchbay_vital-0.0.1-py3-none-any.whl
+patchbay_vital/
+patchbay_vital/__init__.py
+patchbay_vital/census.py
+patchbay_vital/data/
+patchbay_vital/data/parameters.json
+patchbay_vital/errors.py
+patchbay_vital/float32.py
+patchbay_vital/format.py
+patchbay_vital/grisu2.py
+patchbay_vital/host.py
+patchbay_vital/parameters.py
+patchbay_vital/preset.py
+patchbay_vital/py.typed
+patchbay_vital/settings_keys.txt
+patchbay_vital/state.py
+patchbay_vital-0.0.1.dist-info/licenses/
+patchbay_vital-0.0.1.dist-info/licenses/LICENSE
+patchbay_vital-0.0.1.dist-info/
+patchbay_vital-0.0.1.dist-info/WHEEL
+patchbay_vital-0.0.1.dist-info/METADATA
+patchbay_vital-0.0.1.dist-info/RECORD
+
+$ grep Requires-Dist / Provides-Extra / License in METADATA
+License-Expression: MIT
+License-File: LICENSE
+Requires-Dist: patchbay-core>=0.0.1,<1
+Requires-Dist: pydantic>=2.14.3,<3
+Requires-Dist: numpy>=2.5.4,<3 ; extra == 'host'
+Requires-Dist: pedalboard>=0.9.26,<1 ; extra == 'host'
+Provides-Extra: host

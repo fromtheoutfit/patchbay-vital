@@ -4,7 +4,8 @@ What a `.vital` file holds and how this package holds it. A rule here is about V
 any adapter's models do is `base/python/models.md`'s. Written from `src/patchbay_vital/preset.py` and
 `format.py`; the evidence is the `verification/discovery.md` of the spec of issue #2
 (`agent-os/specs/2026-11-09-1509-the-vital-format/`), measured over 75 installed presets and two
-saves from Vital 1.6.4.
+saves from Vital 1.6.4, and for the plugin state's `tuning` and the derived key list the
+`verification/` of the spec of issue #7 (`agent-os/specs/2026-11-09-1907-the-host-and-the-parameter-map/`).
 
 ## Where each part lives
 
@@ -16,6 +17,14 @@ saves from Vital 1.6.4.
 - **Every scalar in `settings` is a JSON float**, written with a point, and each is exactly a float32
   widened to a double. An int, a string, a bool or a null there is malformed. Verified against
   `format.py` and `test_a_malformed_preset_is_refused_as_the_package`.
+- **The plugin's state is the same text with one more top-level key, `tuning`, an object held as
+  its text, like an unread section**, in `VitalPreset.tuning`: written back at its sorted place when
+  present, absent from every `.vital` file seen and not added to one, compared by `diff` by name and
+  size after the sections. Anything but an object under the key is malformed. Verified against
+  `preset.py`, `format.py` and `test_a_plugin_state_comes_back_byte_for_byte`,
+  `test_a_file_without_a_tuning_is_written_without_one`,
+  `test_a_tuning_that_is_not_an_object_is_malformed`,
+  `test_a_diff_reports_the_tuning_after_the_sections`.
 - **Metadata is strings: `author`, `comments`, `macro1` to `macro4`, `preset_style`,
   `synth_version`, and `preset_name`, which files before 1.6.4 lack.** `preset_style` is a plain
   string: a save names none, and writes `""`. Verified against `preset.py` (`VitalPreset`) and
@@ -27,9 +36,11 @@ saves from Vital 1.6.4.
   `settings_keys.txt` lists them, one a line, sorted. A key a file lacks is simply absent, because
   Vital adds keys as it grows; `settings` holds 723 keys at 0.6.1 and 909 at 1.6.4, and `chorus_damping`
   appears only in the oldest. A newer Vital's new key is added to the list in a spec, not carried
-  silently. The list is deliberately plain: the two-namespace map makes it structured. Verified
-  against `src/patchbay_vital/settings_keys.txt`, `preset.py` (`KNOWN_SETTINGS`) and
-  `tests/unit/test_preset.py` (`test_the_known_keys_are_a_plain_sorted_list`).
+  silently. The list is deliberately plain and is derived from the parameter map: its keys but the
+  per-slot ones, and the keys only presets hold (`vital/parameter-map.md`). Verified against
+  `src/patchbay_vital/settings_keys.txt`, `preset.py` (`KNOWN_SETTINGS`),
+  `tests/unit/test_preset.py` (`test_the_known_keys_are_a_plain_sorted_list`) and
+  `tests/unit/test_parameters.py` (`test_the_format_s_key_list_is_derived_from_the_committed_map`).
 - **A key Vital is not known to write is `UnknownSettingError`, naming it, whatever its value's type
   and wherever it is: in `settings`, in a routing entry or at the top level. The one exception is
   an unknown structured section under `settings`, which is kept.** So a change of format is noticed

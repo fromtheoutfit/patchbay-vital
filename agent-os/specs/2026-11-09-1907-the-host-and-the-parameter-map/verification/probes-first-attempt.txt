@@ -1,0 +1,13 @@
+# The first run of the consolidated probe, 2026-11-09, branch feature/7-the-host-and-the-parameter-map-load-vital-through-pedalboard-map-all-903-parameters-to-preset-keys-and-pass-cores-contract-tests-as-a-real-instrument: uv run --locked python -u -X faulthandler probes.py
+# It crashed at the census, reading pedalboard's typed _parameters objects fetched once at the start,
+# before some 200 state loads. Kept as the evidence that host.py reads parameters through pedalboard's
+# public mapping, which fetches the native parameter on each access. The tail of its output:
+
+
+== Q2: the census
+Fatal Python error: Segmentation fault
+
+Current thread 0x00000001ef62a180 (most recent call first):
+  File "/private/tmp/claude-501/-Users-michaelwitwicki-Code-Audio-patchbay-vital/447774bc-1cf7-4601-8979-e4172c3929d1/scratchpad/probes.py", line 270 in <module>
+
+Extension modules: numpy._core._multiarray_umath, numpy.linalg._umath_linalg (total: 2)

@@ -26,3 +26,8 @@ here includes (Step 5a of `/agent-os:shape-spec`).
   spec added it (`agent-os/specs/2026-11-09-1405-gate-patchbay-core-source-and-marker/`), and issue
   #2's is the first whose package code imports it; `tests/unit/test_package.py` holds the pin to the
   range.
+- **`pedalboard`** hosts Vital's VST3, `>=0.9.26,<1` as the optional extra `host`, and pinned
+  `==0.9.26` in the dev group so the gate installs it. It is GPLv3 and this package MIT, so it is an
+  extra, `host.py` alone imports it, and the root never imports `host.py`: the owner's decision in
+  the host spec (`agent-os/specs/2026-11-09-1907-the-host-and-the-parameter-map/shape.md`,
+  Decision 2), revisited before any release.

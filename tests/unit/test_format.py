@@ -203,6 +203,42 @@ def test_an_unknown_top_level_key_is_named(fixture_text: str) -> None:
     assert caught.value.key == "authors"
 
 
+# The plugin's own default tuning, as its state holds it (the host spec's verification/probes.txt).
+_TUNING = (
+    '{"default":true,"mapping_name":"","reference_midi_note":0.0,'
+    '"scale":[0.0,1.0,2.0,3.0,4.0,5.0,6.0,7.0,8.0,9.0,10.0,11.0,12.0],'
+    '"scale_start_midi_note":60,"tuning_name":""}'
+)
+
+
+def _as_state(text: str, tuning: str = _TUNING) -> str:
+    """Return a preset's text as the plugin's state holds it: with `tuning`, its last key."""
+    assert text.endswith("}")
+    return f'{text[:-1]},"tuning":{tuning}}}'
+
+
+def test_a_plugin_state_comes_back_byte_for_byte(fixture_text: str) -> None:
+    """The state's top-level tuning is an unread section, kept as its text and written back."""
+    state = _as_state(fixture_text)
+    preset = loads(state)
+    assert preset.tuning == _TUNING.encode("utf-8")
+    assert dumps(preset) == state
+
+
+def test_a_file_without_a_tuning_is_written_without_one(fixture_text: str) -> None:
+    """Every .vital file seen lacks the key, and it is not added."""
+    preset = loads(fixture_text)
+    assert preset.tuning is None
+    assert '"tuning"' not in dumps(preset)
+
+
+@pytest.mark.parametrize("tuning", ["[1.0]", '"equal"', "null", "1.0"])
+def test_a_tuning_that_is_not_an_object_is_malformed(fixture_text: str, tuning: str) -> None:
+    """The plugin writes an object; anything else under the key is refused as the package."""
+    with pytest.raises(MalformedPresetError):
+        loads(_as_state(fixture_text, tuning))
+
+
 def test_an_unknown_section_is_kept_and_written_back(fixture_text: str) -> None:
     """A section this package has never seen still round trips, byte for byte."""
     text = _insert_setting(fixture_text, '"aaa_section":{"a":[1.50, 2]}')
@@ -459,3 +495,14 @@ def test_a_diff_reports_sections_by_name_and_size_only() -> None:
         ("sample", 2, None),
         ("zeta", None, 3),
     ]
+
+
+def test_a_diff_reports_the_tuning_after_the_sections() -> None:
+    """The top-level tuning is unread too, so a change is its name and two sizes, last."""
+    a = make_preset(opaque={"lfos": b"[1.0]"}, tuning=b"{}")
+    b = make_preset(opaque={"lfos": b"[2.0]"})
+    assert [(c.name, c.old_size, c.new_size) for c in diff(a, b).opaque] == [
+        ("lfos", 5, 5),
+        ("tuning", 2, None),
+    ]
+    assert diff(a, a).is_empty

@@ -1,6 +1,8 @@
-"""The package's surface is __all__, and its distribution carries the license and its range."""
+"""The package's surface is __all__, and its distribution carries the license and its ranges."""
 
 import importlib.metadata
+import subprocess
+import sys
 import types
 
 from packaging.requirements import Requirement
@@ -9,6 +11,7 @@ from patchbay import PatchbayError, PatchbayModel, PresetKey
 import patchbay_vital
 import patchbay_vital.errors
 import patchbay_vital.format
+import patchbay_vital.parameters
 import patchbay_vital.preset
 
 
@@ -55,6 +58,54 @@ def test_the_pinned_patchbay_core_is_in_the_declared_range() -> None:
     assert core.specifier.contains(importlib.metadata.version("patchbay-core"))
 
 
+def test_pedalboard_is_declared_only_under_the_host_extra() -> None:
+    """The wheel asks for pedalboard under `host` alone, in a range the gate's pin satisfies.
+
+    pedalboard is GPLv3 and this package MIT, so a plain install brings none of it (the host
+    spec's shape.md, Decision 2).
+    """
+    declared = [Requirement(line) for line in importlib.metadata.requires("patchbay-vital") or ()]
+    pedalboard = [requirement for requirement in declared if requirement.name == "pedalboard"]
+    assert len(pedalboard) == 1
+    (requirement,) = pedalboard
+    assert requirement.marker is not None
+    assert requirement.marker.evaluate({"extra": "host"})
+    assert not requirement.marker.evaluate({"extra": ""})
+    assert requirement.specifier.contains(importlib.metadata.version("pedalboard"))
+
+
+def test_the_host_extra_declares_numpy_which_host_py_imports() -> None:
+    """A package the code imports directly is declared, though core and pedalboard bring it in."""
+    declared = [Requirement(line) for line in importlib.metadata.requires("patchbay-vital") or ()]
+    (numpy,) = [requirement for requirement in declared if requirement.name == "numpy"]
+    assert numpy.marker is not None
+    assert numpy.marker.evaluate({"extra": "host"})
+    assert numpy.specifier.contains(importlib.metadata.version("numpy"))
+
+
+def test_importing_the_package_loads_no_pedalboard() -> None:
+    """A fresh interpreter with pedalboard made unimportable still imports the package whole.
+
+    The format layer and the map install without the extra; only `patchbay_vital.host` and what
+    imports it need pedalboard, and the root re-exports neither.
+    """
+    code = (
+        "import sys\n"
+        "sys.modules['pedalboard'] = None\n"
+        "import patchbay_vital, patchbay_vital.format, patchbay_vital.parameters\n"
+        "import patchbay_vital.state, patchbay_vital.float32, patchbay_vital.grisu2\n"
+        "roots = ('pedalboard', 'pedalboard_native')\n"
+        "loaded = [n for n, m in sys.modules.items() if n.split('.')[0] in roots and m]\n"
+        "assert not loaded, loaded\n"
+    )
+    # The interpreter running this test, given our own code: a fresh process is the only place an
+    # import can be watched from the start.
+    result = subprocess.run(  # noqa: S603 - our interpreter and our own code
+        [sys.executable, "-c", code], capture_output=True, text=True, check=False
+    )
+    assert result.returncode == 0, result.stderr
+
+
 def test_the_names_the_adapter_builds_on_come_from_patchbay_core() -> None:
     """A pinned commit lacking one fails here, ahead of the first adapter module to import it."""
     assert PatchbayModel.__module__ == "patchbay.models"
@@ -66,12 +117,28 @@ def test_the_package_re_exports_what_a_consumer_uses() -> None:
     """Each name the root exports is the very object its module defines, not a copy."""
     surface = {
         patchbay_vital.errors: (
+            "CensusError",
             "MalformedPresetError",
+            "ParameterRangeError",
+            "PluginLoadError",
+            "PluginRenderError",
+            "PluginStateError",
             "PresetFileError",
+            "UnknownParameterError",
             "UnknownSettingError",
+            "VitalError",
             "VitalFormatError",
+            "VitalHostError",
         ),
         patchbay_vital.format: ("diff", "dump", "dumps", "load", "loads"),
+        patchbay_vital.parameters: (
+            "PRESET_ONLY_KEYS",
+            "DisplayCurve",
+            "MappedParameter",
+            "NormalizedScale",
+            "ParameterMap",
+            "parameter_map",
+        ),
         patchbay_vital.preset: (
             "MetadataChange",
             "Modulation",

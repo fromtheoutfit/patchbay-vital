@@ -1,0 +1,70 @@
+# host.py's two facts, one run in the locked environment, 2026-11-09 19:31 EST, branch feature/7-the-host-and-the-parameter-map-load-vital-through-pedalboard-map-all-903-parameters-to-preset-keys-and-pass-cores-contract-tests-as-a-real-instrument
+# Command: uv run --locked python -u host_probes.py (exit status after the output)
+
+---- host_probes.py
+"""Two facts host.py rests on: what length a render has, and where a MIDI event lands."""
+
+import numpy as np
+from pedalboard import VST3Plugin
+
+SR = 48000
+vital = VST3Plugin("/Library/Audio/Plug-Ins/VST3/Vital.vst3")
+template = vital.preset_data
+print("== render length: pedalboard returns int(duration * rate)? and does (n + 0.5) / rate give n?")
+bad_plain, bad_half = [], []
+for n in [1, 2, 3, 7, 11, 47999, 48000, 48001, 96000, 100003, 123457, 999983]:
+    plain = vital([], duration=n / SR, sample_rate=SR).shape[1]
+    half = vital([], duration=(n + 0.5) / SR, sample_rate=SR).shape[1]
+    print(f"  n={n}: duration n/rate gives {plain}, (n+0.5)/rate gives {half}")
+    bad_plain += [n] if plain != n else []
+    bad_half += [n] if half != n else []
+print("  n/rate misses:", bad_plain, "| (n+0.5)/rate misses:", bad_half)
+for rate in (44100, 22050, 96000, 192000):
+    misses = [n for n in range(1, 4000, 37) if vital([], duration=(n + 0.5) / rate, sample_rate=rate).shape[1] != n]
+    print(f"  at {rate} Hz, (n+0.5)/rate over n = 1..4000 step 37 misses: {misses}")
+print("== a render's start, with no MIDI")
+vital.preset_data = template
+silent = vital([], duration=1.0, sample_rate=SR)
+peaks = np.abs(silent).max(axis=0)
+frames = peaks[: len(peaks) // 480 * 480].reshape(-1, 480).max(axis=1)
+print("  peak per 10 ms frame, the first twelve:", [f"{x:.2g}" for x in frames[:12]], "| last non-zero sample", int(np.nonzero(peaks)[0].max()))
+print(f"  a second render straight after, reset as by default: peak {np.abs(vital([], duration=1.0, sample_rate=SR)).max():.3g}")
+vital.preset_data = template
+print(f"  after a state load, reset=False: peak {np.abs(vital([], duration=1.0, sample_rate=SR, reset=False)).max():.3g}")
+print("== where a note lands (timestamps in seconds from the render's start)")
+for at in (0.25, 0.5, 1.0):
+    vital.preset_data = template
+    audio = vital([(bytes([0x90, 60, 100]), at), (bytes([0x80, 60, 0]), at + 0.5)], duration=2.0, sample_rate=SR)
+    peaks = np.abs(audio).max(axis=0)
+    start = round(at * SR)
+    onset = start + int(np.argmax(peaks[start:] > 1e-3))
+    print(f"  note on at {at} s (sample {start}): peak over 0.15 s to the note {peaks[int(0.15 * SR):start].max():.3g}; rises past 1e-3 at sample {onset} ({onset - start:+d}); peak 0.3 s after the note off {peaks[round((at + 0.5 + 0.6) * SR):].max() if at + 1.1 < 2.0 else float('nan'):.3g}")
+
+---- output
+== render length: pedalboard returns int(duration * rate)? and does (n + 0.5) / rate give n?
+  n=1: duration n/rate gives 1, (n+0.5)/rate gives 1
+  n=2: duration n/rate gives 2, (n+0.5)/rate gives 2
+  n=3: duration n/rate gives 3, (n+0.5)/rate gives 3
+  n=7: duration n/rate gives 6, (n+0.5)/rate gives 7
+  n=11: duration n/rate gives 11, (n+0.5)/rate gives 11
+  n=47999: duration n/rate gives 47999, (n+0.5)/rate gives 47999
+  n=48000: duration n/rate gives 48000, (n+0.5)/rate gives 48000
+  n=48001: duration n/rate gives 48001, (n+0.5)/rate gives 48001
+  n=96000: duration n/rate gives 96000, (n+0.5)/rate gives 96000
+  n=100003: duration n/rate gives 100002, (n+0.5)/rate gives 100003
+  n=123457: duration n/rate gives 123457, (n+0.5)/rate gives 123457
+  n=999983: duration n/rate gives 999983, (n+0.5)/rate gives 999983
+  n/rate misses: [7, 100003] | (n+0.5)/rate misses: []
+  at 44100 Hz, (n+0.5)/rate over n = 1..4000 step 37 misses: []
+  at 22050 Hz, (n+0.5)/rate over n = 1..4000 step 37 misses: []
+  at 96000 Hz, (n+0.5)/rate over n = 1..4000 step 37 misses: []
+  at 192000 Hz, (n+0.5)/rate over n = 1..4000 step 37 misses: []
+== a render's start, with no MIDI
+  peak per 10 ms frame, the first twelve: ['0.022', '0.0087', '0.0033', '0.00072', '2e-05', '4.7e-12', '3.2e-17', '2.1e-22', '1.4e-27', '9.7e-33', '6.5e-38', '0'] | last non-zero sample 4869
+  a second render straight after, reset as by default: peak 0.0225
+  after a state load, reset=False: peak 0
+== where a note lands (timestamps in seconds from the render's start)
+  note on at 0.25 s (sample 12000): peak over 0.15 s to the note 0; rises past 1e-3 at sample 12008 (+8); peak 0.3 s after the note off 0
+  note on at 0.5 s (sample 24000): peak over 0.15 s to the note 0; rises past 1e-3 at sample 24008 (+8); peak 0.3 s after the note off 0
+  note on at 1.0 s (sample 48000): peak over 0.15 s to the note 0; rises past 1e-3 at sample 48005 (+5); peak 0.3 s after the note off nan
+exit 0

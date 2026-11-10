@@ -14,6 +14,10 @@ writes the entry, in that commit
 
 ### Changed
 
+- The package's error root is `VitalError`, with `VitalFormatError` under it beside the host's
+  `VitalHostError` and the map's `UnknownParameterError` and `ParameterRangeError`, each of those two
+  also core's matching error. The host spec, `agent-os/specs/2026-11-09-1907-the-host-and-the-parameter-map/`.
+
 - Revision after the review of PR 6, `agent-os/specs/2026-11-09-1610-revision-after-pr-6-review/`:
   sixteen findings at `6d7f747`, fifteen addressed and one, `json.decoder.WHITESPACE`, declined with
   its reason. The version stays 0.0.1.
@@ -58,6 +62,25 @@ writes the entry, in that commit
 
 ### Added
 
+- The host and the parameter map, the first half of issue #7,
+  `agent-os/specs/2026-11-09-1907-the-host-and-the-parameter-map/`; the instrument is issue #8.
+  - `patchbay-vital[host]`: pedalboard (GPLv3) as an optional extra, `>=0.9.26,<1`, so the package
+    stays MIT and installs without it; pinned `==0.9.26` in the dev group so the gate hosts Vital.
+    `numpy>=2.5.4,<3` is declared in the extra beside it, `host.py` importing it.
+  - `host.VitalHost`: loads Vital from a path or `/Library/Audio/Plug-Ins/VST3/Vital.vst3`, sets and
+    reads parameters by preset key in normalized values, loads and reads the plugin's state as a
+    preset's text, and renders MIDI to `(2, samples)` float32. It keeps the process's
+    floating-point environment, which Vital otherwise leaves flushing subnormals to zero.
+  - `state`: the VST3 preset, `VstW` and `CcnK` containers around the state's text, read and written
+    byte for byte.
+  - `parameters` and `data/parameters.json`: all 903 parameters by preset key, each with its
+    normalized ↔ preset scale (linear or indexed, exact float32 with a fused multiply-add,
+    `float32`) and its preset ↔ display curve in the plugin's own units, measured from the plugin.
+    `census` is the generator that wrote it; `settings_keys.txt` is now derived from the map.
+  - `VitalPreset.tuning`: the plugin state's top-level object, kept as its text like any unread
+    section.
+  - Integration tests against the installed plugin: the census regenerates the committed map, every
+    installed preset loads as its state, and renders are measured.
 - The `.vital` format, issue #2, `agent-os/specs/2026-11-09-1509-the-vital-format/`: `load`, `loads`,
   `dump`, `dumps` and `diff` over typed models on `PatchbayModel`, every section the package does not
   interpret kept as the file held it. `dumps(loads(text)) == text` on every one of the 75 presets
