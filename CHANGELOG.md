@@ -14,6 +14,27 @@ writes the entry, in that commit
 
 ### Changed
 
+- Revision after the review of PR 9, `agent-os/specs/2026-11-10-1027-revision-after-pr-9-review/`:
+  24 findings at `eb95567`, 23 addressed and one, the state's JSON decoded more than once, declined
+  with its reason. The version stays 0.0.1.
+  - `MappedParameter.to_preset` rounds to a whole number on an indexed scale and refuses a
+    non-whole value for a choice or a boolean; a record holds together in float32, so a libm an
+    ulp apart still reads the map; `ParameterMap.machine` records where the census ran, and the
+    host refuses the map on another machine with `MachineMismatchError`, where the map is first
+    used.
+  - The host keeps the floating-point environment around every call into the plugin, held by a
+    unit test with a fake plugin; what pedalboard raises is `PluginStateError` or
+    `PluginRenderError`, chained; `render` refuses a length or rate that is no whole number, asks
+    one sample more and returns the first `samples`; `measure` restores the state however a read
+    ends; the libraries are looked up lazily.
+  - The state codec refuses a negative chunk size and a text nesting too deeply, as
+    `PluginStateError`; `OpaqueChange.where` tells a section under `settings` named `tuning` from
+    the top-level one.
+  - The census refuses two parameters moving one preset value and a record the map's models
+    refuse, by name; choice names made from an index never collide; both outputs are written
+    whole or not at all, the key list first, through the new `files.replace_file`, which `dump`
+    uses too.
+  - Tests: the host's integration module loads Vital once; `tests/unit/test_files.py` is new.
 - Revision after PR 9's CI run, `agent-os/specs/2026-11-10-0738-revision-after-pr-9-ci/`: the host
   keeps the floating-point environment with `fegetenv` and `fesetenv` from the first library that
   holds both, glibc keeping them in its maths library. It had taken the C library, so on Linux a

@@ -40,12 +40,32 @@ _ONSET = 1e-3  # where a note has begun (host probes: past 1e-3 at +5 to +8 samp
 _ONSET_SAMPLES = 96  # 2 ms at 48 kHz, a generous bound on that
 
 
-@pytest.fixture
-def host() -> VitalHost:
-    """Return a freshly loaded Vital, or skip saying there is none where the host looks."""
+@pytest.fixture(scope="module")
+def vital() -> VitalHost:
+    """Return the module's one loaded Vital, or skip saying there is none where the host looks.
+
+    A load takes about two seconds, so the module shares one plugin; `host` resets it per test.
+    """
     if not DEFAULT_PATH.exists():
         pytest.skip(f"no Vital at {DEFAULT_PATH}")
     return VitalHost()
+
+
+@pytest.fixture(scope="module")
+def initial(vital: VitalHost) -> bytes:
+    """Return the state the plugin loaded with, before any test touched it."""
+    return vital.state()
+
+
+@pytest.fixture
+def host(vital: VitalHost, initial: bytes) -> VitalHost:
+    """Return the module's Vital holding its initial state again, so each test starts there.
+
+    A load delays the embedded sample by 4 samples (the plugin-state standard), which no test here
+    depends on; every setting, routing and section is the initial state's.
+    """
+    vital.load_state(initial)
+    return vital
 
 
 def _floats(text: bytes) -> dict[str, float]:

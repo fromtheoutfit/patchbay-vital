@@ -501,8 +501,18 @@ def test_a_diff_reports_the_tuning_after_the_sections() -> None:
     """The top-level tuning is unread too, so a change is its name and two sizes, last."""
     a = make_preset(opaque={"lfos": b"[1.0]"}, tuning=b"{}")
     b = make_preset(opaque={"lfos": b"[2.0]"})
-    assert [(c.name, c.old_size, c.new_size) for c in diff(a, b).opaque] == [
-        ("lfos", 5, 5),
-        ("tuning", 2, None),
+    assert [(c.name, c.where, c.old_size, c.new_size) for c in diff(a, b).opaque] == [
+        ("lfos", "settings", 5, 5),
+        ("tuning", "preset", 2, None),
     ]
     assert diff(a, a).is_empty
+
+
+def test_a_section_under_settings_named_tuning_is_told_from_the_preset_s() -> None:
+    """Two entries can be named tuning: `where` says which level each is."""
+    a = make_preset(opaque={"tuning": b"[1]"}, tuning=b"{}")
+    b = make_preset(opaque={"tuning": b"[1,2]"}, tuning=b'{"a":1}')
+    assert [(c.name, c.where, c.old_size, c.new_size) for c in diff(a, b).opaque] == [
+        ("tuning", "settings", 3, 5),
+        ("tuning", "preset", 2, 7),
+    ]

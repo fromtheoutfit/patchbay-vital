@@ -109,7 +109,16 @@ def test_another_text_keeps_every_other_field(fixture_state: PluginState) -> Non
     assert swapped.model_dump(exclude={"text"}) == fixture_state.model_dump(exclude={"text"})
 
 
-_NOT_ONE_OBJECT = [b"", b"[]", b"1.0", b'{"a":1} ', b'{"a":1}{}', b"{", b'{"\xff":1}']
+_NOT_ONE_OBJECT = [
+    b"",
+    b"[]",
+    b"1.0",
+    b'{"a":1} ',
+    b'{"a":1}{}',
+    b"{",
+    b'{"\xff":1}',
+    b'{"a":' + b"[" * 200000,  # nests too deeply to read: the decoder's RecursionError
+]
 
 
 @pytest.mark.parametrize("text", _NOT_ONE_OBJECT)
@@ -136,6 +145,9 @@ def _damages(data: bytes) -> dict[str, Callable[[], bytes]]:
         "the chunks": lambda: _replace(data, chunk_end + 8, b"Cmop"),
         "the component's offset": lambda: _replace(data, chunk_end + 12, struct.pack("<q", 47)),
         "the data's length": lambda: data + b"\0",
+        "a chunk's size is not negative": lambda: _replace(
+            data, chunk_end + 40, struct.pack("<q", -1)
+        ),
         "the wrapper's magic": lambda: _replace(data, 48, b"VstX"),
         "the wrapper's header size": lambda: _replace(data, 52, struct.pack(">i", 9)),
         "the bank's magic": lambda: _replace(data, 64, b"CcnX"),

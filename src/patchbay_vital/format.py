@@ -14,16 +14,14 @@ data, and is not written back.
 
 import json
 import math
-import os
-import shutil
-import uuid
 from collections.abc import Callable, Mapping, Sequence
 from pathlib import Path
-from typing import NamedTuple
+from typing import Literal, NamedTuple
 
 from patchbay import PatchbayValidationError, PresetKey
 
 from patchbay_vital.errors import MalformedPresetError, PresetFileError, UnknownSettingError
+from patchbay_vital.files import replace_file
 from patchbay_vital.grisu2 import format_float
 from patchbay_vital.preset import (
     DECODER,
@@ -353,24 +351,8 @@ def dumps(preset: VitalPreset) -> str:
     return _object(members) + ("\n" if preset.trailing_newline else "")
 
 
-def _replace_file(path: Path, raw: bytes) -> None:
-    """Write `raw` beside the file and rename it over, so a failure leaves the file as it was."""
-    target = path.resolve()
-    temporary = target.with_name(f".{target.name}.{uuid.uuid4().hex}.tmp")
-    try:
-        with temporary.open("xb") as file:
-            file.write(raw)
-            file.flush()
-            os.fsync(file.fileno())
-        if target.exists():
-            shutil.copymode(target, temporary)
-        temporary.replace(target)
-    finally:
-        temporary.unlink(missing_ok=True)
-
-
 def dump(preset: VitalPreset, path: Path | str) -> None:
-    """Write a preset to a file, whole or not at all.
+    """Write a preset to a file, whole or not at all (`patchbay_vital.files`).
 
     PresetFileError when it cannot be written, MalformedPresetError for text UTF-8 cannot hold,
     which only a model changed past its validation can carry.
@@ -380,7 +362,7 @@ def dump(preset: VitalPreset, path: Path | str) -> None:
     except UnicodeEncodeError as error:
         raise MalformedPresetError(str(error)) from error
     try:
-        _replace_file(Path(path), raw)
+        replace_file(Path(path), raw)
     except (OSError, ValueError) as error:
         raise PresetFileError(str(path), str(error)) from error
 
@@ -426,10 +408,13 @@ def _metadata_changes(a: VitalPreset, b: VitalPreset) -> tuple[MetadataChange, .
     return tuple(changes)
 
 
-def _opaque_change(name: str, before: bytes | None, after: bytes | None) -> OpaqueChange:
-    """Say that an unread section differs, by its name and sizes."""
+def _opaque_change(
+    name: str, where: Literal["settings", "preset"], before: bytes | None, after: bytes | None
+) -> OpaqueChange:
+    """Say that an unread section differs, by its name, its level and sizes."""
     return OpaqueChange(
         name=PresetKey(name),
+        where=where,
         old_size=None if before is None else len(before),
         new_size=None if after is None else len(after),
     )
@@ -438,16 +423,17 @@ def _opaque_change(name: str, before: bytes | None, after: bytes | None) -> Opaq
 def _opaque_changes(a: VitalPreset, b: VitalPreset) -> tuple[OpaqueChange, ...]:
     """Return every unread section that differs, by name, saying only its size.
 
-    The sections under `settings` come by name, then the top-level `tuning`, which is unread too.
+    The sections under `settings` come by name, then the top-level `tuning`, which is unread too;
+    `where` tells a section under `settings` named `tuning` from it.
     """
     old, new = a.opaque, b.opaque
     changes = [
-        _opaque_change(name, old.get(name), new.get(name))
+        _opaque_change(name, "settings", old.get(name), new.get(name))
         for name in sorted(set(old) | set(new))
         if old.get(name) != new.get(name)
     ]
     if a.tuning != b.tuning:
-        changes.append(_opaque_change(_TUNING, a.tuning, b.tuning))
+        changes.append(_opaque_change(_TUNING, "preset", a.tuning, b.tuning))
     return tuple(changes)
 
 

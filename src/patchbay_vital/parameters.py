@@ -10,11 +10,16 @@ default are in the unit the plugin displays, and the two conversions between the
   computes it), or `indexed`, the same rounded to a whole number;
 - `DisplayCurve`, the preset's value and the displayed one: `multiply * skew(preset) + offset`,
   the skew one of the six measured at 1.6.4. A value a parameter holds goes to the display and back
-  exactly; an arbitrary display value comes back as the nearest one the parameter holds (the host
-  spec's `verification/probes.txt`, probe 4).
+  exactly; an arbitrary display value comes back as the nearest one the parameter holds, an indexed
+  scale's a whole number (the host spec's `verification/probes.txt`, probe 4), and a choice or a
+  boolean takes a whole index and nothing else, core's rule for them.
 
 Every range, kind and constant is the plugin's own, measured, never written from Vital's source.
-pedalboard's key for a parameter is `host_id`, which only `patchbay_vital.host` interprets.
+pedalboard's key for a parameter is `host_id`, which only `patchbay_vital.host` interprets. The
+map records the machine it was measured on: its scales are the plugin's build's, and the host
+refuses the map on another. A record holds together in float32: its bounds and default, computed
+exactly by the census through this platform's `pow`, `log2` and `sqrt`, come back to the scale's
+ends and the preset default through the curve, so a libm an ulp apart still reads the map.
 `settings_keys.txt`, the key list the format reads, is derived from this map: its ids but the
 per-slot ones, and `PRESET_ONLY_KEYS`.
 """
@@ -72,9 +77,9 @@ class NormalizedScale(PatchbayModel, frozen=True):
     minimum: float
     maximum: float
 
-    @property
+    @functools.cached_property
     def span(self) -> float:
-        """The float32 difference of the bounds, as the plugin computes it."""
+        """The float32 difference of the bounds, as the plugin computes it, computed once."""
         return round_to_float32(Fraction(self.maximum) - Fraction(self.minimum))
 
     def to_preset(self, normalized: float) -> float:
@@ -193,15 +198,22 @@ class MappedParameter(PatchbayModel, frozen=True):
         return self.curve.to_display(preset)
 
     def to_preset(self, display: float) -> float:
-        """Return the preset value nearest a displayed value.
+        """Return the preset value nearest a displayed value, one the parameter holds.
 
-        ParameterRangeError when the value is outside the parameter's bounds.
+        On an indexed scale that is a whole number, as the plugin holds it. ParameterRangeError
+        when the value is outside the parameter's bounds, or is not a whole index where the
+        parameter is a choice or a boolean. The bounds are the parameter's own and the scale's
+        ends displayed through this platform's libm, the same on the machine the map was measured
+        on and a double ulp apart on another.
         """
-        parameter = self.parameter
-        if not parameter.minimum <= display <= parameter.maximum:
+        parameter, scale = self.parameter, self.scale
+        low, high = sorted((self.to_display(scale.minimum), self.to_display(scale.maximum)))
+        low, high = min(low, parameter.minimum), max(high, parameter.maximum)
+        whole = parameter.kind == "continuous" or display.is_integer()
+        if not (low <= display <= high and whole):
             raise ParameterRangeError(self.id, parameter.minimum, parameter.maximum, display)
-        preset = self.curve.to_preset(display)
-        return min(max(preset, self.scale.minimum), self.scale.maximum)
+        preset = min(max(self.curve.to_preset(display), scale.minimum), scale.maximum)
+        return _round_half_away(preset) if scale.kind == "indexed" else preset
 
     def to_normalized(self, display: float) -> float:
         """Return the normalized value the host sets for a displayed value.
@@ -220,20 +232,21 @@ class MappedParameter(PatchbayModel, frozen=True):
         return self.to_display(self.scale.to_preset(normalized))
 
     @model_validator(mode="after")
-    def _the_parameter_is_what_the_scales_compute(self) -> Self:
-        parameter, scale = self.parameter, self.scale
-        ends = sorted((self.to_display(scale.minimum), self.to_display(scale.maximum)))
-        if [parameter.minimum, parameter.maximum] != ends:
+    def _the_parameter_reaches_the_scale(self) -> Self:
+        parameter, scale, curve = self.parameter, self.scale, self.curve
+        ends = {curve.to_preset(parameter.minimum), curve.to_preset(parameter.maximum)}
+        if ends != {scale.minimum, scale.maximum}:
             msg = (
-                f"bounds {parameter.minimum!r} and {parameter.maximum!r}, not the scales' {ends!r}"
+                f"bounds {parameter.minimum!r} and {parameter.maximum!r} do not reach the scale's "
+                f"{scale.minimum!r} and {scale.maximum!r}"
             )
             raise ValueError(msg)
         default = self.preset_default
         if not (_is_float32(default) and scale.minimum <= default <= scale.maximum):
             msg = f"the default {default!r} is not a float32 in the scale's range"
             raise ValueError(msg)
-        if parameter.default.value != self.to_display(self.preset_default):
-            msg = f"the default {parameter.default.value!r} is not the curve's"
+        if curve.to_preset(parameter.default.value) != default:
+            msg = f"the default {parameter.default.value!r} does not reach {default!r}"
             raise ValueError(msg)
         return self
 
@@ -253,11 +266,16 @@ class MappedParameter(PatchbayModel, frozen=True):
 
 
 class ParameterMap(PatchbayModel, frozen=True):
-    """Every hosted parameter of one plugin version, sorted by id, as measured with one host."""
+    """Every hosted parameter of one plugin version, sorted by id, as measured with one host.
+
+    `machine` is `platform.machine()` where the census ran, the plugin's build the scales are exact
+    for; the host refuses the map on another.
+    """
 
     instrument: str = Field(min_length=1)
     vital_version: str = Field(min_length=1)
     host: str = Field(min_length=1)
+    machine: str = Field(min_length=1)
     parameters: tuple[MappedParameter, ...]
 
     def ids(self) -> tuple[ParameterId, ...]:

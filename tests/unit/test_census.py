@@ -5,14 +5,18 @@ Measurements here are built the way the plugin reports them (the host spec's
 to six significant digits with the plugin's suffix.
 """
 
-from collections.abc import Callable
+import platform
+from collections.abc import Callable, Sequence
 from pathlib import Path
+from typing import cast
 
 import pytest
 from patchbay import ParameterId, PresetKey, Unit
 
+from patchbay_vital import census
 from patchbay_vital.census import (
     GRID,
+    build_map,
     dump_map,
     fit_record,
     fit_scale,
@@ -20,7 +24,7 @@ from patchbay_vital.census import (
 )
 from patchbay_vital.errors import CensusError
 from patchbay_vital.float32 import fma32
-from patchbay_vital.host import HostMeasurement
+from patchbay_vital.host import HostMeasurement, VitalHost
 from patchbay_vital.parameters import DisplayCurve, NormalizedScale, ParameterMap
 
 
@@ -72,6 +76,17 @@ def test_a_scale_that_is_neither_is_named() -> None:
     with pytest.raises(CensusError) as caught:
         fit_scale(measured._replace(presets=tuple(off)))
     assert caught.value.label == "Volume"
+
+
+def test_the_refusal_quotes_the_scale_s_own_values() -> None:
+    """The values a refusal is compared against are the scale's `to_preset`: float32 span."""
+    scale = NormalizedScale(kind="linear", minimum=2.0**-30, maximum=1.0)  # a span no float32 holds
+    measured = _measurement("Odd Span", scale, str)
+    off = list(measured.presets)
+    off[3] = 0.26
+    with pytest.raises(CensusError) as caught:
+        fit_scale(measured._replace(presets=tuple(off)))
+    assert str(caught.value).endswith(f"against {[scale.to_preset(point) for point in GRID]}")
 
 
 @pytest.mark.parametrize(
@@ -179,6 +194,23 @@ def test_a_choice_is_its_index_from_the_scale_s_minimum() -> None:
     assert record.from_normalized(1.0) == 2.0  # noqa: PLR2004 - the last index
 
 
+@pytest.mark.parametrize(
+    ("names", "choices"),
+    [
+        (("A", "A", "A_1"), ("A_0", "A_1_1", "A_1")),
+        (("", "option_0"), ("option_0_0", "option_0")),
+    ],
+)
+def test_a_made_up_name_never_collides_with_a_given_one(
+    names: tuple[str, ...], choices: tuple[str, ...]
+) -> None:
+    """A name made from an index is lengthened until it is no given name's and no other's."""
+    scale = NormalizedScale(kind="indexed", minimum=0.0, maximum=float(len(names) - 1))
+    record = fit_record(_measurement("Named", scale, str), scale, names)
+    assert record.parameter.choices == choices
+    assert record.choice_labels == names
+
+
 def test_empty_and_repeated_names_are_told_apart_and_kept_beside() -> None:
     """Core's choices are distinct and non-empty; the plugin's own names stay in the record."""
     scale = NormalizedScale(kind="indexed", minimum=0.0, maximum=4.0)
@@ -207,6 +239,54 @@ def test_numbers_on_an_indexed_scale_are_continuous() -> None:
     )
 
 
+def test_a_default_that_displays_as_no_number_is_named() -> None:
+    """A default the curve sends past a double is the parameter's refusal, not a traceback."""
+    curve = DisplayCurve(kind="exponential", multiply=1.0)
+    measured = _measurement("Vast", _LINEAR, _printed(curve, ""), preset_default=2000.0)
+    with pytest.raises(CensusError) as caught:
+        fit_record(measured, _LINEAR, None)
+    assert caught.value.label == "Vast"
+
+
+class _FakeHost:
+    """A host that answers the census with measurements given, no plugin behind it."""
+
+    name, version, host = "Vital", "1.6.4", "pedalboard 0.9.26"
+
+    def __init__(self, measurements: Sequence[HostMeasurement]) -> None:
+        self._measurements = tuple(measurements)
+
+    def measure(self, grid: Sequence[float]) -> tuple[HostMeasurement, ...]:
+        assert tuple(grid) == GRID
+        return self._measurements
+
+    def display_texts(self, _host_id: str, points: Sequence[float]) -> tuple[str, ...]:
+        return tuple(str(point) for point in points)
+
+
+def _host(*measurements: HostMeasurement) -> VitalHost:
+    return cast("VitalHost", _FakeHost(measurements))
+
+
+def test_two_parameters_moving_one_preset_value_are_named() -> None:
+    """The second to move a key the first moved is refused, naming both."""
+    first = _measurement("Filter 1 Cutoff", _LINEAR, str)
+    second = _measurement("Filter 1 Cutoff Again", _LINEAR, str)._replace(
+        preset_key=first.preset_key
+    )
+    with pytest.raises(CensusError) as caught:
+        build_map(_host(first, second))
+    assert caught.value.label == "Filter 1 Cutoff Again"
+    assert "'Filter 1 Cutoff' moves" in caught.value.reason
+
+
+def test_the_map_records_the_machine_the_census_ran_on(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The scales are the plugin's build's, so the map says which machine measured them."""
+    monkeypatch.setattr(platform, "machine", lambda: "arm64")
+    built = build_map(_host(_measurement("Filter 1 Cutoff", _LINEAR, str)))
+    assert built.machine == "arm64"
+
+
 def test_the_written_map_reads_back_as_built_one_record_a_line() -> None:
     """The committed text is the map's own JSON, laid out so a diff shows one record per line."""
     scale = NormalizedScale(kind="linear", minimum=8.0, maximum=136.0)
@@ -216,7 +296,11 @@ def test_the_written_map_reads_back_as_built_one_record_a_line() -> None:
         for label in ("Filter 1 Cutoff", "Filter 2 Cutoff")
     )
     built = ParameterMap(
-        instrument="Vital", vital_version="1.6.4", host="pedalboard 0.9.26", parameters=records
+        instrument="Vital",
+        vital_version="1.6.4",
+        host="pedalboard 0.9.26",
+        machine="arm64",
+        parameters=records,
     )
     text = dump_map(built)
     assert ParameterMap.model_validate_json(text) == built
@@ -243,3 +327,43 @@ def test_the_census_names_a_plugin_it_cannot_load_and_writes_nothing(
     assert "nothing at the path" in capsys.readouterr().err
     assert not parameters.exists()
     assert not keys.exists()
+
+
+def _main(tmp_path: Path, keys: Path) -> tuple[int, Path]:
+    arguments = ["--plugin", str(tmp_path), "--parameters", str(tmp_path / "map.json")]
+    return main([*arguments, "--settings-keys", str(keys)]), tmp_path / "map.json"
+
+
+def test_the_census_writes_both_files_and_names_a_parameter_it_cannot_fit(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Both outputs are written from one measured host; a second that cannot fit writes neither."""
+    good = _measurement("Filter 1 Cutoff", _LINEAR, str)
+    monkeypatch.setattr(census, "VitalHost", lambda _path: _host(good))
+    status, parameters = _main(tmp_path, tmp_path / "keys.txt")
+    assert status == 0
+    assert "1 parameters of Vital 1.6.4" in capsys.readouterr().out
+    assert (tmp_path / "keys.txt").read_text(
+        encoding="utf-8"
+    ) == "chorus_damping\nfilter_1_cutoff\n"
+    assert ParameterMap.model_validate_json(parameters.read_text(encoding="utf-8")).machine
+    bad = good._replace(label="Fortnightly", texts=("1 fortnights",) * len(GRID))
+    monkeypatch.setattr(census, "VitalHost", lambda _path: _host(bad))
+    status, _ = _main(tmp_path / "second", tmp_path / "second" / "keys.txt")
+    assert status == 1
+    assert "cannot fit 'Fortnightly'" in capsys.readouterr().err
+    assert not (tmp_path / "second").exists()
+
+
+def test_a_key_list_that_cannot_be_written_leaves_the_map_unwritten(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The key list is written first, so a failure there leaves the map as it was."""
+    monkeypatch.setattr(
+        census, "VitalHost", lambda _path: _host(_measurement("Filter 1 Cutoff", _LINEAR, str))
+    )
+    (tmp_path / "map.json").write_text("as it was", encoding="utf-8")
+    status, parameters = _main(tmp_path, tmp_path / "nowhere" / "keys.txt")
+    assert status == 1
+    assert "census: cannot write" in capsys.readouterr().err
+    assert parameters.read_text(encoding="utf-8") == "as it was"

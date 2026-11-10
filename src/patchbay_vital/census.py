@@ -4,7 +4,12 @@ Run once per Vital version, with the `host` extra, from the repository root, and
 writes: `uv run --locked python -m patchbay_vital.census --parameters
 src/patchbay_vital/data/parameters.json --settings-keys src/patchbay_vital/settings_keys.txt`.
 `--plugin PATH` names the plugin; without it the host's `DEFAULT_PATH` is the one place looked at.
-Both outputs are named, so nothing is written anywhere unasked.
+Both outputs are named, so nothing is written anywhere unasked, and each is replaced whole or not
+at all (`patchbay_vital.files`), the key list before the map it is derived from. The map records
+the machine the census ran on, `platform.machine()`: the scales are the plugin's build's, measured
+through pedalboard on arm64, where the build computes a scale with one fused multiply-add
+(`float32.fma32`); another build may round the product and the sum apart, which the exact fit
+below would refuse rather than write, and the host refuses the map on another machine.
 
 The fitting is exact where the plugin is: a scale is `linear` or `indexed` only when every grid
 point equals what `float32.fma32` computes, with no tolerance. A curve is fitted to the plugin's
@@ -20,15 +25,18 @@ written from Vital's source.
 
 import argparse
 import math
+import platform
 import re
 import sys
 from collections.abc import Sequence
+from fractions import Fraction
 from pathlib import Path
 
-from patchbay import Parameter, PatchbayValidationError, Quantity, Unit
+from patchbay import Parameter, PatchbayValidationError, PresetKey, Quantity, Unit
 
 from patchbay_vital.errors import CensusError, VitalError
-from patchbay_vital.float32 import fma32
+from patchbay_vital.files import replace_file
+from patchbay_vital.float32 import fma32, round_to_float32
 from patchbay_vital.host import DEFAULT_PATH, HostMeasurement, VitalHost
 from patchbay_vital.parameters import (
     CurveKind,
@@ -83,7 +91,15 @@ _OFF_ON = ("Off", "On")
 """What a switch displays; another pair of names is a choice of two, which keeps them."""
 
 _NUMBER = re.compile(r"(-?[0-9]+(?:\.[0-9]+)?(?:e[-+][0-9]+)?) ?(.*)")
+
 _BOOLEAN = 2
+"""How many values a switch has."""
+
+_TWO_POINTS = 2
+"""A line is fitted through at least this many distinct skewed values."""
+
+_THE_MAP = "the map"
+"""What a CensusError names when the records measured do not make one map."""
 
 
 def _number(text: str) -> tuple[float, str] | None:
@@ -116,7 +132,8 @@ def fit_scale(measurement: HostMeasurement) -> NormalizedScale:
             continue
         if [scale.to_preset(point) for point in GRID] == list(presets):
             return scale
-    plain = [fma32(point, maximum - minimum, minimum) for point in GRID]
+    span = round_to_float32(Fraction(maximum) - Fraction(minimum))
+    plain = [fma32(point, span, minimum) for point in GRID]
     msg = f"neither linear nor indexed: {list(presets)} against {plain}"
     raise CensusError(measurement.label, msg)
 
@@ -125,7 +142,7 @@ def _fit_curve(label: str, presets: Sequence[float], numbers: Sequence[float]) -
     """Return the first curve whose shortest constants reproduce every displayed number."""
     for kind in CURVE_KINDS:
         skewed = [DisplayCurve(kind=kind, multiply=1.0).to_display(p) for p in presets]
-        if not all(math.isfinite(x) for x in skewed) or len(set(skewed)) < _BOOLEAN:
+        if not all(math.isfinite(x) for x in skewed) or len(set(skewed)) < _TWO_POINTS:
             continue
         multiply, offset = _least_squares(skewed, numbers)
         for digits in range(1, _DIGITS + 3):
@@ -161,11 +178,24 @@ def _shortest(
 
 
 def _choices(names: Sequence[str]) -> tuple[str, ...]:
-    """Tell empty and repeated names apart by their index, so core's rule holds (Decision 8)."""
-    return tuple(
-        f"option_{index}" if not name else f"{name}_{index}" if names.count(name) > 1 else name
-        for index, name in enumerate(names)
-    )
+    """Tell empty and repeated names apart by their index, so core's rule holds (Decision 8).
+
+    A name that is non-empty and appears once is kept. Every other becomes `option_<i>` or
+    `<name>_<i>`, lengthened by `_<i>` again while it is a kept name's or one already given, so
+    `("A", "A", "A_1")` is `("A_0", "A_1_1", "A_1")` and no two choices share a name.
+    """
+    taken = {name for name in names if name and names.count(name) == 1}
+    choices = []
+    for index, name in enumerate(names):
+        if name in taken:
+            choices.append(name)
+            continue
+        choice = f"option_{index}" if not name else f"{name}_{index}"
+        while choice in taken:
+            choice = f"{choice}_{index}"
+        taken.add(choice)
+        choices.append(choice)
+    return tuple(choices)
 
 
 def fit_record(
@@ -239,8 +269,8 @@ def _record(  # noqa: PLR0913 - every fact a record is built from, each given by
     CensusError, chained, when the record does not hold together as the map's models require.
     """
     ends = sorted((curve.to_display(scale.minimum), curve.to_display(scale.maximum)))
-    default = Quantity(value=curve.to_display(measurement.preset_default), unit=unit)
     try:
+        default = Quantity(value=curve.to_display(measurement.preset_default), unit=unit)
         parameter = Parameter.model_validate(
             {
                 "id": measurement.preset_key,
@@ -267,9 +297,20 @@ def _record(  # noqa: PLR0913 - every fact a record is built from, each given by
 
 
 def build_map(host: VitalHost) -> ParameterMap:
-    """Measure every parameter the host exposes and return the map of them, sorted by id."""
+    """Measure every parameter the host exposes and return the map of them, sorted by id.
+
+    CensusError, naming the parameter, where one cannot be fitted or two move the same preset
+    value; CensusError naming the map, chained, where the records do not make one.
+    """
     records = []
+    labels: dict[PresetKey, str] = {}
     for measurement in host.measure(GRID):
+        if measurement.preset_key in labels:
+            msg = (
+                f"moves {measurement.preset_key!r}, which {labels[measurement.preset_key]!r} moves"
+            )
+            raise CensusError(measurement.label, msg)
+        labels[measurement.preset_key] = measurement.label
         scale = fit_scale(measurement)
         names = None
         if scale.kind == "indexed" and scale.maximum - scale.minimum <= _MAX_NAMED:
@@ -277,12 +318,16 @@ def build_map(host: VitalHost) -> ParameterMap:
             points = [scale.to_normalized(float(step)) for step in steps]
             names = host.display_texts(measurement.host_id, points)
         records.append(fit_record(measurement, scale, names))
-    return ParameterMap(
-        instrument=host.name,
-        vital_version=host.version,
-        host=host.host,
-        parameters=tuple(sorted(records, key=lambda record: record.id)),
-    )
+    try:
+        return ParameterMap(
+            instrument=host.name,
+            vital_version=host.version,
+            host=host.host,
+            machine=platform.machine(),
+            parameters=tuple(sorted(records, key=lambda record: record.id)),
+        )
+    except PatchbayValidationError as error:
+        raise CensusError(_THE_MAP, str(error)) from error
 
 
 def dump_map(parameter_map: ParameterMap) -> str:
@@ -308,8 +353,13 @@ def main(argv: Sequence[str] | None = None) -> int:
     if ParameterMap.model_validate_json(text) != built:
         sys.stderr.write("census: the map does not read back as written\n")
         return 1
-    arguments.parameters.write_text(text, encoding="utf-8")
-    arguments.settings_keys.write_text("\n".join(built.settings_keys()) + "\n", encoding="utf-8")
+    keys = "\n".join(built.settings_keys()) + "\n"
+    try:
+        replace_file(arguments.settings_keys, keys.encode("utf-8"))
+        replace_file(arguments.parameters, text.encode("utf-8"))
+    except (OSError, ValueError) as error:
+        sys.stderr.write(f"census: cannot write: {error}\n")
+        return 1
     sys.stdout.write(
         f"{len(built.parameters)} parameters of {built.instrument} {built.vital_version}\n"
     )

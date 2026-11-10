@@ -8,6 +8,7 @@ from patchbay import ParameterNotFoundError, PatchbayError, ValueOutOfRangeError
 
 from patchbay_vital.errors import (
     CensusError,
+    MachineMismatchError,
     MalformedPresetError,
     ParameterRangeError,
     PluginLoadError,
@@ -28,6 +29,7 @@ _ERRORS = (
     PluginLoadError("/nowhere/Vital.vst3", "no such plugin"),
     PluginStateError("no VST3 header"),
     PluginRenderError("6 samples of 7"),
+    MachineMismatchError("arm64", "x86_64"),
     UnknownParameterError("nope", "Vital"),
     ParameterRangeError("volume", 0.0, 1.0, 1.5),
     CensusError("Filter 1 Cutoff", "no curve fits"),
@@ -56,7 +58,7 @@ def test_each_part_has_its_own_branch() -> None:
     for format_error in _ERRORS[:3]:
         assert isinstance(format_error, VitalFormatError)
         assert not isinstance(format_error, VitalHostError)
-    for host_error in _ERRORS[3:6]:
+    for host_error in _ERRORS[3:7]:
         assert isinstance(host_error, VitalHostError)
         assert not isinstance(host_error, VitalFormatError)
 
@@ -84,6 +86,15 @@ def test_fields_are_attributes() -> None:
     assert PluginRenderError("6 samples of 7").reason == "6 samples of 7"
     census = CensusError("Filter 1 Cutoff", "no curve fits")
     assert (census.label, census.reason) == ("Filter 1 Cutoff", "no curve fits")
+    machine = MachineMismatchError("arm64", "x86_64")
+    assert (machine.measured, machine.running) == ("arm64", "x86_64")
+
+
+def test_a_reason_is_said_after_what_failed() -> None:
+    """The three errors that carry a reason alone share one shape: the failure, then the reason."""
+    assert str(MalformedPresetError("not JSON")) == "malformed preset: not JSON"
+    assert str(PluginStateError("no VST3 header")) == "plugin state: no VST3 header"
+    assert str(PluginRenderError("6 samples of 7")) == "plugin render: 6 samples of 7"
 
 
 @pytest.mark.parametrize("error", _ERRORS, ids=lambda error: type(error).__name__)

@@ -295,9 +295,14 @@ class MetadataChange(PatchbayModel, frozen=True):
 
 
 class OpaqueChange(PatchbayModel, frozen=True):
-    """An unread section that differs, by name and size only; None on the side that lacks it."""
+    """An unread section that differs, by name and size only; None on the side that lacks it.
+
+    `where` says which level holds it: `settings` for a section under `settings`, `preset` for the
+    top-level `tuning`, so a section under `settings` named `tuning` is told from it.
+    """
 
     name: _Key
+    where: Literal["settings", "preset"]
     old_size: int | None = Field(ge=0)
     new_size: int | None = Field(ge=0)
 

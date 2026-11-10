@@ -18,8 +18,9 @@ any other program's source:
 
 `PluginState` holds every field as read, so `wrap(unwrap(data)) == data` and
 `unwrap(wrap(state)) == state`. Bytes that are not this, layer by layer, are `PluginStateError`,
-chained from what refused them. The text is read only as far as finding where its object ends:
-reading the preset is `patchbay_vital.format`'s.
+chained from what refused them, a negative chunk size and a text that nests too deeply to read
+among them. The text is read only as far as finding where its object ends: reading the preset is
+`patchbay_vital.format`'s.
 """
 
 import struct
@@ -66,7 +67,11 @@ def _object_end(chunk: bytes) -> int:
     if not chunk.startswith(b"{"):
         msg = "the chunk does not start with a JSON object"
         raise ValueError(msg)
-    _, end = DECODER.raw_decode(chunk.decode("latin-1"))
+    try:
+        _, end = DECODER.raw_decode(chunk.decode("latin-1"))
+    except RecursionError as error:
+        msg = "the text nests too deeply to read"
+        raise ValueError(msg) from error
     chunk[:end].decode("utf-8")
     return int(end)
 
@@ -135,6 +140,9 @@ def _container(data: bytes) -> tuple[dict[str, object], bytes]:
         _read(_ENTRY, data, first + i * _ENTRY.size, "a chunk entry") for i in range(_CHUNKS)
     )
     _expect((component_id, controller_id), (_COMPONENT_ID, _CONTROLLER_ID), "the chunks")
+    if component_size < 0 or size < 0:
+        msg = f"a chunk's size is not negative, here {component_size} and {size}"
+        raise PluginStateError(msg)
     _expect(component_at, _PRESET_HEADER.size, "the component's offset")
     _expect(controller_at, component_at + component_size, "the controller's offset")
     _expect(list_at, controller_at + size, "the chunk list's offset")
@@ -183,7 +191,7 @@ def unwrap(data: bytes) -> PluginState:
     try:
         fields, component = _container(data)
         return PluginState.model_validate({**fields, **_component(component)})
-    except (struct.error, ValueError, RecursionError, PatchbayValidationError) as error:
+    except (struct.error, ValueError, PatchbayValidationError) as error:
         raise PluginStateError(str(error) or type(error).__name__) from error
 
 

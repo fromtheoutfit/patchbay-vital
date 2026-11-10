@@ -259,6 +259,65 @@ def test_a_value_outside_the_bounds_is_the_package_s_range_error() -> None:
     assert (normalized.value.minimum, normalized.value.maximum) == (0.0, 1.0)
 
 
+def test_a_record_holds_together_in_float32_so_a_libm_an_ulp_apart_still_reads_it() -> None:
+    """A bound a double ulp off the curve's value, as another libm's pow may give, validates.
+
+    The committed bounds are this machine's libm's; another's, an ulp apart, still reaches the
+    scale's end in float32, and the parameter's own bound is still taken by `to_preset`.
+    """
+    ulp = _CUTOFF.parameter.model_copy(update={"maximum": math.nextafter(76.0, 100.0)})
+    record = MappedParameter.model_validate(_changed(_CUTOFF, parameter=ulp.model_dump()))
+    assert record.to_preset(record.parameter.maximum) == 136.0  # noqa: PLR2004 - the scale's end
+    assert record.to_preset(76.0) == 136.0  # noqa: PLR2004 - this libm's own display of it
+
+
+_OVERSAMPLING = _record(
+    "oversampling",
+    "oversampling",
+    scale=NormalizedScale(kind="indexed", minimum=0.0, maximum=3.0),
+    curve=DisplayCurve(kind="exponential", multiply=1.0),
+    preset_default=1.0,
+    unit=Unit.none,
+    host_unit="x",
+)
+
+
+def test_a_value_between_an_indexed_scale_s_steps_goes_to_the_nearest_step() -> None:
+    """Oversampling shows 1, 2, 4 and 8; a display of 4.5 is held as 2, the plugin's step."""
+    assert _OVERSAMPLING.to_preset(4.5) == 2.0  # noqa: PLR2004 - log2(4.5) is 2.17, rounded
+    assert _OVERSAMPLING.scale.to_preset(_OVERSAMPLING.to_normalized(4.5)) == 2.0  # noqa: PLR2004
+    assert _POLYPHONY.to_preset(8.4) == 8.0  # noqa: PLR2004 - the nearest voice count
+
+
+def test_a_choice_or_a_boolean_takes_a_whole_index_and_nothing_else() -> None:
+    """Core's rule for them: a value that is no index is out of range, by display or normalized."""
+    choice = _record(
+        "filter_1_model",
+        "filter_1_model",
+        scale=NormalizedScale(kind="indexed", minimum=0.0, maximum=2.0),
+        curve=DisplayCurve(kind="linear", multiply=1.0),
+        preset_default=0.0,
+        unit=Unit.none,
+        kind="choice",
+        choices=("Analog", "Dirty", "Ladder"),
+    )
+    assert choice.to_preset(1.0) == 1.0
+    for record, value in ((choice, 1.5), (_SWITCH, 0.5)):
+        with pytest.raises(ParameterRangeError) as caught:
+            record.to_preset(value)
+        assert caught.value.given == value
+        with pytest.raises(ParameterRangeError):
+            record.to_normalized(value)
+
+
+def test_a_scale_s_span_is_computed_once() -> None:
+    """The float32 difference is cached on the scale after its first use."""
+    scale = NormalizedScale(kind="linear", minimum=-7.0, maximum=9.0)
+    assert "span" not in vars(scale)
+    assert scale.span == 16.0  # noqa: PLR2004 - 9 less -7
+    assert vars(scale)["span"] == 16.0  # noqa: PLR2004
+
+
 def test_a_preset_value_beyond_the_host_s_range_still_displays() -> None:
     """Presets hold values past the host's range (flanger_dry_wet 0.7072 against 0..0.5)."""
     assert _LEVEL.to_display(2.0) == 4.0  # noqa: PLR2004 - the quadratic's value, past its range
@@ -270,10 +329,15 @@ def _changed(record: MappedParameter, **fields: object) -> dict[str, object]:
 
 
 def test_a_record_whose_parameter_is_not_its_scales_is_refused() -> None:
-    """Bounds and default are what the scale and curve compute, or the record is wrong."""
+    """Bounds and default reach the scale's ends and the preset default, or the record is wrong."""
     wider = _CUTOFF.parameter.model_copy(update={"maximum": 77.0})
     with pytest.raises(PatchbayValidationError):
         MappedParameter.model_validate(_changed(_CUTOFF, parameter=wider.model_dump()))
+    step = _CUTOFF.parameter.model_copy(
+        update={"maximum": 76.0 + 2.0**-16}
+    )  # a float32 step at 136
+    with pytest.raises(PatchbayValidationError):
+        MappedParameter.model_validate(_changed(_CUTOFF, parameter=step.model_dump()))
     with pytest.raises(PatchbayValidationError):
         MappedParameter.model_validate(_changed(_CUTOFF, preset_default=61.0))
     with pytest.raises(PatchbayValidationError):
@@ -326,7 +390,11 @@ def test_a_choice_or_boolean_is_an_index_shown_as_it_is() -> None:
 
 def _map(*records: MappedParameter) -> ParameterMap:
     return ParameterMap(
-        instrument="Vital", vital_version="1.6.4", host="pedalboard 0.9.26", parameters=records
+        instrument="Vital",
+        vital_version="1.6.4",
+        host="pedalboard 0.9.26",
+        machine="arm64",
+        parameters=records,
     )
 
 
@@ -380,6 +448,7 @@ def test_the_committed_map_holds_every_hosted_parameter() -> None:
     """Every parameter Vital 1.6.4 exposes, the 448 per-slot ones among them, by its preset key."""
     committed = parameter_map()
     assert (committed.instrument, committed.vital_version) == ("Vital", "1.6.4")
+    assert (committed.host, committed.machine) == ("pedalboard 0.9.26", "arm64")
     assert len(committed.parameters) == _HOSTED
     assert sum(bool(SLOT_KEY.fullmatch(record.id)) for record in committed.parameters) == _SLOTS
     kinds = dict.fromkeys(_KINDS, 0)

@@ -2,28 +2,61 @@
 
 A path that gives no Vital is refused as the package, by name. The floating-point guard every call
 into the plugin goes through is found where the tests run, and gives the environment back however
-the block changed it. What the host does with a loaded Vital is
-`tests/integration/test_vital_plugin.py`'s.
+the block changed it; a fake plugin that changes the rounding mode on every call shows each public
+method gives it back. The same fake shows what pedalboard raises is the package's error, that a
+measurement restores the state however it ends, and that the map is refused on another machine.
+What the host does with a loaded Vital is `tests/integration/test_vital_plugin.py`'s.
 """
 
 import ctypes
 import ctypes.util
+import json
 import math
 import platform
 import types
+from collections.abc import Callable, Iterator
 from pathlib import Path
+from typing import ClassVar
 
+import numpy as np
+import pedalboard
 import pytest
+from numpy.typing import NDArray
+from patchbay import ParameterId, PatchbayValidationError
 
 from patchbay_vital import host
-from patchbay_vital.errors import PluginLoadError
+from patchbay_vital.errors import (
+    MachineMismatchError,
+    PluginLoadError,
+    PluginRenderError,
+    PluginStateError,
+)
 from patchbay_vital.host import DEFAULT_PATH, VitalHost, _c_library, _environment_kept
+from patchbay_vital.parameters import parameter_map
+from patchbay_vital.state import PluginState, unwrap, wrap
 
-_FE_UPWARD = {"x86_64": 0x800, "AMD64": 0x800, "arm64": 0x400000, "aarch64": 0x400000}
-"""`FE_UPWARD` from `<fenv.h>` by machine: x86's rounding-control bits, arm64's FPCR RMode bits.
+_FE_UPWARD = {"x86_64": 0x800, "arm64": 0x400000, "aarch64": 0x400000}
+"""`FE_UPWARD` from `<fenv.h>` by machine: x86's rounding-control bits, arm64's FPCR RMode bits."""
 
-The test shows each takes effect, Python's own addition rounding up under it.
-"""
+_UCRT_UPWARD = {"AMD64": 0x200}
+"""`FE_UPWARD` on Windows, where the UCRT's `<fenv.h>` defines it as `_RC_UP`."""
+
+
+def _upward_or_skip() -> tuple[ctypes.CDLL, int]:
+    """Return the guard's library and this machine's `FE_UPWARD`, or skip where it is not known."""
+    machine = platform.machine()
+    known = _UCRT_UPWARD if platform.system() == "Windows" else _FE_UPWARD
+    upward = known.get(machine)
+    if upward is None:
+        pytest.skip(f"no FE_UPWARD known for {platform.system()} on {machine!r}")
+    library = _c_library()
+    assert library is not None
+    return library, upward
+
+
+def _added(one: float, tiny: float) -> float:
+    """Add at run time, under whatever rounding the process has, where the compiler cannot fold."""
+    return one + tiny
 
 
 def test_the_default_is_vital_s_own_install_path() -> None:
@@ -98,9 +131,21 @@ def test_a_library_without_the_two_functions_is_passed_over(
     assert _c_library() is chosen
 
 
-def _added(one: float, tiny: float) -> float:
-    """Add at run time, under whatever rounding the process has, where the compiler cannot fold."""
-    return one + tiny
+def test_a_library_is_looked_up_only_once_the_one_before_it_is_passed_over(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """With both in the C library, the maths library, a subprocess on Linux, is never looked up."""
+    asked: list[str] = []
+
+    def find(name: str) -> str:
+        asked.append(name)
+        return f"lib{name}"
+
+    monkeypatch.setattr(ctypes.util, "find_library", find)
+    both: object = _BOTH
+    monkeypatch.setattr(ctypes, "CDLL", lambda _name: both)
+    assert _c_library() is both
+    assert asked == ["c"]
 
 
 def test_the_environment_comes_back_however_the_block_changed_it() -> None:
@@ -109,11 +154,7 @@ def test_the_environment_comes_back_however_the_block_changed_it() -> None:
     The library is the guard's own, so this saves and restores the real environment once, with no
     plugin to change it.
     """
-    upward = _FE_UPWARD.get(platform.machine())
-    if upward is None:
-        pytest.skip(f"no FE_UPWARD known for the machine {platform.machine()!r}")
-    library = _c_library()
-    assert library is not None
+    library, upward = _upward_or_skip()
     original = library.fegetround()
     one, tiny = 1.0, 2.0**-60
     try:
@@ -135,3 +176,258 @@ def test_without_the_two_functions_the_host_refuses_to_load(
         VitalHost(tmp_path)
     assert caught.value.path == str(tmp_path)
     assert "fegetenv and fesetenv" in caught.value.reason
+
+
+# A plugin as pedalboard hands it to the host, with one parameter, filter_1_cutoff, whose preset
+# key is its host id and whose preset value is 8 + 128 r (the committed map). Every call into it
+# turns upward rounding on, as Vital turns flush-to-zero on, so the guard has something to undo.
+_HOST_ID = "filter_1_cutoff"
+_START = 0.40625  # normalized, the plugin's default of 60 semitones
+_CONTAINERS: dict[str, object] = {  # Vital 1.6.4's, as tests/unit/test_state.py measured them
+    "class_id": b"56535456697461766974616C00000000",
+    "container_version": 1,
+    "wrapper_version": 1,
+    "bypass": 0,
+    "bank_version": 2,
+    "plugin_id": b"Vita",
+    "plugin_version": 0x00010604,
+    "programs": 0,
+    "reserved": bytes(128),
+    "trailer": bytes(17) + b"JUCEPrivateData",
+}
+
+
+def _preset_value(normalized: float) -> float:
+    return 8.0 + 128.0 * normalized
+
+
+class _FakeParameter:
+    """One of pedalboard's parameter wrappers, each access a call into the plugin."""
+
+    def __init__(self, plugin: "_FakePlugin") -> None:
+        self._plugin = plugin
+
+    @property
+    def name(self) -> str:
+        self._plugin.touch("name")
+        return "Filter 1 Cutoff"
+
+    @property
+    def raw_value(self) -> float:
+        self._plugin.touch("raw_value")
+        return self._plugin.value
+
+    @raw_value.setter
+    def raw_value(self, value: float) -> None:
+        self._plugin.touch("set_raw_value")
+        self._plugin.value = value
+
+    def get_text_for_raw_value(self, raw_value: float) -> str:
+        self._plugin.touch("text")
+        return f"{_preset_value(raw_value) - 60:.6g} semitones"
+
+
+class _FakePlugin:
+    """pedalboard's plugin as the host sees it, turning upward rounding on at every call."""
+
+    library: ClassVar[ctypes.CDLL]
+    upward: ClassVar[int]
+
+    def __init__(self, path: str) -> None:
+        self.path = path
+        self.value = _START
+        self.calls: list[str] = []
+        self.refusing: set[str] = set()
+        self.broken_at: float | None = None
+        self.short = False
+        self.touch("load")
+
+    def touch(self, what: str) -> None:
+        """Count a call, turn upward rounding on, and refuse where the test asked for it."""
+        self.calls.append(what)
+        assert self.library.fesetround(self.upward) == 0
+        assert _added(1.0, 2.0**-60) == math.nextafter(1.0, 2.0)
+        if what in self.refusing:
+            msg = f"the plugin refuses {what}"
+            raise RuntimeError(msg)
+
+    @property
+    def name(self) -> str:
+        self.touch("name")
+        return "Vital"
+
+    @property
+    def version(self) -> str:
+        self.touch("version")
+        return "1.6.4"
+
+    @property
+    def parameters(self) -> dict[str, _FakeParameter]:
+        self.touch("parameters")
+        return {_HOST_ID: _FakeParameter(self)}
+
+    @property
+    def preset_data(self) -> bytes:
+        self.touch("preset_data")
+        if self.value == self.broken_at:
+            return b"not a state"
+        text = json.dumps({"settings": {_HOST_ID: _preset_value(self.value)}}).encode("utf-8")
+        return wrap(PluginState.model_validate({**_CONTAINERS, "text": text}))
+
+    @preset_data.setter
+    def preset_data(self, data: bytes) -> None:
+        self.touch("set_preset_data")
+        settings = json.loads(unwrap(data).text)["settings"]
+        self.value = (settings[_HOST_ID] - 8.0) / 128.0
+
+    def process(
+        self, _midi: list[tuple[bytes, float]], duration: float, sample_rate: int
+    ) -> NDArray[np.float32]:
+        self.touch("process")
+        samples = 3 if self.short else int(duration * sample_rate)
+        return np.zeros((2, samples), dtype=np.float32)
+
+
+@pytest.fixture
+def fake(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> Iterator[Callable[[], tuple[VitalHost, _FakePlugin]]]:
+    """Return a maker of a host over the fake plugin, the environment restored after the test."""
+    library, upward = _upward_or_skip()
+    original = library.fegetround()
+    monkeypatch.setattr(_FakePlugin, "library", library, raising=False)
+    monkeypatch.setattr(_FakePlugin, "upward", upward, raising=False)
+    monkeypatch.setattr(platform, "machine", lambda: parameter_map().machine)
+    made: list[_FakePlugin] = []
+
+    def load(path: str) -> _FakePlugin:
+        plugin = _FakePlugin(path)
+        made.append(plugin)
+        return plugin
+
+    monkeypatch.setattr(pedalboard, "VST3Plugin", load)
+
+    def make() -> tuple[VitalHost, _FakePlugin]:
+        return VitalHost(tmp_path), made[-1]
+
+    yield make
+    library.fesetround(original)
+
+
+_Maker = Callable[[], tuple[VitalHost, _FakePlugin]]
+
+
+def test_every_public_method_gives_the_environment_back(fake: _Maker) -> None:
+    """Each call into the plugin turns upward rounding on; after each public method it is off."""
+    library = _FakePlugin.library
+    original = library.fegetround()
+    hosted, plugin = fake()
+    cutoff = ParameterId(_HOST_ID)
+    calls: list[Callable[[], object]] = [
+        lambda: hosted.name,
+        lambda: hosted.version,
+        lambda: hosted.get(cutoff),
+        lambda: hosted.set(cutoff, 0.5),
+        hosted.preset_data,
+        hosted.state,
+        lambda: hosted.load_state(hosted.state()),
+        lambda: hosted.render([], 10, 48000),
+        lambda: hosted.display_texts(_HOST_ID, [0.0, 1.0]),
+        lambda: hosted.measure([0.0, 1.0]),
+    ]
+    assert library.fegetround() == original  # the load itself
+    before = len(plugin.calls)
+    for call in calls:
+        call()
+        assert library.fegetround() == original, plugin.calls[-1]
+        assert _added(1.0, 2.0**-60) == 1.0
+        assert len(plugin.calls) > before  # the plugin was reached
+        before = len(plugin.calls)
+    # These two read the mapping held and reach the plugin only for a parameter the map lacks.
+    assert hosted.parameter_ids() == (cutoff,)
+    assert hosted.unmapped_parameters() == ()
+    assert len(plugin.calls) == before
+
+
+def test_what_pedalboard_raises_is_the_package_s_error(fake: _Maker) -> None:
+    """A value, a state or a render the plugin refuses is the host's error, chained from its."""
+    hosted, plugin = fake()
+    plugin.refusing = {"set_raw_value", "set_preset_data", "process"}
+    with pytest.raises(PluginStateError) as state:
+        hosted.set(ParameterId(_HOST_ID), 0.5)
+    assert isinstance(state.value.__cause__, RuntimeError)
+    with pytest.raises(PluginStateError) as loaded:
+        hosted.load_state(hosted.state())
+    assert isinstance(loaded.value.__cause__, RuntimeError)
+    with pytest.raises(PluginRenderError) as render:
+        hosted.render([], 10, 48000)
+    assert isinstance(render.value.__cause__, RuntimeError)
+    assert plugin.value == _START
+
+
+def test_a_measurement_restores_the_state_however_it_ends(fake: _Maker) -> None:
+    """A read that fails mid-grid leaves the plugin where the measurement found it."""
+    hosted, plugin = fake()
+    plugin.broken_at = 0.5
+    with pytest.raises(PluginStateError):
+        hosted.measure([0.0, 0.5, 1.0])
+    assert plugin.value == _START
+    assert plugin.calls[-1] == "set_preset_data"
+
+
+def test_a_measurement_is_the_values_the_state_held(fake: _Maker) -> None:
+    """Each grid point's preset value and text, the state restored after."""
+    hosted, plugin = fake()
+    (measured,) = hosted.measure([0.0, 0.5, 1.0])
+    assert (measured.host_id, measured.preset_key, measured.preset_default) == (
+        _HOST_ID,
+        _HOST_ID,
+        60.0,
+    )
+    assert measured.presets == (8.0, 72.0, 136.0)
+    assert measured.texts == ("-52 semitones", "12 semitones", "76 semitones")
+    assert plugin.value == _START
+
+
+def test_the_map_is_refused_on_another_machine_where_it_is_first_used(
+    fake: _Maker, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The host loads and measures on any machine; the map's scales are used only on its own."""
+    hosted, _ = fake()
+    monkeypatch.setattr(platform, "machine", lambda: "x86_64")
+    hosted.measure([0.0, 1.0])
+    with pytest.raises(MachineMismatchError) as caught:
+        hosted.get(ParameterId(_HOST_ID))
+    assert (caught.value.measured, caught.value.running) == ("arm64", "x86_64")
+    assert "measured on 'arm64'" in str(caught.value)
+
+
+def test_a_render_is_the_first_samples_asked_for_in_one_block(fake: _Maker) -> None:
+    """One sample more is asked for and the first `samples` returned, contiguous."""
+    hosted, plugin = fake()
+    audio = hosted.render([], 7, 44100)
+    assert audio.shape == (2, 7)
+    assert audio.flags["C_CONTIGUOUS"]
+    plugin.short = True
+    with pytest.raises(PluginRenderError, match="given"):
+        hosted.render([], 7, 44100)
+
+
+@pytest.mark.parametrize(("samples", "rate"), [(10.5, 48000), (100, 44100.7), (0, 48000)])
+def test_a_render_length_or_rate_that_is_not_a_positive_whole_number_is_refused(
+    fake: _Maker, samples: float, rate: float
+) -> None:
+    """A fraction of a sample, a fractional rate or no length is refused by name, unrendered."""
+    hosted, plugin = fake()
+    with pytest.raises(PluginRenderError, match="positive"):
+        hosted.render([], samples, rate)  # type: ignore[arg-type]
+    assert "process" not in plugin.calls
+
+
+def test_a_state_that_nests_too_deeply_is_refused_as_the_package(fake: _Maker) -> None:
+    """A text the decoder cannot read for its depth is the host's error, the plugin unchanged."""
+    hosted, plugin = fake()
+    with pytest.raises(PluginStateError) as caught:
+        hosted.load_state(b'{"a":' + b"[" * 200000)
+    assert isinstance(caught.value.__cause__, PatchbayValidationError)
+    assert "set_preset_data" not in plugin.calls

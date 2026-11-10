@@ -5,9 +5,11 @@ everything this package reports with one `except`, and everything any patchbay p
 with another. Under it, `VitalFormatError` is a preset's: a preset that cannot be read is
 `MalformedPresetError` or `UnknownSettingError`, never pydantic's or `json`'s error, and a file that
 cannot be reached is `PresetFileError`, never an `OSError`. `VitalHostError` is the hosted plugin's:
-a plugin that cannot be loaded is `PluginLoadError`, state bytes the codec cannot read are
-`PluginStateError`, and a render the plugin cannot give is `PluginRenderError`. `CensusError` is
-the generator's, naming a parameter it cannot fit. A model built directly refuses as patchbay's
+a plugin that cannot be loaded is `PluginLoadError`, state bytes the codec cannot read, or a state
+or a value the plugin refuses, are `PluginStateError`, a render the plugin cannot give is
+`PluginRenderError`, and a parameter map measured on another machine than the one the process runs
+on is `MachineMismatchError`; nothing pedalboard raises leaves the host. `CensusError` is the
+generator's, naming a parameter it cannot fit. A model built directly refuses as patchbay's
 `PatchbayValidationError`, as every model on `PatchbayModel` does.
 
 A failure core's protocol names derives from the root and from core's own error for it as well:
@@ -16,16 +18,34 @@ A failure core's protocol names derives from the root and from core's own error 
 them, and this package's one root still holds.
 
 Each error takes its fields as arguments, keeps them as attributes and passes them to `Exception`,
-so `args` and pickling carry them, and builds its message from them in `__str__`. The fields are
-plain values, so this module imports nothing else from the package and every other module can import
-it.
+so `args` and pickling carry them, and builds its message from them in `__str__`. The three that
+carry a reason alone share one private base, which prefixes the reason with what failed. The fields
+are plain values, so this module imports nothing else from the package and every other module can
+import it.
 """
+
+from typing import ClassVar
 
 from patchbay import ParameterNotFoundError, PatchbayError, ValueOutOfRangeError
 
 
 class VitalError(PatchbayError):
     """The root of every exception patchbay-vital raises."""
+
+
+class _ReasonError(VitalError):
+    """An error whose one field is the reason, said after what failed."""
+
+    _prefix: ClassVar[str]
+
+    def __init__(self, reason: str) -> None:
+        """Say why."""
+        super().__init__(reason)
+        self.reason = reason
+
+    def __str__(self) -> str:
+        """Say what failed, then the reason."""
+        return f"{self._prefix}: {self.reason}"
 
 
 class VitalFormatError(VitalError):
@@ -45,17 +65,10 @@ class UnknownSettingError(VitalFormatError):
         return f"unknown preset key {self.key!r}"
 
 
-class MalformedPresetError(VitalFormatError):
+class MalformedPresetError(VitalFormatError, _ReasonError):
     """A text is not a preset this package can read, or a value cannot be written as one."""
 
-    def __init__(self, reason: str) -> None:
-        """Say why."""
-        super().__init__(reason)
-        self.reason = reason
-
-    def __str__(self) -> str:
-        """Give the reason."""
-        return f"malformed preset: {self.reason}"
+    _prefix = "malformed preset"
 
 
 class PresetFileError(VitalFormatError):
@@ -73,7 +86,7 @@ class PresetFileError(VitalFormatError):
 
 
 class VitalHostError(VitalError):
-    """The hosted plugin could not be loaded, or its state not read or written."""
+    """The hosted plugin could not be loaded, its state not read or written, or its map not used."""
 
 
 class PluginLoadError(VitalHostError):
@@ -90,30 +103,34 @@ class PluginLoadError(VitalHostError):
         return f"no Vital loaded from {self.path!r}: {self.reason}"
 
 
-class PluginStateError(VitalHostError):
-    """Bytes are not a state the plugin's container holds as this package reads it."""
+class PluginStateError(VitalHostError, _ReasonError):
+    """Bytes are not a state this package reads, or the plugin refused a state or a value."""
 
-    def __init__(self, reason: str) -> None:
-        """Say why."""
-        super().__init__(reason)
-        self.reason = reason
-
-    def __str__(self) -> str:
-        """Give the reason."""
-        return f"plugin state: {self.reason}"
+    _prefix = "plugin state"
 
 
-class PluginRenderError(VitalHostError):
+class PluginRenderError(VitalHostError, _ReasonError):
     """The plugin did not render what it was asked to: a length it cannot give, or another."""
 
-    def __init__(self, reason: str) -> None:
-        """Say why."""
-        super().__init__(reason)
-        self.reason = reason
+    _prefix = "plugin render"
+
+
+class MachineMismatchError(VitalHostError):
+    """The parameter map was measured on another machine than this process runs on.
+
+    The map's scales are exact for the plugin's build they were measured through; another build may
+    round differently, so the map is not used and a new census on this machine is the remedy.
+    """
+
+    def __init__(self, measured: str, running: str) -> None:
+        """Name the machine the map was measured on and the one the process runs on."""
+        super().__init__(measured, running)
+        self.measured = measured
+        self.running = running
 
     def __str__(self) -> str:
-        """Give the reason."""
-        return f"plugin render: {self.reason}"
+        """Say both machines."""
+        return f"the map was measured on {self.measured!r}, this process runs on {self.running!r}"
 
 
 class UnknownParameterError(VitalError, ParameterNotFoundError):
