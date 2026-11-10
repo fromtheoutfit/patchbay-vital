@@ -99,17 +99,27 @@ type _ReadOnly[V] = Annotated[
 ]
 
 
+def decode_end(text: str, what: str) -> int:
+    """Return where the JSON value that starts `text` ends, as the package reads JSON.
+
+    ValueError, naming `what`, where the text nests too deeply for the decoder to read, so no
+    `RecursionError` leaves a validator; any other refusal is the decoder's own `ValueError`.
+    """
+    try:
+        _, end = DECODER.raw_decode(text)
+    except RecursionError as error:
+        msg = f"{what} nests too deeply to read"
+        raise ValueError(msg) from error
+    return end
+
+
 def _json_section(raw: bytes) -> bytes:
     """Return `raw` when it is exactly the text of one JSON array or object, else refuse it."""
     if raw[:1] not in {b"[", b"{"}:
         msg = "a section is the text of a JSON array or object"
         raise ValueError(msg)
     text = raw.decode("utf-8")
-    try:
-        _, end = DECODER.raw_decode(text)
-    except RecursionError as error:
-        msg = "a section nests too deeply to read"
-        raise ValueError(msg) from error
+    end = decode_end(text, "a section")
     if end != len(text):
         msg = "a section is one JSON array or object with nothing after it"
         raise ValueError(msg)

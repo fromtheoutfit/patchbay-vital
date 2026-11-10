@@ -30,7 +30,7 @@ from patchbay import PatchbayModel, PatchbayValidationError
 from pydantic import ConfigDict, Field, field_validator
 
 from patchbay_vital.errors import PluginStateError
-from patchbay_vital.preset import DECODER
+from patchbay_vital.preset import decode_end
 
 _PRESET_MAGIC, _LIST_MAGIC = b"VST3", b"List"
 _COMPONENT_ID, _CONTROLLER_ID = b"Comp", b"Cont"
@@ -67,13 +67,9 @@ def _object_end(chunk: bytes) -> int:
     if not chunk.startswith(b"{"):
         msg = "the chunk does not start with a JSON object"
         raise ValueError(msg)
-    try:
-        _, end = DECODER.raw_decode(chunk.decode("latin-1"))
-    except RecursionError as error:
-        msg = "the text nests too deeply to read"
-        raise ValueError(msg) from error
+    end = decode_end(chunk.decode("latin-1"), "the text")
     chunk[:end].decode("utf-8")
-    return int(end)
+    return end
 
 
 class PluginState(PatchbayModel, frozen=True):

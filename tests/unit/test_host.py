@@ -3,9 +3,11 @@
 A path that gives no Vital is refused as the package, by name. The floating-point guard every call
 into the plugin goes through is found where the tests run, and gives the environment back however
 the block changed it; a fake plugin that changes the rounding mode on every call shows each public
-method gives it back. The same fake shows what pedalboard raises is the package's error, that a
-measurement restores the state however it ends, and that the map is refused on another machine.
-What the host does with a loaded Vital is `tests/integration/test_vital_plugin.py`'s.
+method gives it back and that each call is entered with the process's own. The same fake shows
+what pedalboard raises, from any reach, is the package's error, that a measurement restores the
+state however it ends, that the containers are read once, and that the map is refused on another
+machine or Vital version. What the host does with a loaded Vital is
+`tests/integration/test_vital_plugin.py`'s.
 """
 
 import ctypes
@@ -26,7 +28,8 @@ from patchbay import ParameterId, PatchbayValidationError
 
 from patchbay_vital import host
 from patchbay_vital.errors import (
-    MachineMismatchError,
+    CensusError,
+    MapMismatchError,
     PluginLoadError,
     PluginRenderError,
     PluginStateError,
@@ -228,23 +231,31 @@ class _FakeParameter:
 
 
 class _FakePlugin:
-    """pedalboard's plugin as the host sees it, turning upward rounding on at every call."""
+    """pedalboard's plugin as the host sees it, turning upward rounding on at every call.
+
+    `entered` records the rounding mode each call found: the process's own when the host guards
+    each call, the one the last call left when one guard spans two.
+    """
 
     library: ClassVar[ctypes.CDLL]
     upward: ClassVar[int]
+    broken_at: float | None = None  # the value at which the state read is not a state
+    missing_at: float | None = None  # the value at which the state lacks the parameter's key
+    short = False  # whether a render gives three samples whatever was asked
+    version_text = "1.6.4"
 
     def __init__(self, path: str) -> None:
         self.path = path
         self.value = _START
         self.calls: list[str] = []
+        self.entered: list[int] = []
         self.refusing: set[str] = set()
-        self.broken_at: float | None = None
-        self.short = False
         self.touch("load")
 
     def touch(self, what: str) -> None:
         """Count a call, turn upward rounding on, and refuse where the test asked for it."""
         self.calls.append(what)
+        self.entered.append(self.library.fegetround())
         assert self.library.fesetround(self.upward) == 0
         assert _added(1.0, 2.0**-60) == math.nextafter(1.0, 2.0)
         if what in self.refusing:
@@ -259,7 +270,7 @@ class _FakePlugin:
     @property
     def version(self) -> str:
         self.touch("version")
-        return "1.6.4"
+        return self.version_text
 
     @property
     def parameters(self) -> dict[str, _FakeParameter]:
@@ -271,7 +282,8 @@ class _FakePlugin:
         self.touch("preset_data")
         if self.value == self.broken_at:
             return b"not a state"
-        text = json.dumps({"settings": {_HOST_ID: _preset_value(self.value)}}).encode("utf-8")
+        settings = {} if self.value == self.missing_at else {_HOST_ID: _preset_value(self.value)}
+        text = json.dumps({"settings": settings}).encode("utf-8")
         return wrap(PluginState.model_validate({**_CONTAINERS, "text": text}))
 
     @preset_data.setter
@@ -396,10 +408,14 @@ def test_the_map_is_refused_on_another_machine_where_it_is_first_used(
     hosted, _ = fake()
     monkeypatch.setattr(platform, "machine", lambda: "x86_64")
     hosted.measure([0.0, 1.0])
-    with pytest.raises(MachineMismatchError) as caught:
+    with pytest.raises(MapMismatchError) as caught:
         hosted.get(ParameterId(_HOST_ID))
-    assert (caught.value.measured, caught.value.running) == ("arm64", "x86_64")
-    assert "measured on 'arm64'" in str(caught.value)
+    assert (caught.value.what, caught.value.measured, caught.value.found) == (
+        "machine",
+        "arm64",
+        "x86_64",
+    )
+    assert str(caught.value) == "the map's machine is 'arm64', here 'x86_64'"
 
 
 def test_a_render_is_the_first_samples_asked_for_in_one_block(fake: _Maker) -> None:
@@ -413,11 +429,14 @@ def test_a_render_is_the_first_samples_asked_for_in_one_block(fake: _Maker) -> N
         hosted.render([], 7, 44100)
 
 
-@pytest.mark.parametrize(("samples", "rate"), [(10.5, 48000), (100, 44100.7), (0, 48000)])
+@pytest.mark.parametrize(
+    ("samples", "rate"),
+    [(10.5, 48000), (100, 44100.7), (0, 48000), (True, 48000), (100, True)],
+)
 def test_a_render_length_or_rate_that_is_not_a_positive_whole_number_is_refused(
     fake: _Maker, samples: float, rate: float
 ) -> None:
-    """A fraction of a sample, a fractional rate or no length is refused by name, unrendered."""
+    """A fraction of a sample, a fractional rate, no length or a bool is refused, unrendered."""
     hosted, plugin = fake()
     with pytest.raises(PluginRenderError, match="positive"):
         hosted.render([], samples, rate)  # type: ignore[arg-type]
@@ -431,3 +450,112 @@ def test_a_state_that_nests_too_deeply_is_refused_as_the_package(fake: _Maker) -
         hosted.load_state(b'{"a":' + b"[" * 200000)
     assert isinstance(caught.value.__cause__, PatchbayValidationError)
     assert "set_preset_data" not in plugin.calls
+
+
+@pytest.mark.parametrize(
+    ("refused", "reach"),
+    [
+        ("name", lambda hosted: hosted.name),
+        ("version", lambda hosted: hosted.version),
+        ("raw_value", lambda hosted: hosted.get(ParameterId(_HOST_ID))),
+        ("preset_data", lambda hosted: hosted.preset_data()),
+        ("preset_data", lambda hosted: hosted.state()),
+        ("text", lambda hosted: hosted.display_texts(_HOST_ID, [0.0])),
+        ("set_raw_value", lambda hosted: hosted.measure([0.0, 1.0])),
+    ],
+)
+def test_every_reach_the_plugin_refuses_is_the_package_s_error(
+    fake: _Maker, refused: str, reach: Callable[[VitalHost], object]
+) -> None:
+    """A reach the plugin refuses, from any method, is the host's error, chained from its."""
+    hosted, plugin = fake()
+    hosted.get(ParameterId(_HOST_ID))  # the map resolved, so the refusal is the reach's own
+    plugin.refusing = {refused}
+    with pytest.raises(PluginStateError) as caught:
+        reach(hosted)
+    assert isinstance(caught.value.__cause__, RuntimeError)
+    assert f"refuses {refused}" in caught.value.reason
+    assert plugin.value == _START
+
+
+def test_a_restore_the_plugin_refuses_is_the_package_s_error_after_the_read_s(fake: _Maker) -> None:
+    """A refused restore is the host's error, chained, the read's failure kept in its chain."""
+    hosted, plugin = fake()
+    plugin.refusing = {"set_preset_data"}
+    with pytest.raises(PluginStateError) as alone:
+        hosted.measure([0.0, 1.0])
+    assert isinstance(alone.value.__cause__, RuntimeError)
+    assert plugin.calls[-1] == "set_preset_data"
+    plugin.broken_at = 0.5
+    with pytest.raises(PluginStateError) as after:
+        hosted.measure([0.0, 0.5, 1.0])
+    assert isinstance(after.value.__cause__, RuntimeError)
+    assert isinstance(after.value.__cause__.__context__, PluginStateError)
+    assert "not a state" not in after.value.reason
+
+
+def test_every_call_into_the_plugin_is_entered_in_the_process_s_own_environment(
+    fake: _Maker,
+) -> None:
+    """Each call is its own guard: no call finds the rounding mode the one before it left.
+
+    One guard around a measurement's grid would hand the second call the first's upward mode, and
+    the JSON parsed between them would run under it.
+    """
+    library = _FakePlugin.library
+    original = library.fegetround()
+    hosted, plugin = fake()
+    hosted.measure([0.0, 0.5, 1.0])
+    hosted.load_state(hosted.state())
+    hosted.set(ParameterId(_HOST_ID), 0.25)
+    hosted.render([], 4, 48000)
+    assert len(plugin.calls) > len([0.0, 0.5, 1.0]) * 2
+    assert plugin.entered == [original] * len(plugin.calls)
+
+
+def test_a_parameter_that_changes_the_preset_s_keys_is_named(fake: _Maker) -> None:
+    """A grid row holding other keys than the state's is the census's error, by label, restored."""
+    hosted, plugin = fake()
+    plugin.missing_at = 0.5
+    with pytest.raises(CensusError) as caught:
+        hosted.measure([0.0, 0.5, 1.0])
+    assert caught.value.label == "Filter 1 Cutoff"
+    assert "changes the preset's keys" in caught.value.reason
+    assert _HOST_ID in caught.value.reason
+    assert plugin.value == _START
+
+
+def test_the_map_is_refused_on_another_vital_version_where_it_is_first_used(fake: _Maker) -> None:
+    """A map measured from another version is refused where first needed, after measuring."""
+    hosted, plugin = fake()
+    plugin.version_text = "1.7.0"
+    hosted.measure([0.0, 1.0])
+    with pytest.raises(MapMismatchError) as caught:
+        hosted.get(ParameterId(_HOST_ID))
+    assert (caught.value.what, caught.value.measured, caught.value.found) == (
+        "vital_version",
+        "1.6.4",
+        "1.7.0",
+    )
+
+
+def test_a_load_reuses_the_containers_read_when_the_plugin_loaded(fake: _Maker) -> None:
+    """A state load reads nothing from the plugin first: the containers were read once, at load."""
+    hosted, plugin = fake()
+    assert plugin.calls.count("preset_data") == 1
+    text = hosted.state()
+    before = plugin.calls.count("preset_data")
+    hosted.load_state(text)
+    assert plugin.calls.count("preset_data") == before
+    assert plugin.calls[-1] == "set_preset_data"
+
+
+def test_a_plugin_whose_state_the_codec_cannot_read_is_refused_at_load(
+    fake: _Maker, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A state that is not one this package reads is refused by path, where the plugin loads."""
+    monkeypatch.setattr(_FakePlugin, "broken_at", _START)
+    with pytest.raises(PluginLoadError) as caught:
+        fake()
+    assert "its state is not one this package reads" in caught.value.reason
+    assert isinstance(caught.value.__cause__, PluginStateError)

@@ -21,6 +21,8 @@ from patchbay_vital.parameters import (
     MappedParameter,
     NormalizedScale,
     ParameterMap,
+    _span,
+    displayed_ends,
     parameter_map,
 )
 from patchbay_vital.preset import SLOT_KEY
@@ -310,12 +312,39 @@ def test_a_choice_or_a_boolean_takes_a_whole_index_and_nothing_else() -> None:
             record.to_normalized(value)
 
 
-def test_a_scale_s_span_is_computed_once() -> None:
-    """The float32 difference is cached on the scale after its first use."""
+def test_a_scale_s_span_is_kept_by_its_bounds_so_a_copy_has_its_own() -> None:
+    """The float32 difference is computed once per pair of bounds, never stored on the scale."""
     scale = NormalizedScale(kind="linear", minimum=-7.0, maximum=9.0)
-    assert "span" not in vars(scale)
     assert scale.span == 16.0  # noqa: PLR2004 - 9 less -7
-    assert vars(scale)["span"] == 16.0  # noqa: PLR2004
+    assert "span" not in vars(scale)
+    assert scale.model_copy(update={"maximum": 1.0}).span == 8.0  # noqa: PLR2004 - 1 less -7
+    hits = _span.cache_info().hits
+    assert scale.span == 16.0  # noqa: PLR2004
+    assert _span.cache_info().hits == hits + 1
+
+
+@pytest.mark.parametrize(
+    ("minimum", "maximum", "normalized", "preset"),
+    [(0.0, 1.0, 0.5, 1.0), (0.0, 2.0, 0.25, 1.0), (-1.0, 0.0, 0.5, -1.0)],
+)
+def test_a_half_on_the_grid_goes_away_from_zero(
+    minimum: float, maximum: float, normalized: float, preset: float
+) -> None:
+    """The census's grid lands on a half, 0.5 on every boolean; the plugin takes it away from zero.
+
+    `round` would take 0.5 to 0 and fit no boolean; the committed map fits every grid point.
+    """
+    scale = NormalizedScale(kind="indexed", minimum=minimum, maximum=maximum)
+    assert scale.to_preset(normalized) == preset
+    assert round(0.5) == 0
+
+
+def test_a_record_s_displayed_ends_are_the_scale_s_through_its_curve_in_order() -> None:
+    """One place computes the ends `to_preset` bounds by, sorted whatever the curve's direction."""
+    falling = DisplayCurve(kind="linear", multiply=-2.0, offset=1.0)
+    scale = NormalizedScale(kind="linear", minimum=0.0, maximum=1.0)
+    assert displayed_ends(falling, scale) == (-1.0, 1.0)
+    assert displayed_ends(falling, scale) is displayed_ends(falling, scale)
 
 
 def test_a_preset_value_beyond_the_host_s_range_still_displays() -> None:

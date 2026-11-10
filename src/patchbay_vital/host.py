@@ -9,8 +9,9 @@ is copied from pedalboard (the host spec's shape.md, Decision 2).
 the preset text it holds; a render as an array. pedalboard knows a parameter by another key, the
 map's `host_id`, which only this module reads. The plugin is found at the path given, or at
 `DEFAULT_PATH`, Vital's macOS install, and nowhere else: there is no search. The map is used only
-on the machine it was measured on, its scales being that build's; another is `MachineMismatchError`
-where the map is first needed, so the census, which needs no map, still runs there.
+on the machine it was measured on and with the plugin it was measured from, its scales being that
+build's and its records that version's; another is `MapMismatchError`, naming what differs, where
+the map is first needed, so the census, which needs no map, still runs there.
 
 What the probes found the plugin does (`verification/probes.txt` and `verification/host-probes.txt`
 of the host spec): a state load upgrades an older preset, delays the embedded sample by 4 samples
@@ -18,27 +19,30 @@ and re-quantizes it, a 16-bit value moving by up to one step, and may snap a val
 grid; a render that starts from a reset opens with a decaying transient (peak 0.022, under 1e-5 by
 50 ms); a MIDI event's time is seconds from the render's start; and pedalboard returns
 `int(duration * rate)` samples, so a render asks for one sample more and returns the first
-`samples`. pedalboard's parameter objects: the Python wrappers its public mapping gives are held
-here, one mapping per host, and each fetches the plugin's native parameter afresh on every attribute
-access, which is what makes holding them safe; a native parameter object held across state loads
-crashed the process (`verification/probes-first-attempt.txt`), and none is ever held. What
-pedalboard raises is never let out: a state or a value it refuses is `PluginStateError`, a render
-`PluginRenderError`, each chained.
+`samples`. The containers around the state's text are read once, when the plugin loads, and every
+load reuses them: a load changes the text and no container, which the integration tests hold.
+pedalboard's parameter objects: the Python wrappers its public mapping gives are held here, one
+mapping per host, and each fetches the plugin's native parameter afresh on every attribute access,
+which is what makes holding them safe; a native parameter object held across state loads crashed
+the process (`verification/probes-first-attempt.txt`), and none is ever held. What pedalboard
+raises is never let out: a read, a state or a value it refuses is `PluginStateError`, a render
+`PluginRenderError`, each chained, from every method that reaches it.
 
 Loading Vital, and rendering it, turn on flush-to-zero for the whole process and leave it on, so
 every subnormal result after them, in Python, numpy or `patchbay_vital.float32`, becomes zero
 (`verification/float-environment.txt`). Every call into the plugin here saves the floating-point
 environment before and restores it after, with `fegetenv` and `fesetenv` from the first library
 that holds both: the C library on macOS, the maths library on glibc, whose C library has neither
-(the revision after PR 9's CI run). The plugin's own processing still runs under the environment it
-sets for itself. A unit test with a plugin that changes the rounding mode on every call holds that
-each public method gives the environment back.
+(the revision after PR 9's CI run). Each call is its own guard, so the Python work between two
+calls, the JSON a measurement parses among it, runs in the process's own environment and never in
+the one the plugin left. The plugin's own processing still runs under the environment it sets for
+itself. A unit test with a plugin that changes the rounding mode on every call holds that each
+public method gives the environment back and that each call is entered with it.
 """
 
 import ctypes
 import ctypes.util
 import importlib.metadata
-import json
 import math
 import operator
 import platform
@@ -54,14 +58,16 @@ from patchbay import ParameterId, PresetKey
 
 from patchbay_vital.errors import (
     CensusError,
-    MachineMismatchError,
+    MapMismatchError,
     ParameterRangeError,
     PluginLoadError,
     PluginRenderError,
     PluginStateError,
     UnknownParameterError,
+    VitalHostError,
 )
 from patchbay_vital.parameters import ParameterMap, parameter_map
+from patchbay_vital.preset import DECODER
 from patchbay_vital.state import unwrap, wrap
 
 DEFAULT_PATH = Path("/Library/Audio/Plug-Ins/VST3/Vital.vst3")
@@ -75,13 +81,16 @@ type Midi = Sequence[tuple[bytes, float]]
 
 _CHANNELS = 2
 
+_AXES = 2
+"""A render's dimensions: channels by samples."""
+
 _ENVIRONMENT_BYTES = 512
 """Room for any platform's `fenv_t`, which is saved and restored whole, its layout never read."""
 
 _ENVIRONMENT_FUNCTIONS = ("fegetenv", "fesetenv")
 
 _PEDALBOARD_ERRORS = (RuntimeError, ValueError, TypeError)
-"""What pedalboard raises when the plugin refuses a state, a value or a render."""
+"""What pedalboard raises when the plugin refuses a read, a state, a value or a render."""
 
 _LIBRARY_NAMES: tuple[Callable[[], str | None], ...] = (
     lambda: ctypes.util.find_library("c"),
@@ -125,6 +134,16 @@ def _environment_kept() -> Iterator[None]:
     finally:
         if _LIBC is not None:
             _LIBC.fesetenv(saved)
+
+
+@contextmanager
+def _reached(error: Callable[[str], VitalHostError]) -> Iterator[None]:
+    """Keep the environment around one call into the plugin; what it refuses is `error`, chained."""
+    with _environment_kept():
+        try:
+            yield
+        except _PEDALBOARD_ERRORS as raised:
+            raise error(str(raised) or type(raised).__name__) from raised
 
 
 class _HostedParameter(Protocol):
@@ -181,12 +200,47 @@ class HostMeasurement(NamedTuple):
 
 
 def _whole(value: int, what: str) -> int:
-    """Return `value` as the whole number it is; PluginRenderError when it is not one."""
+    """Return `value` as the whole number it is; PluginRenderError when it is not one.
+
+    A bool is not one: `operator.index` would take it as 0 or 1.
+    """
+    msg = f"a render's {what} is a positive whole number, given {value!r}"
+    if isinstance(value, bool):
+        raise PluginRenderError(msg)
     try:
         return operator.index(value)
     except TypeError as error:
-        msg = f"a render's {what} is a positive whole number, given {value!r}"
         raise PluginRenderError(msg) from error
+
+
+def _name_of(hosted: _HostedParameter) -> str:
+    """Return a hosted parameter's label, one guarded call."""
+    with _reached(PluginStateError):
+        return hosted.name
+
+
+def _text_for(hosted: _HostedParameter, point: float) -> str:
+    """Return what the plugin shows for a parameter at a normalized value, one guarded call."""
+    with _reached(PluginStateError):
+        return hosted.get_text_for_raw_value(point)
+
+
+def _moving_key(
+    label: str, defaults: Mapping[str, float], rows: Sequence[Mapping[str, float]]
+) -> str:
+    """Return the one preset key whose value differs across the rows; CensusError otherwise.
+
+    Each row holds the same keys as the defaults, or the parameter changed what the preset holds,
+    which no parameter does: a row with other keys is refused by name before any is indexed.
+    """
+    for row in rows:
+        if row.keys() != defaults.keys():
+            changed = sorted(row.keys() ^ defaults.keys())
+            raise CensusError(label, f"changes the preset's keys at a grid point: {changed[:4]}")
+    moving = [key for key in defaults if len({row[key] for row in rows}) > 1]
+    if len(moving) != 1:
+        raise CensusError(label, f"moves {len(moving)} preset values: {moving[:4]}")
+    return moving[0]
 
 
 class VitalHost:
@@ -195,8 +249,8 @@ class VitalHost:
     def __init__(self, path: Path | str | None = None) -> None:
         """Load the plugin at `path`, or at `DEFAULT_PATH` when none is given.
 
-        PluginLoadError when there is nothing at the path, the host cannot load what is there, or
-        what it loads is not Vital.
+        PluginLoadError when there is nothing at the path, the host cannot load what is there, what
+        it loads is not Vital, or the state it loads with is not one this package reads.
         """
         where = Path(DEFAULT_PATH if path is None else path)
         if not where.exists():
@@ -207,26 +261,37 @@ class VitalHost:
         try:
             with _environment_kept():
                 plugin = cast("_HostedPlugin", pedalboard.VST3Plugin(str(where)))
+            with _environment_kept():
                 hosted = plugin.parameters
+            with _environment_kept():
                 name = plugin.name
-        except (ImportError, RuntimeError, ValueError, OSError) as error:
+            with _environment_kept():
+                data = plugin.preset_data
+        except (ImportError, OSError, *_PEDALBOARD_ERRORS) as error:
             raise PluginLoadError(str(where), str(error) or type(error).__name__) from error
         if name != INSTRUMENT:
             raise PluginLoadError(str(where), f"the plugin there is {name!r}")
+        try:
+            containers = unwrap(data)
+        except PluginStateError as error:
+            msg = f"its state is not one this package reads: {error.reason}"
+            raise PluginLoadError(str(where), msg) from error
         self._plugin = plugin
         self._hosted = hosted
+        self._containers = containers
         self._map: ParameterMap | None = None
+        self._by_host: dict[str, ParameterId] = {}
 
     @property
     def name(self) -> str:
         """The plugin's name, as it reports it."""
-        with _environment_kept():
+        with _reached(PluginStateError):
             return self._plugin.name
 
     @property
     def version(self) -> str:
         """The plugin's version, as it reports it."""
-        with _environment_kept():
+        with _reached(PluginStateError):
             return self._plugin.version
 
     @property
@@ -235,11 +300,22 @@ class VitalHost:
         return f"pedalboard {importlib.metadata.version('pedalboard')}"
 
     def _parameter_map(self) -> ParameterMap:
-        """Return the committed map; MachineMismatchError where it was measured elsewhere."""
+        """Return the committed map, and build the host-id lookup, on first use.
+
+        MapMismatchError where the map was measured on another machine, from another instrument or
+        from another version of it, naming the first that differs.
+        """
         if self._map is None:
             found = parameter_map()
-            if found.machine != platform.machine():
-                raise MachineMismatchError(found.machine, platform.machine())
+            provenance = (
+                ("machine", found.machine, platform.machine()),
+                ("instrument", found.instrument, self.name),
+                ("vital_version", found.vital_version, self.version),
+            )
+            for what, measured, here in provenance:
+                if measured != here:
+                    raise MapMismatchError(what, measured, here)
+            self._by_host = {record.host_id: record.id for record in found.parameters}
             self._map = found
         return self._map
 
@@ -256,19 +332,20 @@ class VitalHost:
 
         Read from the mapping held, its keys Python's: the plugin is not called.
         """
-        by_host = {record.host_id: record.id for record in self._parameter_map().parameters}
-        return tuple(by_host[host_id] for host_id in self._hosted if host_id in by_host)
+        self._parameter_map()
+        return tuple(self._by_host[key] for key in self._hosted if key in self._by_host)
 
     def unmapped_parameters(self) -> tuple[str, ...]:
         """Return the labels of hosted parameters the map has no record of, in the host's order."""
-        mapped = {record.host_id for record in self._parameter_map().parameters}
-        with _environment_kept():
-            return tuple(hosted.name for key, hosted in self._hosted.items() if key not in mapped)
+        self._parameter_map()
+        return tuple(
+            _name_of(hosted) for key, hosted in self._hosted.items() if key not in self._by_host
+        )
 
     def get(self, parameter_id: ParameterId) -> float:
         """Return a parameter's normalized value; UnknownParameterError for an id not hosted."""
         hosted = self._hosted_parameter(parameter_id)
-        with _environment_kept():
+        with _reached(PluginStateError):
             return float(hosted.raw_value)
 
     def set(self, parameter_id: ParameterId, normalized: float) -> None:
@@ -280,15 +357,12 @@ class VitalHost:
         hosted = self._hosted_parameter(parameter_id)
         if not (math.isfinite(normalized) and 0.0 <= normalized <= 1.0):
             raise ParameterRangeError(parameter_id, 0.0, 1.0, normalized)
-        with _environment_kept():
-            try:
-                hosted.raw_value = normalized
-            except _PEDALBOARD_ERRORS as error:
-                raise PluginStateError(str(error) or type(error).__name__) from error
+        with _reached(PluginStateError):
+            hosted.raw_value = normalized
 
     def preset_data(self) -> bytes:
         """Return the plugin's state as the VST3 preset bytes it gives the host, every container."""
-        with _environment_kept():
+        with _reached(PluginStateError):
             return self._plugin.preset_data
 
     def state(self) -> bytes:
@@ -296,38 +370,31 @@ class VitalHost:
         return unwrap(self.preset_data()).text
 
     def load_state(self, text: bytes) -> None:
-        """Load a preset's text into the plugin, every container around it the plugin's own.
+        """Load a preset's text into the plugin, inside the containers the plugin loaded with.
 
         The text is a `.vital` file's or `state`'s: one JSON object, and the one newline a file may
         end in, which is not passed on. PluginStateError when it is anything else, which the plugin
         could not read, or when the plugin refuses it, chained; the plugin is then unchanged.
         """
-        current = unwrap(self.preset_data())
-        loaded = wrap(current.with_text(text.removesuffix(b"\n")))
-        with _environment_kept():
-            try:
-                self._plugin.preset_data = loaded
-            except _PEDALBOARD_ERRORS as error:
-                raise PluginStateError(str(error) or type(error).__name__) from error
+        loaded = wrap(self._containers.with_text(text.removesuffix(b"\n")))
+        with _reached(PluginStateError):
+            self._plugin.preset_data = loaded
 
     def render(self, midi: Midi, samples: int, sample_rate: int) -> NDArray[np.float32]:
         """Render `samples` samples of the plugin playing `midi`, as `(2, samples)` float32.
 
         The plugin is reset first. One sample more is asked for, pedalboard truncating a duration
         to whole samples, and the first `samples` are returned. PluginRenderError when the length
-        or the rate is not a positive whole number, when the plugin refuses the render, chained, or
-        when the host gives fewer samples or another shape.
+        or the rate is not a positive whole number, a bool included, when the plugin refuses the
+        render, chained, or when the host gives fewer samples or another shape.
         """
         samples, sample_rate = _whole(samples, "length"), _whole(sample_rate, "rate")
         if samples < 1 or sample_rate < 1:
             msg = f"a render is a positive length at a positive rate: {samples} at {sample_rate}"
             raise PluginRenderError(msg)
-        with _environment_kept():
-            try:
-                audio = self._plugin.process(list(midi), (samples + 1) / sample_rate, sample_rate)
-            except _PEDALBOARD_ERRORS as error:
-                raise PluginRenderError(str(error) or type(error).__name__) from error
-        if audio.ndim != _CHANNELS or audio.shape[0] != _CHANNELS or audio.shape[1] < samples:
+        with _reached(PluginRenderError):
+            audio = self._plugin.process(list(midi), (samples + 1) / sample_rate, sample_rate)
+        if audio.ndim != _AXES or audio.shape[0] != _CHANNELS or audio.shape[1] < samples:
             msg = f"asked for {samples} samples in {_CHANNELS} channels, given {audio.shape}"
             raise PluginRenderError(msg)
         return np.ascontiguousarray(audio[:, :samples])
@@ -335,47 +402,47 @@ class VitalHost:
     def display_texts(self, host_id: str, points: Sequence[float]) -> tuple[str, ...]:
         """Return what the plugin shows for a parameter at each normalized value, for the census."""
         hosted = self._hosted[host_id]
-        with _environment_kept():
-            return tuple(hosted.get_text_for_raw_value(point) for point in points)
+        return tuple(_text_for(hosted, point) for point in points)
 
     def measure(self, grid: Sequence[float]) -> tuple[HostMeasurement, ...]:
         """Measure every hosted parameter at each normalized value of `grid`, for the census.
 
         Each parameter is set to each value and the state read: the one preset value that moves
         is the parameter's, by its key. The plugin's state is restored after each, however the
-        reads end. CensusError names a parameter that moves no preset value, or more than one.
+        reads end, and a restore the plugin refuses is PluginStateError, the read's failure kept
+        in its context chain. Each call into the plugin is its own guard, so the text is parsed
+        between them in the process's own environment. CensusError names a parameter that moves
+        no preset value, or more than one, or changes which keys the preset holds.
         """
         start = self.preset_data()
         defaults = _floats(unwrap(start).text)
         measured = []
-        with _environment_kept():
-            for host_id, hosted in self._hosted.items():
-                label = hosted.name
-                rows = []
-                try:
-                    for point in grid:
+        for host_id, hosted in self._hosted.items():
+            label = _name_of(hosted)
+            rows: list[dict[str, float]] = []
+            try:
+                for point in grid:
+                    with _reached(PluginStateError):
                         hosted.raw_value = point
-                        rows.append(_floats(self.state()))
-                finally:
+                    rows.append(_floats(self.state()))
+            finally:
+                with _reached(PluginStateError):
                     self._plugin.preset_data = start
-                moving = [key for key in defaults if len({row[key] for row in rows}) > 1]
-                if len(moving) != 1:
-                    raise CensusError(label, f"moves {len(moving)} preset values: {moving[:4]}")
-                (key,) = moving
-                measured.append(
-                    HostMeasurement(
-                        host_id=host_id,
-                        label=label,
-                        preset_key=PresetKey(key),
-                        preset_default=defaults[key],
-                        presets=tuple(row[key] for row in rows),
-                        texts=self.display_texts(host_id, grid),
-                    )
+            key = _moving_key(label, defaults, rows)
+            measured.append(
+                HostMeasurement(
+                    host_id=host_id,
+                    label=label,
+                    preset_key=PresetKey(key),
+                    preset_default=defaults[key],
+                    presets=tuple(row[key] for row in rows),
+                    texts=self.display_texts(host_id, grid),
                 )
+            )
         return tuple(measured)
 
 
 def _floats(text: bytes) -> dict[str, float]:
-    """Return the float settings of a preset's text, by key."""
-    settings = json.loads(text)["settings"]
+    """Return the float settings of a preset's text, by key, read as the package reads JSON."""
+    settings = DECODER.decode(text.decode("utf-8"))["settings"]
     return {key: value for key, value in settings.items() if isinstance(value, float)}

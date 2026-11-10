@@ -1,0 +1,11 @@
+# This revision's unit tests against src/ as reviewed at 0fc8152 (git archive of src/ swapped in, the working tree's src/ put back after and diffed clean), 2026-11-10.
+# Five modules import names new in this revision and so do not collect against the old code: tests/unit/test_errors.py and test_host.py (MapMismatchError, findings 1, 2, 3, 7, 8, 9, 13, 14), test_files.py (replace_files, findings 5 and 11), test_parameters.py (_span and displayed_ends, findings 6, 10, 16, 17) and test_preset.py (decode_end, finding 15). Their findings' tests run only on the new code, where every one passes (verification/gate-run.txt). Each failure below is a finding's test, named: finding 16 (fit_scale's one scale), finding 5 (the second rename put back) and finding 7 (the error the root exports).
+# uv run --locked pytest -c pyproject.toml -p no:doctest tests/unit -q --continue-on-collection-errors
+FAILED tests/unit/test_census.py::test_ends_that_make_no_scale_are_named
+FAILED tests/unit/test_census.py::test_a_rename_failing_after_the_key_list_s_puts_the_key_list_back
+FAILED tests/unit/test_package.py::test_the_package_re_exports_what_a_consumer_uses
+ERROR tests/unit/test_errors.py
+ERROR tests/unit/test_files.py
+ERROR tests/unit/test_host.py
+ERROR tests/unit/test_parameters.py
+ERROR tests/unit/test_preset.py

@@ -59,10 +59,18 @@ def _is_float32(value: float) -> bool:
 def _round_half_away(value: float) -> float:
     """Round to a whole number, a half away from zero, as `std::round` does.
 
-    Vital rounds an indexed value so (`value_bridge.h` 116 at 636ca0e, cited for corroboration);
-    the census's grid never lands on a half, and a value set from an index never does.
+    The census's grid does land on a half: 0.5 on every boolean's scale and 0.25 on a scale of two
+    steps compute to exactly 0.5, and the plugin holds 1 there, which the committed map's exact fit
+    of every grid point shows. `round`, a half to even, would give 0 and fit no boolean. Vital
+    rounds so (`value_bridge.h` 116 at 636ca0e, cited for corroboration).
     """
     return math.copysign(math.floor(abs(value) + 0.5), value)
+
+
+@functools.lru_cache(maxsize=4096)
+def _span(minimum: float, maximum: float) -> float:
+    """Return the float32 difference of two bounds, computed once per pair of bounds."""
+    return round_to_float32(Fraction(maximum) - Fraction(minimum))
 
 
 class NormalizedScale(PatchbayModel, frozen=True):
@@ -77,10 +85,14 @@ class NormalizedScale(PatchbayModel, frozen=True):
     minimum: float
     maximum: float
 
-    @functools.cached_property
+    @property
     def span(self) -> float:
-        """The float32 difference of the bounds, as the plugin computes it, computed once."""
-        return round_to_float32(Fraction(self.maximum) - Fraction(self.minimum))
+        """The float32 difference of the bounds, as the plugin computes it.
+
+        Computed once per pair of bounds and kept by them, never on the model, so a copy with
+        another bound has its own span.
+        """
+        return _span(self.minimum, self.maximum)
 
     def to_preset(self, normalized: float) -> float:
         """Return the preset value the plugin holds for a normalized value."""
@@ -164,6 +176,25 @@ class DisplayCurve(PatchbayModel, frozen=True):
         return multiply
 
 
+@functools.lru_cache(maxsize=4096)
+def _displayed_ends(
+    kind: CurveKind, multiply: float, offset: float, minimum: float, maximum: float
+) -> tuple[float, float]:
+    curve = DisplayCurve(kind=kind, multiply=multiply, offset=offset)
+    low, high = sorted((curve.to_display(minimum), curve.to_display(maximum)))
+    return low, high
+
+
+def displayed_ends(curve: DisplayCurve, scale: NormalizedScale) -> tuple[float, float]:
+    """Return the scale's ends as the curve displays them through this platform's libm, in order.
+
+    The one place a record's displayed ends are computed: `MappedParameter.to_preset` bounds by
+    them and the census writes a parameter's bounds from them. Computed once per curve and scale,
+    kept by their values.
+    """
+    return _displayed_ends(curve.kind, curve.multiply, curve.offset, scale.minimum, scale.maximum)
+
+
 class MappedParameter(PatchbayModel, frozen=True):
     """One hosted parameter: core's `Parameter` by its preset key, and how to reach its value.
 
@@ -207,7 +238,7 @@ class MappedParameter(PatchbayModel, frozen=True):
         on and a double ulp apart on another.
         """
         parameter, scale = self.parameter, self.scale
-        low, high = sorted((self.to_display(scale.minimum), self.to_display(scale.maximum)))
+        low, high = displayed_ends(self.curve, scale)
         low, high = min(low, parameter.minimum), max(high, parameter.maximum)
         whole = parameter.kind == "continuous" or display.is_integer()
         if not (low <= display <= high and whole):

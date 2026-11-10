@@ -5,10 +5,11 @@ everything this package reports with one `except`, and everything any patchbay p
 with another. Under it, `VitalFormatError` is a preset's: a preset that cannot be read is
 `MalformedPresetError` or `UnknownSettingError`, never pydantic's or `json`'s error, and a file that
 cannot be reached is `PresetFileError`, never an `OSError`. `VitalHostError` is the hosted plugin's:
-a plugin that cannot be loaded is `PluginLoadError`, state bytes the codec cannot read, or a state
-or a value the plugin refuses, are `PluginStateError`, a render the plugin cannot give is
-`PluginRenderError`, and a parameter map measured on another machine than the one the process runs
-on is `MachineMismatchError`; nothing pedalboard raises leaves the host. `CensusError` is the
+a plugin that cannot be loaded is `PluginLoadError`, state bytes the codec cannot read, or a read,
+a state or a value the plugin refuses, are `PluginStateError`, a render the plugin cannot give is
+`PluginRenderError`, and a parameter map measured on another machine, or from another plugin,
+than this one is `MapMismatchError`, naming what differs; nothing pedalboard raises leaves the
+host. `CensusError` is the
 generator's, naming a parameter it cannot fit. A model built directly refuses as patchbay's
 `PatchbayValidationError`, as every model on `PatchbayModel` does.
 
@@ -104,7 +105,7 @@ class PluginLoadError(VitalHostError):
 
 
 class PluginStateError(VitalHostError, _ReasonError):
-    """Bytes are not a state this package reads, or the plugin refused a state or a value."""
+    """Bytes are not a state this package reads, or the plugin refused a read or a write."""
 
     _prefix = "plugin state"
 
@@ -115,22 +116,25 @@ class PluginRenderError(VitalHostError, _ReasonError):
     _prefix = "plugin render"
 
 
-class MachineMismatchError(VitalHostError):
-    """The parameter map was measured on another machine than this process runs on.
+class MapMismatchError(VitalHostError):
+    """The parameter map was measured on another machine, or from another plugin, than this one.
 
-    The map's scales are exact for the plugin's build they were measured through; another build may
-    round differently, so the map is not used and a new census on this machine is the remedy.
+    The map's scales are exact for the build and the version of the plugin they were measured
+    through; another build may round differently and another version hold other parameters, so the
+    map is not used and a new census here is the remedy. `what` names the field that differs,
+    `machine`, `instrument` or `vital_version`; `measured` is the map's value and `found` this one.
     """
 
-    def __init__(self, measured: str, running: str) -> None:
-        """Name the machine the map was measured on and the one the process runs on."""
-        super().__init__(measured, running)
+    def __init__(self, what: str, measured: str, found: str) -> None:
+        """Name the field that differs, the map's value for it and the one found here."""
+        super().__init__(what, measured, found)
+        self.what = what
         self.measured = measured
-        self.running = running
+        self.found = found
 
     def __str__(self) -> str:
-        """Say both machines."""
-        return f"the map was measured on {self.measured!r}, this process runs on {self.running!r}"
+        """Say which field, and both values."""
+        return f"the map's {self.what} is {self.measured!r}, here {self.found!r}"
 
 
 class UnknownParameterError(VitalError, ParameterNotFoundError):

@@ -4,8 +4,9 @@ What a `.vital` file holds and how this package holds it. A rule here is about V
 any adapter's models do is `base/python/models.md`'s. Written from `src/patchbay_vital/preset.py` and
 `format.py`; the evidence is the `verification/discovery.md` of the spec of issue #2
 (`agent-os/specs/2026-11-09-1509-the-vital-format/`), measured over 75 installed presets and two
-saves from Vital 1.6.4, and for the plugin state's `tuning` and the derived key list the
-`verification/` of the spec of issue #7 (`agent-os/specs/2026-11-09-1907-the-host-and-the-parameter-map/`).
+saves from Vital 1.6.4, for the plugin state's `tuning` and the derived key list the
+`verification/` of the spec of issue #7 (`agent-os/specs/2026-11-09-1907-the-host-and-the-parameter-map/`),
+and for the files module the revisions after PR 9's two reviews, the second at `agent-os/specs/2026-11-10-1307-revision-after-pr-9-second-review/`.
 
 ## Where each part lives
 
@@ -72,7 +73,12 @@ saves from Vital 1.6.4, and for the plugin state's `tuning` and the derived key 
 - **A section this package does not interpret is held as the text the file held, as bytes**, in
   `VitalPreset.opaque`, the form `patchbay.Patch.opaque` takes, and `line_mapping` the same way. They
   are 98% of a preset's bytes, base64 inside JSON, up to 10 MB. Keeping the text is what makes them
-  byte-for-byte; re-encoding parsed JSON is not. Verified against `format.py` and
+  byte-for-byte; re-encoding parsed JSON is not. A section is checked to be one JSON value and
+  nothing after it; one that nests too deeply to read is refused through `preset.decode_end`,
+  the one place the decoder's `RecursionError` becomes `ValueError`, which the plugin state's
+  codec uses too. Verified against `format.py`, `preset.py` (`_json_section`, `decode_end`),
+  `tests/unit/test_preset.py` (`test_a_section_that_nests_too_deeply_is_refused_as_the_package`,
+  `test_the_decoder_s_end_names_what_nests_too_deeply`) and
   `tests/integration/test_factory_round_trip.py`.
 - **The file writes keys sorted at every depth, no whitespace, UTF-8 raw**, and three of Vital's own
   presets end in a newline, which `trailing_newline` keeps. `dumps(loads(text)) == text` for a file
@@ -86,9 +92,17 @@ saves from Vital 1.6.4, and for the plugin state's `tuning` and the derived key 
 - **`dump` replaces a file whole or not at all**, through a temporary beside it, keeping its
   permissions and writing through a symlink, because a preset can be a person's only copy. The
   replacing is `files.replace_file`, a module of its own because the census writes its two outputs
-  through it too, one concern per module (`base/python/layout.md`). Verified against `files.py`,
-  `format.py` (`dump`), `tests/unit/test_files.py`, `test_a_failed_write_leaves_the_file_as_it_was`,
-  `test_writing_over_a_file_keeps_its_permissions` and `test_writing_through_a_symlink_keeps_the_link`.
+  through it too, one concern per module (`base/python/layout.md`): `replace_files` stages every
+  file's temporary before renaming any, flushes the directory after each rename so the
+  replacement survives a crash, and puts an earlier file back from the bytes it held when a later
+  rename fails, so several files change together or not at all. Verified against `files.py`,
+  `format.py` (`dump`), `tests/unit/test_files.py`
+  (`test_a_failed_write_leaves_the_file_as_it_was_and_no_temporary`,
+  `test_writing_over_a_file_keeps_its_permissions`, `test_writing_through_a_symlink_keeps_the_link`,
+  `test_several_files_are_staged_before_any_is_renamed`,
+  `test_a_rename_failing_after_an_earlier_one_puts_the_earlier_file_back`,
+  `test_a_file_that_did_not_exist_is_removed_again_when_a_later_rename_fails`,
+  `test_the_directory_is_synced_after_the_rename`).
 - **Two presets are the same when they write the same bytes**, so `diff` tells `0.0` from `-0.0`,
   which compare equal. Verified against `format.py` (`_same`) and
   `test_a_diff_is_empty_exactly_when_the_presets_write_the_same`.

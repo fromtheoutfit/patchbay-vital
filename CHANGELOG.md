@@ -14,6 +14,25 @@ writes the entry, in that commit
 
 ### Changed
 
+- Revision after the second review of PR 9,
+  `agent-os/specs/2026-11-10-1307-revision-after-pr-9-second-review/`: 17 findings at `0fc8152`,
+  16 addressed and one, the state's JSON decoded more than once, declined again with its reason.
+  The version stays 0.0.1.
+  - `MachineMismatchError` is `MapMismatchError`, with `what`, `measured` and `found`: the host
+    refuses the map on another machine, instrument or Vital version, naming the first that
+    differs, where the map is first used; the package root exports it.
+  - Every reach into the plugin is its own guarded call, nothing pedalboard raises leaving any of
+    them, a refused restore in `measure` included; the Python work between calls runs in the
+    process's own environment. The containers around the state are read once, at load, and every
+    `load_state` reuses them; a render refuses a bool; a grid row with other keys is `CensusError`.
+  - `NormalizedScale.span` and a record's displayed ends are computed by their values, so a copy
+    with another bound is never stale; `_round_half_away`'s docstring says the grid lands on a
+    half; `fit_scale` builds one scale; `preset.decode_end` is the one place deep nesting is
+    turned into `ValueError`.
+  - `files.replace_files` stages every file, then renames each over, putting an earlier one back
+    when a later rename fails, and syncs the directory; the census writes both outputs through it.
+  - The plugin's integration tests skip by name where the map was measured on another machine,
+    and hold that a load changes no container.
 - Revision after the review of PR 9, `agent-os/specs/2026-11-10-1027-revision-after-pr-9-review/`:
   24 findings at `eb95567`, 23 addressed and one, the state's JSON decoded more than once, declined
   with its reason. The version stays 0.0.1.

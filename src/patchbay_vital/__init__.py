@@ -22,6 +22,7 @@ import importlib.metadata as _metadata
 from patchbay_vital.errors import (
     CensusError,
     MalformedPresetError,
+    MapMismatchError,
     ParameterRangeError,
     PluginLoadError,
     PluginRenderError,
@@ -60,6 +61,7 @@ __all__ = [
     "CensusError",
     "DisplayCurve",
     "MalformedPresetError",
+    "MapMismatchError",
     "MappedParameter",
     "MetadataChange",
     "Modulation",

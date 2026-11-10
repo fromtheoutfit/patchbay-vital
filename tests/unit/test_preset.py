@@ -21,6 +21,7 @@ from patchbay_vital.preset import (
     PresetDiff,
     VitalPreset,
     VitalSettings,
+    decode_end,
 )
 
 _KNOWN_COUNT = 456
@@ -166,6 +167,14 @@ def test_a_section_that_nests_too_deeply_is_refused_as_the_package() -> None:
     """A RecursionError from json is not one a caller of this package should meet."""
     with pytest.raises(PatchbayValidationError):
         make_preset(opaque={"wavetables": b"[" * 200_000})
+
+
+def test_the_decoder_s_end_names_what_nests_too_deeply() -> None:
+    """One function turns the decoder's RecursionError into a ValueError naming the text's part."""
+    assert decode_end('{"a":1} and more', "a section") == 7  # noqa: PLR2004 - the object's end
+    with pytest.raises(ValueError, match="the text nests too deeply to read") as caught:
+        decode_end("[" * 200_000, "the text")
+    assert isinstance(caught.value.__cause__, RecursionError)
 
 
 @pytest.mark.parametrize("raw", [b"[]", b"1.0", b"", b"{", b"{} "], ids=repr)

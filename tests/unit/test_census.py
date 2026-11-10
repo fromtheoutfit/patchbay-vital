@@ -66,6 +66,18 @@ def test_an_indexed_scale_is_found_exactly() -> None:
     assert fit_scale(_measurement("Polyphony", indexed, str)) == indexed
 
 
+def test_ends_that_make_no_scale_are_named() -> None:
+    """Ends in the wrong order make no scale of either kind: the parameter is named, chained."""
+    backwards = _measurement("Backwards", _LINEAR, str)._replace(
+        presets=tuple(reversed(_measurement("Backwards", _LINEAR, str).presets))
+    )
+    with pytest.raises(CensusError) as caught:
+        fit_scale(backwards)
+    assert caught.value.label == "Backwards"
+    assert "its ends make no scale" in caught.value.reason
+    assert caught.value.__cause__ is not None
+
+
 def test_a_scale_that_is_neither_is_named() -> None:
     """One grid point off by a float32 step and the census refuses rather than guess."""
     measured = _measurement(
@@ -367,3 +379,33 @@ def test_a_key_list_that_cannot_be_written_leaves_the_map_unwritten(
     assert status == 1
     assert "census: cannot write" in capsys.readouterr().err
     assert parameters.read_text(encoding="utf-8") == "as it was"
+
+
+def test_a_rename_failing_after_the_key_list_s_puts_the_key_list_back(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The key list and the map change together or not at all: neither is left disagreeing."""
+    monkeypatch.setattr(
+        census, "VitalHost", lambda _path: _host(_measurement("Filter 1 Cutoff", _LINEAR, str))
+    )
+    keys = tmp_path / "keys.txt"
+    keys.write_text("old keys", encoding="utf-8")
+    (tmp_path / "map.json").write_text("old map", encoding="utf-8")
+    renames: list[str] = []
+    replace = Path.replace
+
+    def failing_second(self: Path, target: Path) -> Path:
+        renames.append(target.name)
+        if len(renames) == 2:  # noqa: PLR2004 - the map's rename, after the key list's
+            msg = f"cannot rename over {target.name}"
+            raise OSError(msg)
+        return replace(self, target)
+
+    monkeypatch.setattr(Path, "replace", failing_second)
+    status, parameters = _main(tmp_path, keys)
+    assert status == 1
+    assert "census: cannot write: cannot rename over map.json" in capsys.readouterr().err
+    assert renames[:2] == ["keys.txt", "map.json"]
+    assert keys.read_text(encoding="utf-8") == "old keys"
+    assert parameters.read_text(encoding="utf-8") == "old map"
+    assert sorted(path.name for path in tmp_path.iterdir()) == ["keys.txt", "map.json"]

@@ -4,12 +4,13 @@ Run once per Vital version, with the `host` extra, from the repository root, and
 writes: `uv run --locked python -m patchbay_vital.census --parameters
 src/patchbay_vital/data/parameters.json --settings-keys src/patchbay_vital/settings_keys.txt`.
 `--plugin PATH` names the plugin; without it the host's `DEFAULT_PATH` is the one place looked at.
-Both outputs are named, so nothing is written anywhere unasked, and each is replaced whole or not
-at all (`patchbay_vital.files`), the key list before the map it is derived from. The map records
-the machine the census ran on, `platform.machine()`: the scales are the plugin's build's, measured
-through pedalboard on arm64, where the build computes a scale with one fused multiply-add
-(`float32.fma32`); another build may round the product and the sum apart, which the exact fit
-below would refuse rather than write, and the host refuses the map on another machine.
+Both outputs are named, so nothing is written anywhere unasked, and they are replaced whole or not
+at all: both staged, then both renamed over, an earlier one put back when a later rename fails
+(`patchbay_vital.files`), so the key list and the map it is derived from never disagree. The map
+records the machine the census ran on, `platform.machine()`: the scales are the plugin's build's,
+measured through pedalboard on arm64, where the build computes a scale with one fused
+multiply-add (`float32.fma32`); another build may round the product and the sum apart, which the
+exact fit below would refuse rather than write, and the host refuses the map on another machine.
 
 The fitting is exact where the plugin is: a scale is `linear` or `indexed` only when every grid
 point equals what `float32.fma32` computes, with no tolerance. A curve is fitted to the plugin's
@@ -29,14 +30,12 @@ import platform
 import re
 import sys
 from collections.abc import Sequence
-from fractions import Fraction
 from pathlib import Path
 
 from patchbay import Parameter, PatchbayValidationError, PresetKey, Quantity, Unit
 
 from patchbay_vital.errors import CensusError, VitalError
-from patchbay_vital.files import replace_file
-from patchbay_vital.float32 import fma32, round_to_float32
+from patchbay_vital.files import replace_files
 from patchbay_vital.host import DEFAULT_PATH, HostMeasurement, VitalHost
 from patchbay_vital.parameters import (
     CurveKind,
@@ -44,6 +43,7 @@ from patchbay_vital.parameters import (
     MappedParameter,
     NormalizedScale,
     ParameterMap,
+    displayed_ends,
 )
 
 GRID = (0.0, 0.1, 0.13, 0.25, 0.3, 0.37, 0.5, 0.7, 0.75, 0.9, 1.0)
@@ -122,18 +122,24 @@ def _half_digit(value: float) -> float:
 
 
 def fit_scale(measurement: HostMeasurement) -> NormalizedScale:
-    """Return the scale every grid point of a measurement lies on exactly; CensusError if none."""
+    """Return the scale every grid point of a measurement lies on exactly; CensusError if none.
+
+    The linear scale is built once, its ends the measurement's; ends that make no scale at all are
+    refused by name, chained. The indexed scale is tried only where both ends are whole.
+    """
     presets = measurement.presets
     minimum, maximum = presets[0], presets[-1]
-    for kind in ("linear", "indexed"):
-        try:
-            scale = NormalizedScale(kind=kind, minimum=minimum, maximum=maximum)
-        except PatchbayValidationError:  # bounds this kind cannot have rule it out
-            continue
+    try:
+        linear = NormalizedScale(kind="linear", minimum=minimum, maximum=maximum)
+    except PatchbayValidationError as error:
+        raise CensusError(measurement.label, f"its ends make no scale: {error}") from error
+    candidates = [linear]
+    if minimum.is_integer() and maximum.is_integer():
+        candidates.append(NormalizedScale(kind="indexed", minimum=minimum, maximum=maximum))
+    for scale in candidates:
         if [scale.to_preset(point) for point in GRID] == list(presets):
             return scale
-    span = round_to_float32(Fraction(maximum) - Fraction(minimum))
-    plain = [fma32(point, span, minimum) for point in GRID]
+    plain = [linear.to_preset(point) for point in GRID]
     msg = f"neither linear nor indexed: {list(presets)} against {plain}"
     raise CensusError(measurement.label, msg)
 
@@ -268,7 +274,7 @@ def _record(  # noqa: PLR0913 - every fact a record is built from, each given by
 
     CensusError, chained, when the record does not hold together as the map's models require.
     """
-    ends = sorted((curve.to_display(scale.minimum), curve.to_display(scale.maximum)))
+    ends = displayed_ends(curve, scale)
     try:
         default = Quantity(value=curve.to_display(measurement.preset_default), unit=unit)
         parameter = Parameter.model_validate(
@@ -355,8 +361,12 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 1
     keys = "\n".join(built.settings_keys()) + "\n"
     try:
-        replace_file(arguments.settings_keys, keys.encode("utf-8"))
-        replace_file(arguments.parameters, text.encode("utf-8"))
+        replace_files(
+            {
+                arguments.settings_keys: keys.encode("utf-8"),
+                arguments.parameters: text.encode("utf-8"),
+            }
+        )
     except (OSError, ValueError) as error:
         sys.stderr.write(f"census: cannot write: {error}\n")
         return 1

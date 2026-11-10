@@ -38,7 +38,7 @@ audio = host.render([(bytes([0x90, 60, 100]), 0.0)], 48000, 48000)   # (2, 48000
   holds the exceptions, `float32.py` computes in single precision as Vital does, `parameters.py`
   holds the parameter map's models and scales and reads `data/parameters.json`, the map the census
   measured, and `settings_keys.txt` lists every float key Vital has been seen to write, derived from
-  the map. `files.py` replaces a file whole or not at all, for `format.py` and the census.
+  the map. `files.py` replaces files whole or not at all, for `format.py` and the census.
   `state.py` reads and writes the containers around the plugin's state; `host.py` hosts
   Vital through pedalboard and `census.py` measures it and writes the map, both needing the `host`
   extra and neither imported by the package itself.

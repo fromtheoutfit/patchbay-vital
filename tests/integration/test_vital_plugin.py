@@ -9,6 +9,7 @@ tolerance, and each says which probe its number came from (`verification/probes.
 
 import base64
 import json
+import platform
 import sys
 from pathlib import Path
 
@@ -42,12 +43,17 @@ _ONSET_SAMPLES = 96  # 2 ms at 48 kHz, a generous bound on that
 
 @pytest.fixture(scope="module")
 def vital() -> VitalHost:
-    """Return the module's one loaded Vital, or skip saying there is none where the host looks.
+    """Return the module's one loaded Vital, or skip saying why: no Vital, or another machine.
 
     A load takes about two seconds, so the module shares one plugin; `host` resets it per test.
+    The map is the machine's it was measured on, so on another the host would refuse it and the
+    census test would compare another machine's name: both skip here, by name.
     """
     if not DEFAULT_PATH.exists():
         pytest.skip(f"no Vital at {DEFAULT_PATH}")
+    measured, running = parameter_map().machine, platform.machine()
+    if measured != running:
+        pytest.skip(f"the map was measured on {measured!r}, this is {running!r}")
     return VitalHost()
 
 
@@ -124,10 +130,16 @@ def _samples(text: bytes) -> np.ndarray:
 def test_the_fixture_as_state_reads_back_but_its_sample_delayed(
     host: VitalHost, pytestconfig: pytest.Config
 ) -> None:
-    """A 1.6.4 save loads exactly: every setting, routing and section, but the sample and tuning."""
+    """A 1.6.4 save loads exactly: every setting, routing and section, but the sample and tuning.
+
+    The containers around the text are the ones the plugin loaded with, so the host reads them once.
+    """
     fixture = (pytestconfig.rootpath / _FIXTURE).read_bytes()
+    containers = unwrap(host.preset_data())
     host.load_state(fixture)
-    back = host.state()
+    state = unwrap(host.preset_data())
+    assert state.with_text(containers.text) == containers  # the text changes and no container
+    back = state.text
     preset, loaded = loads(fixture.decode("utf-8")), loads(back.decode("utf-8"))
     assert loaded.settings == preset.settings
     assert loaded.modulations == preset.modulations
@@ -154,11 +166,14 @@ def test_every_installed_preset_loads_as_state(
     assert len(manifest) == _MANIFEST_LENGTH
     if not _PRESETS.is_dir():
         pytest.skip(f"no installed Vital presets at {_PRESETS}")
+    containers = unwrap(host.preset_data())
     for relative in manifest:
         text = (_PRESETS / relative).read_bytes()
         original = json.loads(text)
         host.load_state(text)
-        first = host.state()
+        state = unwrap(host.preset_data())
+        assert state.with_text(containers.text) == containers, relative  # no container changed
+        first = state.text
         loaded = loads(first.decode("utf-8"))
         routes = [(m["source"], m["destination"]) for m in original["settings"]["modulations"]]
         kept = [(m.source or "", m.destination or "") for m in loaded.modulations]
