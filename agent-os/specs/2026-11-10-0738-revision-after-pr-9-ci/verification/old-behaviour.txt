@@ -1,0 +1,250 @@
+# The old lookup, on Linux: CI's run, then this revision's tests against the host.py PR 9 shipped.
+
+## 1. CI, https://github.com/fromtheoutfit/patchbay-vital/actions/runs/42814018117 (PR 9 at 1fb324f, ubuntu-24.04), its failing lines:
+
+E       AttributeError: /lib/x86_64-linux-gnu/libc.so.6: undefined symbol: fegetenv
+E       AttributeError: /lib/x86_64-linux-gnu/libc.so.6: undefined symbol: fegetenv
+FAILED tests/unit/test_host.py::test_a_path_the_host_cannot_load_is_named[directory] - AttributeError: /lib/x86_64-linux-gnu/libc.so.6: undefined symbol: fegetenv
+FAILED tests/unit/test_host.py::test_a_path_the_host_cannot_load_is_named[file] - AttributeError: /lib/x86_64-linux-gnu/libc.so.6: undefined symbol: fegetenv
+2 failed, 321 passed, 88 skipped in 4.90s
+FAIL  step 5/6: a test failed, or pytest could not read its configuration (see above)
+
+## 2. The same container as linux-gate-run.txt (ubuntu@sha256:fe81560990fae86dc4743202b2cb4d3df98d0bcf949173cecef15ce1127ef852, linux/amd64), with src/patchbay_vital/host.py put back at 1fb324f in the copy and this revision's tests kept:
+# Command: docker run --rm --platform linux/amd64 -v "$PWD":/src:ro -v "$PWD/../patchbay-standards":/standards:ro -v linux-gate.sh:/linux-gate.sh:ro ubuntu:24.04 bash /linux-gate.sh old-host
+# Expected: CI's two failures, and each new test that the old lookup breaks. The pass-over case where libc fails to load and ucrtbase holds both passes on the old code too: it tried ucrtbase after libc.
+
+== 5/6  uv run --locked pytest -c pyproject.toml -p no:doctest ([tool.pytest.ini_options] of pyproject.toml, over tests/, once nothing pytest would read is one git ignores)
+=================================== FAILURES ===================================
+_____________ test_a_path_the_host_cannot_load_is_named[directory] _____________
+
+tmp_path = PosixPath('/tmp/pytest-of-root/pytest-0/test_a_path_the_host_cannot_lo0')
+make = 'directory'
+
+    @pytest.mark.parametrize("make", ["directory", "file"])
+    def test_a_path_the_host_cannot_load_is_named(tmp_path: Path, make: str) -> None:
+        """A bundle with no plugin in it, or a file that is none, is the host's refusal, chained."""
+        path = tmp_path / "Nothing.vst3"
+        if make == "directory":
+            path.mkdir()
+        else:
+            path.write_text("not a plugin", encoding="utf-8")
+        with pytest.raises(PluginLoadError) as caught:
+>           VitalHost(path)
+
+tests/unit/test_host.py:52: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/patchbay_vital/host.py:166: in __init__
+    with _environment_kept():
+         ^^^^^^^^^^^^^^^^^^^
+/root/.local/share/uv/python/cpython-3.12.16-linux-x86_64-gnu/lib/python3.12/contextlib.py:137: in __enter__
+    return next(self.gen)
+           ^^^^^^^^^^^^^^
+src/patchbay_vital/host.py:89: in _environment_kept
+    _LIBC.fegetenv(saved)
+    ^^^^^^^^^^^^^^
+/root/.local/share/uv/python/cpython-3.12.16-linux-x86_64-gnu/lib/python3.12/ctypes/__init__.py:392: in __getattr__
+    func = self.__getitem__(name)
+           ^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <CDLL 'libc.so.6', handle 7fffff7c2a60 at 0x7fffd7b56960>
+name_or_ordinal = 'fegetenv'
+
+    def __getitem__(self, name_or_ordinal):
+>       func = self._FuncPtr((name_or_ordinal, self))
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: /lib/x86_64-linux-gnu/libc.so.6: undefined symbol: fegetenv
+
+/root/.local/share/uv/python/cpython-3.12.16-linux-x86_64-gnu/lib/python3.12/ctypes/__init__.py:397: AttributeError
+_______________ test_a_path_the_host_cannot_load_is_named[file] ________________
+
+tmp_path = PosixPath('/tmp/pytest-of-root/pytest-0/test_a_path_the_host_cannot_lo1')
+make = 'file'
+
+    @pytest.mark.parametrize("make", ["directory", "file"])
+    def test_a_path_the_host_cannot_load_is_named(tmp_path: Path, make: str) -> None:
+        """A bundle with no plugin in it, or a file that is none, is the host's refusal, chained."""
+        path = tmp_path / "Nothing.vst3"
+        if make == "directory":
+            path.mkdir()
+        else:
+            path.write_text("not a plugin", encoding="utf-8")
+        with pytest.raises(PluginLoadError) as caught:
+>           VitalHost(path)
+
+tests/unit/test_host.py:52: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/patchbay_vital/host.py:166: in __init__
+    with _environment_kept():
+         ^^^^^^^^^^^^^^^^^^^
+/root/.local/share/uv/python/cpython-3.12.16-linux-x86_64-gnu/lib/python3.12/contextlib.py:137: in __enter__
+    return next(self.gen)
+           ^^^^^^^^^^^^^^
+src/patchbay_vital/host.py:89: in _environment_kept
+    _LIBC.fegetenv(saved)
+    ^^^^^^^^^^^^^^
+/root/.local/share/uv/python/cpython-3.12.16-linux-x86_64-gnu/lib/python3.12/ctypes/__init__.py:392: in __getattr__
+    func = self.__getitem__(name)
+           ^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <CDLL 'libc.so.6', handle 7fffff7c2a60 at 0x7fffd7b56960>
+name_or_ordinal = 'fegetenv'
+
+    def __getitem__(self, name_or_ordinal):
+>       func = self._FuncPtr((name_or_ordinal, self))
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: /lib/x86_64-linux-gnu/libc.so.6: undefined symbol: fegetenv
+
+/root/.local/share/uv/python/cpython-3.12.16-linux-x86_64-gnu/lib/python3.12/ctypes/__init__.py:397: AttributeError
+_____________ test_the_two_functions_are_found_where_the_tests_run _____________
+
+    def test_the_two_functions_are_found_where_the_tests_run() -> None:
+        """The guard has a library holding `fegetenv` and `fesetenv` here, whatever the platform.
+    
+        On glibc that is the maths library; the C library, which loads, has neither.
+        """
+        library = _c_library()
+        assert library is not None
+>       assert hasattr(library, "fegetenv")
+E       AssertionError: assert False
+E        +  where False = hasattr(<CDLL 'libc.so.6', handle 7fffff7c2a60 at 0x7fffcc14c9b0>, 'fegetenv')
+
+tests/unit/test_host.py:64: AssertionError
+_ test_a_library_without_the_two_functions_is_passed_over[found0-libraries0-chosen0] _
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7fffd4c51370>
+found = {'c': 'libc', 'm': 'libm'}
+libraries = {'libc': namespace(), 'libm': namespace(fegetenv=None, fesetenv=None)}
+chosen = namespace(fegetenv=None, fesetenv=None)
+
+    @pytest.mark.parametrize(
+        ("found", "libraries", "chosen"),
+        [
+            # glibc: the C library loads without them, the maths library holds them.
+            ({"c": "libc", "m": "libm"}, {"libc": _NEITHER, "libm": _BOTH}, _BOTH),
+            # A name that does not load is passed over too, and the UCRT is tried last.
+            ({"c": "libc", "m": "libm"}, {"libm": _NEITHER, "ucrtbase": _BOTH}, _BOTH),
+            # No library holding both: the host then refuses to load.
+            ({"c": "libc"}, {"libc": _NEITHER}, None),
+        ],
+    )
+    def test_a_library_without_the_two_functions_is_passed_over(
+        monkeypatch: pytest.MonkeyPatch,
+        found: dict[str, str],
+        libraries: dict[str, object],
+        chosen: object,
+    ) -> None:
+        """The first library that loads and holds both is the one, so the choice shows on any host."""
+    
+        def load(name: str) -> object:
+            if name not in libraries:
+                raise OSError(name)
+            return libraries[name]
+    
+        monkeypatch.setattr(ctypes.util, "find_library", found.get)
+        monkeypatch.setattr(ctypes, "CDLL", load)
+>       assert _c_library() is chosen
+E       assert namespace() is namespace(fegetenv=None, fesetenv=None)
+E        +  where namespace() = _c_library()
+
+tests/unit/test_host.py:98: AssertionError
+_ test_a_library_without_the_two_functions_is_passed_over[found2-libraries2-None] _
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7fffd4c52090>
+found = {'c': 'libc'}, libraries = {'libc': namespace()}, chosen = None
+
+    @pytest.mark.parametrize(
+        ("found", "libraries", "chosen"),
+        [
+            # glibc: the C library loads without them, the maths library holds them.
+            ({"c": "libc", "m": "libm"}, {"libc": _NEITHER, "libm": _BOTH}, _BOTH),
+            # A name that does not load is passed over too, and the UCRT is tried last.
+            ({"c": "libc", "m": "libm"}, {"libm": _NEITHER, "ucrtbase": _BOTH}, _BOTH),
+            # No library holding both: the host then refuses to load.
+            ({"c": "libc"}, {"libc": _NEITHER}, None),
+        ],
+    )
+    def test_a_library_without_the_two_functions_is_passed_over(
+        monkeypatch: pytest.MonkeyPatch,
+        found: dict[str, str],
+        libraries: dict[str, object],
+        chosen: object,
+    ) -> None:
+        """The first library that loads and holds both is the one, so the choice shows on any host."""
+    
+        def load(name: str) -> object:
+            if name not in libraries:
+                raise OSError(name)
+            return libraries[name]
+    
+        monkeypatch.setattr(ctypes.util, "find_library", found.get)
+        monkeypatch.setattr(ctypes, "CDLL", load)
+>       assert _c_library() is chosen
+E       assert namespace() is None
+E        +  where namespace() = _c_library()
+
+tests/unit/test_host.py:98: AssertionError
+_________ test_the_environment_comes_back_however_the_block_changed_it _________
+
+    def test_the_environment_comes_back_however_the_block_changed_it() -> None:
+        """Upward rounding set inside the guard holds there, and is gone once the guard closes.
+    
+        The library is the guard's own, so this saves and restores the real environment once, with no
+        plugin to change it.
+        """
+        upward = _FE_UPWARD.get(platform.machine())
+        if upward is None:
+            pytest.skip(f"no FE_UPWARD known for the machine {platform.machine()!r}")
+        library = _c_library()
+        assert library is not None
+>       original = library.fegetround()
+                   ^^^^^^^^^^^^^^^^^^
+
+tests/unit/test_host.py:117: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+/root/.local/share/uv/python/cpython-3.12.16-linux-x86_64-gnu/lib/python3.12/ctypes/__init__.py:392: in __getattr__
+    func = self.__getitem__(name)
+           ^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <CDLL 'libc.so.6', handle 7fffff7c2a60 at 0x7fffd4c501a0>
+name_or_ordinal = 'fegetround'
+
+    def __getitem__(self, name_or_ordinal):
+>       func = self._FuncPtr((name_or_ordinal, self))
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: /lib/x86_64-linux-gnu/libc.so.6: undefined symbol: fegetround
+
+/root/.local/share/uv/python/cpython-3.12.16-linux-x86_64-gnu/lib/python3.12/ctypes/__init__.py:397: AttributeError
+___________ test_without_the_two_functions_the_host_refuses_to_load ____________
+
+tmp_path = PosixPath('/tmp/pytest-of-root/pytest-0/test_without_the_two_functions0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x7fffd4c515b0>
+
+    def test_without_the_two_functions_the_host_refuses_to_load(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Where no library holds them, the host is refused before the plugin is loaded, saying why."""
+        monkeypatch.setattr(host, "_LIBC", None)
+        with pytest.raises(PluginLoadError) as caught:
+            VitalHost(tmp_path)
+        assert caught.value.path == str(tmp_path)
+>       assert "fegetenv and fesetenv" in caught.value.reason
+E       AssertionError: assert 'fegetenv and fesetenv' in 'no C library to keep the floating-point environment the plugin changes'
+E        +  where 'no C library to keep the floating-point environment the plugin changes' = PluginLoadError('/tmp/pytest-of-root/pytest-0/test_without_the_two_functions0', 'no C library to keep the floating-point environment the plugin changes').reason
+E        +    where PluginLoadError('/tmp/pytest-of-root/pytest-0/test_without_the_two_functions0', 'no C library to keep the floating-point environment the plugin changes') = <ExceptionInfo PluginLoadError('/tmp/pytest-of-root/pytest-0/test_without_the_two_functions0', 'no C library to keep the floating-point environment the plugin changes') tblen=2>.value
+
+tests/unit/test_host.py:137: AssertionError
+=========================== short test summary info ============================
+FAILED tests/unit/test_host.py::test_a_path_the_host_cannot_load_is_named[directory]
+FAILED tests/unit/test_host.py::test_a_path_the_host_cannot_load_is_named[file]
+FAILED tests/unit/test_host.py::test_the_two_functions_are_found_where_the_tests_run
+FAILED tests/unit/test_host.py::test_a_library_without_the_two_functions_is_passed_over[found0-libraries0-chosen0]
+FAILED tests/unit/test_host.py::test_a_library_without_the_two_functions_is_passed_over[found2-libraries2-None]
+FAILED tests/unit/test_host.py::test_the_environment_comes_back_however_the_block_changed_it
+FAILED tests/unit/test_host.py::test_without_the_two_functions_the_host_refuses_to_load
+7 failed, 322 passed, 88 skipped in 4.73s
+FAIL  step 5/6: a test failed, or pytest could not read its configuration (see above)
+
+exit=1

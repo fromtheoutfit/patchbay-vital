@@ -22,8 +22,10 @@ crashed the process (`verification/probes-first-attempt.txt`).
 Loading Vital, and rendering it, turn on flush-to-zero for the whole process and leave it on, so
 every subnormal result after them, in Python, numpy or `patchbay_vital.float32`, becomes zero
 (`verification/float-environment.txt`). Every call into the plugin here saves the floating-point
-environment before and restores it after, with the C library's `fegetenv` and `fesetenv`; the
-plugin's own processing still runs under the environment it sets for itself.
+environment before and restores it after, with `fegetenv` and `fesetenv` from the first library
+that holds both: the C library on macOS, the maths library on glibc, whose C library has neither
+(the revision after PR 9's CI run). The plugin's own processing still runs under the environment it
+sets for itself.
 """
 
 import ctypes
@@ -66,15 +68,24 @@ _ENVIRONMENT_BYTES = 512
 """Room for any platform's `fenv_t`, which is saved and restored whole, its layout never read."""
 
 
+_ENVIRONMENT_FUNCTIONS = ("fegetenv", "fesetenv")
+
+
 def _c_library() -> ctypes.CDLL | None:
-    """Return the C library that holds `fegetenv` and `fesetenv`, or None where there is none."""
-    for name in (ctypes.util.find_library("c"), "ucrtbase"):
+    """Return the first library that holds `fegetenv` and `fesetenv`, or None where none does.
+
+    The C library first, then the maths library, then Windows' UCRT. A library that loads without
+    both is passed over: glibc's C library has neither, and its maths library holds them.
+    """
+    for name in (ctypes.util.find_library("c"), ctypes.util.find_library("m"), "ucrtbase"):
         if name is None:
             continue
         try:
-            return ctypes.CDLL(name)
+            library = ctypes.CDLL(name)
         except OSError:
             continue
+        if all(hasattr(library, function) for function in _ENVIRONMENT_FUNCTIONS):
+            return library
     return None
 
 
@@ -160,7 +171,7 @@ class VitalHost:
         if not where.exists():
             raise PluginLoadError(str(where), "there is nothing at the path")
         if _LIBC is None:
-            msg = "no C library to keep the floating-point environment the plugin changes"
+            msg = "no library holds fegetenv and fesetenv to keep the floating-point environment"
             raise PluginLoadError(str(where), msg)
         try:
             with _environment_kept():

@@ -4,7 +4,9 @@ What Vital does when hosted, and how this package holds it to that. A rule here 
 through pedalboard; the general form of a measured third party is `base/testing/tests.md`'s.
 Written from `src/patchbay_vital/state.py` and `host.py`; the evidence is the `verification/` of
 the spec of issue #7 (`agent-os/specs/2026-11-09-1907-the-host-and-the-parameter-map/`):
-`probes.txt`, `host-probes.txt`, `float-environment.txt` and `probes-first-attempt.txt`.
+`probes.txt`, `host-probes.txt`, `float-environment.txt` and `probes-first-attempt.txt`; and of its
+revision after PR 9's CI run (`agent-os/specs/2026-11-10-0738-revision-after-pr-9-ci/`):
+`linux-gate-run.txt` and `old-behaviour.txt`.
 
 ## The state
 
@@ -31,10 +33,20 @@ the spec of issue #7 (`agent-os/specs/2026-11-09-1907-the-host-and-the-parameter
 
 - **Every call into the plugin keeps the process's floating-point environment.** Loading and
   rendering Vital turn on flush-to-zero for the whole process and leave it on, so every subnormal
-  after them, in Python and numpy, is zero. `host.py` saves the environment with the C library's
-  `fegetenv` before each call and restores it with `fesetenv` after, and refuses to load where it
-  cannot. Verified against `host.py` (`_environment_kept`) and
+  after them, in Python and numpy, is zero. `host.py` saves the environment with `fegetenv` before
+  each call and restores it with `fesetenv` after, both from the first library that holds them: the
+  C library on macOS, the maths library on glibc, whose C library has neither. It refuses to load
+  where no library holds them. Verified against `host.py` (`_c_library`, `_environment_kept`) and
   `test_the_process_keeps_its_floating_point_environment`.
+- **The guard is held by unit tests that need no plugin**, so CI, which has no Vital, runs it: the
+  lookup on the platform the tests run on, a library without the two functions passed over, and one
+  real save and restore that upward rounding set inside it does not survive. A guard proven only
+  beside the plugin went untested where the plugin is absent, and failed there. Verified against
+  `tests/unit/test_host.py` (`test_the_two_functions_are_found_where_the_tests_run`,
+  `test_a_library_without_the_two_functions_is_passed_over`,
+  `test_the_environment_comes_back_however_the_block_changed_it`,
+  `test_without_the_two_functions_the_host_refuses_to_load`) and the revision's
+  `verification/linux-gate-run.txt`.
 - **pedalboard's parameter objects are reached through its public mapping on each access**, never
   held: a native parameter object held across state loads crashed the process. pedalboard adds
   that mapping to its native class at import, which its stubs do not show, so the loaded plugin is

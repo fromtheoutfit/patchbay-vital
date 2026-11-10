@@ -14,6 +14,12 @@ writes the entry, in that commit
 
 ### Changed
 
+- Revision after PR 9's CI run, `agent-os/specs/2026-11-10-0738-revision-after-pr-9-ci/`: the host
+  keeps the floating-point environment with `fegetenv` and `fesetenv` from the first library that
+  holds both, glibc keeping them in its maths library. It had taken the C library, so on Linux a
+  built-in `AttributeError` left `VitalHost()` and CI's unit suite failed. Unit tests that need no
+  plugin hold the lookup and a save and restore of the environment, so CI runs them. The version
+  stays 0.0.1.
 - The package's error root is `VitalError`, with `VitalFormatError` under it beside the host's
   `VitalHostError` and the map's `UnknownParameterError` and `ParameterRangeError`, each of those two
   also core's matching error. The host spec, `agent-os/specs/2026-11-09-1907-the-host-and-the-parameter-map/`.
