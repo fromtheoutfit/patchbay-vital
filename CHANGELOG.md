@@ -14,6 +14,24 @@ writes the entry, in that commit
 
 ### Changed
 
+- Revision after the third review of PR 9,
+  `agent-os/specs/2026-11-10-1438-revision-after-pr-9-third-review/`: 12 findings at `d4fe077`,
+  nine addressed, two declined with their reasons (the state's JSON decoded more than once, a third
+  time; one guard around the load's four calls) and one acknowledged (standards edits in feature
+  commits, the history left). The version stays 0.0.1.
+  - `files.replace_files` reads only a file a later rename could force back, before any rename,
+    so `dump` needs no read permission and reads nothing; each directory is flushed once, after
+    every rename, as a best effort, never undoing or failing a replacement, and a flush that fails
+    for a reason other than the file system's not supporting it is logged as a warning through
+    the `patchbay_vital.files` logger.
+  - `VitalHost.measure` puts each parameter back by its normalized value after its grid and loads
+    the state measured from once, at the end, where it loaded it after every parameter. A state
+    holding no settings object is `PluginStateError`, a normalized value that is no number or a
+    bool `ParameterRangeError`, and a host id `display_texts` does not host
+    `UnknownParameterError`.
+  - The census refuses a key list that would forget a key the format knows, naming the keys to
+    add to `PRESET_ONLY_KEYS`; the integration tests read a state's floats with the host's own
+    helper.
 - Revision after the second review of PR 9,
   `agent-os/specs/2026-11-10-1307-revision-after-pr-9-second-review/`: 17 findings at `0fc8152`,
   16 addressed and one, the state's JSON decoded more than once, declined again with its reason.
@@ -61,9 +79,9 @@ writes the entry, in that commit
   plugin hold the lookup and a save and restore of the environment, so CI runs them. The version
   stays 0.0.1.
 - The package's error root is `VitalError`, with `VitalFormatError` under it beside the host's
-  `VitalHostError` and the map's `UnknownParameterError` and `ParameterRangeError`, each of those two
-  also core's matching error. The host spec, `agent-os/specs/2026-11-09-1907-the-host-and-the-parameter-map/`.
-
+  `VitalHostError` and the map's `UnknownParameterError` and `ParameterRangeError`, each of those
+  two also core's matching error. The host spec,
+  `agent-os/specs/2026-11-09-1907-the-host-and-the-parameter-map/`.
 - Revision after the review of PR 6, `agent-os/specs/2026-11-09-1610-revision-after-pr-6-review/`:
   sixteen findings at `6d7f747`, fifteen addressed and one, `json.decoder.WHITESPACE`, declined with
   its reason. The version stays 0.0.1.

@@ -10,8 +10,8 @@ A key is *known* when Vital has ever been seen to write it, not when every file 
 keys as it grows (723 settings at 0.6.1, 909 at 1.6.4), so a key absent from a file is legal and a
 key absent from `settings_keys.txt` is a change of format. That file is a plain sorted list derived
 from the parameter map, `data/parameters.json`: every key there but the per-slot ones, and the keys
-only presets hold, `parameters.PRESET_ONLY_KEYS`. The generator writes both and a unit test holds
-the one to the other.
+only presets hold, `parameters.PRESET_ONLY_KEYS`. The generator writes both, refusing a list that
+would forget a key known here, and a unit test holds the one to the other.
 
 A model built directly refuses as patchbay's `PatchbayValidationError`; reading a file through
 `patchbay_vital.format` reports the same refusal as `MalformedPresetError`.

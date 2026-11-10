@@ -4,9 +4,10 @@ A path that gives no Vital is refused as the package, by name. The floating-poin
 into the plugin goes through is found where the tests run, and gives the environment back however
 the block changed it; a fake plugin that changes the rounding mode on every call shows each public
 method gives it back and that each call is entered with the process's own. The same fake shows
-what pedalboard raises, from any reach, is the package's error, that a measurement restores the
-state however it ends, that the containers are read once, and that the map is refused on another
-machine or Vital version. What the host does with a loaded Vital is
+what pedalboard raises, from any reach, is the package's error, that a measurement puts each
+parameter back and loads the state once however it ends, that the containers are read once, that
+a state, a value or an id the host cannot take is the package's error, and that the map is refused
+on another machine or Vital version. What the host does with a loaded Vital is
 `tests/integration/test_vital_plugin.py`'s.
 """
 
@@ -30,9 +31,11 @@ from patchbay_vital import host
 from patchbay_vital.errors import (
     CensusError,
     MapMismatchError,
+    ParameterRangeError,
     PluginLoadError,
     PluginRenderError,
     PluginStateError,
+    UnknownParameterError,
 )
 from patchbay_vital.host import DEFAULT_PATH, VitalHost, _c_library, _environment_kept
 from patchbay_vital.parameters import parameter_map
@@ -185,6 +188,7 @@ def test_without_the_two_functions_the_host_refuses_to_load(
 # key is its host id and whose preset value is 8 + 128 r (the committed map). Every call into it
 # turns upward rounding on, as Vital turns flush-to-zero on, so the guard has something to undo.
 _HOST_ID = "filter_1_cutoff"
+_TWIN_ID = "filter_2_cutoff"
 _START = 0.40625  # normalized, the plugin's default of 60 semitones
 _CONTAINERS: dict[str, object] = {  # Vital 1.6.4's, as tests/unit/test_state.py measured them
     "class_id": b"56535456697461766974616C00000000",
@@ -241,6 +245,9 @@ class _FakePlugin:
     upward: ClassVar[int]
     broken_at: float | None = None  # the value at which the state read is not a state
     missing_at: float | None = None  # the value at which the state lacks the parameter's key
+    bare_at: float | None = None  # the value at which the state's text is `bare_text`
+    bare_text = b"{}"
+    twinned = False  # whether a second host id, filter_2_cutoff, moves the same value
     short = False  # whether a render gives three samples whatever was asked
     version_text = "1.6.4"
 
@@ -275,7 +282,10 @@ class _FakePlugin:
     @property
     def parameters(self) -> dict[str, _FakeParameter]:
         self.touch("parameters")
-        return {_HOST_ID: _FakeParameter(self)}
+        hosted = {_HOST_ID: _FakeParameter(self)}
+        if self.twinned:
+            hosted[_TWIN_ID] = _FakeParameter(self)
+        return hosted
 
     @property
     def preset_data(self) -> bytes:
@@ -284,6 +294,8 @@ class _FakePlugin:
             return b"not a state"
         settings = {} if self.value == self.missing_at else {_HOST_ID: _preset_value(self.value)}
         text = json.dumps({"settings": settings}).encode("utf-8")
+        if self.value == self.bare_at:
+            text = self.bare_text
         return wrap(PluginState.model_validate({**_CONTAINERS, "text": text}))
 
     @preset_data.setter
@@ -559,3 +571,59 @@ def test_a_plugin_whose_state_the_codec_cannot_read_is_refused_at_load(
         fake()
     assert "its state is not one this package reads" in caught.value.reason
     assert isinstance(caught.value.__cause__, PluginStateError)
+
+
+def test_a_measurement_puts_each_parameter_back_and_loads_the_state_once(
+    fake: _Maker, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Two parameters measured: each set back by its normalized value, the state loaded once, last.
+
+    A load after each parameter would load twice; one parameter alone could not tell them apart.
+    """
+    monkeypatch.setattr(_FakePlugin, "twinned", True)
+    hosted, plugin = fake()
+    measured = hosted.measure([0.0, 0.5, 1.0])
+    assert [measurement.host_id for measurement in measured] == [_HOST_ID, _TWIN_ID]
+    assert plugin.calls.count("set_preset_data") == 1
+    assert plugin.calls[-1] == "set_preset_data"
+    grid_and_back = len([0.0, 0.5, 1.0]) + 1
+    assert plugin.calls.count("set_raw_value") == 2 * grid_and_back
+    assert plugin.value == _START
+
+
+@pytest.mark.parametrize("text", [b"{}", b'{"settings":[]}'], ids=["no settings", "a list"])
+def test_a_state_holding_no_settings_object_is_the_package_s_error(
+    fake: _Maker, text: bytes
+) -> None:
+    """A state whose text has no settings object is PluginStateError, by name, and restored."""
+    hosted, plugin = fake()
+    plugin.bare_at, plugin.bare_text = 0.5, text
+    with pytest.raises(PluginStateError, match="no settings object"):
+        hosted.measure([0.0, 0.5, 1.0])
+    assert plugin.value == _START
+    assert plugin.calls[-1] == "set_preset_data"
+
+
+@pytest.mark.parametrize("value", ["0.5", None, True], ids=["text", "None", "a bool"])
+def test_a_normalized_value_that_is_no_number_is_refused_as_the_package(
+    fake: _Maker, value: object
+) -> None:
+    """A value that is no number, or a bool, is ParameterRangeError, and nothing is set."""
+    hosted, plugin = fake()
+    with pytest.raises(ParameterRangeError) as caught:
+        hosted.set(ParameterId(_HOST_ID), value)  # type: ignore[arg-type]
+    assert caught.value.given is value
+    assert "set_raw_value" not in plugin.calls
+    hosted.set(ParameterId(_HOST_ID), np.float32(0.5))  # type: ignore[arg-type]
+    assert plugin.value == 0.5  # noqa: PLR2004 - the value just set
+    assert type(plugin.value) is float
+
+
+def test_display_texts_for_a_host_id_not_hosted_is_named(fake: _Maker) -> None:
+    """A host id the plugin does not host is UnknownParameterError, naming it, nothing reached."""
+    hosted, plugin = fake()
+    before = len(plugin.calls)
+    with pytest.raises(UnknownParameterError) as caught:
+        hosted.display_texts("no_such_parameter", [0.0])
+    assert (caught.value.parameter_id, caught.value.instrument) == ("no_such_parameter", "Vital")
+    assert len(plugin.calls) == before

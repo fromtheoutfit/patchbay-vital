@@ -2,7 +2,8 @@
 
 Measurements here are built the way the plugin reports them (the host spec's
 `verification/probes.txt`): preset values by `fma32` on the census's grid, display texts printed
-to six significant digits with the plugin's suffix.
+to six significant digits with the plugin's suffix. A key list that would forget a key the format
+knows is refused; a run of `main` over a fake host of one parameter knows only that host's keys.
 """
 
 import platform
@@ -20,12 +21,19 @@ from patchbay_vital.census import (
     dump_map,
     fit_record,
     fit_scale,
+    key_list,
     main,
 )
 from patchbay_vital.errors import CensusError
 from patchbay_vital.float32 import fma32
 from patchbay_vital.host import HostMeasurement, VitalHost
-from patchbay_vital.parameters import DisplayCurve, NormalizedScale, ParameterMap
+from patchbay_vital.parameters import (
+    PRESET_ONLY_KEYS,
+    DisplayCurve,
+    NormalizedScale,
+    ParameterMap,
+    parameter_map,
+)
 
 
 def _measurement(
@@ -341,11 +349,19 @@ def test_the_census_names_a_plugin_it_cannot_load_and_writes_nothing(
     assert not keys.exists()
 
 
+@pytest.fixture
+def known_to_one_cutoff(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Have the format know only the keys a fake host measuring Filter 1 Cutoff alone gives."""
+    known = frozenset({PresetKey("filter_1_cutoff"), *PRESET_ONLY_KEYS})
+    monkeypatch.setattr(census, "KNOWN_SETTINGS", known)
+
+
 def _main(tmp_path: Path, keys: Path) -> tuple[int, Path]:
     arguments = ["--plugin", str(tmp_path), "--parameters", str(tmp_path / "map.json")]
     return main([*arguments, "--settings-keys", str(keys)]), tmp_path / "map.json"
 
 
+@pytest.mark.usefixtures("known_to_one_cutoff")
 def test_the_census_writes_both_files_and_names_a_parameter_it_cannot_fit(
     tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -367,6 +383,7 @@ def test_the_census_writes_both_files_and_names_a_parameter_it_cannot_fit(
     assert not (tmp_path / "second").exists()
 
 
+@pytest.mark.usefixtures("known_to_one_cutoff")
 def test_a_key_list_that_cannot_be_written_leaves_the_map_unwritten(
     tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -381,6 +398,7 @@ def test_a_key_list_that_cannot_be_written_leaves_the_map_unwritten(
     assert parameters.read_text(encoding="utf-8") == "as it was"
 
 
+@pytest.mark.usefixtures("known_to_one_cutoff")
 def test_a_rename_failing_after_the_key_list_s_puts_the_key_list_back(
     tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -409,3 +427,30 @@ def test_a_rename_failing_after_the_key_list_s_puts_the_key_list_back(
     assert keys.read_text(encoding="utf-8") == "old keys"
     assert parameters.read_text(encoding="utf-8") == "old map"
     assert sorted(path.name for path in tmp_path.iterdir()) == ["keys.txt", "map.json"]
+
+
+def test_the_committed_map_s_key_list_forgets_no_key_the_format_knows() -> None:
+    """The key list the census would write from the committed map is the map's, every key kept."""
+    assert key_list(parameter_map()) == parameter_map().settings_keys()
+
+
+def test_a_key_list_that_would_forget_a_known_key_is_refused_and_nothing_written(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A key a newer Vital dropped is named, with where to keep it, and neither output written."""
+    gone = PresetKey("dropped_by_a_newer_vital")
+    known = frozenset({PresetKey("filter_1_cutoff"), *PRESET_ONLY_KEYS, gone})
+    monkeypatch.setattr(census, "KNOWN_SETTINGS", known)
+    with pytest.raises(CensusError) as caught:
+        key_list(build_map(_host(_measurement("Filter 1 Cutoff", _LINEAR, str))))
+    assert caught.value.label == "the key list"
+    assert repr(gone) in caught.value.reason
+    assert "PRESET_ONLY_KEYS" in caught.value.reason
+    monkeypatch.setattr(
+        census, "VitalHost", lambda _path: _host(_measurement("Filter 1 Cutoff", _LINEAR, str))
+    )
+    status, parameters = _main(tmp_path, tmp_path / "keys.txt")
+    assert status == 1
+    assert "census: cannot fit 'the key list'" in capsys.readouterr().err
+    assert sorted(tmp_path.iterdir()) == []
+    assert not parameters.exists()

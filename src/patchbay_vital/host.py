@@ -213,6 +213,22 @@ def _whole(value: int, what: str) -> int:
         raise PluginRenderError(msg) from error
 
 
+def _normalized(parameter_id: ParameterId, value: float) -> None:
+    """Refuse a value that is not a normalized one as ParameterRangeError, before any is set.
+
+    A bool is not one, though `math.isfinite` would take it as 0 or 1; a value that is no number
+    is refused by name, `math.isfinite`'s `TypeError` chained.
+    """
+    if isinstance(value, bool):
+        raise ParameterRangeError(parameter_id, 0.0, 1.0, value)
+    try:
+        finite = math.isfinite(value)
+    except TypeError as error:
+        raise ParameterRangeError(parameter_id, 0.0, 1.0, value) from error
+    if not (finite and 0.0 <= value <= 1.0):
+        raise ParameterRangeError(parameter_id, 0.0, 1.0, value)
+
+
 def _name_of(hosted: _HostedParameter) -> str:
     """Return a hosted parameter's label, one guarded call."""
     with _reached(PluginStateError):
@@ -351,14 +367,14 @@ class VitalHost:
     def set(self, parameter_id: ParameterId, normalized: float) -> None:
         """Set a parameter's normalized value.
 
-        UnknownParameterError for an id not hosted, ParameterRangeError for a value outside
-        `[0, 1]`, PluginStateError, chained, for a value the plugin refuses; none changes anything.
+        UnknownParameterError for an id not hosted; ParameterRangeError for a value outside
+        `[0, 1]`, or one that is no number, a bool included, the built-in's refusal chained;
+        PluginStateError, chained, for a value the plugin refuses. None changes anything.
         """
         hosted = self._hosted_parameter(parameter_id)
-        if not (math.isfinite(normalized) and 0.0 <= normalized <= 1.0):
-            raise ParameterRangeError(parameter_id, 0.0, 1.0, normalized)
+        _normalized(parameter_id, normalized)
         with _reached(PluginStateError):
-            hosted.raw_value = normalized
+            hosted.raw_value = float(normalized)
 
     def preset_data(self) -> bytes:
         """Return the plugin's state as the VST3 preset bytes it gives the host, every container."""
@@ -400,49 +416,75 @@ class VitalHost:
         return np.ascontiguousarray(audio[:, :samples])
 
     def display_texts(self, host_id: str, points: Sequence[float]) -> tuple[str, ...]:
-        """Return what the plugin shows for a parameter at each normalized value, for the census."""
-        hosted = self._hosted[host_id]
+        """Return what the plugin shows for a parameter at each normalized value, for the census.
+
+        The parameter is pedalboard's `host_id`, the map unused; UnknownParameterError, naming it,
+        for one the plugin does not host.
+        """
+        try:
+            hosted = self._hosted[host_id]
+        except KeyError:
+            raise UnknownParameterError(host_id, INSTRUMENT) from None
         return tuple(_text_for(hosted, point) for point in points)
 
     def measure(self, grid: Sequence[float]) -> tuple[HostMeasurement, ...]:
         """Measure every hosted parameter at each normalized value of `grid`, for the census.
 
         Each parameter is set to each value and the state read: the one preset value that moves
-        is the parameter's, by its key. The plugin's state is restored after each, however the
-        reads end, and a restore the plugin refuses is PluginStateError, the read's failure kept
-        in its context chain. Each call into the plugin is its own guard, so the text is parsed
+        is the parameter's, by its key. After its grid each parameter is set back to the
+        normalized value it had, however its reads end, so the next is measured from the state
+        measured from; that is exact but for a float32 step on 22 of Vital 1.6.4's 903 (the
+        revision after PR 9's third review, `verification/restore-probe.txt`). Once every
+        parameter is measured, or a read fails, the state measured from is loaded once, which
+        puts those back exactly and, as every load does, delays the embedded sample by 4 samples.
+        A put-back or a load the plugin refuses is PluginStateError, an earlier failure kept in
+        its context chain. Each call into the plugin is its own guard, so the text is parsed
         between them in the process's own environment. CensusError names a parameter that moves
-        no preset value, or more than one, or changes which keys the preset holds.
+        no preset value, or more than one, or changes which keys the preset holds;
+        PluginStateError a state holding no settings object.
         """
         start = self.preset_data()
         defaults = _floats(unwrap(start).text)
         measured = []
-        for host_id, hosted in self._hosted.items():
-            label = _name_of(hosted)
-            rows: list[dict[str, float]] = []
-            try:
-                for point in grid:
-                    with _reached(PluginStateError):
-                        hosted.raw_value = point
-                    rows.append(_floats(self.state()))
-            finally:
+        try:
+            for host_id, hosted in self._hosted.items():
+                label = _name_of(hosted)
                 with _reached(PluginStateError):
-                    self._plugin.preset_data = start
-            key = _moving_key(label, defaults, rows)
-            measured.append(
-                HostMeasurement(
-                    host_id=host_id,
-                    label=label,
-                    preset_key=PresetKey(key),
-                    preset_default=defaults[key],
-                    presets=tuple(row[key] for row in rows),
-                    texts=self.display_texts(host_id, grid),
+                    original = hosted.raw_value
+                rows: list[dict[str, float]] = []
+                try:
+                    for point in grid:
+                        with _reached(PluginStateError):
+                            hosted.raw_value = point
+                        rows.append(_floats(self.state()))
+                finally:
+                    with _reached(PluginStateError):
+                        hosted.raw_value = original
+                key = _moving_key(label, defaults, rows)
+                measured.append(
+                    HostMeasurement(
+                        host_id=host_id,
+                        label=label,
+                        preset_key=PresetKey(key),
+                        preset_default=defaults[key],
+                        presets=tuple(row[key] for row in rows),
+                        texts=self.display_texts(host_id, grid),
+                    )
                 )
-            )
+        finally:
+            with _reached(PluginStateError):
+                self._plugin.preset_data = start
         return tuple(measured)
 
 
 def _floats(text: bytes) -> dict[str, float]:
-    """Return the float settings of a preset's text, by key, read as the package reads JSON."""
-    settings = DECODER.decode(text.decode("utf-8"))["settings"]
+    """Return the float settings of a preset's text, by key, read as the package reads JSON.
+
+    The text is a `PluginState`'s, one JSON object by its validator, so the decode cannot fail;
+    PluginStateError when the object holds no `settings` object.
+    """
+    settings = DECODER.decode(text.decode("utf-8")).get("settings")
+    if not isinstance(settings, dict):
+        msg = "the state holds no settings object"
+        raise PluginStateError(msg)
     return {key: value for key, value in settings.items() if isinstance(value, float)}

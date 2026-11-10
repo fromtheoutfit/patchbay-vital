@@ -4,7 +4,8 @@ Vital may not be redistributed, so these tests run where it is installed, at the
 `DEFAULT_PATH`, and skip saying so elsewhere, CI among the places. Audio is not sample-reproducible
 (the host spec's shape.md, Decision 10), so every audio assertion is a measure with a named
 tolerance, and each says which probe its number came from (`verification/probes.txt`,
-`verification/host-probes.txt`).
+`verification/host-probes.txt`). A state's floats are read with the host's own `_floats`, so a test
+compares what the census reads.
 """
 
 import base64
@@ -20,7 +21,7 @@ from patchbay import ParameterId
 from patchbay_vital import loads
 from patchbay_vital.census import build_map
 from patchbay_vital.errors import ParameterRangeError, PluginRenderError, UnknownParameterError
-from patchbay_vital.host import DEFAULT_PATH, VitalHost
+from patchbay_vital.host import DEFAULT_PATH, VitalHost, _floats
 from patchbay_vital.parameters import PRESET_ONLY_KEYS, MappedParameter, parameter_map
 from patchbay_vital.state import unwrap, wrap
 
@@ -72,10 +73,6 @@ def host(vital: VitalHost, initial: bytes) -> VitalHost:
     """
     vital.load_state(initial)
     return vital
-
-
-def _floats(text: bytes) -> dict[str, float]:
-    return {k: v for k, v in json.loads(text)["settings"].items() if isinstance(v, float)}
 
 
 def _ulps(a: float, b: float) -> int:

@@ -138,7 +138,11 @@ class MapMismatchError(VitalHostError):
 
 
 class UnknownParameterError(VitalError, ParameterNotFoundError):
-    """An id the parameter map does not hold; core's `ParameterNotFoundError` too."""
+    """An id the parameter map does not hold, or a host id the plugin does not host.
+
+    Core's `ParameterNotFoundError` too, whose `parameter_id` is a plain string: the census asks
+    the host for display texts by pedalboard's key, which only the host reads.
+    """
 
 
 class ParameterRangeError(VitalError, ValueOutOfRangeError):

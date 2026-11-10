@@ -21,7 +21,8 @@ refuses the map on another. A record holds together in float32: its bounds and d
 exactly by the census through this platform's `pow`, `log2` and `sqrt`, come back to the scale's
 ends and the preset default through the curve, so a libm an ulp apart still reads the map.
 `settings_keys.txt`, the key list the format reads, is derived from this map: its ids but the
-per-slot ones, and `PRESET_ONLY_KEYS`.
+per-slot ones, and `PRESET_ONLY_KEYS`, which keeps a key no hosted parameter has, so a census on a
+Vital that dropped one forgets nothing.
 """
 
 import functools
@@ -41,7 +42,9 @@ from patchbay_vital.preset import SLOT_KEY
 
 PRESET_ONLY_KEYS = frozenset({PresetKey("chorus_damping")})
 """Keys a preset holds that no hosted parameter does: `chorus_damping`, written by Vital 0.6.x and
-dropped on load by 1.6.4, which has no such parameter (the host spec's verification/probes.txt)."""
+dropped on load by 1.6.4, which has no such parameter (the host spec's verification/probes.txt).
+A key a newer Vital drops joins it in a spec: the census refuses a key list that would forget one,
+naming it (`census.key_list`)."""
 
 type ScaleKind = Literal["linear", "indexed"]
 type CurveKind = Literal[

@@ -6,11 +6,14 @@ src/patchbay_vital/data/parameters.json --settings-keys src/patchbay_vital/setti
 `--plugin PATH` names the plugin; without it the host's `DEFAULT_PATH` is the one place looked at.
 Both outputs are named, so nothing is written anywhere unasked, and they are replaced whole or not
 at all: both staged, then both renamed over, an earlier one put back when a later rename fails
-(`patchbay_vital.files`), so the key list and the map it is derived from never disagree. The map
-records the machine the census ran on, `platform.machine()`: the scales are the plugin's build's,
-measured through pedalboard on arm64, where the build computes a scale with one fused
-multiply-add (`float32.fma32`); another build may round the product and the sum apart, which the
-exact fit below would refuse rather than write, and the host refuses the map on another machine.
+(`patchbay_vital.files`), so the key list and the map it is derived from never disagree. A key the
+format knows is never forgotten: the census refuses a key list lacking one, which a newer Vital
+dropping a parameter would give, naming the keys to add to `parameters.PRESET_ONLY_KEYS` in a
+spec, since every preset that holds them must still load. The map records the machine the census
+ran on, `platform.machine()`: the scales are the plugin's build's, measured through pedalboard on
+arm64, where the build computes a scale with one fused multiply-add (`float32.fma32`); another
+build may round the product and the sum apart, which the exact fit below would refuse rather than
+write, and the host refuses the map on another machine.
 
 The fitting is exact where the plugin is: a scale is `linear` or `indexed` only when every grid
 point equals what `float32.fma32` computes, with no tolerance. A curve is fitted to the plugin's
@@ -45,6 +48,7 @@ from patchbay_vital.parameters import (
     ParameterMap,
     displayed_ends,
 )
+from patchbay_vital.preset import KNOWN_SETTINGS
 
 GRID = (0.0, 0.1, 0.13, 0.25, 0.3, 0.37, 0.5, 0.7, 0.75, 0.9, 1.0)
 """The normalized values each parameter is measured at: both ends, and points that tell the scale
@@ -100,6 +104,12 @@ _TWO_POINTS = 2
 
 _THE_MAP = "the map"
 """What a CensusError names when the records measured do not make one map."""
+
+_THE_KEY_LIST = "the key list"
+"""What a CensusError names when the map's key list would forget a key the format knows."""
+
+_NAMED = 4
+"""How many keys a refusal names, of all it found."""
 
 
 def _number(text: str) -> tuple[float, str] | None:
@@ -336,6 +346,24 @@ def build_map(host: VitalHost) -> ParameterMap:
         raise CensusError(_THE_MAP, str(error)) from error
 
 
+def key_list(parameter_map: ParameterMap) -> tuple[PresetKey, ...]:
+    """Return the key list to write, the map's; CensusError where it lacks a key the format knows.
+
+    A key is known once Vital has been seen to write it, so a newer Vital that drops a parameter
+    still leaves its key in older presets; the refusal names the keys, which a spec adds to
+    `PRESET_ONLY_KEYS`, so the list stays derived from the map and forgets nothing.
+    """
+    keys = parameter_map.settings_keys()
+    forgotten = sorted(KNOWN_SETTINGS - set(keys))
+    if forgotten:
+        msg = (
+            f"it lacks keys Vital has written, {forgotten[:_NAMED]} ({len(forgotten)} in all):"
+            " add them to PRESET_ONLY_KEYS"
+        )
+        raise CensusError(_THE_KEY_LIST, msg)
+    return keys
+
+
 def dump_map(parameter_map: ParameterMap) -> str:
     """Return the map's committed text: its fields, a record a line, so a diff is per record."""
     header = parameter_map.model_dump_json(exclude={"parameters"})
@@ -352,6 +380,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     arguments = parser.parse_args(argv)
     try:
         built = build_map(VitalHost(arguments.plugin))
+        keys = "\n".join(key_list(built)) + "\n"
     except VitalError as error:
         sys.stderr.write(f"census: {error}\n")
         return 1
@@ -359,7 +388,6 @@ def main(argv: Sequence[str] | None = None) -> int:
     if ParameterMap.model_validate_json(text) != built:
         sys.stderr.write("census: the map does not read back as written\n")
         return 1
-    keys = "\n".join(built.settings_keys()) + "\n"
     try:
         replace_files(
             {
