@@ -5,18 +5,32 @@ here is about Vital's parameters; what any adapter's models do is `base/python/m
 Written from `src/patchbay_vital/parameters.py`, `float32.py`, `census.py` and
 `data/parameters.json`; the evidence is the `verification/` of the spec of issue #7
 (`agent-os/specs/2026-11-09-1907-the-host-and-the-parameter-map/`), measured on Vital 1.6.4 through
-pedalboard 0.9.26.
+pedalboard 0.9.26 on arm64, and of the revision after the review of PR 9
+(`agent-os/specs/2026-11-10-1027-revision-after-pr-9-review/`).
 
 ## Where it comes from
 
 - **The map is measured from the plugin and committed as data, never written by hand or from Vital's
   source.** `census.py` sets each hosted parameter on a grid of normalized values, reads which state
   float moves and what the plugin displays, fits the scales and writes `data/parameters.json`; a
-  parameter it cannot fit is `CensusError`, naming it, and nothing is written. Vital's source is
-  GPLv3 and may be cited for corroboration, never copied. A new Vital is a new census in a spec.
-  Verified against `census.py` (`build_map`, `main`), `tests/unit/test_census.py`
-  (`test_a_scale_that_is_neither_is_named`, `test_texts_in_no_one_known_unit_are_named`) and
+  parameter it cannot fit is `CensusError`, naming it, as are two parameters moving one preset
+  value and a record the map's models refuse, and nothing is written; what is written is written
+  whole or not at all, the key list before the map (`patchbay_vital.files`), so the two never
+  disagree. Vital's source is GPLv3 and may be cited for corroboration, never copied. A new Vital
+  is a new census in a spec. Verified against `census.py` (`build_map`, `_record`, `main`),
+  `tests/unit/test_census.py` (`test_a_scale_that_is_neither_is_named`,
+  `test_texts_in_no_one_known_unit_are_named`, `test_two_parameters_moving_one_preset_value_are_named`,
+  `test_a_default_that_displays_as_no_number_is_named`,
+  `test_a_key_list_that_cannot_be_written_leaves_the_map_unwritten`) and
   `tests/integration/test_vital_plugin.py` (`test_the_census_regenerates_the_committed_map`).
+- **The map records the machine the census ran on, and is used on no other.** The scales are the
+  plugin's build's: the arm64 build computes a scale with one fused multiply-add, and another build
+  may round the product and the sum apart, which the exact fit would refuse rather than write.
+  `ParameterMap.machine` is `platform.machine()` where the census ran; the host refuses the map on
+  another machine (`vital/plugin-state.md`), and a new census there is the remedy. Verified against
+  `census.py` (`build_map`), `parameters.py` (`ParameterMap`),
+  `test_the_map_records_the_machine_the_census_ran_on` and
+  `test_the_committed_map_holds_every_hosted_parameter`.
 - **A parameter's id is its preset key; pedalboard's key is `host_id`, read only by `host.py`.** 256
   of the 903 differ (`envelope_1_attack` is `env_1_attack`), and the preset key is the one a file, a
   diff and the instrument share. Verified against `parameters.py` (`MappedParameter.id`,
@@ -38,14 +52,22 @@ pedalboard 0.9.26.
 - **Preset ↔ display is a curve: `multiply · skew(preset) + offset`**, the skew one of the six
   measured (linear, quadratic, quartic, square root, 2^x, 2^−x), its constants the shortest decimals
   that print every display text at six significant digits. A record's `Parameter` is in display
-  units and its bounds and default are what the scale and curve compute, which the model holds.
-  Verified against `DisplayCurve`, `MappedParameter`, `census.py` (`_fit_curve`) and
-  `test_a_record_whose_parameter_is_not_its_scales_is_refused`,
+  units and its bounds and default are what the scale and curve compute, exactly on the machine
+  that measured them; the model holds the record together in float32, the bounds and the default's
+  display reaching the scale's ends and the preset default through the curve, so a libm whose
+  `pow` is a double ulp apart still reads the map, and `to_preset` takes the parameter's own bounds
+  and this platform's display of the scale's ends alike. Verified against `DisplayCurve`,
+  `MappedParameter` (`_the_parameter_reaches_the_scale`, `to_preset`), `census.py` (`_fit_curve`)
+  and `test_a_record_whose_parameter_is_not_its_scales_is_refused`,
+  `test_a_record_holds_together_in_float32_so_a_libm_an_ulp_apart_still_reads_it`,
   `test_a_curve_and_its_unit_are_found_from_the_texts`.
 - **A displayed value comes back exactly; a preset value does too, but where a curve's offset absorbs
   it.** `volume`'s presets at or below 2 ** -43 display within 3.4e-7 dB of −80 dB and share a
   display; the sweep found no other. An arbitrary display value comes back as the nearest one the
-  parameter holds. Verified against `test_a_value_the_parameter_holds_comes_back_exactly`,
+  parameter holds, which on an indexed scale is a whole number, rounded a half away from zero as
+  the plugin rounds. Verified against `MappedParameter.to_preset`,
+  `test_a_value_the_parameter_holds_comes_back_exactly`,
+  `test_a_value_between_an_indexed_scale_s_steps_goes_to_the_nearest_step`,
   `test_where_volume_s_offset_absorbs_a_preset`, `test_every_committed_record_comes_back_exactly`
   and `verification/census-run.txt`.
 
@@ -60,11 +82,17 @@ pedalboard 0.9.26.
   two values shown Off and On, or as numbers, is a boolean; one whose texts are other names is a
   choice, two names included (`eq_low_mode` is Shelf or High Pass); a numeric one (transposes,
   voices) is continuous on its indexed scale. A choice's value is its index, the preset value less
-  the scale's minimum (`delay_tempo` starts at 4). Verified against `fit_record`,
+  the scale's minimum (`delay_tempo` starts at 4), and a choice or a boolean takes a whole index
+  and nothing else, core's rule for them, so `to_preset` refuses a non-whole value as
+  `ParameterRangeError`. Verified against `fit_record`, `MappedParameter.to_preset`,
   `test_a_parameter_of_two_values_is_a_switch_or_a_choice`,
-  `test_a_choice_is_its_index_from_the_scale_s_minimum` and
+  `test_a_choice_is_its_index_from_the_scale_s_minimum`,
+  `test_a_choice_or_a_boolean_takes_a_whole_index_and_nothing_else` and
   `test_numbers_on_an_indexed_scale_are_continuous`.
-- **Empty or repeated choice names are told apart by their index** (`option_<i>`, `<name>_<i>`), the
-  plugin's own names kept in `choice_labels`, so core's rule that choices are distinct and non-empty
-  holds. Six parameters need it. Verified against `census.py` (`_choices`) and
+- **Empty or repeated choice names are told apart by their index** (`option_<i>`, `<name>_<i>`),
+  a made-up name lengthened by `_<i>` again while it is a kept name's or one already given, so no
+  two choices share a name whatever the plugin's list; the plugin's own names are kept in
+  `choice_labels`, so core's rule that choices are distinct and non-empty holds. Six parameters
+  need it. Verified against `census.py` (`_choices`),
+  `test_a_made_up_name_never_collides_with_a_given_one` and
   `test_the_committed_map_tells_its_choices_apart`.

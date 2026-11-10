@@ -20,11 +20,14 @@ saves from Vital 1.6.4, and for the plugin state's `tuning` and the derived key 
 - **The plugin's state is the same text with one more top-level key, `tuning`, an object held as
   its text, like an unread section**, in `VitalPreset.tuning`: written back at its sorted place when
   present, absent from every `.vital` file seen and not added to one, compared by `diff` by name and
-  size after the sections. Anything but an object under the key is malformed. Verified against
-  `preset.py`, `format.py` and `test_a_plugin_state_comes_back_byte_for_byte`,
+  size after the sections, its `OpaqueChange.where` `preset` where a section under `settings` is
+  `settings`, so a section there named `tuning`, which an unknown section may be, is told from it.
+  Anything but an object under the key is malformed. Verified against `preset.py`, `format.py` and
+  `test_a_plugin_state_comes_back_byte_for_byte`,
   `test_a_file_without_a_tuning_is_written_without_one`,
   `test_a_tuning_that_is_not_an_object_is_malformed`,
-  `test_a_diff_reports_the_tuning_after_the_sections`.
+  `test_a_diff_reports_the_tuning_after_the_sections`,
+  `test_a_section_under_settings_named_tuning_is_told_from_the_preset_s`.
 - **Metadata is strings: `author`, `comments`, `macro1` to `macro4`, `preset_style`,
   `synth_version`, and `preset_name`, which files before 1.6.4 lack.** `preset_style` is a plain
   string: a save names none, and writes `""`. Verified against `preset.py` (`VitalPreset`) and
@@ -81,8 +84,10 @@ saves from Vital 1.6.4, and for the plugin state's `tuning` and the derived key 
   `format.py` (`_parse`), `test_a_malformed_preset_is_refused_as_the_package` and
   `test_whitespace_inside_a_preset_is_read_and_not_written_back`.
 - **`dump` replaces a file whole or not at all**, through a temporary beside it, keeping its
-  permissions and writing through a symlink, because a preset can be a person's only copy. Verified
-  against `format.py` (`_replace_file`), `test_a_failed_write_leaves_the_file_as_it_was`,
+  permissions and writing through a symlink, because a preset can be a person's only copy. The
+  replacing is `files.replace_file`, a module of its own because the census writes its two outputs
+  through it too, one concern per module (`base/python/layout.md`). Verified against `files.py`,
+  `format.py` (`dump`), `tests/unit/test_files.py`, `test_a_failed_write_leaves_the_file_as_it_was`,
   `test_writing_over_a_file_keeps_its_permissions` and `test_writing_through_a_symlink_keeps_the_link`.
 - **Two presets are the same when they write the same bytes**, so `diff` tells `0.0` from `-0.0`,
   which compare equal. Verified against `format.py` (`_same`) and
