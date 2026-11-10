@@ -6,7 +6,9 @@ any adapter's models do is `base/python/models.md`'s. Written from `src/patchbay
 (`agent-os/specs/2026-11-09-1509-the-vital-format/`), measured over 75 installed presets and two
 saves from Vital 1.6.4, for the plugin state's `tuning` and the derived key list the
 `verification/` of the spec of issue #7 (`agent-os/specs/2026-11-09-1907-the-host-and-the-parameter-map/`),
-and for the files module the revisions after PR 9's two reviews, the second at `agent-os/specs/2026-11-10-1307-revision-after-pr-9-second-review/`.
+and for the files module the revisions after PR 9's three reviews, the second at
+`agent-os/specs/2026-11-10-1307-revision-after-pr-9-second-review/` and the third at
+`agent-os/specs/2026-11-10-1438-revision-after-pr-9-third-review/`.
 
 ## Where each part lives
 
@@ -40,8 +42,10 @@ and for the files module the revisions after PR 9's two reviews, the second at `
   `settings_keys.txt` lists them, one a line, sorted. A key a file lacks is simply absent, because
   Vital adds keys as it grows; `settings` holds 723 keys at 0.6.1 and 909 at 1.6.4, and `chorus_damping`
   appears only in the oldest. A newer Vital's new key is added to the list in a spec, not carried
-  silently. The list is deliberately plain and is derived from the parameter map: its keys but the
-  per-slot ones, and the keys only presets hold (`vital/parameter-map.md`). Verified against
+  silently, and a key it drops stays known: the census refuses to forget it, and a spec adds it to
+  the keys only presets hold. The list is deliberately plain and is derived from the parameter map:
+  its keys but the per-slot ones, and the keys only presets hold (`vital/parameter-map.md`).
+  Verified against
   `src/patchbay_vital/settings_keys.txt`, `preset.py` (`KNOWN_SETTINGS`),
   `tests/unit/test_preset.py` (`test_the_known_keys_are_a_plain_sorted_list`) and
   `tests/unit/test_parameters.py` (`test_the_format_s_key_list_is_derived_from_the_committed_map`).
@@ -93,16 +97,24 @@ and for the files module the revisions after PR 9's two reviews, the second at `
   permissions and writing through a symlink, because a preset can be a person's only copy. The
   replacing is `files.replace_file`, a module of its own because the census writes its two outputs
   through it too, one concern per module (`base/python/layout.md`): `replace_files` stages every
-  file's temporary before renaming any, flushes the directory after each rename so the
-  replacement survives a crash, and puts an earlier file back from the bytes it held when a later
-  rename fails, so several files change together or not at all. Verified against `files.py`,
-  `format.py` (`dump`), `tests/unit/test_files.py`
+  file's temporary before renaming any, and puts an earlier file back from the bytes it held when
+  a later rename fails, so several files change together or not at all. Only a file a later rename
+  could force back is read, during staging, so the last is never read and `dump` needs no read
+  permission. Once every file is renamed nothing can fail: each directory is flushed once, after
+  every rename, as a best effort, so a flush that fails neither undoes a replacement nor reports
+  it as failed; a file system that cannot flush a directory (EINVAL, ENOTSUP, EOPNOTSUPP, EBADF) is
+  passed over, and any other failure, the files replaced but maybe not durable, is logged as a
+  warning through the module's logger naming the directory and the errno, never raised and never
+  silent. Verified against `files.py`, `format.py` (`dump`), `tests/unit/test_files.py`
   (`test_a_failed_write_leaves_the_file_as_it_was_and_no_temporary`,
   `test_writing_over_a_file_keeps_its_permissions`, `test_writing_through_a_symlink_keeps_the_link`,
   `test_several_files_are_staged_before_any_is_renamed`,
   `test_a_rename_failing_after_an_earlier_one_puts_the_earlier_file_back`,
   `test_a_file_that_did_not_exist_is_removed_again_when_a_later_rename_fails`,
-  `test_the_directory_is_synced_after_the_rename`).
+  `test_every_directory_is_synced_once_after_every_rename`,
+  `test_a_directory_that_cannot_be_synced_leaves_every_file_replaced`,
+  `test_only_a_file_a_later_rename_could_force_back_is_read`,
+  `test_a_file_that_cannot_be_read_is_still_replaced`).
 - **Two presets are the same when they write the same bytes**, so `diff` tells `0.0` from `-0.0`,
   which compare equal. Verified against `format.py` (`_same`) and
   `test_a_diff_is_empty_exactly_when_the_presets_write_the_same`.

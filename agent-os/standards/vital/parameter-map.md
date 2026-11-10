@@ -6,8 +6,9 @@ Written from `src/patchbay_vital/parameters.py`, `float32.py`, `census.py` and
 `data/parameters.json`; the evidence is the `verification/` of the spec of issue #7
 (`agent-os/specs/2026-11-09-1907-the-host-and-the-parameter-map/`), measured on Vital 1.6.4 through
 pedalboard 0.9.26 on arm64, of the revision after the review of PR 9
-(`agent-os/specs/2026-11-10-1027-revision-after-pr-9-review/`) and of the revision after the second
-review (`agent-os/specs/2026-11-10-1307-revision-after-pr-9-second-review/`).
+(`agent-os/specs/2026-11-10-1027-revision-after-pr-9-review/`), of the revision after the second
+review (`agent-os/specs/2026-11-10-1307-revision-after-pr-9-second-review/`) and of the revision
+after the third (`agent-os/specs/2026-11-10-1438-revision-after-pr-9-third-review/`).
 
 ## Where it comes from
 
@@ -45,10 +46,16 @@ review (`agent-os/specs/2026-11-10-1307-revision-after-pr-9-second-review/`).
   diff and the instrument share. Verified against `parameters.py` (`MappedParameter.id`,
   `ParameterMap.find`), `host.py` and `tests/unit/test_parameters.py`
   (`test_a_map_finds_a_record_by_its_preset_key`).
-- **`settings_keys.txt` is derived from the map**: its ids but the per-slot ones, and
-  `PRESET_ONLY_KEYS` (`chorus_damping`, which old presets hold and no parameter does). The census
-  writes both files and a test holds the one to the other. Verified against
-  `ParameterMap.settings_keys` and `test_the_format_s_key_list_is_derived_from_the_committed_map`.
+- **`settings_keys.txt` is derived from the map, and a census never forgets a key**: its ids but
+  the per-slot ones, and `PRESET_ONLY_KEYS` (`chorus_damping`, which old presets hold and no
+  parameter does). The census writes both files and a test holds the one to the other. A key is
+  known once Vital has written it, so a newer Vital that drops a parameter still has presets
+  holding its key: the census refuses a list lacking a key the format knows now, `CensusError`
+  naming up to four, and a spec adds them to `PRESET_ONLY_KEYS`, so the list stays derived from the
+  map rather than kept as a union no map can check. Verified against `ParameterMap.settings_keys`,
+  `census.py` (`key_list`, `main`), `test_the_format_s_key_list_is_derived_from_the_committed_map`,
+  `test_the_committed_map_s_key_list_forgets_no_key_the_format_knows` and
+  `test_a_key_list_that_would_forget_a_known_key_is_refused_and_nothing_written`.
 
 ## Two conversions
 
