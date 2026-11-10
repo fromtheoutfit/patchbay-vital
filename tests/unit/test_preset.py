@@ -21,6 +21,7 @@ from patchbay_vital.preset import (
     PresetDiff,
     VitalPreset,
     VitalSettings,
+    decode_end,
 )
 
 _KNOWN_COUNT = 456
@@ -168,6 +169,27 @@ def test_a_section_that_nests_too_deeply_is_refused_as_the_package() -> None:
         make_preset(opaque={"wavetables": b"[" * 200_000})
 
 
+def test_the_decoder_s_end_names_what_nests_too_deeply() -> None:
+    """One function turns the decoder's RecursionError into a ValueError naming the text's part."""
+    assert decode_end('{"a":1} and more', "a section") == 7  # noqa: PLR2004 - the object's end
+    with pytest.raises(ValueError, match="the text nests too deeply to read") as caught:
+        decode_end("[" * 200_000, "the text")
+    assert isinstance(caught.value.__cause__, RecursionError)
+
+
+@pytest.mark.parametrize("raw", [b"[]", b"1.0", b"", b"{", b"{} "], ids=repr)
+def test_a_tuning_is_the_text_of_an_object(raw: bytes) -> None:
+    """The plugin's tuning is a JSON object, written back into its state as it is."""
+    with pytest.raises(PatchbayValidationError):
+        make_preset(tuning=raw)
+
+
+def test_a_tuning_is_kept_as_given() -> None:
+    """An object's text is held as it is, unread, and a preset without one holds None."""
+    assert make_preset(tuning=b'{"default":true}').tuning == b'{"default":true}'
+    assert make_preset().tuning is None
+
+
 def test_sections_are_read_only_and_sorted() -> None:
     """The unread sections follow the same rule as any mapping on a model."""
     preset = make_preset(opaque={"wavetables": b"[]", "lfos": b"[]"})
@@ -184,6 +206,7 @@ def test_a_preset_comes_back_from_its_json() -> None:
         modulations=(slot,) * MODULATION_SLOTS,
         opaque={"lfos": b"[1.0]"},
         preset_name="p",
+        tuning=b'{"default":true}',
         trailing_newline=True,
     )
     assert VitalPreset.model_validate_json(preset.model_dump_json()) == preset

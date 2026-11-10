@@ -14,6 +14,74 @@ writes the entry, in that commit
 
 ### Changed
 
+- Revision after the third review of PR 9,
+  `agent-os/specs/2026-11-10-1438-revision-after-pr-9-third-review/`: 12 findings at `d4fe077`,
+  nine addressed, two declined with their reasons (the state's JSON decoded more than once, a third
+  time; one guard around the load's four calls) and one acknowledged (standards edits in feature
+  commits, the history left). The version stays 0.0.1.
+  - `files.replace_files` reads only a file a later rename could force back, before any rename,
+    so `dump` needs no read permission and reads nothing; each directory is flushed once, after
+    every rename, as a best effort, never undoing or failing a replacement, and a flush that fails
+    for a reason other than the file system's not supporting it is logged as a warning through
+    the `patchbay_vital.files` logger.
+  - `VitalHost.measure` puts each parameter back by its normalized value after its grid and loads
+    the state measured from once, at the end, where it loaded it after every parameter. A state
+    holding no settings object is `PluginStateError`, a normalized value that is no number or a
+    bool `ParameterRangeError`, and a host id `display_texts` does not host
+    `UnknownParameterError`.
+  - The census refuses a key list that would forget a key the format knows, naming the keys to
+    add to `PRESET_ONLY_KEYS`; the integration tests read a state's floats with the host's own
+    helper.
+- Revision after the second review of PR 9,
+  `agent-os/specs/2026-11-10-1307-revision-after-pr-9-second-review/`: 17 findings at `0fc8152`,
+  16 addressed and one, the state's JSON decoded more than once, declined again with its reason.
+  The version stays 0.0.1.
+  - `MachineMismatchError` is `MapMismatchError`, with `what`, `measured` and `found`: the host
+    refuses the map on another machine, instrument or Vital version, naming the first that
+    differs, where the map is first used; the package root exports it.
+  - Every reach into the plugin is its own guarded call, nothing pedalboard raises leaving any of
+    them, a refused restore in `measure` included; the Python work between calls runs in the
+    process's own environment. The containers around the state are read once, at load, and every
+    `load_state` reuses them; a render refuses a bool; a grid row with other keys is `CensusError`.
+  - `NormalizedScale.span` and a record's displayed ends are computed by their values, so a copy
+    with another bound is never stale; `_round_half_away`'s docstring says the grid lands on a
+    half; `fit_scale` builds one scale; `preset.decode_end` is the one place deep nesting is
+    turned into `ValueError`.
+  - `files.replace_files` stages every file, then renames each over, putting an earlier one back
+    when a later rename fails, and syncs the directory; the census writes both outputs through it.
+  - The plugin's integration tests skip by name where the map was measured on another machine,
+    and hold that a load changes no container.
+- Revision after the review of PR 9, `agent-os/specs/2026-11-10-1027-revision-after-pr-9-review/`:
+  24 findings at `eb95567`, 23 addressed and one, the state's JSON decoded more than once, declined
+  with its reason. The version stays 0.0.1.
+  - `MappedParameter.to_preset` rounds to a whole number on an indexed scale and refuses a
+    non-whole value for a choice or a boolean; a record holds together in float32, so a libm an
+    ulp apart still reads the map; `ParameterMap.machine` records where the census ran, and the
+    host refuses the map on another machine with `MachineMismatchError`, where the map is first
+    used.
+  - The host keeps the floating-point environment around every call into the plugin, held by a
+    unit test with a fake plugin; what pedalboard raises is `PluginStateError` or
+    `PluginRenderError`, chained; `render` refuses a length or rate that is no whole number, asks
+    one sample more and returns the first `samples`; `measure` restores the state however a read
+    ends; the libraries are looked up lazily.
+  - The state codec refuses a negative chunk size and a text nesting too deeply, as
+    `PluginStateError`; `OpaqueChange.where` tells a section under `settings` named `tuning` from
+    the top-level one.
+  - The census refuses two parameters moving one preset value and a record the map's models
+    refuse, by name; choice names made from an index never collide; both outputs are written
+    whole or not at all, the key list first, through the new `files.replace_file`, which `dump`
+    uses too.
+  - Tests: the host's integration module loads Vital once; `tests/unit/test_files.py` is new.
+- Revision after PR 9's CI run, `agent-os/specs/2026-11-10-0738-revision-after-pr-9-ci/`: the host
+  keeps the floating-point environment with `fegetenv` and `fesetenv` from the first library that
+  holds both, glibc keeping them in its maths library. It had taken the C library, so on Linux a
+  built-in `AttributeError` left `VitalHost()` and CI's unit suite failed. Unit tests that need no
+  plugin hold the lookup and a save and restore of the environment, so CI runs them. The version
+  stays 0.0.1.
+- The package's error root is `VitalError`, with `VitalFormatError` under it beside the host's
+  `VitalHostError` and the map's `UnknownParameterError` and `ParameterRangeError`, each of those
+  two also core's matching error. The host spec,
+  `agent-os/specs/2026-11-09-1907-the-host-and-the-parameter-map/`.
 - Revision after the review of PR 6, `agent-os/specs/2026-11-09-1610-revision-after-pr-6-review/`:
   sixteen findings at `6d7f747`, fifteen addressed and one, `json.decoder.WHITESPACE`, declined with
   its reason. The version stays 0.0.1.
@@ -58,6 +126,25 @@ writes the entry, in that commit
 
 ### Added
 
+- The host and the parameter map, the first half of issue #7,
+  `agent-os/specs/2026-11-09-1907-the-host-and-the-parameter-map/`; the instrument is issue #8.
+  - `patchbay-vital[host]`: pedalboard (GPLv3) as an optional extra, `>=0.9.26,<1`, so the package
+    stays MIT and installs without it; pinned `==0.9.26` in the dev group so the gate hosts Vital.
+    `numpy>=2.5.4,<3` is declared in the extra beside it, `host.py` importing it.
+  - `host.VitalHost`: loads Vital from a path or `/Library/Audio/Plug-Ins/VST3/Vital.vst3`, sets and
+    reads parameters by preset key in normalized values, loads and reads the plugin's state as a
+    preset's text, and renders MIDI to `(2, samples)` float32. It keeps the process's
+    floating-point environment, which Vital otherwise leaves flushing subnormals to zero.
+  - `state`: the VST3 preset, `VstW` and `CcnK` containers around the state's text, read and written
+    byte for byte.
+  - `parameters` and `data/parameters.json`: all 903 parameters by preset key, each with its
+    normalized ↔ preset scale (linear or indexed, exact float32 with a fused multiply-add,
+    `float32`) and its preset ↔ display curve in the plugin's own units, measured from the plugin.
+    `census` is the generator that wrote it; `settings_keys.txt` is now derived from the map.
+  - `VitalPreset.tuning`: the plugin state's top-level object, kept as its text like any unread
+    section.
+  - Integration tests against the installed plugin: the census regenerates the committed map, every
+    installed preset loads as its state, and renders are measured.
 - The `.vital` format, issue #2, `agent-os/specs/2026-11-09-1509-the-vital-format/`: `load`, `loads`,
   `dump`, `dumps` and `diff` over typed models on `PatchbayModel`, every section the package does not
   interpret kept as the file held it. `dumps(loads(text)) == text` on every one of the 75 presets

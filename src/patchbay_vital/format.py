@@ -1,9 +1,9 @@
 """Reading, writing and comparing a `.vital` file, byte for byte.
 
 `loads` walks the top level and `settings` by span, so every section it does not interpret is kept
-as the very text the file held. `dumps` writes what Vital writes: keys sorted at every depth, no
-whitespace, raw UTF-8 and floats through `grisu2`, so `dumps(loads(text)) == text` for a file Vital
-saved.
+as the very text the file held, the plugin state's top-level `tuning` among them. `dumps` writes
+what Vital writes: keys sorted at every depth, no whitespace, raw UTF-8 and floats through `grisu2`,
+so `dumps(loads(text)) == text` for a file Vital saved.
 
 A key Vital is not known to write is `UnknownSettingError`, so a change of format is noticed, except
 that an unknown section under `settings` is kept with the unread ones. Anything else wrong with a
@@ -14,16 +14,14 @@ data, and is not written back.
 
 import json
 import math
-import os
-import shutil
-import uuid
 from collections.abc import Callable, Mapping, Sequence
 from pathlib import Path
-from typing import NamedTuple
+from typing import Literal, NamedTuple
 
 from patchbay import PatchbayValidationError, PresetKey
 
 from patchbay_vital.errors import MalformedPresetError, PresetFileError, UnknownSettingError
+from patchbay_vital.files import replace_file
 from patchbay_vital.grisu2 import format_float
 from patchbay_vital.preset import (
     DECODER,
@@ -55,10 +53,11 @@ type _Reader = Callable[[str, int], tuple[object, int]]
 _SETTINGS_KEY = "settings"
 _SOURCE, _DESTINATION, _LINE_MAPPING = "source", "destination", "line_mapping"
 _TRAILING_NEWLINE = "trailing_newline"
+_TUNING = "tuning"
 _METADATA = tuple(
     sorted(
         set(VitalPreset.model_fields)
-        - {_SETTINGS_KEY, MODULATIONS_KEY, "opaque", _TRAILING_NEWLINE}
+        - {_SETTINGS_KEY, MODULATIONS_KEY, "opaque", _TUNING, _TRAILING_NEWLINE}
     )
 )
 _SLOT_FLOATS = (*SLOT_FIELDS, *NEWER_SLOT_FIELDS)
@@ -261,9 +260,14 @@ def _parse(text: str) -> VitalPreset:
         raise MalformedPresetError(msg)
     fields: dict[str, object] = {_TRAILING_NEWLINE: text.endswith("\n")}
     settings: _Settings | None = None
-    for name, _, _, value in members:
+    for name, first, end, value in members:
         if isinstance(value, _Settings):
             settings = value
+        elif name == _TUNING:
+            if not isinstance(value, dict):
+                msg = f"{_TUNING!r} is an object, here {value!r}"
+                raise MalformedPresetError(msg)
+            fields[_TUNING] = body[first:end].encode("utf-8")
         elif name not in _METADATA:
             raise UnknownSettingError(name)
         elif value is None:
@@ -342,27 +346,13 @@ def dumps(preset: VitalPreset) -> str:
         value: str | None = getattr(preset, name)
         if value is not None:
             members[name] = _string(value)
+    if preset.tuning is not None:
+        members[_TUNING] = preset.tuning.decode("utf-8")
     return _object(members) + ("\n" if preset.trailing_newline else "")
 
 
-def _replace_file(path: Path, raw: bytes) -> None:
-    """Write `raw` beside the file and rename it over, so a failure leaves the file as it was."""
-    target = path.resolve()
-    temporary = target.with_name(f".{target.name}.{uuid.uuid4().hex}.tmp")
-    try:
-        with temporary.open("xb") as file:
-            file.write(raw)
-            file.flush()
-            os.fsync(file.fileno())
-        if target.exists():
-            shutil.copymode(target, temporary)
-        temporary.replace(target)
-    finally:
-        temporary.unlink(missing_ok=True)
-
-
 def dump(preset: VitalPreset, path: Path | str) -> None:
-    """Write a preset to a file, whole or not at all.
+    """Write a preset to a file, whole or not at all (`patchbay_vital.files`).
 
     PresetFileError when it cannot be written, MalformedPresetError for text UTF-8 cannot hold,
     which only a model changed past its validation can carry.
@@ -372,7 +362,7 @@ def dump(preset: VitalPreset, path: Path | str) -> None:
     except UnicodeEncodeError as error:
         raise MalformedPresetError(str(error)) from error
     try:
-        _replace_file(Path(path), raw)
+        replace_file(Path(path), raw)
     except (OSError, ValueError) as error:
         raise PresetFileError(str(path), str(error)) from error
 
@@ -418,20 +408,32 @@ def _metadata_changes(a: VitalPreset, b: VitalPreset) -> tuple[MetadataChange, .
     return tuple(changes)
 
 
+def _opaque_change(
+    name: str, where: Literal["settings", "preset"], before: bytes | None, after: bytes | None
+) -> OpaqueChange:
+    """Say that an unread section differs, by its name, its level and sizes."""
+    return OpaqueChange(
+        name=PresetKey(name),
+        where=where,
+        old_size=None if before is None else len(before),
+        new_size=None if after is None else len(after),
+    )
+
+
 def _opaque_changes(a: VitalPreset, b: VitalPreset) -> tuple[OpaqueChange, ...]:
-    """Return every unread section that differs, by name, saying only its size."""
+    """Return every unread section that differs, by name, saying only its size.
+
+    The sections under `settings` come by name, then the top-level `tuning`, which is unread too;
+    `where` tells a section under `settings` named `tuning` from it.
+    """
     old, new = a.opaque, b.opaque
-    changes: list[OpaqueChange] = []
-    for name in sorted(set(old) | set(new)):
-        before, after = old.get(name), new.get(name)
-        if before != after:
-            changes.append(
-                OpaqueChange(
-                    name=name,
-                    old_size=None if before is None else len(before),
-                    new_size=None if after is None else len(after),
-                )
-            )
+    changes = [
+        _opaque_change(name, "settings", old.get(name), new.get(name))
+        for name in sorted(set(old) | set(new))
+        if old.get(name) != new.get(name)
+    ]
+    if a.tuning != b.tuning:
+        changes.append(_opaque_change(_TUNING, "preset", a.tuning, b.tuning))
     return tuple(changes)
 
 

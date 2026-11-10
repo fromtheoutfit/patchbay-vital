@@ -1,0 +1,91 @@
+# Finding 3's probes on the installed Vital 1.6.4 (arm64), read-only, 2026-11-10, against src/ at d4fe077.
+# Run as: uv run --locked python -I <script>, from the repository root.
+
+## Probe 1
+
+    # Probe 1: put each hosted parameter back by its raw value after the census's grid; diff the floats.
+    from patchbay_vital.census import GRID
+    from patchbay_vital.host import VitalHost, _environment_kept, _floats
+    
+    h = VitalHost()
+    start_text = h.state()
+    prev = _floats(start_text)
+    bad = []
+    for host_id, hosted in h._hosted.items():
+        with _environment_kept():
+            original = hosted.raw_value
+        for p in GRID:
+            with _environment_kept():
+                hosted.raw_value = p
+        with _environment_kept():
+            hosted.raw_value = original
+        after = _floats(h.state())
+        diff = sorted(k for k in prev if prev[k] != after.get(k))
+        if diff:
+            bad.append((host_id, original, [(k, prev[k], after.get(k)) for k in diff]))
+        prev = after
+    print("parameters:", len(h._hosted))
+    print("put back by raw value, inexact:", len(bad))
+    for b in bad:
+        print(" ", b)
+    print("text after every put-back == text before:", h.state() == start_text)
+
+parameters: 903
+put back by raw value, inexact: 22
+  ('chorus_feedback', 0.7105263471603394, [('chorus_feedback', 0.4000000059604645, 0.40000006556510925)])
+  ('band_lower_ratio', 0.8999999761581421, [('compressor_band_lower_ratio', 0.800000011920929, 0.7999999523162842)])
+  ('high_lower_ratio', 0.8999999761581421, [('compressor_high_lower_ratio', 0.800000011920929, 0.7999999523162842)])
+  ('low_lower_ratio', 0.8999999761581421, [('compressor_low_lower_ratio', 0.800000011920929, 0.7999999523162842)])
+  ('low_upper_threshold', 0.6499999761581421, [('compressor_low_upper_threshold', -28.0, -28.000001907348633)])
+  ('envelope_1_decay_power', 0.44999998807907104, [('env_1_decay_power', -2.0, -2.000000476837158)])
+  ('envelope_1_release_power', 0.44999998807907104, [('env_1_release_power', -2.0, -2.000000476837158)])
+  ('envelope_2_decay_power', 0.44999998807907104, [('env_2_decay_power', -2.0, -2.000000476837158)])
+  ('envelope_2_release_power', 0.44999998807907104, [('env_2_release_power', -2.0, -2.000000476837158)])
+  ('envelope_3_decay_power', 0.44999998807907104, [('env_3_decay_power', -2.0, -2.000000476837158)])
+  ('envelope_3_release_power', 0.44999998807907104, [('env_3_release_power', -2.0, -2.000000476837158)])
+  ('envelope_4_decay_power', 0.44999998807907104, [('env_4_decay_power', -2.0, -2.000000476837158)])
+  ('envelope_4_release_power', 0.44999998807907104, [('env_4_release_power', -2.0, -2.000000476837158)])
+  ('envelope_5_decay_power', 0.44999998807907104, [('env_5_decay_power', -2.0, -2.000000476837158)])
+  ('envelope_5_release_power', 0.44999998807907104, [('env_5_release_power', -2.0, -2.000000476837158)])
+  ('envelope_6_decay_power', 0.44999998807907104, [('env_6_decay_power', -2.0, -2.000000476837158)])
+  ('envelope_6_release_power', 0.44999998807907104, [('env_6_release_power', -2.0, -2.000000476837158)])
+  ('oscillator_1_detune_power', 0.6499999761581421, [('osc_1_detune_power', 1.5, 1.499999761581421)])
+  ('oscillator_2_detune_power', 0.6499999761581421, [('osc_2_detune_power', 1.5, 1.499999761581421)])
+  ('reverb_chorus_frequency', 0.5454545617103577, [('reverb_chorus_frequency', -2.0, -1.999999761581421)])
+  ('reverb_high_gain', 0.8333333134651184, [('reverb_high_shelf_gain', -1.0, -1.0000001192092896)])
+  ('oscillator_3_detune_power', 0.6499999761581421, [('osc_3_detune_power', 1.5, 1.499999761581421)])
+text after every put-back == text before: False
+
+## Probe 2
+
+    # Probe 2: time measure as reviewed (a load after each parameter) against a raw-value put-back
+    # per parameter and one load of the start at the end; compare the floats after with the start's.
+    import time
+    
+    from patchbay_vital.census import GRID
+    from patchbay_vital.host import VitalHost, _environment_kept, _floats
+    from patchbay_vital.state import unwrap
+    
+    h = VitalHost()
+    start = h.preset_data()
+    t = time.perf_counter()
+    m = h.measure(GRID)
+    print(f"measure as reviewed (a load per parameter): {time.perf_counter() - t:.1f} s, {len(m)} parameters")
+    t = time.perf_counter()
+    for host_id, hosted in h._hosted.items():
+        with _environment_kept():
+            original = hosted.raw_value
+        for p in GRID:
+            with _environment_kept():
+                hosted.raw_value = p
+            _floats(h.state())
+        with _environment_kept():
+            hosted.raw_value = original
+    with _environment_kept():
+        h._plugin.preset_data = start
+    print(f"raw-value put-back and one load: {time.perf_counter() - t:.1f} s")
+    print("floats after the one load == the start's:", _floats(h.state()) == _floats(unwrap(start).text))
+
+measure as reviewed (a load per parameter): 20.9 s, 903 parameters
+raw-value put-back and one load: 14.4 s
+floats after the one load == the start's: True

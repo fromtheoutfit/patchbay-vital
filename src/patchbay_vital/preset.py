@@ -3,12 +3,15 @@
 A `.vital` file is JSON whose `settings` object holds float scalars and structured sections side by
 side. `VitalSettings` holds the floats by key, `Modulation` a slot of the routing list joined with
 that slot's own floats, and `VitalPreset.opaque` the sections this package does not interpret, each
-as the text the file held, so it is written back byte for byte.
+as the text the file held, so it is written back byte for byte. The plugin's own state is the same
+text with one more top-level object, `tuning`, held as its text the same way.
 
 A key is *known* when Vital has ever been seen to write it, not when every file has it: Vital adds
 keys as it grows (723 settings at 0.6.1, 909 at 1.6.4), so a key absent from a file is legal and a
-key absent from `settings_keys.txt` is a change of format. That file is a plain sorted list; the
-two-namespace map turns it into structured data.
+key absent from `settings_keys.txt` is a change of format. That file is a plain sorted list derived
+from the parameter map, `data/parameters.json`: every key there but the per-slot ones, and the keys
+only presets hold, `parameters.PRESET_ONLY_KEYS`. The generator writes both, refusing a list that
+would forget a key known here, and a unit test holds the one to the other.
 
 A model built directly refuses as patchbay's `PatchbayValidationError`; reading a file through
 `patchbay_vital.format` reports the same refusal as `MalformedPresetError`.
@@ -96,17 +99,27 @@ type _ReadOnly[V] = Annotated[
 ]
 
 
+def decode_end(text: str, what: str) -> int:
+    """Return where the JSON value that starts `text` ends, as the package reads JSON.
+
+    ValueError, naming `what`, where the text nests too deeply for the decoder to read, so no
+    `RecursionError` leaves a validator; any other refusal is the decoder's own `ValueError`.
+    """
+    try:
+        _, end = DECODER.raw_decode(text)
+    except RecursionError as error:
+        msg = f"{what} nests too deeply to read"
+        raise ValueError(msg) from error
+    return end
+
+
 def _json_section(raw: bytes) -> bytes:
     """Return `raw` when it is exactly the text of one JSON array or object, else refuse it."""
     if raw[:1] not in {b"[", b"{"}:
         msg = "a section is the text of a JSON array or object"
         raise ValueError(msg)
     text = raw.decode("utf-8")
-    try:
-        _, end = DECODER.raw_decode(text)
-    except RecursionError as error:
-        msg = "a section nests too deeply to read"
-        raise ValueError(msg) from error
+    end = decode_end(text, "a section")
     if end != len(text):
         msg = "a section is one JSON array or object with nothing after it"
         raise ValueError(msg)
@@ -216,7 +229,9 @@ class VitalPreset(_PicklableMappings, frozen=True):
     `modulations` is always every slot, its position the slot's number less one. `opaque` holds each
     section this package does not interpret, as the text of its JSON, the form `patchbay.Patch`
     carries unread sections in. `preset_name` is None where the file lacks the key, as files before
-    1.6.4 do. `trailing_newline` says the file ended in one, as three of Vital's own presets do.
+    1.6.4 do. `tuning` is the top-level object the plugin's state adds, as its text, and None where
+    the text has none, as every `.vital` file seen. `trailing_newline` says the file ended in one,
+    as three of Vital's own presets do.
     """
 
     model_config = ConfigDict(ser_json_bytes="base64", val_json_bytes="base64")
@@ -235,10 +250,19 @@ class VitalPreset(_PicklableMappings, frozen=True):
         min_length=MODULATION_SLOTS, max_length=MODULATION_SLOTS
     )
     opaque: _ReadOnly[bytes]
+    tuning: bytes | None = None
     trailing_newline: bool = False
 
     # Unhashable, said the way Python says it: pydantic's frozen hash would raise on a mapping.
     __hash__: ClassVar[None] = None  # type: ignore[assignment]
+
+    @field_validator("tuning", mode="after")
+    @classmethod
+    def _tuning_is_an_object(cls, raw: bytes | None) -> bytes | None:
+        if raw is not None and not _json_section(raw).startswith(b"{"):
+            msg = "tuning is the text of a JSON object"
+            raise ValueError(msg)
+        return raw
 
     @field_validator("opaque", mode="after")
     @classmethod
@@ -281,9 +305,14 @@ class MetadataChange(PatchbayModel, frozen=True):
 
 
 class OpaqueChange(PatchbayModel, frozen=True):
-    """An unread section that differs, by name and size only; None on the side that lacks it."""
+    """An unread section that differs, by name and size only; None on the side that lacks it.
+
+    `where` says which level holds it: `settings` for a section under `settings`, `preset` for the
+    top-level `tuning`, so a section under `settings` named `tuning` is told from it.
+    """
 
     name: _Key
+    where: Literal["settings", "preset"]
     old_size: int | None = Field(ge=0)
     new_size: int | None = Field(ge=0)
 

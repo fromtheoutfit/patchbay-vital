@@ -1,0 +1,25 @@
+# This revision's unit tests against src/ as reviewed at eb95567 (its own data/parameters.json; files.py, new in this revision, left in place so format.py's import resolves), 2026-11-10.
+# tests/unit/test_errors.py and tests/unit/test_host.py import MachineMismatchError, new in this revision, so neither collects against the old code: their findings' tests (3, 5, 6, 12, 14, 18, 21) are the module's and run only on the new code. Every other failure is a finding's test, named.
+# uv run --locked pytest -c pyproject.toml -p no:doctest tests/unit -q --continue-on-collection-errors
+FAILED tests/unit/test_census.py::test_a_made_up_name_never_collides_with_a_given_one[names0-choices0]
+FAILED tests/unit/test_census.py::test_a_made_up_name_never_collides_with_a_given_one[names1-choices1]
+FAILED tests/unit/test_census.py::test_a_default_that_displays_as_no_number_is_named
+FAILED tests/unit/test_census.py::test_two_parameters_moving_one_preset_value_are_named
+FAILED tests/unit/test_census.py::test_the_map_records_the_machine_the_census_ran_on
+FAILED tests/unit/test_census.py::test_the_written_map_reads_back_as_built_one_record_a_line
+FAILED tests/unit/test_census.py::test_the_census_writes_both_files_and_names_a_parameter_it_cannot_fit
+FAILED tests/unit/test_census.py::test_a_key_list_that_cannot_be_written_leaves_the_map_unwritten
+FAILED tests/unit/test_format.py::test_a_diff_reports_the_tuning_after_the_sections
+FAILED tests/unit/test_format.py::test_a_section_under_settings_named_tuning_is_told_from_the_preset_s
+FAILED tests/unit/test_parameters.py::test_a_record_holds_together_in_float32_so_a_libm_an_ulp_apart_still_reads_it
+FAILED tests/unit/test_parameters.py::test_a_value_between_an_indexed_scale_s_steps_goes_to_the_nearest_step
+FAILED tests/unit/test_parameters.py::test_a_choice_or_a_boolean_takes_a_whole_index_and_nothing_else
+FAILED tests/unit/test_parameters.py::test_a_scale_s_span_is_computed_once - ...
+FAILED tests/unit/test_parameters.py::test_a_map_finds_a_record_by_its_preset_key
+FAILED tests/unit/test_parameters.py::test_the_format_s_keys_are_the_map_s_but_the_slots_with_the_preset_only_ones
+FAILED tests/unit/test_parameters.py::test_a_map_comes_back_from_its_json - p...
+FAILED tests/unit/test_parameters.py::test_the_committed_map_holds_every_hosted_parameter
+FAILED tests/unit/test_state.py::test_a_text_that_is_not_one_object_is_refused[text7]
+FAILED tests/unit/test_state.py::test_each_layer_is_refused_by_name[a chunk's size is not negative]
+ERROR tests/unit/test_errors.py
+ERROR tests/unit/test_host.py

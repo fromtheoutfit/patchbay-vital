@@ -1,0 +1,637 @@
+# The discovery of issue #7, one run in patchbay-vital's locked environment
+# 2026-11-09 19:16 EST, branch feature/7-the-host-and-the-parameter-map-load-vital-through-pedalboard-map-all-903-parameters-to-preset-keys-and-pass-cores-contract-tests-as-a-real-instrument, at ac30bd3 with the dependency change uncommitted
+# Command, from the repository root: uv run --locked python -u -X faulthandler probes.py tests/data/fma-vectors.txt (exit 0)
+# The first attempt crashed at the census: verification/probes-first-attempt.txt.
+
+---- probes.py
+"""The discovery of issue #7, re-run as one script in patchbay-vital's locked environment.
+
+Run from the repository root: uv run --locked python <this file> <fma-vectors output path>
+Reads the installed Vital and ~/Music/Vital against tests/data/factory-manifest.txt; writes only
+the vectors file it is given. Every number in the spec's shape.md comes from a run of this file.
+"""
+
+import base64
+import json
+import math
+import platform
+import re
+import struct
+import sys
+import time
+import xml.etree.ElementTree as ET
+from collections import Counter, defaultdict
+from fractions import Fraction
+from pathlib import Path
+
+import numpy as np
+import pedalboard
+from pedalboard import VST3Plugin
+
+PATH = "/Library/Audio/Plug-Ins/VST3/Vital.vst3"
+ROOT = Path.home() / "Music" / "Vital"
+REPO = Path.cwd()
+MANIFEST = [
+    line
+    for line in (REPO / "tests/data/factory-manifest.txt").read_text().splitlines()
+    if not line.startswith("#")
+]
+FIXTURE = (REPO / "tests/data/init-media-replaced.vital").read_bytes()
+KNOWN = set((REPO / "src/patchbay_vital/settings_keys.txt").read_text().split())
+SLOT = re.compile(r"modulation_[0-9]+_(amount|bipolar|bypass|power|stereo|ramp_down|ramp_up)")
+GRID = [0.0, 0.1, 0.13, 0.25, 0.3, 0.37, 0.5, 0.7, 0.75, 0.9, 1.0]
+TRAILER = bytes(17) + b"JUCEPrivateData"
+
+
+def head(title):
+    print(f"\n== {title}")
+
+
+# ---- the .vstpreset container and the component it holds, as the probes read them
+
+
+def component(preset_data):
+    assert preset_data[:4] == b"VST3"
+    list_at = struct.unpack("<q", preset_data[40:48])[0]
+    assert preset_data[list_at : list_at + 4] == b"List"
+    return preset_data[48:list_at]
+
+
+def chunk(preset_data):
+    comp = component(preset_data)
+    size = struct.unpack(">i", comp[172:176])[0]
+    return comp[176 : 176 + size]
+
+
+def text_of(preset_data):
+    body = chunk(preset_data)
+    _, end = json.JSONDecoder().raw_decode(body.decode("latin-1"))
+    return body[:end], body[end:]
+
+
+def settings(plugin):
+    return json.loads(text_of(plugin.preset_data)[0])["settings"]
+
+
+def wrap(template, text, trailer=TRAILER):
+    body = text + trailer
+    comp = component(template)
+    header = bytearray(comp[16:176])
+    struct.pack_into(">i", header, 4, len(body) + 152)
+    struct.pack_into(">i", header, 156, len(body))
+    new = comp[:16] + bytes(header) + body
+    list_at = 48 + len(new)
+    out = bytearray(template[:48])
+    struct.pack_into("<q", out, 40, list_at)
+    entries = b"Comp" + struct.pack("<qq", 48, len(new)) + b"Cont" + struct.pack("<qq", list_at, 0)
+    return bytes(out + new + b"List" + struct.pack("<i", 2) + entries)
+
+
+def dumps(obj):
+    return json.dumps(obj, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode()
+
+
+JUCE64 = ".ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+"
+
+
+def juce_base64(text):
+    size_text, _, body = text.partition(".")
+    size = int(size_text)
+    out = bytearray(size)
+    bit = 0
+    for character in body:
+        value = JUCE64.index(character)
+        for k in range(6):
+            if bit < size * 8 and value >> k & 1:
+                out[bit >> 3] |= 1 << (bit & 7)
+            bit += 1
+    return bytes(out)
+
+
+# ---- float32 arithmetic, exact
+
+
+def round_f32(value):
+    near = np.float32(float(value))
+    best = None
+    for candidate in (np.nextafter(near, np.float32(-np.inf)), near, np.nextafter(near, np.float32(np.inf))):
+        distance = abs(Fraction(float(candidate)) - value)
+        even = int(np.array([candidate], dtype=np.float32).view(np.int32)[0]) % 2 == 0
+        if best is None or distance < best[0] or (distance == best[0] and even):
+            best = (distance, candidate)
+    return float(best[1])
+
+
+def f32(x):
+    return float(np.float32(x))
+
+
+def fused(r, span, minimum):
+    return round_f32(Fraction(f32(r)) * Fraction(span) + Fraction(minimum))
+
+
+def separate(r, span, minimum):
+    return float(np.float32(np.float32(np.float32(r) * np.float32(span)) + np.float32(minimum)))
+
+
+def ulps(a, b):
+    bits = np.array([a, b], dtype=np.float32).view(np.int32)
+    return abs(int(bits[0]) - int(bits[1]))
+
+
+head("environment")
+print("python", platform.python_version(), "| pedalboard", pedalboard.__version__, "| numpy", np.__version__)
+t0 = time.perf_counter()
+vital = VST3Plugin(PATH)
+t1 = time.perf_counter()
+print('typed parameters:', len(vital._parameters))
+t2 = time.perf_counter()
+parameters = vital.parameters
+t3 = time.perf_counter()
+print(f"plugin {vital.name} {vital.version} by {vital.manufacturer_name}, instrument {vital.is_instrument}, at {PATH}")
+print(f"load {t1 - t0:.2f} s; typed parameter list {t2 - t1:.3f} s; pedalboard's parameters mapping {t3 - t2:.2f} s")
+print("plugins in the bundle:", VST3Plugin.get_plugin_names_for_file(PATH))
+template = vital.preset_data
+S0 = json.loads(text_of(template)[0])["settings"]
+
+head("Q1: the state's layout")
+comp = component(template)
+print("vstpreset:", template[:4], "version", struct.unpack("<i", template[4:8])[0], "class id", template[8:40])
+print("VstW:", comp[:4], struct.unpack(">iii", comp[4:16]))
+magic, size, fx_magic, version, fx_id, fx_version, programs = struct.unpack(">4si4si4sii", comp[16:44])
+print(f"CcnK: {magic} byteSize {size} {fx_magic} version {version} {fx_id} fxVersion {hex(fx_version)} programs {programs}; future zero {comp[44:172] == bytes(128)}")
+text, trailer = text_of(template)
+state = json.loads(text)
+print("chunk:", len(chunk(template)), "bytes; JSON", len(text), "then", trailer)
+print("top-level keys:", sorted(state))
+print("the JSON is written as a .vital file writes it:", text == dumps(state))
+print("tuning:", json.dumps(state["tuning"]))
+raw = vital.raw_state
+root = ET.fromstring(raw[8:].rstrip(b"\0").decode())
+print("raw_state:", raw[:4], "XML", root.tag, [child.tag for child in root], "| its IComponent is the same bytes:", juce_base64(root.find("IComponent").text) == comp)
+print("wrap(unwrap(preset_data)) == preset_data:", wrap(template, text, trailer) == template)
+no_tuning = {k: v for k, v in state.items() if k != "tuning"}
+for label, tail in (("full trailer", TRAILER), ("one NUL", b"\0"), ("nothing", b"")):
+    vital.preset_data = wrap(template, dumps(no_tuning), tail)
+    back = json.loads(text_of(vital.preset_data)[0])
+    differs = [k for k in back["settings"] if back["settings"][k] != state["settings"].get(k)]
+    print(f"a state without tuning and {label} after the JSON is taken; reads back with tuning {'tuning' in back}; settings differing {differs}")
+vital.preset_data = template
+
+head("Q1: setting the state")
+watch = ["oscillator_1_level", "volume", "filter_1_switch"]
+before = {k: parameters[k].raw_value for k in watch}
+vital.preset_data = wrap(template, (ROOT / "Factory/Presets/Plucked String.vital").read_bytes())
+print("Plucked String set:", {k: (round(before[k], 6), round(parameters[k].raw_value, 6)) for k in watch})
+vital.preset_data = template
+parameters["filter_1_cutoff"].raw_value = 0.9
+print("a raw_value set reaches the state at once: filter_1_cutoff", settings(vital)["filter_1_cutoff"])
+vital.preset_data = template
+
+head("Q1: the 75 presets as state")
+summary, histogram, sections, dropped, versions, second, times = Counter(), Counter(), Counter(), Counter(), Counter(), Counter(), []
+second_keys = []
+for relative in MANIFEST:
+    file_text = (ROOT / relative).read_bytes()
+    original = json.loads(file_text)
+    versions[original["synth_version"]] += 1
+    t = time.perf_counter()
+    vital.preset_data = wrap(template, file_text)
+    times.append(time.perf_counter() - t)
+    first_text = text_of(vital.preset_data)[0]
+    first = json.loads(first_text)
+    a, b = original["settings"], first["settings"]
+    summary["reads back different"] += first_text != file_text.rstrip(b"\n")
+    summary["keys added"] += bool(set(b) - set(a))
+    for key in set(a) - set(b):
+        dropped[key] += 1
+    for key in a:
+        if isinstance(a[key], float) and key in b and a[key] != b[key]:
+            histogram[min(ulps(a[key], b[key]), 99)] += 1
+        elif not isinstance(a[key], float) and a[key] != b.get(key):
+            sections[key] += 1
+    vital.preset_data = wrap(template, first_text)
+    again = json.loads(text_of(vital.preset_data)[0])["settings"]
+    moved = [(k, ulps(b[k], again[k])) for k in b if k != "sample" and isinstance(b[k], float) and b[k] != again[k]]
+    other = [k for k in b if k != "sample" and not isinstance(b[k], float) and b[k] != again[k]]
+    second["stable but the sample" if not moved and not other else "moves on a second load"] += 1
+    second_keys += moved + [(k, "section") for k in other]
+print("versions:", dict(versions))
+print("summary:", dict(summary), "| keys dropped:", dict(dropped))
+print("floats moved, by float32 ulps (99 = 99+):", dict(sorted(histogram.items())))
+print("sections re-encoded:", dict(sections))
+print("a second load:", dict(second), "| what moves:", second_keys)
+print(f"setting the state: median {np.median(times) * 1000:.1f} ms, max {max(times) * 1000:.1f} ms")
+vital.preset_data = template
+
+head("Q1: the sample, an off-grid value, the fixture")
+samples = []
+current = text_of(template)[0]
+for _ in range(4):
+    samples.append(np.frombuffer(base64.b64decode(json.loads(current)["settings"]["sample"]["samples"]), dtype="<i2"))
+    vital.preset_data = wrap(template, current)
+    current = text_of(vital.preset_data)[0]
+print("the sample's leading zeros over three loads:", [int(np.argmax(s != 0)) for s in samples])
+print("each load is the last delayed by 4 samples:", all(np.array_equal(samples[i + 1][4:], samples[i][:-4]) for i in range(1, 3)))
+vital.preset_data = template
+parameters["chorus_feedback"].raw_value = 0.2
+vital.preset_data = template
+once = settings(vital)["chorus_feedback"]
+vital.preset_data = template
+twice = settings(vital)["chorus_feedback"]
+print(f"chorus_feedback {S0['chorus_feedback']!r}: after a host set, loaded once {once!r}, twice {twice!r}")
+vital.preset_data = wrap(template, FIXTURE)
+fixture_back = json.loads(text_of(vital.preset_data)[0])
+fixture = json.loads(FIXTURE)
+print("the fixture as state reads back different at:", [k for k in fixture["settings"] if fixture["settings"][k] != fixture_back["settings"].get(k)], "| added:", sorted(set(fixture_back) - set(fixture)))
+vital.preset_data = template
+
+head("Q1: a routing only in the JSON")
+SR = 48000
+NOTE = [(bytes([0x90, 60, 100]), 0.0), (bytes([0x80, 60, 0]), 1.5)]
+
+
+def render(state_object):
+    vital.preset_data = wrap(template, dumps(state_object))
+    return vital(NOTE, duration=2.0, sample_rate=SR)
+
+
+def variation(audio):
+    mono = audio.mean(axis=0)[int(0.2 * SR) : int(1.4 * SR)]
+    frames = mono[: len(mono) // 960 * 960].reshape(-1, 960)
+    rms = np.sqrt((frames**2).mean(axis=1))
+    return rms.std() / rms.mean()
+
+
+routed = json.loads(dumps(state))
+routed["settings"]["modulations"][0] = {"source": "lfo_1", "destination": "osc_1_level"}
+routed["settings"]["modulation_1_amount"] = -1.0
+control = json.loads(dumps(routed))
+control["settings"]["modulations"][0] = {"source": "", "destination": ""}
+print(f"20 ms RMS variation over 0.2-1.4 s: init {variation(render(state)):.4f}, control {variation(render(control)):.4f}, lfo_1 -> osc_1_level {variation(render(routed)):.4f}")
+vital.preset_data = template
+
+head("Q2: the census")
+order = list(parameters)
+# The native parameter objects are fetched afresh: one held across the state loads above crashes the
+# process (verification/probes-first-attempt.txt).
+fresh = vital._parameters
+exposed = {parameters[k].name for k in order}
+print("hosted", len(fresh), "| pedalboard's", len(order), "| the rest:", Counter(p.name.split(" ")[0] for p in fresh if p.name not in exposed))
+records = []
+for host_id in order:
+    p = parameters[host_id]
+    values = []
+    for r in GRID:
+        p.raw_value = r
+        values.append(settings(vital))
+    moving = [k for k in S0 if isinstance(S0[k], float) and len({v[k] for v in values}) > 1]
+    key = moving[0] if len(moving) == 1 else None
+    records.append({"host_id": host_id, "label": p.name, "moving": moving, "key": key, "values": [v[key] for v in values] if key else None, "texts": [p.get_text_for_raw_value(r) for r in GRID], "p": p})
+    vital.preset_data = template
+keys = [r["key"] for r in records]
+print(f"one moving key each: {sum(len(r['moving']) == 1 for r in records)} of {len(records)}; distinct {len(set(keys))}; same as pedalboard's id {sum(r['key'] == r['host_id'] for r in records)}")
+print("state floats no parameter moves:", sorted({k for k in S0 if isinstance(S0[k], float)} - set(keys)))
+print("settings_keys.txt keys with no parameter:", sorted(KNOWN - set(keys)), "| per-slot keys:", sum(bool(SLOT.fullmatch(k)) for k in keys), "| keys outside the list and the slots:", sorted(k for k in keys if k not in KNOWN and not SLOT.fullmatch(k)))
+kinds, both, vectors = Counter(), Counter(), []
+for r in records:
+    lo, hi = r["values"][0], r["values"][-1]
+    span = f32(f32(hi) - f32(lo))
+    fma_values = [fused(g, span, lo) for g in GRID]
+    sep_values = [separate(g, span, lo) for g in GRID]
+    if r["values"] == fma_values:
+        r["kind"] = "linear"
+        if fma_values != sep_values:
+            both["only the fused multiply-add matches"] += 1
+            vectors += [(r["key"], g, span, lo, v) for g, v in zip(GRID, r["values"])]
+        else:
+            both["fused and separate agree"] += 1
+        both["separate alone matches"] += r["values"] == sep_values and fma_values != sep_values
+    elif r["values"] == [float(math.floor(v + 0.5)) for v in fma_values]:
+        r["kind"] = "indexed"
+    else:
+        r["kind"] = None
+    r.update(minimum=lo, maximum=hi, span=span)
+    kinds[r["kind"]] += 1
+print("normalized -> preset:", dict(kinds), "| linear:", dict(both))
+with open(sys.argv[1], "w", encoding="utf-8") as out:
+    for key, g, span, lo, value in vectors:
+        hexes = [struct.pack(">f", x).hex() for x in (g, span, lo, value)]
+        out.write(f"{key} {' '.join(hexes)}\n")
+print(f"fma vectors: {len(vectors)} lines over {len({v[0] for v in vectors})} parameters into {sys.argv[1]}")
+
+head("Q2: the display")
+NUM = re.compile(r"^(-?[0-9.]+(?:e[-+]?[0-9]+)?)\s*(.*)$")
+SKEW = {
+    "linear": (lambda x: x, lambda y: y),
+    "quadratic": (lambda x: x * x, math.sqrt),
+    "cubic": (lambda x: x**3, lambda y: math.copysign(abs(y) ** (1 / 3), y)),
+    "quartic": (lambda x: x**4, lambda y: math.sqrt(math.sqrt(y))),
+    "square_root": (math.sqrt, lambda y: y * y),
+    "exponential": (lambda x: 2.0**x, math.log2),
+    "exponential_inverted": (lambda x: 2.0**-x, lambda y: -math.log2(y)),
+}
+curves, unit_table, unfit, bad_choices, choice_sizes = Counter(), Counter(), [], [], Counter()
+for r in records:
+    p = r["p"]
+    if r["kind"] == "indexed":
+        n = int(r["maximum"] - r["minimum"]) + 1
+        if n <= 400:
+            names = [p.get_text_for_raw_value(i / (n - 1)) for i in range(n)]
+            if not all(NUM.match(t) and NUM.match(t).group(2) in ("", "v", "voices", "x", "semitones") for t in names):
+                r["names"] = names
+                kind = "boolean" if names == ["Off", "On"] else "choice"
+                r["role"] = kind
+                if kind == "choice":
+                    choice_sizes[n] += 1
+                    if len(set(names)) != n or not all(names):
+                        bad_choices.append((r["key"], names))
+                continue
+        r["role"] = "numeric indexed"
+    matches = [NUM.match(t) for t in r["texts"]]
+    if not all(matches):
+        unfit.append((r["key"], r["texts"][:3]))
+        continue
+    ys = np.array([float(m.group(1)) for m in matches])
+    suffix = "/".join(sorted({m.group(2) for m in matches})) or "(none)"
+    best = None
+    for name, (forward, _) in SKEW.items():
+        try:
+            xs = np.array([forward(v) for v in r["values"]], dtype=float)
+        except (ValueError, OverflowError):
+            continue
+        if not np.all(np.isfinite(xs)):
+            continue
+        a = np.vstack([xs, np.ones_like(xs)]).T
+        (mul, off), *_ = np.linalg.lstsq(a, ys, rcond=None)
+        error = float(np.max(np.abs(a @ [mul, off] - ys)) / max(np.ptp(ys), 1e-12))
+        if best is None or error < best[0]:
+            best = (error, name, float(f"{mul:.6g}"), float(f"{off:.6g}") if abs(off) > 1e-3 else 0.0)
+    error, name, mul, off = best
+    if r.get("role") != "numeric indexed" and error > 1e-4:
+        unfit.append((r["key"], name, f"{error:.2g}", r["texts"][0], r["texts"][-1]))
+        continue
+    r.update(curve=name, multiply=mul, offset=off, suffix=suffix)
+    if r.get("role") != "numeric indexed":
+        r["role"] = "continuous"
+        curves[name] += 1
+        unit_table[(name, suffix, mul, off)] += 1
+roles = Counter(r.get("role") for r in records)
+print("roles:", dict(roles))
+print("continuous curves:", dict(curves))
+print("display unfit:", unfit)
+print("curve, unit, multiply, offset:")
+for (name, suffix, mul, off), n in sorted(unit_table.items(), key=lambda kv: (kv[0][0], -kv[1])):
+    print(f"   {n:4d}  {name:21s} {suffix!r:12s} x{mul:g} {off:+g}")
+print("choice sizes:", dict(sorted(choice_sizes.items())))
+print("choices with an empty or repeated name:")
+for key, names in bad_choices:
+    print("  ", key, names)
+print("numeric indexed:", sorted((r["key"], r["minimum"], r["maximum"]) for r in records if r.get("role") == "numeric indexed"))
+for key in ("filter_1_cutoff", "env_1_attack", "lfo_1_frequency", "chorus_dry_wet", "volume", "beats_per_minute"):
+    r = next(x for x in records if x["key"] == key)
+    print(f"  {key}: preset [{r['minimum']!r}, {r['maximum']!r}], {r.get('curve')} x{r.get('multiply')} {r.get('offset'):+} {r.get('suffix')!r}; at 0.5 {r['texts'][6]!r}")
+
+head("Q2: values outside the host's range in the presets")
+ranges = {r["key"]: (r["minimum"], r["maximum"]) for r in records}
+outside = Counter()
+for relative in MANIFEST:
+    for key, value in json.loads((ROOT / relative).read_bytes())["settings"].items():
+        if key in ranges and isinstance(value, float) and not ranges[key][0] <= value <= ranges[key][1]:
+            outside[(key, value, ranges[key])] += 1
+for (key, value, bounds), n in sorted(outside.items()):
+    vital.preset_data = template
+    print(f"  {key} {value!r} against {bounds} in {n} presets")
+
+head("probe 4: get after set")
+rng = np.random.default_rng(7)
+continuous = [r for r in records if r.get("role") == "continuous"]
+
+
+def display(r, x):
+    return r["multiply"] * SKEW[r["curve"]][0](x) + r["offset"]
+
+
+def inverse(r, y):
+    return SKEW[r["curve"]][1]((y - r["offset"]) / r["multiply"])
+
+
+file_values = defaultdict(set)
+for relative in MANIFEST:
+    for key, value in json.loads((ROOT / relative).read_bytes())["settings"].items():
+        if isinstance(value, float):
+            file_values[key].add(value)
+p0 = [r["key"] for r in continuous for bound in (r["minimum"], r["maximum"]) if f32(inverse(r, display(r, bound))) != bound]
+p1, p1f, p2, p3 = Counter(), Counter(), Counter(), Counter()
+for r in continuous:
+    for u in rng.random(2000):
+        x = fused(u, r["span"], r["minimum"])
+        p1[(r["curve"], f32(inverse(r, display(r, x))) == x)] += 1
+        landing = round_f32((Fraction(x) - Fraction(r["minimum"])) / Fraction(r["span"]))
+        p3[fused(landing, r["span"], r["minimum"]) == x] += 1
+    for x in file_values.get(r["key"], ()):
+        if r["minimum"] <= x <= r["maximum"]:
+            p1f[f32(inverse(r, display(r, x))) == x] += 1
+    lo, hi = sorted((display(r, r["minimum"]), display(r, r["maximum"])))
+    for y in rng.uniform(lo, hi, 1000):
+        p2[(r["curve"], display(r, f32(inverse(r, y))) == y)] += 1
+print("P0 bounds not recovered:", p0)
+print("P1 values a parameter holds, exact by curve:", {c: (p1[(c, True)], p1[(c, False)]) for c in curves})
+print("P1' distinct file floats in range, exact:", dict(p1f))
+print("P2 arbitrary display values, exact by curve:", {c: (p2[(c, True)], p2[(c, False)]) for c in curves})
+print("P3 the computed normalized value lands on x:", dict(p3))
+p4 = Counter()
+for index in rng.choice(len(continuous), 60, replace=False):
+    r = continuous[index]
+    for u in rng.random(5):
+        x = fused(u, r["span"], r["minimum"])
+        r["p"].raw_value = round_f32((Fraction(x) - Fraction(r["minimum"])) / Fraction(r["span"]))
+        p4[settings(vital)[r["key"]] == x] += 1
+    vital.preset_data = template
+print("P4 through the plugin, 60 parameters x 5, the state holds x:", dict(p4))
+
+head("render")
+for rate in (1000, 8000, 22050, 44100, 48000, 96000, 192000, 384000, 768000):
+    vital.preset_data = template
+    t = time.perf_counter()
+    audio = vital(NOTE, duration=2.0, sample_rate=rate)
+    print(f"  {rate:6d} Hz: shape {audio.shape} {audio.dtype}, finite {bool(np.isfinite(audio).all())}, {(time.perf_counter() - t) * 1000:.0f} ms")
+vital.preset_data = template
+print("2 s at 48 kHz, five renders (ms):", [round((lambda t: (vital(NOTE, duration=2.0, sample_rate=SR), time.perf_counter() - t)[1])(time.perf_counter()) * 1000) for _ in range(5)])
+for samples_wanted in (1, 7, 47999, 48001, 96000, 100003):
+    audio = vital(NOTE, duration=samples_wanted / SR, sample_rate=SR)
+    print(f"  duration {samples_wanted}/48000 s gives {audio.shape[1]} samples")
+vital.preset_data = template
+late = vital([(bytes([0x90, 60, 100]), 0.5), (bytes([0x80, 60, 0]), 1.0)], duration=2.0, sample_rate=SR).mean(axis=0)
+rms = lambda a: float(np.sqrt((a**2).mean()))
+print(f"a note at 0.5 s and its off at 1.0 s: RMS 0-0.45 s {rms(late[: int(0.45 * SR)]):.6f}, 0.55-0.95 s {rms(late[int(0.55 * SR) : int(0.95 * SR)]):.4f}, 1.6-2.0 s {rms(late[int(1.6 * SR) :]):.6f}")
+renders = [vital(NOTE, duration=2.0, sample_rate=SR) for _ in range(2)]
+print("two renders in a row identical:", bool(np.array_equal(*renders)))
+
+
+def centroid(a):
+    mono = a.mean(axis=0)
+    magnitude = np.abs(np.fft.rfft(mono))
+    return float((np.fft.rfftfreq(len(mono), 1 / SR) * magnitude).sum() / magnitude.sum())
+
+
+for r in (0.3, 0.8):
+    vital.preset_data = template
+    parameters["filter_1_switch"].raw_value = 1.0
+    parameters["filter_1_cutoff"].raw_value = r
+    print(f"filter 1 on, cutoff normalized {r} (preset {settings(vital)['filter_1_cutoff']:.1f}): centroid {centroid(vital(NOTE, duration=2.0, sample_rate=SR)):.0f} Hz")
+
+head("instances")
+other = VST3Plugin(PATH)
+mine, theirs = json.loads(text_of(vital.preset_data)[0]), json.loads(text_of(other.preset_data)[0])
+vital.preset_data = template
+mine = json.loads(text_of(vital.preset_data)[0])
+print("a fresh instance differs from the first at:", [k for k in mine["settings"] if mine["settings"][k] != theirs["settings"].get(k)])
+other.preset_data = template
+vital.preset_data = template
+print("after the same bytes both hold the same state:", text_of(vital.preset_data)[0] == text_of(other.preset_data)[0])
+vital.parameters["filter_1_cutoff"].raw_value = 0.9
+print("a set on one leaves the other:", other.parameters["filter_1_cutoff"].raw_value)
+other.preset_data = template
+vital.preset_data = template
+a, b = vital(NOTE, duration=2.0, sample_rate=SR), other(NOTE, duration=2.0, sample_rate=SR)
+print(f"two instances, same state: identical {bool(np.array_equal(a, b))}, centroids {centroid(a):.0f} and {centroid(b):.0f} Hz")
+
+---- output
+
+== environment
+python 3.12.16 | pedalboard 0.9.26 | numpy 2.5.4
+typed parameters: 2983
+plugin Vital 1.6.4 by Vital Audio, instrument True, at /Library/Audio/Plug-Ins/VST3/Vital.vst3
+load 1.20 s; typed parameter list 0.001 s; pedalboard's parameters mapping 1.12 s
+plugins in the bundle: ['Vital']
+
+== Q1: the state's layout
+vstpreset: b'VST3' version 1 class id b'56535456697461766974616C00000000'
+VstW: b'VstW' (8, 1, 0)
+CcnK: b'CcnK' byteSize 178835 b'FBCh' version 2 b'Vita' fxVersion 0x10604 programs 0; future zero True
+chunk: 178683 bytes; JSON 178651 then b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00JUCEPrivateData'
+top-level keys: ['author', 'comments', 'macro1', 'macro2', 'macro3', 'macro4', 'preset_name', 'preset_style', 'settings', 'synth_version', 'tuning']
+the JSON is written as a .vital file writes it: True
+tuning: {"default": true, "mapping_name": "", "reference_midi_note": 0.0, "scale": [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0], "scale_start_midi_note": 60, "tuning_name": ""}
+raw_state: b'VC2!' XML VST3PluginState ['IComponent'] | its IComponent is the same bytes: True
+wrap(unwrap(preset_data)) == preset_data: True
+a state without tuning and full trailer after the JSON is taken; reads back with tuning True; settings differing ['sample']
+a state without tuning and one NUL after the JSON is taken; reads back with tuning True; settings differing ['sample']
+a state without tuning and nothing after the JSON is taken; reads back with tuning True; settings differing ['sample']
+
+== Q1: setting the state
+Plucked String set: {'oscillator_1_level': (0.707107, 0.671951), 'volume': (0.739656, 0.816667), 'filter_1_switch': (0.0, 1.0)}
+a raw_value set reaches the state at once: filter_1_cutoff 123.19999694824219
+
+== Q1: the 75 presets as state
+versions: {'1.0.0': 50, '0.6.1': 1, '0.9.1': 1, '0.9.0': 2, '0.8.6': 10, '0.8.1': 4, '0.6.4': 2, '0.8.5': 4, '0.8.4': 1}
+summary: {'reads back different': 75, 'keys added': 75} | keys dropped: {'chorus_damping': 3}
+floats moved, by float32 ulps (99 = 99+): {1: 437, 2: 220, 3: 54, 4: 59, 5: 12, 6: 13, 7: 8, 8: 20, 10: 5, 11: 1, 12: 10, 13: 1, 14: 4, 15: 2, 16: 6, 20: 1, 22: 1, 31: 1, 56: 1, 64: 1, 67: 1, 74: 1, 82: 1, 99: 22}
+sections re-encoded: {'sample': 75, 'wavetables': 75}
+a second load: {'stable but the sample': 68, 'moves on a second load': 7} | what moves: [('compressor_high_gain', 1), ('distortion_drive', 2), ('distortion_drive', 7), ('compressor_low_gain', 1), ('distortion_drive', 3), ('compressor_band_gain', 4), ('eq_low_gain', 7)]
+setting the state: median 45.9 ms, max 262.3 ms
+
+== Q1: the sample, an off-grid value, the fixture
+the sample's leading zeros over three loads: [4, 8, 12, 16]
+each load is the last delayed by 4 samples: True
+chorus_feedback 0.4000000059604645: after a host set, loaded once 0.40000006556510925, twice 0.4000000059604645
+the fixture as state reads back different at: ['sample'] | added: ['tuning']
+
+== Q1: a routing only in the JSON
+20 ms RMS variation over 0.2-1.4 s: init 0.0176, control 0.0176, lfo_1 -> osc_1_level 1.3510
+
+== Q2: the census
+hosted 2983 | pedalboard's 903 | the rest: Counter({'MIDI': 2080})
+one moving key each: 903 of 903; distinct 903; same as pedalboard's id 647
+state floats no parameter moves: []
+settings_keys.txt keys with no parameter: ['chorus_damping'] | per-slot keys: 448 | keys outside the list and the slots: []
+normalized -> preset: {'linear': 552, 'indexed': 351} | linear: {'only the fused multiply-add matches': 252, 'separate alone matches': 0, 'fused and separate agree': 300}
+fma vectors: 2772 lines over 252 parameters into tests/data/fma-vectors.txt
+
+== Q2: the display
+roles: {'continuous': 552, 'boolean': 242, 'choice': 79, 'numeric indexed': 30}
+continuous curves: {'linear': 352, 'exponential': 141, 'exponential_inverted': 17, 'quartic': 30, 'quadratic': 11, 'square_root': 1}
+display unfit: []
+curve, unit, multiply, offset:
+    138  exponential           'secs'       x1 +0
+      2  exponential           'ms'         x999.997 +0
+      1  exponential           'Hz'         x1 +0
+     13  exponential_inverted  'secs'       x1 +0
+      4  exponential_inverted  's'          x1 +0
+    217  linear                '(none)'     x1 +0
+     50  linear                '%'          x100 +0
+     18  linear                'dB'         x1 +0
+     17  linear                'secs'       x1 +0
+     16  linear                '(none)'     x100 +0
+     14  linear                'semitones'  x1 +0
+      8  linear                '(none)'     x360 +0
+      7  linear                '%'          x200 +0
+      3  linear                'semitones'  x1 -60
+      1  linear                '(none)'     x60 +0
+      1  linear                'c'          x100 +0
+      4  quadratic             '(none)'     x1 +0
+      3  quadratic             '%'          x1 +0
+      2  quadratic             '(none)'     x100 +0
+      2  quadratic             '%'          x100 +0
+     30  quartic               'secs'       x1 +0
+      1  square_root           'dB'         x1 -80
+choice sizes: {2: 5, 3: 5, 4: 11, 5: 13, 6: 1, 7: 8, 8: 3, 9: 5, 11: 3, 13: 18, 15: 4, 17: 3}
+choices with an empty or repeated name:
+   filter_1_style ['12dB', '24dB', 'Notch Blend', 'Notch Spread', 'B/P/N', '', '', '', '']
+   filter_2_style ['12dB', '24dB', 'Notch Blend', 'Notch Spread', 'B/P/N', '', '', '', '']
+   filter_fx_style ['12dB', '24dB', 'Notch Blend', 'Notch Spread', 'B/P/N', '', '', '', '']
+   osc_1_distortion_type ['None', 'Sync', 'Formant', 'Quantize', 'Bend', 'Squeeze', 'Pulse', 'FM <- Osc', 'FM <- Osc', 'FM <- Sample', 'RM <- Osc', 'RM <- Osc', 'RM <- Sample']
+   osc_2_distortion_type ['None', 'Sync', 'Formant', 'Quantize', 'Bend', 'Squeeze', 'Pulse', 'FM <- Osc', 'FM <- Osc', 'FM <- Sample', 'RM <- Osc', 'RM <- Osc', 'RM <- Sample']
+   osc_3_distortion_type ['None', 'Sync', 'Formant', 'Quantize', 'Bend', 'Squeeze', 'Pulse', 'FM <- Osc', 'FM <- Osc', 'FM <- Sample', 'RM <- Osc', 'RM <- Osc', 'RM <- Sample']
+numeric indexed: [('bypass', 0.0, 1.0), ('chorus_voices', 1.0, 4.0), ('effect_chain_order', 0.0, 362879.0), ('lfo_1_keytrack_transpose', -60.0, 36.0), ('lfo_2_keytrack_transpose', -60.0, 36.0), ('lfo_3_keytrack_transpose', -60.0, 36.0), ('lfo_4_keytrack_transpose', -60.0, 36.0), ('lfo_5_keytrack_transpose', -60.0, 36.0), ('lfo_6_keytrack_transpose', -60.0, 36.0), ('lfo_7_keytrack_transpose', -60.0, 36.0), ('lfo_8_keytrack_transpose', -60.0, 36.0), ('osc_1_transpose', -48.0, 48.0), ('osc_1_transpose_quantize', 0.0, 8191.0), ('osc_1_unison_voices', 1.0, 16.0), ('osc_2_transpose', -48.0, 48.0), ('osc_2_transpose_quantize', 0.0, 8191.0), ('osc_2_unison_voices', 1.0, 16.0), ('osc_3_transpose', -48.0, 48.0), ('osc_3_transpose_quantize', 0.0, 8191.0), ('osc_3_unison_voices', 1.0, 16.0), ('oversampling', 0.0, 3.0), ('pitch_bend_range', 0.0, 48.0), ('polyphony', 1.0, 32.0), ('random_1_keytrack_transpose', -60.0, 36.0), ('random_2_keytrack_transpose', -60.0, 36.0), ('random_3_keytrack_transpose', -60.0, 36.0), ('random_4_keytrack_transpose', -60.0, 36.0), ('sample_transpose', -48.0, 48.0), ('sample_transpose_quantize', 0.0, 8191.0), ('voice_transpose', -48.0, 48.0)]
+  filter_1_cutoff: preset [8.0, 136.0], linear x1.0 -60.0 'semitones'; at 0.5 '12 semitones'
+  env_1_attack: preset [0.0, 2.378420114517212], quartic x1.0 +0.0 'secs'; at 0.5 '2.00002 secs'
+  lfo_1_frequency: preset [-7.0, 9.0], exponential_inverted x1.0 +0.0 'secs'; at 0.5 '0.5 secs'
+  chorus_dry_wet: preset [0.0, 1.0], linear x100.0 +0.0 '%'; at 0.5 '50%'
+  volume: preset [0.0, 7399.4404296875], square_root x1.0 -80.0 'dB'; at 0.5 '-19.1747dB'
+  beats_per_minute: preset [0.3333333432674408, 5.0], linear x60.0 +0.0 '(none)'; at 0.5 '160'
+
+== Q2: values outside the host's range in the presets
+  compressor_band_upper_ratio 1.0024827718734741 against (0.0, 1.0) in 1 presets
+  compressor_high_upper_ratio 1.006250023841858 against (0.0, 1.0) in 1 presets
+  compressor_low_upper_ratio 1.0058823823928833 against (0.0, 1.0) in 1 presets
+  flanger_center -15.359999656677246 against (8.0, 136.0) in 1 presets
+  flanger_center 0.0 against (8.0, 136.0) in 2 presets
+  flanger_dry_wet 0.7071999907493591 against (0.0, 0.5) in 26 presets
+
+== probe 4: get after set
+P0 bounds not recovered: []
+P1 values a parameter holds, exact by curve: {'linear': (704000, 0), 'exponential': (282000, 0), 'exponential_inverted': (34000, 0), 'quartic': (60000, 0), 'quadratic': (22000, 0), 'square_root': (2000, 0)}
+P1' distinct file floats in range, exact: {True: 4466}
+P2 arbitrary display values, exact by curve: {'linear': (0, 352000), 'exponential': (0, 141000), 'exponential_inverted': (0, 17000), 'quartic': (0, 30000), 'quadratic': (0, 11000), 'square_root': (0, 1000)}
+P3 the computed normalized value lands on x: {True: 1104000}
+P4 through the plugin, 60 parameters x 5, the state holds x: {True: 300}
+
+== render
+    1000 Hz: shape (2, 2000) float32, finite True, 73 ms
+    8000 Hz: shape (2, 16000) float32, finite True, 71 ms
+   22050 Hz: shape (2, 44100) float32, finite True, 72 ms
+   44100 Hz: shape (2, 88200) float32, finite True, 78 ms
+   48000 Hz: shape (2, 96000) float32, finite True, 80 ms
+   96000 Hz: shape (2, 192000) float32, finite True, 85 ms
+  192000 Hz: shape (2, 384000) float32, finite True, 106 ms
+  384000 Hz: shape (2, 768000) float32, finite True, 147 ms
+  768000 Hz: shape (2, 1536000) float32, finite True, 227 ms
+2 s at 48 kHz, five renders (ms): [90, 80, 79, 80, 80]
+  duration 1/48000 s gives 1 samples
+  duration 7/48000 s gives 6 samples
+  duration 47999/48000 s gives 47999 samples
+  duration 48001/48000 s gives 48001 samples
+  duration 96000/48000 s gives 96000 samples
+  duration 100003/48000 s gives 100002 samples
+a note at 0.5 s and its off at 1.0 s: RMS 0-0.45 s 0.001175, 0.55-0.95 s 0.1441, 1.6-2.0 s 0.000000
+two renders in a row identical: False
+filter 1 on, cutoff normalized 0.3 (preset 46.4): centroid 368 Hz
+filter 1 on, cutoff normalized 0.8 (preset 110.4): centroid 2298 Hz
+
+== instances
+a fresh instance differs from the first at: ['sample']
+after the same bytes both hold the same state: True
+a set on one leaves the other: 0.40625
+two instances, same state: identical False, centroids 4657 and 4610 Hz

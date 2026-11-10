@@ -1,0 +1,116 @@
+# The census: python -m patchbay_vital.census --parameters src/patchbay_vital/data/parameters.json --settings-keys src/patchbay_vital/settings_keys.txt
+# 2026-11-09 19:41 EST, branch feature/7-the-host-and-the-parameter-map-load-vital-through-pedalboard-map-all-903-parameters-to-preset-keys-and-pass-cores-contract-tests-as-a-real-instrument; it printed: 903 parameters of Vital 1.6.4 (exit 0)
+# settings_keys.txt as written: 456 lines, git diff against the committed file: none
+# What it wrote, read back through parameter_map() and swept (census_summary.py, below):
+
+---- census_summary.py
+"""What the generator wrote, counted, and every record's conversions swept for exactness."""
+
+from collections import Counter
+
+import numpy as np
+
+from patchbay_vital.parameters import parameter_map
+
+m = parameter_map()
+records = m.parameters
+print(f"map: {m.instrument} {m.vital_version} via {m.host}; {len(records)} records")
+print("kinds:", dict(Counter(r.parameter.kind for r in records)))
+print("scales:", dict(Counter(r.scale.kind for r in records)))
+print("curves of the continuous:", dict(Counter(r.curve.kind for r in records if r.parameter.kind == "continuous")))
+print("units:", dict(Counter(r.parameter.unit.value for r in records)))
+print("host unit -> unit:", dict(Counter((r.host_unit, r.parameter.unit.value) for r in records)))
+print("curve, unit, multiply, offset (continuous):")
+for (kind, unit, mul, off), n in sorted(Counter((r.curve.kind, r.parameter.unit.value, r.curve.multiply, r.curve.offset) for r in records if r.parameter.kind == "continuous").items(), key=lambda kv: (kv[0][0], -kv[1])):
+    print(f"   {n:4d}  {kind:21s} {unit:10s} x{mul:g} {off:+g}")
+print("choices disambiguated:")
+for r in records:
+    if r.choice_labels is not None:
+        print(f"   {r.id}: {r.parameter.choices} (the plugin's {r.choice_labels})")
+print("choice offsets (a choice's index is the preset less this):", dict(Counter(r.scale.minimum for r in records if r.parameter.kind == "choice")))
+print("renamed from pedalboard's key:", sum(r.host_id != r.id for r in records))
+rng = np.random.default_rng(11)
+edges = [0.0, 1.0, float(np.float32(1e-30)), float(np.float32(1e-20)), float(np.float32(1e-12)), float(np.float32(2.0**-24)), float(np.nextafter(np.float32(1.0), np.float32(0.0)))]
+display_bad, preset_bad, checked = Counter(), Counter(), 0
+for r in records:
+    points = edges + [float(x) for x in rng.random(300).astype(np.float32)]
+    lo = r.scale.minimum
+    for normalized in points:
+        preset = r.scale.to_preset(normalized)
+        display = r.from_normalized(normalized)
+        back = r.to_preset(display)
+        checked += 1
+        display_bad[r.id] += r.to_display(back) != display
+        preset_bad[r.id] += back != preset
+    # presets just above the scale's minimum, one float32 step at a time, and tiny ones
+    for k in range(1, 2001):
+        preset = float(np.float32(lo) + np.float32(k) * np.spacing(np.float32(lo if lo else 1e-38)))
+        if not lo <= preset <= r.scale.maximum or r.scale.kind == "indexed":
+            continue
+        checked += 1
+        display = r.to_display(preset)
+        back = r.to_preset(min(max(display, r.parameter.minimum), r.parameter.maximum))
+        display_bad[r.id] += r.to_display(back) != display
+        preset_bad[r.id] += back != preset
+print(f"sweep: {checked} conversions over {len(records)} records (both ends, tiny normalized values, 300 random, 2000 float32 steps above each linear scale's minimum; an indexed scale holds whole numbers only)")
+print("  a display not recovered:", {k: v for k, v in display_bad.items() if v})
+print("  a preset not recovered:", {k: v for k, v in preset_bad.items() if v})
+print("anchors (normalized, preset, display) at the minimum, the default and the maximum:")
+for key in ("env_1_attack", "filter_1_cutoff", "lfo_1_frequency", "volume", "osc_1_level", "beats_per_minute", "polyphony", "filter_1_on", "delay_tempo", "filter_1_style"):
+    r = m.find(key)
+    row = [(0.0, r.scale.to_preset(0.0), r.from_normalized(0.0)), (r.scale.to_normalized(r.preset_default), r.preset_default, r.parameter.default.value), (1.0, r.scale.to_preset(1.0), r.from_normalized(1.0))]
+    print(f"   {key} ({r.parameter.kind}, {r.parameter.unit.value}, {r.scale.kind}, {r.curve.kind} x{r.curve.multiply:g} {r.curve.offset:+g}): {row}")
+
+---- output
+map: Vital 1.6.4 via pedalboard 0.9.26; 903 records
+kinds: {'continuous': 581, 'boolean': 243, 'choice': 79}
+scales: {'linear': 552, 'indexed': 351}
+curves of the continuous: {'linear': 380, 'exponential': 142, 'exponential_inverted': 17, 'quartic': 30, 'quadratic': 11, 'square_root': 1}
+units: {'bpm': 1, 'none': 597, 'seconds': 204, 'percent': 62, 'db': 19, 'semitones': 19, 'hz': 1}
+host unit -> unit: {('', 'bpm'): 1, ('', 'none'): 592, ('ms', 'seconds'): 2, ('%', 'percent'): 62, ('s', 'seconds'): 4, ('dB', 'db'): 19, ('secs', 'seconds'): 198, ('semitones', 'semitones'): 18, ('v', 'none'): 3, ('x', 'none'): 1, ('voices', 'none'): 1, ('Hz', 'hz'): 1, ('c', 'semitones'): 1}
+curve, unit, multiply, offset (continuous):
+    140  exponential           seconds    x1 +0
+      1  exponential           none       x1 +0
+      1  exponential           hz         x1 +0
+     17  exponential_inverted  seconds    x1 +0
+    243  linear                none       x1 +0
+     50  linear                percent    x100 +0
+     18  linear                db         x1 +0
+     17  linear                seconds    x1 +0
+     16  linear                semitones  x1 +0
+     16  linear                none       x100 +0
+      8  linear                none       x360 +0
+      7  linear                percent    x200 +0
+      3  linear                semitones  x1 -60
+      1  linear                bpm        x60 +0
+      1  linear                none       x4 +0
+      4  quadratic             none       x1 +0
+      3  quadratic             percent    x1 +0
+      2  quadratic             none       x100 +0
+      2  quadratic             percent    x100 +0
+     30  quartic               seconds    x1 +0
+      1  square_root           db         x1 -80
+choices disambiguated:
+   filter_1_style: ('12dB', '24dB', 'Notch Blend', 'Notch Spread', 'B/P/N', 'option_5', 'option_6', 'option_7', 'option_8') (the plugin's ('12dB', '24dB', 'Notch Blend', 'Notch Spread', 'B/P/N', '', '', '', ''))
+   filter_2_style: ('12dB', '24dB', 'Notch Blend', 'Notch Spread', 'B/P/N', 'option_5', 'option_6', 'option_7', 'option_8') (the plugin's ('12dB', '24dB', 'Notch Blend', 'Notch Spread', 'B/P/N', '', '', '', ''))
+   filter_fx_style: ('12dB', '24dB', 'Notch Blend', 'Notch Spread', 'B/P/N', 'option_5', 'option_6', 'option_7', 'option_8') (the plugin's ('12dB', '24dB', 'Notch Blend', 'Notch Spread', 'B/P/N', '', '', '', ''))
+   osc_1_distortion_type: ('None', 'Sync', 'Formant', 'Quantize', 'Bend', 'Squeeze', 'Pulse', 'FM <- Osc_7', 'FM <- Osc_8', 'FM <- Sample', 'RM <- Osc_10', 'RM <- Osc_11', 'RM <- Sample') (the plugin's ('None', 'Sync', 'Formant', 'Quantize', 'Bend', 'Squeeze', 'Pulse', 'FM <- Osc', 'FM <- Osc', 'FM <- Sample', 'RM <- Osc', 'RM <- Osc', 'RM <- Sample'))
+   osc_2_distortion_type: ('None', 'Sync', 'Formant', 'Quantize', 'Bend', 'Squeeze', 'Pulse', 'FM <- Osc_7', 'FM <- Osc_8', 'FM <- Sample', 'RM <- Osc_10', 'RM <- Osc_11', 'RM <- Sample') (the plugin's ('None', 'Sync', 'Formant', 'Quantize', 'Bend', 'Squeeze', 'Pulse', 'FM <- Osc', 'FM <- Osc', 'FM <- Sample', 'RM <- Osc', 'RM <- Osc', 'RM <- Sample'))
+   osc_3_distortion_type: ('None', 'Sync', 'Formant', 'Quantize', 'Bend', 'Squeeze', 'Pulse', 'FM <- Osc_7', 'FM <- Osc_8', 'FM <- Sample', 'RM <- Osc_10', 'RM <- Osc_11', 'RM <- Sample') (the plugin's ('None', 'Sync', 'Formant', 'Quantize', 'Bend', 'Squeeze', 'Pulse', 'FM <- Osc', 'FM <- Osc', 'FM <- Sample', 'RM <- Osc', 'RM <- Osc', 'RM <- Sample'))
+choice offsets (a choice's index is the preset less this): {0.0: 77, 4.0: 2}
+renamed from pedalboard's key: 256
+sweep: 625221 conversions over 903 records (both ends, tiny normalized values, 300 random, 2000 float32 steps above each linear scale's minimum; an indexed scale holds whole numbers only)
+  a display not recovered: {}
+  a preset not recovered: {'volume': 2002}
+anchors (normalized, preset, display) at the minimum, the default and the maximum:
+   env_1_attack (continuous, seconds, linear, quartic x1 +0): [(0.0, 0.0, 0.0), (0.06285685300827026, 0.14949999749660492, 0.0004995336416035003), (1.0, 2.378420114517212, 32.00031669012587)]
+   filter_1_cutoff (continuous, semitones, linear, linear x1 -60): [(0.0, 8.0, -52.0), (0.40625, 60.0, 0.0), (1.0, 136.0, 76.0)]
+   lfo_1_frequency (continuous, seconds, linear, exponential_inverted x1 +0): [(0.0, -7.0, 128.0), (0.5, 1.0, 0.5), (1.0, 9.0, 0.001953125)]
+   volume (continuous, db, linear, square_root x1 -80): [(0.0, 0.0, -80.0), (0.7396560311317444, 5473.04052734375, -6.019999139336647), (1.0, 7399.4404296875, 6.020000172561609)]
+   osc_1_level (continuous, none, linear, quadratic x1 +0): [(0.0, 0.0, 0.0), (0.7071067690849304, 0.7071067690849304, 0.4999999828857291), (1.0, 1.0, 1.0)]
+   beats_per_minute (continuous, bpm, linear, linear x60 +0): [(0.0, 0.3333333432674408, 20.000000596046448), (0.3571428656578064, 2.0, 120.0), (1.0, 5.0, 300.0)]
+   polyphony (continuous, none, indexed, linear x1 +0): [(0.0, 1.0, 1.0), (0.22580644488334656, 8.0, 8.0), (1.0, 32.0, 32.0)]
+   filter_1_on (boolean, none, indexed, linear x1 +0): [(0.0, 0.0, 0.0), (0.0, 0.0, 0.0), (1.0, 1.0, 1.0)]
+   delay_tempo (choice, none, indexed, linear x1 -4): [(0.0, 4.0, 0.0), (0.625, 9.0, 5.0), (1.0, 12.0, 8.0)]
+   filter_1_style (choice, none, indexed, linear x1 +0): [(0.0, 0.0, 0.0), (0.0, 0.0, 0.0), (1.0, 8.0, 8.0)]
+exit 0

@@ -4,31 +4,55 @@ patchbay adapter for Vital: the `.vital` preset format, the VST3 parameter map a
 conversions, and sound-design semantics as data.
 
 This is an experiment, not a product. The distribution name is `patchbay-vital` and the import name
-is `patchbay_vital`. It reads, writes and compares a `.vital` preset file; the VST3 parameter map and
-the sound-design semantics join with the specs that add them (`agent-os/product/mission.md`).
+is `patchbay_vital`. It reads, writes and compares a `.vital` preset file, maps each of the 903
+parameters Vital's VST3 exposes to its preset key with exact conversions between the host's
+normalized value, the preset's value and the value Vital displays, and, with the `host` extra, hosts
+Vital and loads a preset into it whole. The instrument patchbay drives (issue #8) and the
+sound-design semantics join with the specs that add them (`agent-os/product/mission.md`).
 
 ```python
-from patchbay_vital import diff, dump, load
+from patchbay import ParameterId
+from patchbay_vital import diff, dump, load, parameter_map
 
 preset = load("Plucked String.vital")   # typed models, every unread section kept as it was
 dump(preset, "copy.vital")              # byte for byte what Vital wrote
 diff(preset, load("copy.vital")).is_empty
+
+attack = parameter_map().find(ParameterId("env_1_attack"))
+attack.parameter.unit                   # Unit.seconds, as Vital displays it
+attack.to_normalized(0.5)               # the host's value for half a second
+```
+
+```python
+from patchbay_vital.host import VitalHost   # needs patchbay-vital[host]
+
+host = VitalHost()                          # /Library/Audio/Plug-Ins/VST3/Vital.vst3, or a path
+host.load_state(open("Plucked String.vital", "rb").read())   # routing, wavetables and all
+audio = host.render([(bytes([0x90, 60, 100]), 0.0)], 48000, 48000)   # (2, 48000) float32
 ```
 
 ## Layout
 
 - `src/patchbay_vital/`: the package, src layout, typed (`py.typed`). `preset.py` holds the models,
   `format.py` reads, writes and compares a file, `grisu2.py` writes a float as Vital does, `errors.py`
-  holds the exceptions, and `settings_keys.txt` lists every float key Vital has been seen to write.
+  holds the exceptions, `float32.py` computes in single precision as Vital does, `parameters.py`
+  holds the parameter map's models and scales and reads `data/parameters.json`, the map the census
+  measured, and `settings_keys.txt` lists every float key Vital has been seen to write, derived from
+  the map. `files.py` replaces files whole or not at all, for `format.py` and the census.
+  `state.py` reads and writes the containers around the plugin's state; `host.py` hosts
+  Vital through pedalboard and `census.py` measures it and writes the map, both needing the `host`
+  extra and neither imported by the package itself.
   `__init__.py` holds the re-exports, `__version__`, read from the installed package's metadata so
   `pyproject.toml` is the one place the version is written, and `__all__`. The package is imported
   installed (`uv sync`): from a bare `src/` on `sys.path` the import fails rather than invent a
   version.
 - `tests/`: pytest's tree. Not a package (no `__init__.py`), so one basename per test file across it,
   which mypy holds. `unit/` mirrors `src/`. `integration/` round-trips every preset Vital installed
-  under `~/Music/Vital` against `data/factory-manifest.txt`, and skips, saying so, where they are
-  absent, CI among them. `data/` holds no preset of Vital's, whose license forbids that: its one
-  `.vital` is a 1.6.4 save with the media replaced.
+  under `~/Music/Vital` against `data/factory-manifest.txt`, and hosts the installed plugin: the
+  census regenerates the committed map, the presets load as its state, and its renders are measured;
+  each skips, saying so, where what it needs is absent, CI among them. `data/` holds no preset of
+  Vital's, whose license forbids that: its one `.vital` is a 1.6.4 save with the media replaced;
+  `fma-vectors.txt` holds the plugin's own values that `float32.py` is held to.
 - `pyproject.toml`: the one configuration file. Every tool the gate runs is configured under
   `[tool.*]` there and nowhere else, with no `setup.py`, `setup.cfg`, `requirements*.txt`,
   `tox.ini`, `.flake8`, `mypy.ini`, `pytest.ini`, `.ruff.toml` or `uv.toml`. The `[tool.*]` sections
@@ -36,7 +60,8 @@ diff(preset, load("copy.vital")).is_empty
   `patchbay-core` is taken from) and the dev group's pins of the tools the
   gate runs (ruff, mypy and pytest), with what `uv.lock` resolves for them, are the gate's and change
   only in the gate's own spec; `[project]`, `[build-system]` and the dev group's other entries
-  (hypothesis, packaging and pre-commit) are the package's. `uv.lock` is the resolution of the pins.
+  (hypothesis, packaging, pedalboard and pre-commit) are the package's. `uv.lock` is the resolution
+  of the pins.
   The wheel carries `LICENSE` (`license-files`). It declares the `patchbay-core` range and not the
   source, and `patchbay-core` is on no index, so the wheel installs only where that package can be
   resolved; from a checkout, `uv sync` is the way in.
@@ -73,9 +98,16 @@ creates `.venv/` and installs into it the package, its runtime dependencies, `py
 `patchbay-core` (fetched from GitHub at the commit `[tool.uv.sources]` pins, so the first sync needs
 the network) and the
 locked dev toolchain: ruff, mypy, pytest,
-hypothesis, packaging and pre-commit, each pinned exactly in `pyproject.toml`'s `[dependency-groups] dev` with
-the date it was published. `uv.lock` resolves them. Outside the repository uv writes only that interpreter and its own cache.
-Run a tool as `uv run --locked <tool>`, as the gate does.
+hypothesis, packaging, pedalboard and pre-commit, each pinned exactly in `pyproject.toml`'s
+`[dependency-groups] dev` with the date it was published. `uv.lock` resolves them. Outside the
+repository uv writes only that interpreter and its own cache. Run a tool as `uv run --locked <tool>`,
+as the gate does.
+
+A consumer installs `patchbay-vital` for the format and the map, and `patchbay-vital[host]` to host
+Vital. **Licence:** this package is MIT; pedalboard, the host, is GPLv3, so it comes only with the
+`host` extra, `host.py` is the one module that imports it, and nothing of pedalboard's is in this
+repository. That is the owner's decision, not legal advice, and is revisited before any release to
+PyPI. Vital itself is installed separately and is not redistributed here.
 
 ## The gate
 

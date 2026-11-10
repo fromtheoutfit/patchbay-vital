@@ -1,0 +1,60 @@
+# Vital and the process's floating-point environment, one run in the locked environment, 2026-11-09 19:49 EST, branch feature/7-the-host-and-the-parameter-map-load-vital-through-pedalboard-map-all-903-parameters-to-preset-keys-and-pass-cores-contract-tests-as-a-real-instrument
+# Found when the gate's unit tests ran after the plugin tests in one pytest process: hypothesis refused to draw subnormal floats.
+# Command: uv run --locked python -u float_environment.py
+
+---- float_environment.py
+"""Does loading or running Vital change the process's floating-point environment, and can it be kept?
+
+Subnormal doubles are the witness: under flush-to-zero, the smallest normal double divided by four
+is zero. The environment is saved and restored with the C library's fegetenv and fesetenv through
+ctypes, into a buffer larger than any platform's fenv_t, so no layout is assumed.
+"""
+
+import ctypes
+import ctypes.util
+import sys
+
+import numpy as np
+import pedalboard
+
+
+def subnormals() -> bool:
+    x = sys.float_info.min
+    return (x / 4) > 0.0 and (x / 4) * 4 == x
+
+
+libc = ctypes.CDLL(ctypes.util.find_library("c"))
+saved = ctypes.create_string_buffer(512)
+print("fegetenv returns", libc.fegetenv(saved), "| subnormals before pedalboard:", subnormals())
+print("after importing pedalboard:", subnormals())
+vital = pedalboard.VST3Plugin("/Library/Audio/Plug-Ins/VST3/Vital.vst3")
+print("after loading Vital:", subnormals())
+print("fesetenv returns", libc.fesetenv(saved), "| subnormals after restoring:", subnormals())
+template = vital.preset_data
+vital.preset_data = template
+print("after a state load:", subnormals())
+_ = vital.parameters
+vital.parameters["volume"].raw_value = 0.5
+print("after pedalboard's parameters mapping and a set:", subnormals())
+audio = vital([(bytes([0x90, 60, 100]), 0.0), (bytes([0x80, 60, 0]), 1.0)], duration=2.0, sample_rate=48000)
+print(f"after a render: {subnormals()} | the render: peak {np.abs(audio).max():.3f}, finite {bool(np.isfinite(audio).all())}")
+libc.fesetenv(saved)
+print("restored:", subnormals())
+again = pedalboard.VST3Plugin("/Library/Audio/Plug-Ins/VST3/Vital.vst3")
+print("after loading a second instance:", subnormals())
+libc.fesetenv(saved)
+del vital, again
+print("after restoring and deleting both:", subnormals())
+
+---- output
+fegetenv returns 0 | subnormals before pedalboard: True
+after importing pedalboard: True
+after loading Vital: False
+fesetenv returns 0 | subnormals after restoring: True
+after a state load: True
+after pedalboard's parameters mapping and a set: True
+after a render: False | the render: peak 0.079, finite True
+restored: True
+after loading a second instance: False
+after restoring and deleting both: True
+exit 0

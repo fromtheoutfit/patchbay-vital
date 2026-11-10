@@ -1,0 +1,30 @@
+# This revision's unit tests against src/ as reviewed at d4fe077, 2026-11-10, the working tree untouched:
+# `git archive d4fe077` extracted into the scratchpad, this revision's tests/ copied over its own, run from
+# there with the repository's .venv and PYTHONPATH=<scratch>/src, so the package imported is d4fe077's.
+# tests/unit/test_census.py does not collect against the old code: it imports `key_list`, new here
+# (finding 4), so finding 4's tests run only on the new code, where they pass (verification/gate-run.txt).
+# Each failure below is a finding's test:
+#   finding 1: test_every_directory_is_synced_once_after_every_rename,
+#              test_a_directory_that_cannot_be_synced_leaves_every_file_replaced[EINVAL], [EIO]
+#   finding 2: test_only_a_file_a_later_rename_could_force_back_is_read,
+#              test_a_file_that_cannot_be_read_is_still_replaced
+#   finding 3: test_a_measurement_puts_each_parameter_back_and_loads_the_state_once
+#   finding 5: test_a_state_holding_no_settings_object_is_the_package_s_error[no settings], [a list]
+#   finding 6: test_a_normalized_value_that_is_no_number_is_refused_as_the_package[text], [None], [a bool]
+#   finding 7: test_display_texts_for_a_host_id_not_hosted_is_named
+# PYTHONPATH=<scratch>/src .venv/bin/python -m pytest -c pyproject.toml -p no:doctest tests/unit --continue-on-collection-errors -p no:cacheprovider -rfE
+=========================== short test summary info ============================
+FAILED tests/unit/test_files.py::test_every_directory_is_synced_once_after_every_rename
+FAILED tests/unit/test_files.py::test_a_directory_that_cannot_be_synced_leaves_every_file_replaced[EINVAL]
+FAILED tests/unit/test_files.py::test_a_directory_that_cannot_be_synced_leaves_every_file_replaced[EIO]
+FAILED tests/unit/test_files.py::test_only_a_file_a_later_rename_could_force_back_is_read
+FAILED tests/unit/test_files.py::test_a_file_that_cannot_be_read_is_still_replaced
+FAILED tests/unit/test_host.py::test_a_measurement_puts_each_parameter_back_and_loads_the_state_once
+FAILED tests/unit/test_host.py::test_a_state_holding_no_settings_object_is_the_package_s_error[no settings]
+FAILED tests/unit/test_host.py::test_a_state_holding_no_settings_object_is_the_package_s_error[a list]
+FAILED tests/unit/test_host.py::test_a_normalized_value_that_is_no_number_is_refused_as_the_package[text]
+FAILED tests/unit/test_host.py::test_a_normalized_value_that_is_no_number_is_refused_as_the_package[None]
+FAILED tests/unit/test_host.py::test_a_normalized_value_that_is_no_number_is_refused_as_the_package[a bool]
+FAILED tests/unit/test_host.py::test_display_texts_for_a_host_id_not_hosted_is_named
+ERROR tests/unit/test_census.py
+12 failed, 355 passed, 1 error in 1.67s

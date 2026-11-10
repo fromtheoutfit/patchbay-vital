@@ -96,7 +96,7 @@ prohibition is on attribution markers, not on citing the work.
   `.github/workflows/gate.yml` and the gate task in `.claude/commands/agent-os/shape-spec.md` —
   change only in a spec whose feature is the gate, never as a side effect of another spec or from
   inside a retrospective. `[project]`, `[build-system]` and the rest of `[dependency-groups]`
-  (hypothesis, packaging and pre-commit) are the package's and change in any spec.
+  (hypothesis, packaging, pedalboard and pre-commit) are the package's and change in any spec.
 - Retrospective edits are their own change set: listed separately when the work is
   reported so they can be committed apart from the feature, never buried in its diff. The
   `## Git` rule above applies.

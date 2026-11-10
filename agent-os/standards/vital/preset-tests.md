@@ -2,9 +2,11 @@
 
 What this repository's tests may hold of Vital's and how they read the rest. The general form, a
 test over an instrument's installed content, is proposed upstream; what is here is the part about
-Vital. Written from `tests/integration/test_factory_round_trip.py` and `tests/data/`; the evidence
+Vital. Written from `tests/integration/test_factory_round_trip.py`, `test_vital_plugin.py` and
+`tests/data/`; the evidence
 is the `verification/probes.txt` of the spec of issue #2
-(`agent-os/specs/2026-11-09-1509-the-vital-format/`).
+(`agent-os/specs/2026-11-09-1509-the-vital-format/`), and for the skip on another machine the
+revision after the second review of PR 9 (`agent-os/specs/2026-11-10-1307-revision-after-pr-9-second-review/`).
 
 - **No preset, sample, wavetable, or LFO of Vital's is committed.** Vital's EULA (updated 2024-02-29)
   bars redistributing "presets, samples, wavetables, skins, LFOs or other media created from any
@@ -22,3 +24,15 @@ is the `verification/probes.txt` of the spec of issue #2
   missing, or present and unlisted, fails by name, and changing the manifest is a deliberate commit.
   Verified against `tests/integration/test_factory_round_trip.py`
   (`test_the_installed_presets_are_the_manifest_s`) and `verification/probes.txt`.
+- **A test of the hosted plugin runs where Vital is installed at the host's `DEFAULT_PATH` and skips
+  by name elsewhere**, CI among the places, and skips naming both machines where the committed
+  map was measured on another machine than the tests run on: the host would refuse the map there
+  and the census test would compare the other machine's name, and a new census is the remedy,
+  not a failing test. It reads the same manifest and the same fixture, the fixture loaded as the
+  plugin's state. What the plugin reports about itself, its parameters'
+  names, ranges and display texts, is an interoperability fact and is committed as the parameter
+  map; the plugin's own state, which embeds its default media, is never committed. Verified against
+  `tests/integration/test_vital_plugin.py` (the `vital` and `host` fixtures,
+  `test_every_installed_preset_loads_as_state`,
+  `test_the_fixture_as_state_reads_back_but_its_sample_delayed`) and
+  `src/patchbay_vital/data/parameters.json`.
