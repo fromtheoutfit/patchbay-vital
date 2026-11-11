@@ -7,8 +7,9 @@ Written from `src/patchbay_vital/parameters.py`, `float32.py`, `census.py` and
 (`agent-os/specs/2026-11-09-1907-the-host-and-the-parameter-map/`), measured on Vital 1.6.4 through
 pedalboard 0.9.26 on arm64, of the revision after the review of PR 9
 (`agent-os/specs/2026-11-10-1027-revision-after-pr-9-review/`), of the revision after the second
-review (`agent-os/specs/2026-11-10-1307-revision-after-pr-9-second-review/`) and of the revision
-after the third (`agent-os/specs/2026-11-10-1438-revision-after-pr-9-third-review/`).
+review (`agent-os/specs/2026-11-10-1307-revision-after-pr-9-second-review/`), of the revision
+after the third (`agent-os/specs/2026-11-10-1438-revision-after-pr-9-third-review/`) and of the spec
+of issue #13 (`agent-os/specs/2026-11-11-1449-volume-preset-through-the-set-path/`).
 
 ## Where it comes from
 
@@ -86,15 +87,32 @@ after the third (`agent-os/specs/2026-11-10-1438-revision-after-pr-9-third-revie
   `test_a_record_holds_together_in_float32_so_a_libm_an_ulp_apart_still_reads_it`,
   `test_a_record_s_displayed_ends_are_the_scale_s_through_its_curve_in_order`,
   `test_a_curve_and_its_unit_are_found_from_the_texts`.
-- **A displayed value comes back exactly; a preset value does too, but where a curve's offset absorbs
-  it.** `volume`'s presets at or below 2 ** -43 display within 3.4e-7 dB of −80 dB and share a
-  display; the sweep found no other. An arbitrary display value comes back as the nearest one the
-  parameter holds, which on an indexed scale is a whole number, rounded a half away from zero as
-  the plugin rounds. Verified against `MappedParameter.to_preset`,
+- **A displayed value comes back exactly, and the preset a parameter holds through the normalized
+  path; the preset a display maps to does too, but where a curve's offset absorbs it.** `volume`'s
+  presets at or below 2 ** -43 display within 3.4e-7 dB of −80 dB and share a display; no other
+  record with an offset fails anything on any float32 normalized value. There `to_preset` gives the
+  float32 nearest the curve's inverse, on 16,069,858 normalized values one the scale does not hold,
+  and a set holds the scale's value at `to_normalized`'s result, as Vital does; on 308,386 of them,
+  in exponents −58 to −56, that value displays one double ulp off the display set, which issue #8
+  decides and a characterization test holds until it does. An arbitrary display value goes to the
+  float32 nearest the curve's inverse, on an indexed scale a whole number rounded a half away from
+  zero as the plugin rounds, which need not be one the scale holds (5.7% of `volume`'s, issue #8's
+  finding 1). Verified against `MappedParameter.to_preset`,
   `test_a_value_the_parameter_holds_comes_back_exactly`,
   `test_a_value_between_an_indexed_scale_s_steps_goes_to_the_nearest_step`,
-  `test_where_volume_s_offset_absorbs_a_preset`, `test_every_committed_record_comes_back_exactly`
-  and `verification/census-run.txt`.
+  `test_where_volume_s_offset_absorbs_a_preset`,
+  `test_below_volume_s_floor_a_set_s_display_comes_back_one_ulp_off`,
+  `test_every_committed_record_comes_back_exactly`, `tests/integration/test_vital_plugin.py`
+  (`test_below_volume_s_floor_a_set_holds_the_normalized_path_s_value`),
+  `verification/census-run.txt`, and issue #13's `verification/sweep.txt` and
+  `verification/plugin-probe.txt`.
+- **A claim about every value a scale holds is counted over every float32 normalized value,
+  exponent by exponent, never drawn uniformly.** 56% of the float32 values in [0, 1] lie below
+  `volume`'s floor and about 1.5e-17 of its measure, so probe 4's 2000 uniform draws a parameter
+  never reached it and Hypothesis's 32-bit floats did. The count reproduces the map's arithmetic
+  exactly in numpy, checked value for value against the methods first: 1,065,353,217 values a
+  record in about a minute. Verified against issue #13's `verification/sweep.txt` and the
+  `@example`s of `test_a_value_the_parameter_holds_comes_back_exactly`.
 
 ## Units and kinds
 

@@ -44,10 +44,17 @@ does the same for its findings; and of the revision after the third review
 - **A preset loaded as state can be complete, routing and media included, but the plugin changes it.**
   It upgrades a preset older than 1.6.4 (keys added, sections re-encoded, floats moved); every load
   delays the embedded sample by 4 samples and re-quantizes it, a 16-bit value moving one step; a
-  value off the host's grid snaps once after the host set that parameter. So the plugin's state is
-  never read back as the preset it was given; the instrument keeps the preset it loaded (issue #8).
-  Verified against `test_the_fixture_as_state_reads_back_but_its_sample_delayed`,
-  `test_every_installed_preset_loads_as_state` and `test_a_routing_only_in_the_preset_text_is_heard`.
+  value off the host's grid snaps once after the host set that parameter. A load with no set
+  before it was also seen to move an off-grid value, once: on Vital 1.6.4 through pedalboard 0.9.26
+  on arm64, a fresh instance loading `volume` at 4.3339650415194074e-16, below its floor, held
+  4.3339647768216114e-16, the normalized grid's neighbour, while `chorus_feedback`'s off-grid
+  0.4000000059604645 in the same load was held as given; a set of `volume` and then the same load
+  held the neighbour too. One load does not say why one value moved and the other did not. So the
+  plugin's state is never read back as the preset it was given; the instrument keeps the preset it
+  loaded (issue #8). Verified against `test_the_fixture_as_state_reads_back_but_its_sample_delayed`,
+  `test_every_installed_preset_loads_as_state`, `test_a_routing_only_in_the_preset_text_is_heard`
+  and issue #13's `verification/plugin-probe.txt`
+  (`agent-os/specs/2026-11-11-1449-volume-preset-through-the-set-path/`).
 
 ## The process
 
