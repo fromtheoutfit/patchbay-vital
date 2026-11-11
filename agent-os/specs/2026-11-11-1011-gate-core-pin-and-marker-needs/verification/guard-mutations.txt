@@ -1,0 +1,72 @@
+The guard mutations of the gate spec of issue #11, run 2026-11-11 on branch feature/11-gate-move-the-patchbay-core-pin-to-the-head-carrying-patchbay18-and-say-what-the-integration-marker-needs, after the last edit to the gate's scripts, for the two cases whose assertions it changed, n and o.
+Each mutation is a fresh copy of the tree as git lists it (tracked plus untracked-not-ignored), made in a scratch directory outside the repository and not a git repository itself, with one guard deleted or put back as it was, and the harness cases that cover it run from that copy. Every mutation must come back UNEXPECTED, harness exit 1. The unmutated runs of the same cases are in gate-negative-tests.txt. Below each mutation: the diff, then the UNEXPECTED runs of the harness, each with the lines above it, and the count. Nothing here is a gate step or part of the harness; it is the evidence that the cases discriminate. Cases t and y changed no assertion, so they carry none here: the revision after the review of PR 5 keeps theirs (agent-os/specs/2026-11-09-1433-revision-after-pr-5-review/verification/guard-mutations.txt, M1-M8).
+
+### M1: step 2's sync loses --locked
+--- scripts/gate.sh (as shipped)
++++ scripts/gate.sh (mutated)
+@@ -140,3 +140,3 @@
+   fail 2/6 "uv.toml is at the root, where uv reads it ahead of [tool.uv] in pyproject.toml; remove it, uv is configured in pyproject.toml alone"
+-uv sync --locked 2>&1 | tee "$tmp/sync" ||
++uv sync 2>&1 | tee "$tmp/sync" ||
+   fail 2/6 "uv could not sync the locked toolchain: uv.lock does not match pyproject.toml, uv could not read them, fetch a locked package (the network, git, a commit gone) or build the package, or this uv is not the version [tool.uv] requires (see above)"
+$ scripts/gate-negative-tests.sh n   (in the mutated copy)
+ok   agent-os/standards/base and the base: section of agent-os/standards/index.yml match patchbay-standards at e31f7dbfb474752339a43fe08a37ab26c7956f5c
+
+Gate steps 1-6 passed. Steps 7-9 are judgment, recorded in shape.md: Docs, Version, the standards retrospective.
+exit=0  UNEXPECTED (expected 1)
+--
+2 runs, 1 unexpected
+harness exit=1
+must: come back UNEXPECTED, harness exit 1
+result: as required
+
+### M2: step 2's sync status ignored
+--- scripts/gate.sh (as shipped)
++++ scripts/gate.sh (mutated)
+@@ -140,4 +140,3 @@
+   fail 2/6 "uv.toml is at the root, where uv reads it ahead of [tool.uv] in pyproject.toml; remove it, uv is configured in pyproject.toml alone"
+-uv sync --locked 2>&1 | tee "$tmp/sync" ||
+-  fail 2/6 "uv could not sync the locked toolchain: uv.lock does not match pyproject.toml, uv could not read them, fetch a locked package (the network, git, a commit gone) or build the package, or this uv is not the version [tool.uv] requires (see above)"
++uv sync --locked 2>&1 | tee "$tmp/sync" || true
+ if grep -Fq 'during settings discovery' "$tmp/sync"; then
+$ scripts/gate-negative-tests.sh n o   (in the mutated copy)
+
+hint: To update the lockfile, run `uv lock`.
+FAIL  step 2/6: a file is not formatted as ruff format would write it, or ruff could not read its settings (see above)
+exit=1  UNEXPECTED (the output does not say: error: The lockfile at `uv.lock` needs to be updated, but `--locked` was provided.
+--
+ok   the locked toolchain synced
+error: Required uv version `==0.13.6` does not match the running version `0.13.7`
+FAIL  step 2/6: a file is not formatted as ruff format would write it, or ruff could not read its settings (see above)
+exit=1  UNEXPECTED (the output does not say: error: Required uv version `==0.13.6` does not match the running version `0.13.7`
+--
+5 runs, 2 unexpected
+harness exit=1
+must: come back UNEXPECTED, harness exit 1
+result: as required
+
+### M3: step 2's reason put back as it was before the revision after the review of PR 5, naming no fetch
+--- scripts/gate.sh (as shipped)
++++ scripts/gate.sh (mutated)
+@@ -141,3 +141,3 @@
+ uv sync --locked 2>&1 | tee "$tmp/sync" ||
+-  fail 2/6 "uv could not sync the locked toolchain: uv.lock does not match pyproject.toml, uv could not read them, fetch a locked package (the network, git, a commit gone) or build the package, or this uv is not the version [tool.uv] requires (see above)"
++  fail 2/6 "uv could not sync the locked toolchain: uv.lock does not match pyproject.toml, uv could not read them or build the package, or this uv is not the version [tool.uv] requires (see above)"
+ if grep -Fq 'during settings discovery' "$tmp/sync"; then
+$ scripts/gate-negative-tests.sh n o   (in the mutated copy)
+
+hint: To update the lockfile, run `uv lock`.
+FAIL  step 2/6: uv could not sync the locked toolchain: uv.lock does not match pyproject.toml, uv could not read them or build the package, or this uv is not the version [tool.uv] requires (see above)
+exit=1  UNEXPECTED (the output does not say: error: The lockfile at `uv.lock` needs to be updated, but `--locked` was provided.
+--
+== 2/6  uv sync --locked, then uv run --locked ruff format --check over the .py and .pyi files git lists (the locked toolchain; the formatter)
+error: Required uv version `==0.13.6` does not match the running version `0.13.7`
+FAIL  step 2/6: uv could not sync the locked toolchain: uv.lock does not match pyproject.toml, uv could not read them or build the package, or this uv is not the version [tool.uv] requires (see above)
+exit=1  UNEXPECTED (the output does not say: error: Required uv version `==0.13.6` does not match the running version `0.13.7`
+--
+5 runs, 2 unexpected
+harness exit=1
+must: come back UNEXPECTED, harness exit 1
+result: as required
+
+3 mutations, 3 as required

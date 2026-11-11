@@ -14,6 +14,20 @@ writes the entry, in that commit
 
 ### Changed
 
+- The `patchbay-core` pin and the `integration` marker, a gate spec, issue #11,
+  `agent-os/specs/2026-11-11-1011-gate-core-pin-and-marker-needs/`. Landed before #8 resumes on top
+  of it. The version stays 0.0.1.
+  - `[tool.uv.sources]` takes `patchbay-core` at `eddba95`, the head of core's `main` carrying
+    fromtheoutfit/patchbay#18 (`Instrument.get` says what an adapter relies on), where it took
+    `dd2bcad`. Core is still 0.0.1, so the range is unchanged. `uv.lock` re-locked: patchbay-core's
+    source moved and nothing else. The gate passes against it with no other change: nothing here
+    builds an event or implements `Instrument` yet.
+  - The `integration` marker says what its tests need: "an installed Vital, its plugin or its
+    presets", where it named the presets alone and the plugin's tests carry it too.
+  - Negative tests n and o match their pins whatever the value, as t already did, and o names the
+    running uv as `uv --version` prints it. The work fromtheoutfit/patchbay-standards#31 left to
+    this repository's next gate spec; `verification/guard-mutations.txt` shows both discriminate,
+    and `verification/pin-moves.txt` shows both follow a moved pin.
 - Revision after the third review of PR 9,
   `agent-os/specs/2026-11-10-1438-revision-after-pr-9-third-review/`: 12 findings at `d4fe077`,
   nine addressed, two declined with their reasons (the state's JSON decoded more than once, a third

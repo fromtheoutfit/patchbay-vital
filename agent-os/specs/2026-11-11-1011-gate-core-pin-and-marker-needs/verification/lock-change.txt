@@ -1,0 +1,32 @@
+uv.lock against main: uv 0.13.7 (Homebrew 2026-11-03 aarch64-apple-darwin), uv lock after [tool.uv.sources] moved patchbay-core's rev from dd2bcad69dadeb38c6e1e660b2e0ddced13861eb to eddba95404a9b633d358dc4d6b07b084a8f975ad, the head of core's main read by git ls-remote:
+$ git ls-remote https://github.com/fromtheoutfit/patchbay refs/heads/main
+eddba95404a9b633d358dc4d6b07b084a8f975ad	refs/heads/main
+
+$ uv lock
+Resolved 33 packages in 283ms
+Updated patchbay-core v0.0.1 (dd2bcad6) -> v0.0.1 (eddba954)
+[exit 0]
+
+packages at main: 33  now: 33
+added: none
+removed: none
+version moved: none
+source moved: patchbay-core
+the tools the gate runs: {'ruff': '0.17.4', 'mypy': '2.4.1', 'pytest': '9.2.0'}
+patchbay-core source at main: {'git': 'https://github.com/fromtheoutfit/patchbay?rev=dd2bcad69dadeb38c6e1e660b2e0ddced13861eb#dd2bcad69dadeb38c6e1e660b2e0ddced13861eb'}
+patchbay-core source now:     {'git': 'https://github.com/fromtheoutfit/patchbay?rev=eddba95404a9b633d358dc4d6b07b084a8f975ad#eddba95404a9b633d358dc4d6b07b084a8f975ad'}
+
+$ git diff --stat main -- uv.lock
+ uv.lock | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+$ git diff -U0 main -- uv.lock
+diff --git a/uv.lock b/uv.lock
+index 1ba55b5..3b0f83f 100644
+--- a/uv.lock
++++ b/uv.lock
+@@ -475 +475 @@ version = "0.0.1"
+-source = { git = "https://github.com/fromtheoutfit/patchbay?rev=dd2bcad69dadeb38c6e1e660b2e0ddced13861eb#dd2bcad69dadeb38c6e1e660b2e0ddced13861eb" }
++source = { git = "https://github.com/fromtheoutfit/patchbay?rev=eddba95404a9b633d358dc4d6b07b084a8f975ad#eddba95404a9b633d358dc4d6b07b084a8f975ad" }
+@@ -511 +511 @@ requires-dist = [
+-    { name = "patchbay-core", git = "https://github.com/fromtheoutfit/patchbay?rev=dd2bcad69dadeb38c6e1e660b2e0ddced13861eb" },
++    { name = "patchbay-core", git = "https://github.com/fromtheoutfit/patchbay?rev=eddba95404a9b633d358dc4d6b07b084a8f975ad" },

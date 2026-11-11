@@ -472,7 +472,7 @@ wheels = [
 [[package]]
 name = "patchbay-core"
 version = "0.0.1"
-source = { git = "https://github.com/fromtheoutfit/patchbay?rev=dd2bcad69dadeb38c6e1e660b2e0ddced13861eb#dd2bcad69dadeb38c6e1e660b2e0ddced13861eb" }
+source = { git = "https://github.com/fromtheoutfit/patchbay?rev=eddba95404a9b633d358dc4d6b07b084a8f975ad#eddba95404a9b633d358dc4d6b07b084a8f975ad" }
 dependencies = [
     { name = "numpy" },
     { name = "pydantic" },
@@ -508,7 +508,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "numpy", marker = "extra == 'host'", specifier = ">=2.5.4,<3" },
-    { name = "patchbay-core", git = "https://github.com/fromtheoutfit/patchbay?rev=dd2bcad69dadeb38c6e1e660b2e0ddced13861eb" },
+    { name = "patchbay-core", git = "https://github.com/fromtheoutfit/patchbay?rev=eddba95404a9b633d358dc4d6b07b084a8f975ad" },
     { name = "pedalboard", marker = "extra == 'host'", specifier = ">=0.9.26,<1" },
     { name = "pydantic", specifier = ">=2.14.3,<3" },
 ]

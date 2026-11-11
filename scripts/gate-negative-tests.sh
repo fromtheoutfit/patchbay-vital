@@ -403,22 +403,29 @@ m) hdr "m (the rule set is pyproject.toml's: a changed line-length is applied an
    grep -qx 'line-length = 100' "$NEG/m/patchbay-vital/pyproject.toml" || die "m: line-length not restored"
    printf '[\n' >> "$NEG/m/patchbay-vital/pyproject.toml" || die "m: append"
    run m 1 $'error: Failed to parse: pyproject.toml\nunquoted keys cannot be empty\n'"$F2SYNC" scripts/gate.sh ;;
-n) hdr "n (ruff==0.17.4 changed to ruff==0.17.3 in the copy's pyproject.toml, uv.lock untouched: step 2's uv sync --locked must fail with uv naming the stale lockfile and the sync's reason, ruff never run, exit 1)"
+n) hdr "n (the ruff pin changed to ruff==0.17.3 in the copy's pyproject.toml, whatever it is now, uv.lock untouched: step 2's uv sync --locked must fail with uv naming the stale lockfile and the sync's reason, ruff never run, exit 1)"
    mk n
-   sed -i.bak 's/^    "ruff==0.17.4",/    "ruff==0.17.3",/' "$NEG/n/patchbay-vital/pyproject.toml" || die "n: sed pin"
-   rm "$NEG/n/patchbay-vital/pyproject.toml.bak" || die "n: rm .bak"
-   grep -q '^    "ruff==0.17.3",' "$NEG/n/patchbay-vital/pyproject.toml" || die "n: pin not rewritten"
+   pp="$NEG/n/patchbay-vital/pyproject.toml"
+   ! grep -q '^    "ruff==0\.17\.3",' "$pp" || die "n: ruff is pinned at 0.17.3 already, the version this case sets"
+   sed -E -i.bak 's/^(    "ruff==)[^"]+",/\10.17.3",/' "$pp" || die "n: sed pin"
+   rm "$pp.bak" || die "n: rm .bak"
+   grep -q '^    "ruff==0\.17\.3",' "$pp" || die "n: pin not rewritten"
    run n 0 grep -n '"ruff==' pyproject.toml
    run n 1 $'error: The lockfile at `uv.lock` needs to be updated, but `--locked` was provided.\n'"$F2SYNC" scripts/gate.sh ;;
-o) hdr "o ([tool.uv] required-version changed to ==0.13.6 in the copy's pyproject.toml, a uv that is not the one running: step 2's uv sync must fail with uv naming both versions and the sync's reason, ruff never run, exit 1, and never print 3/6)"
+o) hdr "o ([tool.uv] required-version changed to ==0.13.6 in the copy's pyproject.toml, whatever it is now, a uv that is not the one running: step 2's uv sync must fail with uv naming both versions, the running one as uv --version prints it, and the sync's reason, ruff never run, exit 1, and never print 3/6)"
    mk o
-   sed -i.bak 's/^required-version = "==0.13.7"$/required-version = "==0.13.6"/' "$NEG/o/patchbay-vital/pyproject.toml" || die "o: sed required-version"
-   rm "$NEG/o/patchbay-vital/pyproject.toml.bak" || die "o: rm .bak"
-   grep -qx 'required-version = "==0.13.6"' "$NEG/o/patchbay-vital/pyproject.toml" || die "o: required-version not rewritten"
+   pp="$NEG/o/patchbay-vital/pyproject.toml"
+   running=$(uv --version) || die "o: uv --version"
+   running=${running#uv }; running=${running%% *}
+   [[ $running =~ ^[0-9]+\.[0-9]+\.[0-9]+ ]] || die "o: uv --version gave no version: $running"
+   [ "$running" != 0.13.6 ] || die "o: the running uv is 0.13.6, the version this case requires"
+   sed -E -i.bak 's/^required-version = "[^"]*"$/required-version = "==0.13.6"/' "$pp" || die "o: sed required-version"
+   rm "$pp.bak" || die "o: rm .bak"
+   grep -qx 'required-version = "==0.13.6"' "$pp" || die "o: required-version not rewritten"
    run o 0 grep -n '^required-version' pyproject.toml
    note "the uv running here:"
    run o 0 uv --version
-   run o 1 $'error: Required uv version `==0.13.6` does not match the running version `0.13.7`\n'"$F2SYNC" scripts/gate.sh ;;
+   run o 1 "error: Required uv version \`==0.13.6\` does not match the running version \`$running\`"$'\n'"$F2SYNC" scripts/gate.sh ;;
 p) hdr "p (the listings read what git lists: an ignored src/patchbay_vital/local_settings.py, unformatted, with an unused import and an untyped argument, passes the gate; force-added while .gitignore still matches it, step 1 must name it alone, and with a second such file both under one FAIL line, 2/6 never printed; the same file typed wrong, still force-added, mypy walking under exclude_gitignore passes; with the pattern out of .gitignore, git lists it and nothing refuses it, so step 2 must name it, and clean but for a type error step 4 must name it; matched only by .git/info/exclude or a global excludes file, the machine's own, step 1 passes and step 2 reads it; in a linked worktree, a module hidden only by .git/info/exclude passes the gate, where that walk names it)"
    mk p; printf 'import os\ndef f(x)->int:\n  return x\n' > "$NEG/p/patchbay-vital/src/patchbay_vital/local_settings.py" || die "p: write"
    run p 0 git check-ignore -v src/patchbay_vital/local_settings.py
