@@ -1,0 +1,132 @@
+The gate against patchbay-core at eddba95, on main's tree with the pin alone moved
+
+Made 2026-11-11 on branch feature/11-gate-move-the-patchbay-core-pin-to-the-head-carrying-patchbay18-and-say-what-the-integration-marker-needs. One run of scripts/gate.sh, its whole output below, then its exit status.
+
+Tree: a clone of the repository at <scratch>/np/patchbay-vital, checked out at 558b85b (main, which the branch starts from), with <scratch>/np/patchbay-standards beside it, a symlink to the sibling checkout ../patchbay-standards. Then, in the clone, `git apply` of this diff, [tool.uv.sources]' rev and uv.lock as 8ebce15 has them:
+
+diff --git a/pyproject.toml b/pyproject.toml
+index 954e7c5..0bd3cbf 100644
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -73,7 +73,7 @@ python-preference = "only-managed"
+ # A rev edited without re-locking fails step 2's sync by name (negative test t). Moved deliberately,
+ # in the gate's own spec, and the gate rerun. The wheel carries the range and not this source.
+ [tool.uv.sources]
+-patchbay-core = { git = "https://github.com/fromtheoutfit/patchbay", rev = "dd2bcad69dadeb38c6e1e660b2e0ddced13861eb" }
++patchbay-core = { git = "https://github.com/fromtheoutfit/patchbay", rev = "eddba95404a9b633d358dc4d6b07b084a8f975ad" }
+ 
+ # Every entry pinned exactly, each with the date it was published, and resolved in uv.lock; each is
+ # a Decision in the spec that added it. ruff, mypy and pytest are the tools the gate runs, under
+diff --git a/uv.lock b/uv.lock
+index 1ba55b5..3b0f83f 100644
+--- a/uv.lock
++++ b/uv.lock
+@@ -472,7 +472,7 @@ wheels = [
+ [[package]]
+ name = "patchbay-core"
+ version = "0.0.1"
+-source = { git = "https://github.com/fromtheoutfit/patchbay?rev=dd2bcad69dadeb38c6e1e660b2e0ddced13861eb#dd2bcad69dadeb38c6e1e660b2e0ddced13861eb" }
++source = { git = "https://github.com/fromtheoutfit/patchbay?rev=eddba95404a9b633d358dc4d6b07b084a8f975ad#eddba95404a9b633d358dc4d6b07b084a8f975ad" }
+ dependencies = [
+     { name = "numpy" },
+     { name = "pydantic" },
+@@ -508,7 +508,7 @@ dev = [
+ [package.metadata]
+ requires-dist = [
+     { name = "numpy", marker = "extra == 'host'", specifier = ">=2.5.4,<3" },
+-    { name = "patchbay-core", git = "https://github.com/fromtheoutfit/patchbay?rev=dd2bcad69dadeb38c6e1e660b2e0ddced13861eb" },
++    { name = "patchbay-core", git = "https://github.com/fromtheoutfit/patchbay?rev=eddba95404a9b633d358dc4d6b07b084a8f975ad" },
+     { name = "pedalboard", marker = "extra == 'host'", specifier = ">=0.9.26,<1" },
+     { name = "pydantic", specifier = ">=2.14.3,<3" },
+ ]
+
+Must: the clone shows only that change (git status and git diff --stat below), and the gate passes on it: exit 0.
+
+$ git log -1 --format='%h %s'
+558b85b Merge pull request #9 from fromtheoutfit/feature/7-the-host-and-the-parameter-map-load-vital-through-pedalboard-map-all-903-parameters-to-preset-keys-and-pass-cores-contract-tests-as-a-real-instrument
+$ git status --short
+ M pyproject.toml
+ M uv.lock
+$ git diff --stat
+ pyproject.toml | 2 +-
+ uv.lock        | 4 ++--
+ 2 files changed, 3 insertions(+), 3 deletions(-)
+$ scripts/gate.sh
+
+== 1/6  bash -n on every shell script under scripts/ (tracked or untracked, not ignored), in a tree with no tracked file a .gitignore ignores
+ok   scripts/gate-negative-tests.sh
+ok   scripts/gate.sh
+ok   scripts/sync-standards.sh
+
+== 2/6  uv sync --locked, then uv run --locked ruff format --check over the .py and .pyi files git lists (the locked toolchain; the formatter)
+Using CPython 3.12.16
+Creating virtual environment at: .venv
+Resolved 33 packages in 2ms
+   Building patchbay-vital @ file://<scratch>/np/patchbay-vital
+      Built patchbay-vital @ file://<scratch>/np/patchbay-vital
+Prepared 1 package in 3ms
+Installed 32 packages in 69ms
+ + annotated-types==0.8.0
+ + ast-serialize==0.13.1
+ + cfgv==3.5.0
+ + distlib==0.4.4
+ + filelock==4.2.9
+ + hypothesis==6.170.14
+ + identify==2.6.20
+ + iniconfig==2.3.1
+ + librt==0.16.0
+ + mypy==2.4.1
+ + mypy-extensions==1.2.0
+ + nodeenv==1.12.0
+ + numpy==2.5.4
+ + packaging==26.3
+ + patchbay-core==0.0.1 (from git+https://github.com/fromtheoutfit/patchbay@eddba95404a9b633d358dc4d6b07b084a8f975ad)
+ + patchbay-vital==0.0.1 (from file://<scratch>/np/patchbay-vital)
+ + pathspec==1.1.1
+ + pedalboard==0.9.26
+ + platformdirs==4.14.5
+ + pluggy==1.7.0
+ + pre-commit==4.7.0
+ + pydantic==2.14.3
+ + pydantic-core==2.50.4
+ + pygments==2.21.0
+ + pytest==9.2.0
+ + python-discovery==1.9.5
+ + pyyaml==6.0.3
+ + ruff==0.17.4
+ + sortedcontainers==2.4.0
+ + typing-extensions==4.16.0
+ + typing-inspection==0.4.5
+ + virtualenv==21.15.6
+ok   the locked toolchain synced
+26 files already formatted
+ok   26 file(s) formatted
+
+== 3/6  uv run --locked ruff check over the same files (the linter: [tool.ruff.lint] of pyproject.toml)
+All checks passed!
+ok   no violation
+
+== 4/6  uv run --locked mypy over the .py and .pyi files git lists under src/ and tests/ ([tool.mypy] of pyproject.toml: strict)
+Success: no issues found in 26 source files
+ok   no type error
+
+== 5/6  uv run --locked pytest -c pyproject.toml -p no:doctest ([tool.pytest.ini_options] of pyproject.toml, over tests/, once nothing pytest would read is one git ignores)
+........................................................................ [ 14%]
+........................................................................ [ 29%]
+........................................................................ [ 44%]
+........................................................................ [ 58%]
+........................................................................ [ 73%]
+........................................................................ [ 88%]
+..........................................................               [100%]
+490 passed in 36.47s
+ok   every test passed
+
+== 6/6  scripts/sync-standards.sh --check: agent-os/standards/base/, the base: section and the script match patchbay-standards at the commit in .version (../patchbay-standards)
+check base standards against e31f7dbfb474752339a43fe08a37ab26c7956f5c  (/Users/michaelwitwicki/Code/Audio/patchbay-standards)
+  index    base: section identical
+  script   scripts/sync-standards.sh matches
+{"mode":"check","upstream":"/Users/michaelwitwicki/Code/Audio/patchbay-standards","commit":"e31f7dbfb474752339a43fe08a37ab26c7956f5c","missing":[],"extra":[],"changed":[],"index":"identical","script":"matches","ok":true}
+ok   agent-os/standards/base and the base: section of agent-os/standards/index.yml match patchbay-standards at e31f7dbfb474752339a43fe08a37ab26c7956f5c
+
+Gate steps 1-6 passed. Steps 7-9 are judgment, recorded in shape.md: Docs, Version, the standards retrospective.
+exit=0

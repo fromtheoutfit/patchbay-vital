@@ -1,0 +1,26 @@
+g6 (setline's check that the line was written), as shipped: the dev group without its ruff pin
+
+Made 2026-11-11 on branch feature/11-gate-move-the-patchbay-core-pin-to-the-head-carrying-patchbay18-and-say-what-the-integration-marker-needs, after the last edit to the gate's scripts. One run of the harness, its whole output below this heading; the last line is the run's own.
+
+Copy: the files git lists in the tree (tracked, and untracked not ignored), made from 8ebce15 and this revision's changes as handed over (the owner's commit of this revision holds them), copied to <scratch>/g6/patchbay-vital outside the repository and not a git repository, with <scratch>/g6/patchbay-standards beside it, a symlink to the sibling checkout ../patchbay-standards.
+
+Then, in <scratch>/g6/patchbay-vital, `git apply` of this diff:
+
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -86,7 +86,6 @@
+ # pin) are the package's, changed in any spec as a Decision there.
+ [dependency-groups]
+ dev = [
+-    "ruff==0.17.4",          # published 2026-11-05; linter and formatter, gate steps 2-3
+     "mypy==2.4.1",           # published 2026-10-28; type checker, gate step 4
+     "pytest==9.2.0",         # published 2026-10-27; test runner, gate step 5
+     "hypothesis==6.170.14",  # published 2026-10-30; property-based tests, run by pytest
+
+Command, in <scratch>/g6/patchbay-vital: scripts/gate-negative-tests.sh n
+
+Must: nothing to rewrite, so the harness stops: exit 2, its last line n's not-rewritten stop.
+
+
+### n (the ruff pin in [dependency-groups] dev changed to ruff==0.17.3 in the copy's pyproject.toml, whatever version it is now, uv.lock untouched: step 2's uv sync --locked must fail with uv naming the stale lockfile and the sync's reason, ruff never run, exit 1)
+harness: n: the ruff pin in [dependency-groups] dev not rewritten: not in its table, or not in the form this case edits

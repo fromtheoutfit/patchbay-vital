@@ -161,8 +161,10 @@ testpaths = ["tests"]
 # and hypothesis"). The gate adds -c pyproject.toml and -p no:doctest on its own command line, so
 # pytest reads this file alone and no .txt under tests/; this line stays as that standard fixes it.
 addopts = "-q --strict-markers --strict-config"
-# Every marker, with its meaning (that standard). The gate deselects nothing, so an integration test
-# runs at step 5 wherever what it needs is present (negative test y).
+# Every marker, with its meaning (that standard). The gate deselects nothing, so every integration
+# test runs at step 5 or skips with its reason (negative test y): where what it needs is absent, and
+# for the plugin's, where the parameter map was measured on another machine
+# (agent-os/standards/vital/parameter-map.md).
 markers = [
-    "integration: needs an installed Vital, its plugin or its presets; skipped with its reason where that is absent",
+    "integration: needs Vital's plugin or its presets installed; skipped with its reason where they are absent",
 ]

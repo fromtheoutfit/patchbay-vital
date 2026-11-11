@@ -14,14 +14,34 @@ writes the entry, in that commit
 
 ### Changed
 
+- Revision after the review of PR 12, `agent-os/specs/2026-11-11-1321-revision-after-pr-12-review/`:
+  all 15 findings of the review at `8ebce15` addressed, a gate spec. The version stays 0.0.1.
+  - The harness's pin edits go through one helper, `setline`, for cases t, n and o. Each edit is
+    held to its pin's table, and a case stops by name when the table already holds the value it
+    sets, or does not hold it after the edit. So n refuses `ruff===…` and a pin with an
+    environment marker rather than rewriting it.
+  - Case o requires `==0.0.0`, a uv no release carries, and stops by name when `uv --version` gives
+    more than a plain version. It prints that version in a note, not a second run, so the harness
+    has 140 runs.
+  - `test_the_manifest_holds_the_expected_count` is unmarked: it reads only the committed manifest.
+    The `integration` marker reads "needs Vital's plugin or its presets installed", and the comment
+    over it names the parameter map's machine as the plugin's tests' second skip.
+  - The pin's entry below names core's merge #16 beside #19. Each guard is shown to fire, and its
+    absence not to, by a pair of runs kept one run to a file, as is the rest of the revision's
+    evidence (`verification/`).
+  - The harness's rerun drew a Hypothesis failure that was already on `main`: volume's round trip
+    below 2 ** -43, at normalized 5.857149595214349e-20, filed as #13. The revision's harness and
+    gate transcripts wait on its fix.
 - The `patchbay-core` pin and the `integration` marker, a gate spec, issue #11,
   `agent-os/specs/2026-11-11-1011-gate-core-pin-and-marker-needs/`. Landed before #8 resumes on top
   of it. The version stays 0.0.1.
-  - `[tool.uv.sources]` takes `patchbay-core` at `eddba95`, the head of core's `main` carrying
-    fromtheoutfit/patchbay#18 (`Instrument.get` says what an adapter relies on), where it took
-    `dd2bcad`. Core is still 0.0.1, so the range is unchanged. `uv.lock` re-locked: patchbay-core's
-    source moved and nothing else. The gate passes against it with no other change: nothing here
-    builds an event or implements `Instrument` yet.
+  - `[tool.uv.sources]` takes `patchbay-core` at `eddba95`, the head of core's `main`, where it took
+    `dd2bcad`. That brings in core's two merges since: fromtheoutfit/patchbay#19, for issue
+    fromtheoutfit/patchbay#18 (`Instrument.get` says what an adapter relies on), and
+    fromtheoutfit/patchbay#16 (core's gate and `Event.at` revised after the review of its PR 15).
+    Core is still 0.0.1, so the range is unchanged. `uv.lock` re-locked: patchbay-core's source
+    moved and nothing else. The gate passes against it with no other change: nothing here builds an
+    event or implements `Instrument` yet, so `Event.at`'s wider refusal reaches nothing.
   - The `integration` marker says what its tests need: "an installed Vital, its plugin or its
     presets", where it named the presets alone and the plugin's tests carry it too.
   - Negative tests n and o match their pins whatever the value, as t already did, and o names the

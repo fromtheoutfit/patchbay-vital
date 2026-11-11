@@ -1,0 +1,62 @@
+M3: step 2's reason put back as it was before the revision after the review of PR 5, naming no fetch
+
+Made 2026-11-11 on branch feature/11-gate-move-the-patchbay-core-pin-to-the-head-carrying-patchbay18-and-say-what-the-integration-marker-needs, after the last edit to the gate's scripts. One run of the harness, its whole output below this heading; the last line is the run's own.
+
+Copy: the files git lists in the tree (tracked, and untracked not ignored), made from 8ebce15 and this revision's changes as handed over (the owner's commit of this revision holds them), copied to <scratch>/m3/patchbay-vital outside the repository and not a git repository, with <scratch>/m3/patchbay-standards beside it, a symlink to the sibling checkout ../patchbay-standards.
+
+Then, in <scratch>/m3/patchbay-vital, `git apply` of this diff:
+
+--- a/scripts/gate.sh
++++ b/scripts/gate.sh
+@@ -139,7 +139,7 @@
+ [ ! -e uv.toml ] && [ ! -L uv.toml ] ||
+   fail 2/6 "uv.toml is at the root, where uv reads it ahead of [tool.uv] in pyproject.toml; remove it, uv is configured in pyproject.toml alone"
+ uv sync --locked 2>&1 | tee "$tmp/sync" ||
+-  fail 2/6 "uv could not sync the locked toolchain: uv.lock does not match pyproject.toml, uv could not read them, fetch a locked package (the network, git, a commit gone) or build the package, or this uv is not the version [tool.uv] requires (see above)"
++  fail 2/6 "uv could not sync the locked toolchain: uv.lock does not match pyproject.toml, uv could not read them or build the package, or this uv is not the version [tool.uv] requires (see above)"
+ if grep -Fq 'during settings discovery' "$tmp/sync"; then
+   fail 2/6 "uv could not use a setting in [tool.uv] of pyproject.toml, warned and went on without it; correct the key or value it names (see above)"
+ fi
+
+Command, in <scratch>/m3/patchbay-vital: scripts/gate-negative-tests.sh n o
+
+Must: UNEXPECTED in n and in o (the reason the gate prints is not the one named); harness exit 1, its last line its count.
+
+
+### n (the ruff pin in [dependency-groups] dev changed to ruff==0.17.3 in the copy's pyproject.toml, whatever version it is now, uv.lock untouched: step 2's uv sync --locked must fail with uv naming the stale lockfile and the sync's reason, ruff never run, exit 1)
+89:    "ruff==0.17.3",          # published 2026-11-05; linter and formatter, gate steps 2-3
+exit=0
+
+== 1/6  bash -n on every shell script under scripts/ (tracked or untracked, not ignored), in a tree with no tracked file a .gitignore ignores
+ok   scripts/gate-negative-tests.sh
+ok   scripts/gate.sh
+ok   scripts/sync-standards.sh
+
+== 2/6  uv sync --locked, then uv run --locked ruff format --check over the .py and .pyi files git lists (the locked toolchain; the formatter)
+Using CPython 3.12.16
+Creating virtual environment at: .venv
+Resolved 33 packages in 72ms
+error: The lockfile at `uv.lock` needs to be updated, but `--locked` was provided.
+
+hint: To update the lockfile, run `uv lock`.
+FAIL  step 2/6: uv could not sync the locked toolchain: uv.lock does not match pyproject.toml, uv could not read them or build the package, or this uv is not the version [tool.uv] requires (see above)
+exit=1  UNEXPECTED (the output does not say: error: The lockfile at `uv.lock` needs to be updated, but `--locked` was provided.
+FAIL  step 2/6: uv could not sync the locked toolchain: uv.lock does not match pyproject.toml, uv could not read them, fetch a locked package (the network, git, a commit gone) or build the package, or this uv is not the version [tool.uv] requires (see above))
+
+### o ([tool.uv] required-version changed to ==0.0.0 in the copy's pyproject.toml, whatever it is now, a uv no release carries: step 2's uv sync must fail with uv naming both versions, the running one as uv --version prints it, and the sync's reason, ruff never run, exit 1, and never print 3/6)
+65:required-version = "==0.0.0"
+exit=0
+-- the uv running here: uv 0.13.7 (Homebrew 2026-11-03 aarch64-apple-darwin)
+
+== 1/6  bash -n on every shell script under scripts/ (tracked or untracked, not ignored), in a tree with no tracked file a .gitignore ignores
+ok   scripts/gate-negative-tests.sh
+ok   scripts/gate.sh
+ok   scripts/sync-standards.sh
+
+== 2/6  uv sync --locked, then uv run --locked ruff format --check over the .py and .pyi files git lists (the locked toolchain; the formatter)
+error: Required uv version `==0.0.0` does not match the running version `0.13.7`
+FAIL  step 2/6: uv could not sync the locked toolchain: uv.lock does not match pyproject.toml, uv could not read them or build the package, or this uv is not the version [tool.uv] requires (see above)
+exit=1  UNEXPECTED (the output does not say: error: Required uv version `==0.0.0` does not match the running version `0.13.7`
+FAIL  step 2/6: uv could not sync the locked toolchain: uv.lock does not match pyproject.toml, uv could not read them, fetch a locked package (the network, git, a commit gone) or build the package, or this uv is not the version [tool.uv] requires (see above))
+
+4 runs, 2 unexpected

@@ -1,0 +1,6 @@
+Case t before and after setline: the two runs' outputs compared
+
+Made 2026-11-11 on branch feature/11-gate-move-the-patchbay-core-pin-to-the-head-carrying-patchbay18-and-say-what-the-integration-marker-needs. The outputs of t/t-before.txt and t/t-after.txt, each from its "### t" line to its end (its heading left out), with every " in <figure>ms" or " in <figure>s" uv and pytest print written " in <time>", and every " at 0x<hex>>" in the repr of an object in pytest's assertion message, a memory address of the run, written " at <address>>", compared by diff -u. No output from diff means the two runs printed the same lines apart from those figures.
+
+$ diff -u t-before t-after
+exit=0

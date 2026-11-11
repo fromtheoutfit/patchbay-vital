@@ -1,0 +1,56 @@
+g5 (n's value form, an environment marker), mutated: n's value pattern put back as it was at 8ebce15, [^"]+
+
+Made 2026-11-11 on branch feature/11-gate-move-the-patchbay-core-pin-to-the-head-carrying-patchbay18-and-say-what-the-integration-marker-needs, after the last edit to the gate's scripts. One run of the harness, its whole output below this heading; the last line is the run's own.
+
+Copy: the files git lists in the tree (tracked, and untracked not ignored), made from 8ebce15 and this revision's changes as handed over (the owner's commit of this revision holds them), copied to <scratch>/g5m/patchbay-vital outside the repository and not a git repository, with <scratch>/g5m/patchbay-standards beside it, a symlink to the sibling checkout ../patchbay-standards.
+
+Then, in <scratch>/g5m/patchbay-vital, `git apply` of this diff:
+
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -86,7 +86,7 @@
+ # pin) are the package's, changed in any spec as a Decision there.
+ [dependency-groups]
+ dev = [
+-    "ruff==0.17.4",          # published 2026-11-05; linter and formatter, gate steps 2-3
++    "ruff==0.17.4; python_version >= '3.12'",          # published 2026-11-05; linter and formatter, gate steps 2-3
+     "mypy==2.4.1",           # published 2026-10-28; type checker, gate step 4
+     "pytest==9.2.0",         # published 2026-10-27; test runner, gate step 5
+     "hypothesis==6.170.14",  # published 2026-10-30; property-based tests, run by pytest
+--- a/scripts/gate-negative-tests.sh
++++ b/scripts/gate-negative-tests.sh
+@@ -414,7 +414,7 @@
+ n) hdr "n (the ruff pin in [dependency-groups] dev changed to ruff==0.17.3 in the copy's pyproject.toml, whatever version it is now, uv.lock untouched: step 2's uv sync --locked must fail with uv naming the stale lockfile and the sync's reason, ruff never run, exit 1)"
+    mk n
+    setline n "the ruff pin in [dependency-groups] dev" '/^dev = \[$/,/^\]$/' \
+-     's/^(    "ruff==)[0-9][^";]*",/\10.17.3",/' '^    "ruff==0\.17\.3",'
++     's/^(    "ruff==)[^"]+",/\10.17.3",/' '^    "ruff==0\.17\.3",'
+    run n 0 grep -n '"ruff==' pyproject.toml
+    run n 1 $'error: The lockfile at `uv.lock` needs to be updated, but `--locked` was provided.\n'"$F2SYNC" scripts/gate.sh ;;
+ o) hdr "o ([tool.uv] required-version changed to ==0.0.0 in the copy's pyproject.toml, whatever it is now, a uv no release carries: step 2's uv sync must fail with uv naming both versions, the running one as uv --version prints it, and the sync's reason, ruff never run, exit 1, and never print 3/6)"
+
+Command, in <scratch>/g5m/patchbay-vital: scripts/gate-negative-tests.sh n
+
+Must: n rewrites the pin to ruff==0.17.3, dropping the marker unasked, and passes: harness exit 0, its last line 2 runs, 0 unexpected, a green run where as shipped the harness stops.
+
+
+### n (the ruff pin in [dependency-groups] dev changed to ruff==0.17.3 in the copy's pyproject.toml, whatever version it is now, uv.lock untouched: step 2's uv sync --locked must fail with uv naming the stale lockfile and the sync's reason, ruff never run, exit 1)
+89:    "ruff==0.17.3",          # published 2026-11-05; linter and formatter, gate steps 2-3
+exit=0
+
+== 1/6  bash -n on every shell script under scripts/ (tracked or untracked, not ignored), in a tree with no tracked file a .gitignore ignores
+ok   scripts/gate-negative-tests.sh
+ok   scripts/gate.sh
+ok   scripts/sync-standards.sh
+
+== 2/6  uv sync --locked, then uv run --locked ruff format --check over the .py and .pyi files git lists (the locked toolchain; the formatter)
+Using CPython 3.12.16
+Creating virtual environment at: .venv
+Resolved 33 packages in 70ms
+error: The lockfile at `uv.lock` needs to be updated, but `--locked` was provided.
+
+hint: To update the lockfile, run `uv lock`.
+FAIL  step 2/6: uv could not sync the locked toolchain: uv.lock does not match pyproject.toml, uv could not read them, fetch a locked package (the network, git, a commit gone) or build the package, or this uv is not the version [tool.uv] requires (see above)
+exit=1
+
+2 runs, 0 unexpected
