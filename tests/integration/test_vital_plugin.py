@@ -40,6 +40,10 @@ _CONTROL_VARIATION = 0.1  # the same, unrouted (probes: 0.0176)
 _QUIET = 1e-6  # peak from 0.15 s to a note at 0.5 s (host probes: 0, the start's transient gone)
 _ONSET = 1e-3  # where a note has begun (host probes: past 1e-3 at +5 to +8 samples)
 _ONSET_SAMPLES = 96  # 2 ms at 48 kHz, a generous bound on that
+# volume's normalized values below its 2 ** -43 floor, each with the double ulps the display of what
+# a set holds is off the display set (issue #13's plugin probe: Vital held the normalized path's
+# preset at both, never to_preset's; 0 ulps at the issue's value, 1 at the smallest of 308,386)
+_BELOW_VOLUME_S_FLOOR = {5.857149595214349e-20: 0, 3.4694490199051456e-18: 1}
 
 
 @pytest.fixture(scope="module")
@@ -111,6 +115,34 @@ def test_a_value_set_through_the_host_is_the_one_the_state_holds(host: VitalHost
             held = _floats(host.state())[record.preset_key]
             assert held == record.to_preset(display), (record.id, display)
             assert record.from_normalized(host.get(record.id)) == record.to_display(held)
+
+
+def _held_after_a_set(host: VitalHost, record: MappedParameter, display: float) -> float:
+    """Set a display through the host, normalized as the map gives it; return the state's value."""
+    host.set(record.id, record.to_normalized(display))
+    return _floats(host.state())[record.preset_key]
+
+
+def _double_ulps(a: float, b: float) -> int:
+    """Return how many doubles apart two values of one sign are, as `_ulps` counts float32 steps."""
+    bits = np.array([a, b], dtype=np.float64).view(np.int64)
+    return abs(int(bits[0]) - int(bits[1]))
+
+
+def test_below_volume_s_floor_a_set_holds_the_normalized_path_s_value(host: VitalHost) -> None:
+    """Below 2 ** -43 the plugin holds the scale's value at `to_normalized`'s, not `to_preset`'s.
+
+    The display maps to a float32 the scale does not hold (issue #13); Vital holds the neighbour
+    the map's normalized path computes, its display the one set or one double ulp off, as the
+    probe measured (`_BELOW_VOLUME_S_FLOOR`). Which of them a set should hold is issue #8's.
+    """
+    record = parameter_map().find(ParameterId("volume"))
+    for normalized, ulps in _BELOW_VOLUME_S_FLOOR.items():
+        display = record.from_normalized(normalized)
+        held = _held_after_a_set(host, record, display)
+        assert held == record.scale.to_preset(record.to_normalized(display)), normalized
+        assert held != record.to_preset(display), normalized
+        assert _double_ulps(record.to_display(held), display) == ulps, normalized
 
 
 def test_the_codec_reads_and_writes_the_plugin_s_own_bytes(host: VitalHost) -> None:

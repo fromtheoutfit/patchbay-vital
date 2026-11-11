@@ -193,7 +193,14 @@ _ABSORBED = {"volume": 2.0**-43}
 """Presets at or below which a curve's offset absorbs the skew: volume's square root under 2 ** -43
 is within 3.4e-7 dB of its -80 dB offset, below a double's spacing there, so neighbouring presets
 share a display. Measured over every 53rd float32 in [0, 2 ** -43] and every float32 above it to
-2 ** -43 + 2,000,000 steps (the spec's shape.md, Decision 6)."""
+2 ** -43 + 2,000,000 steps (the host spec's shape.md, Decision 6). There the preset a display maps
+to may be a float32 the scale does not hold, and a set holds a neighbour: on 16,069,858 of the
+float32 normalized values, none above the floor (issue #13's spec, `verification/sweep.txt`)."""
+
+_ONE_ULP_OFF = 3.4694490199051456e-18
+"""The smallest of the 308,386 normalized values, in exponents -58 to -56, whose display a set
+through the normalized path holds one double ulp off (issue #13's spec,
+`verification/sweep.txt`)."""
 
 
 @pytest.mark.parametrize("record", _RECORDS, ids=lambda record: record.id)
@@ -201,26 +208,37 @@ share a display. Measured over every 53rd float32 in [0, 2 ** -43] and every flo
 @example(normalized=0.0)
 @example(normalized=1.0)
 @example(normalized=5.2383727406426375e-33)  # volume's preset 3.9e-29, absorbed by the offset
+@example(normalized=5.857149595214349e-20)  # issue #13: display maps to a float32 the scale skips
+@example(normalized=_ONE_ULP_OFF)  # the smallest whose set's display comes back one ulp off
 def test_a_value_the_parameter_holds_comes_back_exactly(
     record: MappedParameter, normalized: float
 ) -> None:
     """A displayed value goes to a preset value and back to the same display, every time.
 
-    The preset value comes back too, but where a curve's offset absorbs it (`_ABSORBED`); the
-    normalized value need not, many landing on one float32 preset value.
+    The preset value the parameter holds comes back through the normalized path, every time. The
+    preset value the display maps to is that one, and comes back through the normalized path, but
+    where a curve's offset absorbs it (`_ABSORBED`): there it may be a float32 the scale does not
+    hold, and a set holds a neighbour (issue #13). The normalized value need not come back, many
+    landing on one float32 preset value.
     """
     _assert_comes_back(record, normalized)
 
 
 def _assert_comes_back(record: MappedParameter, normalized: float) -> None:
-    """Assert a normalized value's display, and its preset value but where absorbed, come back."""
+    """Assert a value's display and held preset come back, the display's preset but where absorbed.
+
+    The display comes back through `to_preset`, and the held preset through the normalized path,
+    every time; the preset the display maps to is the held one, and comes back through the
+    normalized path, above `_ABSORBED`.
+    """
     preset = record.scale.to_preset(normalized)
     display = record.from_normalized(normalized)
     back = record.to_preset(display)
     assert record.to_display(back) == display
-    assert record.scale.to_preset(record.to_normalized(display)) == back
+    assert record.scale.to_preset(record.scale.to_normalized(preset)) == preset
     if preset > _ABSORBED.get(record.id, -math.inf):
         assert back == preset
+        assert record.scale.to_preset(record.to_normalized(display)) == back
 
 
 def test_where_volume_s_offset_absorbs_a_preset() -> None:
@@ -232,6 +250,21 @@ def test_where_volume_s_offset_absorbs_a_preset() -> None:
         last
     )
     assert _VOLUME.to_preset(_VOLUME.to_display(first)) == first
+
+
+def test_below_volume_s_floor_a_set_s_display_comes_back_one_ulp_off() -> None:
+    """Below 2 ** -43 a set's display can come back one double ulp off: issue #8 decides it.
+
+    This is the map's behaviour today, held so it changes only on purpose. At `_ONE_ULP_OFF` the
+    display maps to a float32 the scale does not hold; `to_preset`'s value shows the display, but
+    the normalized path lands on a neighbour shown one double ulp above it, as Vital holds it
+    (`test_vital_plugin.py`). Issue #8 decides what a set stores and holds where two presets share
+    a display, and a fix there changes this test on purpose.
+    """
+    display = _VOLUME.from_normalized(_ONE_ULP_OFF)
+    held = _VOLUME.scale.to_preset(_VOLUME.to_normalized(display))
+    assert _VOLUME.to_display(_VOLUME.to_preset(display)) == display
+    assert _VOLUME.to_display(held) == math.nextafter(display, math.inf)
 
 
 @pytest.mark.parametrize("record", _RECORDS, ids=lambda record: record.id)

@@ -10,9 +10,13 @@ default are in the unit the plugin displays, and the two conversions between the
   computes it), or `indexed`, the same rounded to a whole number;
 - `DisplayCurve`, the preset's value and the displayed one: `multiply * skew(preset) + offset`,
   the skew one of the six measured at 1.6.4. A value a parameter holds goes to the display and back
-  exactly; an arbitrary display value comes back as the nearest one the parameter holds, an indexed
-  scale's a whole number (the host spec's `verification/probes.txt`, probe 4), and a choice or a
-  boolean takes a whole index and nothing else, core's rule for them.
+  to that display exactly, and to the same preset value but where a curve's offset absorbs it:
+  below `volume`'s 2 ** -43 neighbouring presets share a display. A displayed value goes to the
+  float32 nearest the curve's inverse, an indexed scale's a whole number, which need not be one
+  the scale holds, below that floor or for an arbitrary display; a set then holds the scale's
+  value at `to_normalized`'s result, as Vital does (the host spec's `verification/probes.txt`,
+  probe 4; issue #13's spec, `verification/sweep.txt` and `verification/plugin-probe.txt`). A
+  choice or a boolean takes a whole index and nothing else, core's rule for them.
 
 Every range, kind and constant is the plugin's own, measured, never written from Vital's source.
 pedalboard's key for a parameter is `host_id`, which only `patchbay_vital.host` interprets. The
@@ -232,13 +236,15 @@ class MappedParameter(PatchbayModel, frozen=True):
         return self.curve.to_display(preset)
 
     def to_preset(self, display: float) -> float:
-        """Return the preset value nearest a displayed value, one the parameter holds.
+        """Return the float32 preset value nearest a display's curve inverse, within the scale.
 
-        On an indexed scale that is a whole number, as the plugin holds it. ParameterRangeError
-        when the value is outside the parameter's bounds, or is not a whole index where the
-        parameter is a choice or a boolean. The bounds are the parameter's own and the scale's
-        ends displayed through this platform's libm, the same on the machine the map was measured
-        on and a double ulp apart on another.
+        On an indexed scale that is a whole number, as the plugin holds it. It need not be one the
+        scale holds, below `volume`'s 2 ** -43, where presets share a display, or for an arbitrary
+        display value; where it is not, a set of `to_normalized`'s result holds a neighbour, as
+        Vital does (issue #13). ParameterRangeError when the value is outside the parameter's
+        bounds, or is not a whole index where the parameter is a choice or a boolean. The bounds
+        are the parameter's own and the scale's ends displayed through this platform's libm, the
+        same on the machine the map was measured on and a double ulp apart on another.
         """
         parameter, scale = self.parameter, self.scale
         low, high = displayed_ends(self.curve, scale)

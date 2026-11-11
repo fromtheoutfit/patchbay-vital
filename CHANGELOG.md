@@ -178,3 +178,23 @@ writes the entry, in that commit
   - `.claude/commands/agent-os/shape-spec.md` customized for this repository's gate, `CLAUDE.md`,
     `README.md`, `agent-os/product/mission.md` and `tech-stack.md`.
   - `patchbay-core` is not a dependency yet: this spec ships no adapter code.
+
+### Fixed
+
+- The parameter map's property below `volume`'s floor, issue #13,
+  `agent-os/specs/2026-11-11-1449-volume-preset-through-the-set-path/`. At normalized
+  `5.857149595214349e-20` the display maps to a float32 the scale does not hold, so the second
+  assertion of `_assert_comes_back` failed whenever Hypothesis drew it; counted over every float32
+  normalized value, it fails on 16,069,858, all at or below 2 ** -43. The property was wrong, not
+  the map: Vital holds exactly the value the map's normalized path computes. The version stays
+  0.0.1.
+  - `_assert_comes_back` asserts the display's preset back through the normalized path above the
+    floor only, beside the preset itself, and the held preset back through the normalized path
+    everywhere; the issue's value and `_ONE_ULP_OFF` are pinned with `@example`.
+  - `test_below_volume_s_floor_a_set_s_display_comes_back_one_ulp_off` holds what the map does
+    today on 308,386 normalized values in exponents -58 to -56, a set's display one double ulp
+    off, which issue #8 decides.
+  - `test_below_volume_s_floor_a_set_holds_the_normalized_path_s_value` measures Vital: below the
+    floor it holds the scale's value at `to_normalized`'s result, never `to_preset`'s.
+  - `MappedParameter.to_preset` and the module's docstring say `to_preset`'s value need not be
+    one the scale holds, below the floor or for an arbitrary display.

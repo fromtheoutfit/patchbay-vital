@@ -1,0 +1,321 @@
+Issue #13's sweep, run 2026-11-11 15:03 EST on branch refactor/13-the-parameter-map-volumes-display-does-not-come-back-through-the-normalized-path-below-2--43-hypothesis-normalized-5857149595214349e-20
+   Building patchbay-vital @ file:///Users/michaelwitwicki/Code/Audio/patchbay-vital
+      Built patchbay-vital @ file:///Users/michaelwitwicki/Code/Audio/patchbay-vital
+Uninstalled 2 packages in 3ms
+Installed 2 packages in 1ms
+at 558b85b56d1f69eaa71dbf0598ce3e65bf391356, machine arm64, Python 3.12.16
+the tree before the run (git status --short):
+  ?? agent-os/specs/2026-11-11-1449-volume-preset-through-the-set-path/
+
+== the script, run as: uv run --locked python sweep.py
+```python
+"""Issue #13: every float32 normalized value through the property's paths, on every offset record.
+
+P0 = scale.to_preset(r), the preset the parameter holds; D0 = to_display(P0); P1 = to_preset(D0);
+N = scale.to_normalized; P2 = scale.to_preset(N(P1)), what a set of D0 holds.
+  A1   to_display(P1) != D0      _assert_comes_back line 220, the display back through the preset
+  A2   S(N(P1)) != P1            line 221, the display's preset back through the normalized path
+  A3   P1 != P0                  line 223, the preset back; asserted only above the floor
+  SET  to_display(P2) != D0      core's get through the plugin: the display back through a set
+  HELD S(N(P0)) != P0            the scale's inverse on the preset the parameter holds
+The arithmetic is the map's, exactly: r * span is exact in a double (24 x 24 bits); a sum is
+rounded once to float32 with TwoSum's remainder deciding a double that lands on a float32
+midpoint; a quotient's nearest float32 is chosen from three candidates by exact distance, ties to
+the even significand; every subtraction that decides is checked exact (`uncertified` counts any
+that is not). Checked value for value against the scalar methods first.
+"""
+
+import math
+import time
+
+import numpy as np
+from patchbay import ParameterId
+
+from patchbay_vital.parameters import parameter_map
+
+FLOOR = 2.0**-43
+
+
+def two_sum(a, b):
+    s = a + b
+    bp = s - a
+    ap = s - bp
+    return s, (a - ap) + (b - bp)
+
+
+def round32(s, err):
+    """Return the float32 nearest s + err exactly, s a double and err its exact remainder."""
+    c32 = s.astype(np.float32)
+    c = c32.astype(np.float64)
+    diff = s - c
+    toward = np.where(diff > 0, np.float32(np.inf), np.float32(-np.inf))
+    nb = np.nextafter(c32, toward).astype(np.float64)
+    away = (diff != 0) & (2 * diff == nb - c) & (err != 0) & (np.sign(err) == np.sign(diff))
+    return np.where(away, nb, c)
+
+
+def half_away(v):
+    return np.copysign(np.floor(np.abs(v) + 0.5), v)
+
+
+class Vec:
+    def __init__(self, rec):
+        s, c = rec.scale, rec.curve
+        self.mn, self.mx, self.span, self.ix = s.minimum, s.maximum, s.span, s.kind == "indexed"
+        self.kind, self.mul, self.off = c.kind, c.multiply, c.offset
+        assert self.kind in ("linear", "square_root")
+        assert self.mul == 1.0
+        self.uncertified = 0
+
+    def S(self, r):
+        s, err = two_sum(r * self.span, np.float64(self.mn))
+        v = round32(s, err)
+        return half_away(v) if self.ix else v
+
+    def N(self, p):
+        a, ea = two_sum(p, np.float64(-self.mn))
+        q = (a / self.span).astype(np.float32)
+        best = None
+        for c32 in (np.nextafter(q, np.float32(-np.inf)), q, np.nextafter(q, np.float32(np.inf))):
+            c = c32.astype(np.float64)
+            d, ed = two_sum(c * self.span, -a)
+            self.uncertified += int(np.count_nonzero((ed != 0) | (ea != 0)))
+            d = np.abs(d)
+            even = (c32.view(np.uint32) & 1) == 0
+            if best is None:
+                best, bd, be = c, d, even
+            else:
+                take = (d < bd) | ((d == bd) & even & ~be)
+                best, bd, be = np.where(take, c, best), np.where(take, d, bd), np.where(take, even, be)
+        return best
+
+    def disp(self, p):
+        skew = np.sqrt(np.maximum(p, 0.0)) if self.kind == "square_root" else p
+        return self.mul * skew + self.off
+
+    def inv(self, d):
+        v = (d - self.off) / self.mul
+        v = v * v if self.kind == "square_root" else v
+        p = np.minimum(np.maximum(v.astype(np.float32).astype(np.float64), self.mn), self.mx)
+        return half_away(p) if self.ix else p
+
+    def paths(self, r):
+        p0 = self.S(r)
+        d0 = self.disp(p0)
+        p1 = self.inv(d0)
+        p2 = self.S(self.N(p1))
+        held = self.S(self.N(p0))
+        return p0, d0, p1, p2, held
+
+
+m = parameter_map()
+offset = [rec for rec in m.parameters if rec.curve.offset != 0]
+print("== the records with a curve offset, by scale and curve")
+groups = {}
+for rec in offset:
+    key = (rec.parameter.kind, rec.scale.kind, rec.scale.minimum, rec.scale.maximum,
+           rec.curve.kind, rec.curve.multiply, rec.curve.offset)
+    groups.setdefault(key, []).append(rec.id)
+for key, ids in groups.items():
+    print(f"  {ids}: {key}")
+SWEPT = ("volume", "filter_1_cutoff", "delay_tempo")
+print(f"  swept: {SWEPT}, one of each group (the others share every constant)")
+
+print("\n== the vectorised check against the scalar methods")
+rng = np.random.default_rng(13)
+bits = rng.integers(0, 0x3F800001, 200_000, dtype=np.uint32)
+edges = [5.857149595214349e-20, 3.4694490199051456e-18, 0.0, 1.0, 2**-149, 2**-126, 2**-56]
+sample = np.concatenate([bits.view(np.float32), np.array(edges, dtype=np.float32)])
+sample = sample.astype(np.float64)
+for name in SWEPT:
+    rec = m.find(ParameterId(name))
+    v = Vec(rec)
+    p0, d0, p1, p2, _ = v.paths(sample)
+    bad = 0
+    for i in range(sample.size):
+        x = float(sample[i])
+        d = rec.from_normalized(x)
+        scalar = (rec.scale.to_preset(x), d, rec.to_preset(d), rec.scale.to_preset(rec.to_normalized(d)))
+        bad += scalar != (p0[i], d0[i], p1[i], p2[i])
+    print(f"  {name}: {sample.size} values (bit patterns uniform over [0, 1] and {len(edges)} named),"
+          f" mismatches {bad}, uncertified {v.uncertified}")
+
+print("\n== every float32 normalized value, by its exponent")
+print("  binade: the float32 exponent of r ('sub' subnormal); below: P0 <= 2 ** -43;")
+print("  then each failure count; above!: any failure among the values above the floor")
+first_set, last_set = math.inf, -math.inf
+for name in SWEPT:
+    rec = m.find(ParameterId(name))
+    v = Vec(rec)
+    start_time = time.time()
+    print(f"\n-- {name}: scale {rec.scale.kind} [{rec.scale.minimum!r}, {rec.scale.maximum!r}],"
+          f" curve {rec.curve.kind} x{rec.curve.multiply!r} {rec.curve.offset:+}")
+    print(f"{'binade':>6} {'n':>8} {'below':>8} {'A1':>4} {'A2':>7} {'A3':>7} {'SET':>6} {'HELD':>4} {'above!':>6}")
+    spans = [("zero", 0, 1), ("sub", 1, 1 << 23)]
+    spans += [(str(e - 127), e << 23, (e + 1) << 23) for e in range(1, 127)]
+    spans += [("one", 0x3F800000, 0x3F800001)]
+    total = np.zeros(8, dtype=np.int64)
+    quiet = []
+    for label, lo, hi in spans:
+        row = np.zeros(8, dtype=np.int64)
+        for start in range(lo, hi, 1 << 22):
+            r = np.arange(start, min(hi, start + (1 << 22)), dtype=np.uint32)
+            r = r.view(np.float32).astype(np.float64)
+            p0, d0, p1, p2, held = v.paths(r)
+            below = p0 <= FLOOR
+            a1, a2, a3 = v.disp(p1) != d0, p2 != p1, p1 != p0
+            st, hd = v.disp(p2) != d0, held != p0
+            above_fail = ~below & (a1 | a2 | a3 | st | hd)
+            row += [r.size, *(int(np.count_nonzero(f)) for f in (below, a1, a2, a3, st, hd, above_fail))]
+            if name == "volume" and st.any():
+                first_set = min(first_set, float(r[st].min()))
+                last_set = max(last_set, float(r[st].max()))
+        total += row
+        if row[2:].any():
+            print(f"{label:>6} {row[0]:>8} {row[1]:>8} {row[2]:>4} {row[3]:>7} {row[4]:>7} {row[5]:>6} {row[6]:>4} {row[7]:>6}")
+        else:
+            quiet.append(label)
+    print(f"{'total':>6} {total[0]:>8} {total[1]:>8} {total[2]:>4} {total[3]:>7} {total[4]:>7} {total[5]:>6} {total[6]:>4} {total[7]:>6}")
+    print(f"  no failure in the {len(quiet)} binades not printed ({', '.join(quiet[:3])}, ..., {quiet[-1]});"
+          f" uncertified {v.uncertified}; {time.time() - start_time:.0f} s")
+
+volume = m.find(ParameterId("volume"))
+print(f"\n== volume's floor and the SET failures")
+print(f"  N(2 ** -43) = {volume.scale.to_normalized(FLOOR)!r}, exponent"
+      f" {math.floor(math.log2(volume.scale.to_normalized(FLOOR)))}")
+for label, r in (("smallest", first_set), ("largest", last_set)):
+    d0 = volume.from_normalized(r)
+    p1 = volume.to_preset(d0)
+    p2 = volume.scale.to_preset(volume.to_normalized(d0))
+    shown = volume.to_display(p2)
+    print(f"  {label} SET failure r = {r!r}: P0 {volume.scale.to_preset(r)!r}, D0 {d0!r},"
+          f" P1 {p1!r}, P2 {p2!r}, to_display(P2) {shown!r},"
+          f" nextafter(D0, inf) {shown == math.nextafter(d0, math.inf)},"
+          f" nextafter(D0, -inf) {shown == math.nextafter(d0, -math.inf)}")
+
+print("\n== arbitrary displays: is to_preset's value the one a set holds? (#8's finding 1)")
+rng = np.random.default_rng(13)
+for name in ("volume", "filter_1_cutoff", "osc_1_level", "env_1_attack"):
+    rec = m.find(ParameterId(name))
+    n, off = 20_000, 0
+    for d in rng.uniform(rec.parameter.minimum, rec.parameter.maximum, n):
+        d = float(d)
+        off += rec.scale.to_preset(rec.to_normalized(d)) != rec.to_preset(d)
+    print(f"  {name}: {n} uniform displays, to_preset's value not the one a set holds: {off}"
+          f" ({100 * off / n:.1f}%)")
+```
+
+== its output
+== the records with a curve offset, by scale and curve
+  ['delay_aux_tempo', 'delay_tempo']: ('choice', 'indexed', 4.0, 12.0, 'linear', 1.0, -4.0)
+  ['filter_1_cutoff', 'filter_2_cutoff', 'filter_fx_cutoff']: ('continuous', 'linear', 8.0, 136.0, 'linear', 1.0, -60.0)
+  ['volume']: ('continuous', 'linear', 0.0, 7399.4404296875, 'square_root', 1.0, -80.0)
+  swept: ('volume', 'filter_1_cutoff', 'delay_tempo'), one of each group (the others share every constant)
+
+== the vectorised check against the scalar methods
+  volume: 200007 values (bit patterns uniform over [0, 1] and 7 named), mismatches 0, uncertified 0
+  filter_1_cutoff: 200007 values (bit patterns uniform over [0, 1] and 7 named), mismatches 0, uncertified 0
+  delay_tempo: 200007 values (bit patterns uniform over [0, 1] and 7 named), mismatches 0, uncertified 0
+
+== every float32 normalized value, by its exponent
+  binade: the float32 exponent of r ('sub' subnormal); below: P0 <= 2 ** -43;
+  then each failure count; above!: any failure among the values above the floor
+
+-- volume: scale linear [0.0, 7399.4404296875], curve square_root x1.0 -80.0
+binade        n    below   A1      A2      A3    SET HELD above!
+   sub  8388607  8388607    0       0 8388607      0    0      0
+  -126  8388608  8388608    0       0 8388608      0    0      0
+  -125  8388608  8388608    0       0 8388608      0    0      0
+  -124  8388608  8388608    0       0 8388608      0    0      0
+  -123  8388608  8388608    0       0 8388608      0    0      0
+  -122  8388608  8388608    0       0 8388608      0    0      0
+  -121  8388608  8388608    0       0 8388608      0    0      0
+  -120  8388608  8388608    0       0 8388608      0    0      0
+  -119  8388608  8388608    0       0 8388608      0    0      0
+  -118  8388608  8388608    0       0 8388608      0    0      0
+  -117  8388608  8388608    0       0 8388608      0    0      0
+  -116  8388608  8388608    0       0 8388608      0    0      0
+  -115  8388608  8388608    0       0 8388608      0    0      0
+  -114  8388608  8388608    0       0 8388608      0    0      0
+  -113  8388608  8388608    0       0 8388608      0    0      0
+  -112  8388608  8388608    0       0 8388608      0    0      0
+  -111  8388608  8388608    0       0 8388608      0    0      0
+  -110  8388608  8388608    0       0 8388608      0    0      0
+  -109  8388608  8388608    0       0 8388608      0    0      0
+  -108  8388608  8388608    0       0 8388608      0    0      0
+  -107  8388608  8388608    0       0 8388608      0    0      0
+  -106  8388608  8388608    0       0 8388608      0    0      0
+  -105  8388608  8388608    0       0 8388607      0    0      0
+  -104  8388608  8388608    0       0 8388608      0    0      0
+  -103  8388608  8388608    0       0 8388607      0    0      0
+  -102  8388608  8388608    0       0 8388607      0    0      0
+  -101  8388608  8388608    0       0 8388606      0    0      0
+  -100  8388608  8388608    0       0 8388605      0    0      0
+   -99  8388608  8388608    0       0 8388605      0    0      0
+   -98  8388608  8388608    0       0 8388602      0    0      0
+   -97  8388608  8388608    0       0 8388602      0    0      0
+   -96  8388608  8388608    0       0 8388598      0    0      0
+   -95  8388608  8388608    0  562305 8388595      0    0      0
+   -94  8388608  8388608    0  408125 8388590      0    0      0
+   -93  8388608  8388608    0  281154 8388582      0    0      0
+   -92  8388608  8388608    0  603118 8388571      0    0      0
+   -91  8388608  8388608    0  284554 8388557      0    0      0
+   -90  8388608  8388608    0  501087 8388536      0    0      0
+   -89  8388608  8388608    0  284554 8388506      0    0      0
+   -88  8388608  8388608    0  500946 8388462      0    0      0
+   -87  8388608  8388608    0  391331 8388405      0    0      0
+   -86  8388608  8388608    0  499599 8388320      0    0      0
+   -85  8388608  8388608    0  424971 8388200      0    0      0
+   -84  8388608  8388608    0  375629 8388015      0    0      0
+   -83  8388608  8388608    0  418161 8387776      0    0      0
+   -82  8388608  8388608    0  374656 8387431      0    0      0
+   -81  8388608  8388608    0  398086 8386938      0    0      0
+   -80  8388608  8388608    0  384163 8386249      0    0      0
+   -79  8388608  8388608    0  371769 8385244      0    0      0
+   -78  8388608  8388608    0  390516 8383871      0    0      0
+   -77  8388608  8388608    0  384836 8381866      0    0      0
+   -76  8388608  8388608    0  404347 8379177      0    0      0
+   -75  8388608  8388608    0  388471 8375219      0    0      0
+   -74  8388608  8388608    0  400972 8369734      0    0      0
+   -73  8388608  8388608    0  402160 8361854      0    0      0
+   -72  8388608  8388608    0  407216 8350839      0    0      0
+   -71  8388608  8388608    0  396003 8335048      0    0      0
+   -70  8388608  8388608    0  401179 8312877      0    0      0
+   -69  8388608  8388608    0  401856 8281691      0    0      0
+   -68  8388608  8388608    0  402063 8237069      0    0      0
+   -67  8388608  8388608    0  404778 8174679      0    0      0
+   -66  8388608  8388608    0  404491 8085768      0    0      0
+   -65  8388608  8388608    0  405288 7960731      0    0      0
+   -64  8388608  8388608    0  400407 7782666      0    0      0
+   -63  8388608  8388608    0  401183 7532615      0    0      0
+   -62  8388608  8388608    0  395683 7177035      0    0      0
+   -61  8388608  8388608    0  408755 6676393      0    0      0
+   -60  8388608  8388608    0  377507 5965914      0    0      0
+   -59  8388608  8388608    0  412700 4964332      0    0      0
+   -58  8388608  8388608    0  462181 3543927  31879    0      0
+   -57  8388608  8388608    0  353626 1538265 176711    0      0
+   -56  8388608   898511    0  199432  247162  99796    0      0
+ total 1065353217 596489679    0 16069858 572449131 308386    0      0
+  no failure in the 57 binades not printed (zero, -55, -54, ..., one); uncertified 0; 60 s
+
+-- filter_1_cutoff: scale linear [8.0, 136.0], curve linear x1.0 -60.0
+binade        n    below   A1      A2      A3    SET HELD above!
+ total 1065353217        0    0       0       0      0    0      0
+  no failure in the 129 binades not printed (zero, sub, -126, ..., one); uncertified 0; 56 s
+
+-- delay_tempo: scale indexed [4.0, 12.0], curve linear x1.0 -4.0
+binade        n    below   A1      A2      A3    SET HELD above!
+ total 1065353217        0    0       0       0      0    0      0
+  no failure in the 129 binades not printed (zero, sub, -126, ..., one); uncertified 0; 59 s
+
+== volume's floor and the SET failures
+  N(2 ** -43) = 1.53642479121845e-17, exponent -56
+  smallest SET failure r = 3.4694490199051456e-18: P0 2.567198129153469e-14, D0 -79.99999983977521, P1 2.5671982985600583e-14, P2 2.5671984679666478e-14, to_display(P2) -79.9999998397752, nextafter(D0, inf) True, nextafter(D0, -inf) False
+  largest SET failure r = 1.53642479121845e-17: P0 1.1368683772161603e-13, D0 -79.99999966282522, P1 1.1368683094535245e-13, P2 1.1368682416908887e-13, to_display(P2) -79.99999966282523, nextafter(D0, inf) False, nextafter(D0, -inf) True
+
+== arbitrary displays: is to_preset's value the one a set holds? (#8's finding 1)
+  volume: 20000 uniform displays, to_preset's value not the one a set holds: 1133 (5.7%)
+  filter_1_cutoff: 20000 uniform displays, to_preset's value not the one a set holds: 0 (0.0%)
+  osc_1_level: 20000 uniform displays, to_preset's value not the one a set holds: 0 (0.0%)
+  env_1_attack: 20000 uniform displays, to_preset's value not the one a set holds: 1549 (7.7%)
+exit=0
