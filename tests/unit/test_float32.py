@@ -88,7 +88,11 @@ def test_an_infinity_or_a_nan_is_returned_as_it_is() -> None:
     assert math.isnan(to_float32(math.nan))
 
 
-@given(st.floats(width=32), st.floats(width=32))
+@given(st.floats(width=32), st.floats())
+@example(1.0, 1.0 + 1e-12)  # a direction that is no float32 is narrowed first: to 1.0, no step
+@example(1.0, 1.0 - 1e-12)
+@example(1.0, 1e300)  # a direction past the largest float32 is infinity
+@example(0.0, 1e-50)  # a direction below half the smallest subnormal is zero, no step
 @example(0.0, 1.0)  # from zero, the smallest subnormal of the direction's sign
 @example(0.0, -1.0)
 @example(-0.0, 1.0)
@@ -99,7 +103,10 @@ def test_an_infinity_or_a_nan_is_returned_as_it_is() -> None:
 @example(math.inf, 0.0)  # from infinity, the largest float32
 @example(1.0, 1.0)  # toward itself, itself
 def test_a_float32_steps_to_its_neighbour_as_numpy_steps_it(value: float, toward: float) -> None:
-    """The float32 next to a float32, either way, is numpy's `nextafter` in float32, signs too."""
+    """The float32 next to a float32, toward any double, is numpy's `nextafter` in float32.
+
+    The direction is narrowed to float32 first, as C's `nextafterf` receives it; signs agree too.
+    """
     ours = next_float32(value, toward)
     with np.errstate(over="ignore"):
         theirs = float(np.nextafter(np.float32(value), np.float32(toward)))

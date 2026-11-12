@@ -1,0 +1,165 @@
+The revision after PR 14's fourth review: two checks of the sweep made after it ran,
+run 2026-11-12 15:21 EST on branch refactor/13-the-parameter-map-volumes-display-does-not-come-back-through-the-normalized-path-below-2--43-hypothesis-normalized-5857149595214349e-20, HEAD f3625d1ce548446ba773aaf0ecd5a93c5deaf704
+the sweep's transcript read: 6f30e49be0ffc939696eadc6a599dafbdece52f7  verification/sweep.txt
+
+== 1. each record counted beside its group, against its group's count
+== the script, run from the repository root as:
+   uv run --locked python <scratchpad>/r4/duplicates.py verification/sweep.txt
+```python
+"""The revision after PR 14's fourth review: each record counted beside its group, against the group.
+
+`sweep.py` counted the six records with a curve offset and the 12 envelope delay and hold records
+directly, each beside its group's count, though every method its paths call reads only the group
+key. This reads that run's transcript and compares each such record's rows, every binade and
+every column, and its total with those of its group's first record, the one that counts the
+group. Run from the repository root: uv run --locked python <scratchpad>/r4/duplicates.py <sweep.txt>
+"""
+
+import sys
+
+import sweep
+from patchbay import ParameterId
+from patchbay_vital.parameters import parameter_map
+
+
+def tables(path):
+    """Return each counted record's table, the lines between its heading and its last line."""
+    out, name, rows = {}, None, []
+    with open(path, encoding="utf-8") as transcript:
+        for line in transcript:
+            if line.startswith("== the script, run from the repository root beside"):
+                break  # the exponential section, which counts each group once
+            if line.startswith("-- ") and ": scale " in line:
+                name, rows = line[3:].split(":", 1)[0], []
+            elif name and line.startswith("  nothing but n counted"):
+                out[name] = rows
+                name = None
+            elif name and not line.startswith("binade"):
+                rows.append(line.rstrip("\n"))
+    return out
+
+
+def main():
+    counted = tables(sys.argv[1])
+    m = parameter_map()
+    groups = {}
+    for rec in m.parameters:
+        groups.setdefault(sweep.group_key(rec), []).append(rec.id)
+    first = {rid: ids[0] for ids in groups.values() for rid in ids}
+    direct = [name for name in counted if first[ParameterId(name)] != name]
+    print(f"== {len(direct)} records counted beside their group, each against its group's first record")
+    same = 0
+    for name in direct:
+        group = first[ParameterId(name)]
+        equal = counted[name] == counted[group]
+        same += equal
+        print(f"  {name} against {group}: {len(counted[name])} lines each (the binades printed and the"
+              f" total), identical {equal}")
+    print(f"== {same} of {len(direct)} identical line for line")
+
+
+if __name__ == "__main__":
+    main()
+```
+== its output
+== 14 records counted beside their group, each against its group's first record
+  delay_tempo against delay_aux_tempo: 1 lines each (the binades printed and the total), identical True
+  filter_2_cutoff against filter_1_cutoff: 130 lines each (the binades printed and the total), identical True
+  filter_fx_cutoff against filter_1_cutoff: 130 lines each (the binades printed and the total), identical True
+  env_1_hold against env_1_delay: 130 lines each (the binades printed and the total), identical True
+  env_2_delay against env_1_delay: 130 lines each (the binades printed and the total), identical True
+  env_2_hold against env_1_delay: 130 lines each (the binades printed and the total), identical True
+  env_3_delay against env_1_delay: 130 lines each (the binades printed and the total), identical True
+  env_3_hold against env_1_delay: 130 lines each (the binades printed and the total), identical True
+  env_4_delay against env_1_delay: 130 lines each (the binades printed and the total), identical True
+  env_4_hold against env_1_delay: 130 lines each (the binades printed and the total), identical True
+  env_5_delay against env_1_delay: 130 lines each (the binades printed and the total), identical True
+  env_5_hold against env_1_delay: 130 lines each (the binades printed and the total), identical True
+  env_6_delay against env_1_delay: 130 lines each (the binades printed and the total), identical True
+  env_6_hold against env_1_delay: 130 lines each (the binades printed and the total), identical True
+== 14 of 14 identical line for line
+exit=0
+
+== 2. tests/unit/test_parameters.py changed only in a docstring since the sweep read it
+== the script, run from the repository root as:
+   uv run --locked python <scratchpad>/r4/docstring_only.py <scratchpad>/r4/test_parameters_as_swept.py
+```python
+"""Show that tests/unit/test_parameters.py changed only in a docstring since the sweep read it.
+
+Two docstrings changed after the sweep read the file: `_shares_its_display`'s held two
+placeholders, `{ASKED}` and `{UNASKED}`, which the sweep's own counts replaced, and
+`_assert_comes_back`'s cited issue #15's spec for the count, which now cites this revision's. This
+puts both back in a scratch copy, prints the copy's blob beside the one the sweep printed, and
+compares the two modules' syntax trees with every docstring removed. Run from the repository root:
+uv run --locked python <scratchpad>/r4/docstring_only.py <scratch copy path>
+"""
+
+import ast
+import subprocess
+import sys
+from pathlib import Path
+
+SHIPPED = Path("tests/unit/test_parameters.py")
+FILLED = """    and curve, never its name. Counted over every float32 normalized value of every group by the
+    revision after PR 14's fourth review (`verification/sweep.txt`): it is asked on 570,997,534
+    values, all of `volume`, and holds on each; a float32 next to the preset, either side, shows
+    its display on 1,061,211,035 more, where the exact check passes and it is never asked:
+    18,227,438 of `volume`'s and 1,042,983,597 of the exponential groups', `oversampling`'s whole
+    numbers among them, whose neighbours the scale does not hold.
+"""
+PLACEHOLDERS = """    and curve, never its name. Counted over every float32 normalized value of every group by the
+    revision after PR 14's fourth review (`verification/sweep.txt`): it is asked on
+    {ASKED} values, all of `volume`, and holds on each; a float32 next to the preset shows its
+    display on {UNASKED} more, where the exact check passes and it is never asked.
+"""
+
+CITED = """    the revision after PR 14's fourth review counts every value it excuses over every float32
+    normalized value of all 69 of the map's scale and curve groups (`verification/sweep.txt`).
+"""
+AS_SWEPT = """    issue #15's spec counts every value it excuses over every float32 normalized value of every
+    group its sweep reproduces (`verification/sweep.txt`).
+"""
+
+
+def stripped(source):
+    """Return the module's syntax tree, dumped, with every docstring removed."""
+    tree = ast.parse(source)
+    for node in ast.walk(tree):
+        body = getattr(node, "body", None)
+        if isinstance(body, list) and body and isinstance(body[0], ast.Expr):
+            if isinstance(body[0].value, ast.Constant) and isinstance(body[0].value.value, str):
+                node.body = body[1:] or [ast.Pass()]
+        if isinstance(node, (ast.Module, ast.ClassDef)):
+            node.body = [n for n in node.body
+                         if not (isinstance(n, ast.Expr) and isinstance(n.value, ast.Constant)
+                                 and isinstance(n.value.value, str))] or [ast.Pass()]
+    return ast.dump(tree)
+
+
+def main():
+    shipped = SHIPPED.read_text(encoding="utf-8")
+    assert shipped.count(FILLED) == 1
+    assert shipped.count(CITED) == 1
+    copy = Path(sys.argv[1])
+    copy.write_text(shipped.replace(FILLED, PLACEHOLDERS).replace(CITED, AS_SWEPT), encoding="utf-8")
+    blob = subprocess.run(["git", "hash-object", str(copy)], capture_output=True, text=True,
+                          check=True).stdout.strip()
+    print(f"  the copy with the placeholders back: {blob} (the sweep printed"
+          " 05e3fd9626f89d5cca67da4241b96c2916eb2566)")
+    print(f"  that is the file the sweep read: {blob == '05e3fd9626f89d5cca67da4241b96c2916eb2566'}")
+    shipped_blob = subprocess.run(["git", "hash-object", str(SHIPPED)], capture_output=True,
+                                  text=True, check=True).stdout.strip()
+    print(f"  the shipped file: {shipped_blob}")
+    same = stripped(shipped) == stripped(copy.read_text(encoding="utf-8"))
+    print(f"  their syntax trees, every docstring removed, identical: {same}")
+
+
+if __name__ == "__main__":
+    main()
+```
+== its output
+  the copy with the placeholders back: 05e3fd9626f89d5cca67da4241b96c2916eb2566 (the sweep printed 05e3fd9626f89d5cca67da4241b96c2916eb2566)
+  that is the file the sweep read: True
+  the shipped file: ba70782b5fb4bd4252251629cd8b280056f1bcb7
+  their syntax trees, every docstring removed, identical: True
+exit=0

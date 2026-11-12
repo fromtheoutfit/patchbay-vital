@@ -12,8 +12,8 @@ double computed first and then narrowed rounds twice, so `fma32` computes the ex
 A float32 is returned as the Python float that holds it exactly: every float32 is a double.
 Rounding follows IEEE 754's round to nearest: a magnitude past the largest float32 by half its
 step or more is infinity, and one below the smallest subnormal by more than half of it is zero.
-`next_float32` steps from one float32 to the next, on its bits, the one way the package and its
-tests step a float32.
+`next_float32` steps from one float32 to the next, on its bits, the one way the package steps a
+float32; its tests check it against numpy's `nextafter`.
 """
 
 import math
@@ -70,12 +70,13 @@ def fma32(factor: float, multiplier: float, addend: float) -> float:
 def next_float32(value: float, toward: float) -> float:
     """Return the float32 next to `value` in the direction of `toward`, as C's `nextafterf` does.
 
-    `value` is a float32, as every value the plugin holds is; a double that is not one is first
-    rounded to the nearest. `toward` equal to it is returned; from a zero the step is the smallest
-    subnormal of `toward`'s sign, and from an infinity the largest float32; a NaN gives a NaN. The
-    step is made on the float32's bits, so it is exact.
+    Both are float32s to `nextafterf`, so a double that is not one is first rounded to the nearest,
+    `toward` as well as `value`: `toward` 1.0 + 1e-12 is 1.0, and from 1.0 there is no step. A
+    `toward` equal to the value is returned; from a zero the step is the smallest subnormal of
+    `toward`'s sign, and from an infinity the largest float32; a NaN gives a NaN. The step is made
+    on the float32's bits, so it is exact.
     """
-    start = to_float32(value)
+    start, toward = to_float32(value), to_float32(toward)
     if math.isnan(start) or math.isnan(toward):
         return math.nan
     if start == toward:

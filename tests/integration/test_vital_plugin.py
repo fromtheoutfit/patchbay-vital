@@ -145,10 +145,12 @@ def test_at_or_below_volume_s_floor_a_set_holds_the_map_s_preset(
 
     At each of `_VOLUME_FLOOR`, a display at or below `volume`'s 2 ** -43 whose curve float32
     (`record.curve.to_preset`) is not one the scale holds. Set from `initial`, as the probe set it,
-    Vital holds `to_preset`'s value exactly, a preset the scale holds, never the curve's float32,
-    and its display is the one set (issue #15's spec, `verification/plugin-probe.txt`). Before
-    issue #15 the map gave the curve's float32 and Vital held a neighbour, shown a double off at
-    three of these.
+    Vital holds `to_preset`'s value exactly: what a set of the curve's float32 holds, where that
+    shows the display, at issue #13's value, and the float32 on its other side at the other three.
+    That is a preset the scale holds, never the curve's float32, and its display is the one set
+    (the `verification/plugin-probe.txt` of issue #15's spec and of the revision after PR 14's
+    fourth review). Before issue #15 the map gave the curve's float32 and Vital held a neighbour,
+    shown a double off at those three.
     """
     record = parameter_map().find(ParameterId("volume"))
     for normalized in _VOLUME_FLOOR:
@@ -166,8 +168,9 @@ def test_a_held_power_of_two_set_through_the_host_is_held(host: VitalHost, initi
 
     At each of `_POWERS_OF_TWO`, on `env_1_delay` and on `env_3_hold`, which shares its scale and
     curve: set from `initial` through the map's normalized path, Vital holds the power itself
-    (issue #15's spec, `verification/plugin-probe.txt`). Before issue #15 the map's normalized
-    value was the float32 below, and Vital held the float32 below the power.
+    (the `verification/plugin-probe.txt` of issue #15's spec and of the revision after PR 14's
+    fourth review). Before issue #15 the map's normalized value was the float32 below, and Vital
+    held the float32 below the power.
     """
     first = parameter_map().find(ParameterId("env_1_delay"))
     for name in ("env_1_delay", "env_3_hold"):
@@ -193,9 +196,10 @@ def test_a_load_holds_volume_s_unheld_float32_as_its_neighbour_and_chorus_feedba
     state is written with the package's `dumps`, which gives the plugin's own text back byte for
     byte, so it differs from text Vital wrote only in `volume`'s value. The probe saw the same
     after each of the four histories it tried before the first of those loads: a fresh instance,
-    the census's sets, a set of each of the two, and the measure's own sets (issue #15's spec,
-    `verification/plugin-probe.txt`; first seen in issue #13's). This test does not rely on which
-    of them precedes it in a run.
+    the census's sets, a set of each of the two, and the measure's own sets (the
+    `verification/plugin-probe.txt` of issue #15's spec and of the revision after PR 14's fourth
+    review; first seen in issue #13's). This test does not rely on which of them precedes it in a
+    run.
     """
     committed = parameter_map()
     assert (host.name, host.version) == (committed.instrument, committed.vital_version)

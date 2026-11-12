@@ -182,36 +182,46 @@ writes the entry, in that commit
 ### Fixed
 
 - The parameter map's two inverses, issue #15,
-  `agent-os/specs/2026-11-12-0937-map-inverses-land-on-held-presets/`, after the third review of
-  PR 14. Each missed a preset a set should hold, and Vital held what the map gave. The version
-  stays 0.0.1.
-  - `NormalizedScale.to_normalized` takes the float32 one step toward the preset where the nearest
-    quotient misses it and that step lands on it: on the 12 `env_N_delay` and `env_N_hold`
-    records, at 126 powers of two each from 2 ** -125 to 1, the nearest multiplied back one float32
-    short, so a set of 1.0 s held 0.9999999403953552 on Vital and now holds 1.0.
-  - `MappedParameter.to_preset` takes, where the curve's float32 for a display is not one the scale
-    holds, the float32 next to it that the scale holds and that shows the display, the nearer the
-    curve's inverse where both do: at or below `volume`'s 2 ** -43, where presets share a display,
-    a set of a display now shows it again exactly, where 308,386 values had shown a double off. A
-    display no such neighbour shows keeps the curve's float32 (issue #8's finding 1).
-  - `NormalizedScale.holds` says whether the plugin can hold a preset value, and
-    `float32.next_float32` steps to the next float32, the one way the package and its tests do.
-  - Counted over every float32 normalized value of the 60 scale and curve groups the sweep
-    reproduces, of each record with a curve offset and of each envelope delay and hold record: the
-    display, the held preset and the display's preset come back exactly and a set shows the display
-    again on every value; the fix changed the display's preset on 16,069,858 of `volume`'s values,
-    each where the curve's float32 was not held, both neighbours qualifying on 15,452,993, and the
-    normalized value of a held preset on the 1,512 powers of two, nothing else
-    (`verification/sweep.txt`). Vital 1.6.4 holds the map's value at each pinned value after a set
-    (`verification/plugin-probe.txt`), and `verification/mutation.txt` shows the tests fail with
-    each fix reverted.
-  - Removed with the defects they held: the power-of-two exception and the neighbouring-double
-    tolerance of `_assert_comes_back`, the two characterization tests, `tests/data/volume-floor.txt`,
-    `tests/data/power-of-two-presets.txt` and `tests/conftest.py` with `recorded_rows` and
-    `stepped`. The pinned values are constants in each test module, written the same way in both.
-  - `test_at_or_below_volume_s_floor_a_set_holds_the_map_s_preset` and
-    `test_a_held_power_of_two_set_through_the_host_is_held` hold Vital at them; the load test writes
-    its state with the package's `dumps` and reads it with the host's `_floats`.
+  `agent-os/specs/2026-11-12-0937-map-inverses-land-on-held-presets/`, revised after the fourth
+  review of PR 14, `agent-os/specs/2026-11-12-1319-revision-after-pr-14-fourth-review/`. Each
+  missed a preset a set should hold, and Vital held what the map gave. The version stays 0.0.1.
+  - **`NormalizedScale.to_normalized` takes the float32 one step toward the preset** where the
+    nearest quotient misses it and that step, inside [0, 1], lands on it.
+    - On the 12 `env_N_delay` and `env_N_hold` records, at 126 powers of two each from 2 ** -125
+      to 1, the nearest quotient multiplied back one float32 short. So a set of 1.0 s held
+      0.9999999403953552 on Vital, and now holds 1.0.
+    - A step past [0, 1] is never taken. On a span of 2 ** 24 from -1, only the float32 above 1,
+      which the host cannot set, lands on the maximum, so the maximum is not one the scale holds.
+  - **`MappedParameter.to_preset`** handles a display whose curve float32 the scale does not hold.
+    It takes what a set of that float32 holds, Vital's own rounding of it, where that shows the
+    display. Otherwise it takes the float32 on its other side, where the scale holds it and it
+    shows the display. Otherwise it keeps the curve's float32, as before.
+    - At or below `volume`'s 2 ** -43, presets share a display, and a set of a display now shows
+      it again exactly.
+    - On 15,761,472 of `volume`'s values a set holds what it held before, now the value
+      `to_preset` gives.
+    - On the 308,386 where that showed a display one double off, a set holds the float32 on the
+      other side.
+    - A display no preset shows exactly keeps the curve's float32 (issue #8's finding 1). Whether
+      a set keeps a stored value is left to issue #8 (finding 3).
+  - **New:** `NormalizedScale.holds` says whether the plugin can hold a preset value.
+    `float32.next_float32` steps to the next float32 as C's `nextafterf` does, both of its
+    arguments narrowed to float32 first. It is the one way the package steps a float32, and its
+    tests check it against numpy's `nextafter`.
+  - **Counted over every float32 normalized value of all 69 of the map's scale and curve groups,**
+    the 9 exponential ones through this machine's own libm (macOS 26.6.2 on arm64)
+    (`verification/sweep.txt`):
+    - the display, the held preset and the display's preset come back exactly, and a set shows
+      the display again, on every value;
+    - no value reaches the rule's third branch;
+    - against `main`'s results, nothing changed where a set of `main`'s value held it.
+  - **Vital and the tests.** Vital 1.6.4 holds the map's value at each pinned value after a set
+    (`verification/plugin-probe.txt`). `verification/mutation.txt` shows the tests fail with each
+    branch, guard and order changed, but for two orders shown equivalent.
+  - **The pinned values.** `test_at_or_below_volume_s_floor_a_set_holds_the_map_s_preset` and
+    `test_a_held_power_of_two_set_through_the_host_is_held` hold Vital at them. They are written
+    alike in the unit and integration test modules, and
+    `test_the_integration_module_pins_the_same_values` holds the two copies equal.
 - The parameter map's property at or below `volume`'s floor, issue #13,
   `agent-os/specs/2026-11-11-1449-volume-preset-through-the-set-path/`, revised after the two
   reviews of PR 14, `agent-os/specs/2026-11-11-1555-revision-after-pr-14-review/` and
@@ -221,7 +231,10 @@ writes the entry, in that commit
   normalized path, failed whenever Hypothesis drew it: on 16,069,858 of `volume`'s values counted,
   all at or below 2 ** -43. The map was wrong there, not the property.
   - `_assert_comes_back` asserts on every value, exactly, the display back, the held preset back
-    through the normalized path and the display's preset back through it; the preset the display
-    maps to is the held one but where it shares its display with a neighbouring float32
-    (`_shares_its_display`), a value predicate in place of `_ABSORBED`, keyed by a record's id, and
-    consulted only where that check fails. The issue's value is pinned with `@example`.
+    through the normalized path and the display's preset back through it. The preset the display
+    maps to is the held one, but where the float32 next to the held one, toward the preset the
+    display maps to, shows its display (`_shares_its_display`).
+    - That is a value predicate, in place of `_ABSORBED`, which was keyed by a record's id.
+    - It is consulted only where the exact check fails: on 570,997,534 values, all of `volume`'s,
+      each excused.
+    - The issue's value is pinned with `@example`.
