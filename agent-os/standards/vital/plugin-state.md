@@ -11,9 +11,11 @@ revision after PR 9's CI run (`agent-os/specs/2026-11-10-0738-revision-after-pr-
 reading of pedalboard 0.9.26's wrappers and its `old-behaviour.txt` the findings' tests failing on
 the code as reviewed; of the revision after the second review
 (`agent-os/specs/2026-11-10-1307-revision-after-pr-9-second-review/`), whose `old-behaviour.txt`
-does the same for its findings; and of the revision after the third review
+does the same for its findings; of the revision after the third review
 (`agent-os/specs/2026-11-10-1438-revision-after-pr-9-third-review/`): `restore-probe.txt` and
-`old-behaviour.txt`.
+`old-behaviour.txt`; and of the spec of issue #13
+(`agent-os/specs/2026-11-11-1449-volume-preset-through-the-set-path/`) and the revision after PR
+14's review (`agent-os/specs/2026-11-11-1555-revision-after-pr-14-review/`): `plugin-probe.txt`.
 
 ## The state
 
@@ -45,15 +47,18 @@ does the same for its findings; and of the revision after the third review
   It upgrades a preset older than 1.6.4 (keys added, sections re-encoded, floats moved); every load
   delays the embedded sample by 4 samples and re-quantizes it, a 16-bit value moving one step; a
   value off the host's grid snaps once after the host set that parameter. A load with no set
-  before it was also seen to move an off-grid value, once: on Vital 1.6.4 through pedalboard 0.9.26
-  on arm64, a fresh instance loading `volume` at 4.3339650415194074e-16, below its floor, held
-  4.3339647768216114e-16, the normalized grid's neighbour, while `chorus_feedback`'s off-grid
-  0.4000000059604645 in the same load was held as given; a set of `volume` and then the same load
-  held the neighbour too. One load does not say why one value moved and the other did not. So the
-  plugin's state is never read back as the preset it was given; the instrument keeps the preset it
-  loaded (issue #8). Verified against `test_the_fixture_as_state_reads_back_but_its_sample_delayed`,
+  before it also moves `volume`'s value at or below its floor where that is a float32 the scale does
+  not hold, to the normalized path's value, while `chorus_feedback`'s off-grid 0.4000000059604645 in
+  the same load is held as given: on Vital 1.6.4 through pedalboard 0.9.26 on arm64, at each row of
+  `tests/data/volume-floor.txt`, after every history the integration module can give the load (a
+  fresh instance, the census's sets, a set of each of the two, the measure's own sets). It is an
+  observation: nothing measured says why one value moves and the other does not. So the plugin's
+  state is never read back as the preset it was given; the instrument keeps the preset it loaded
+  (issue #8). Verified against `test_the_fixture_as_state_reads_back_but_its_sample_delayed`,
   `test_every_installed_preset_loads_as_state`, `test_a_routing_only_in_the_preset_text_is_heard`
-  and issue #13's `verification/plugin-probe.txt`
+  and `test_a_load_holds_volume_s_unheld_float32_as_its_neighbour_and_chorus_feedback_as_given`,
+  which holds the load's move, and the `verification/plugin-probe.txt` of the revision after PR 14's
+  review (`agent-os/specs/2026-11-11-1555-revision-after-pr-14-review/`); first seen in issue #13's
   (`agent-os/specs/2026-11-11-1449-volume-preset-through-the-set-path/`).
 
 ## The process
