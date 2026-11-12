@@ -46,19 +46,22 @@ does the same for its findings; of the revision after the third review
 - **A preset loaded as state can be complete, routing and media included, but the plugin changes it.**
   It upgrades a preset older than 1.6.4 (keys added, sections re-encoded, floats moved); every load
   delays the embedded sample by 4 samples and re-quantizes it, a 16-bit value moving one step; a
-  value off the host's grid snaps once after the host set that parameter. A load with no set
-  before it also moves `volume`'s value at or below its floor where that is a float32 the scale does
-  not hold, to the normalized path's value, while `chorus_feedback`'s off-grid 0.4000000059604645 in
-  the same load is held as given: on Vital 1.6.4 through pedalboard 0.9.26 on arm64, at each row of
-  `tests/data/volume-floor.txt`, after every history the integration module can give the load (a
-  fresh instance, the census's sets, a set of each of the two, the measure's own sets). It is an
-  observation: nothing measured says why one value moves and the other does not. So the plugin's
+  value off the host's grid snaps once after the host set that parameter. A load of the starting
+  state and then, with no set between them, of a state holding `volume` at or below its floor at a
+  float32 the scale does not hold, the curve's own for the display, moves that value to the
+  normalized path's, while `chorus_feedback`'s off-grid 0.4000000059604645 in the same load is held
+  as given: on Vital 1.6.4 through pedalboard 0.9.26 on arm64, at each row of
+  `tests/data/volume-floor.txt`, after each of the four histories the probe tried before the first
+  load (a fresh instance, the census's sets, a set of each of the two, the measure's own sets). It
+  is an observation: nothing measured says why one value moves and the other does not, and the test
+  that holds it does not rely on which history precedes it. So the plugin's
   state is never read back as the preset it was given; the instrument keeps the preset it loaded
   (issue #8). Verified against `test_the_fixture_as_state_reads_back_but_its_sample_delayed`,
   `test_every_installed_preset_loads_as_state`, `test_a_routing_only_in_the_preset_text_is_heard`
   and `test_a_load_holds_volume_s_unheld_float32_as_its_neighbour_and_chorus_feedback_as_given`,
-  which holds the load's move, and the `verification/plugin-probe.txt` of the revision after PR 14's
-  review (`agent-os/specs/2026-11-11-1555-revision-after-pr-14-review/`); first seen in issue #13's
+  which holds the load's move, and the `verification/plugin-probe.txt` of the revisions after PR
+  14's reviews (`agent-os/specs/2026-11-11-1555-revision-after-pr-14-review/` and
+  `agent-os/specs/2026-11-11-2044-revision-after-pr-14-second-review/`); first seen in issue #13's
   (`agent-os/specs/2026-11-11-1449-volume-preset-through-the-set-path/`).
 
 ## The process

@@ -6,7 +6,8 @@ How a test asserts what Vital rendered or holds. Written from
 (`agent-os/specs/2026-11-09-1907-the-host-and-the-parameter-map/`) and the
 `verification/plugin-probe.txt` of the spec of issue #13
 (`agent-os/specs/2026-11-11-1449-volume-preset-through-the-set-path/`) and of
-the revision after PR 14's review (`agent-os/specs/2026-11-11-1555-revision-after-pr-14-review/`).
+the revisions after PR 14's reviews (`agent-os/specs/2026-11-11-1555-revision-after-pr-14-review/`
+and `agent-os/specs/2026-11-11-2044-revision-after-pr-14-second-review/`).
 
 - **Vital's audio is not sample-reproducible**, so no test compares samples: two renders in a row
   differ, and so do two instances in one state (spectral centroids 4657 and 4610 Hz). Verified
@@ -26,15 +27,18 @@ the revision after PR 14's review (`agent-os/specs/2026-11-11-1555-revision-afte
   the preset a set holds, the scale's value at `to_normalized`'s result, and the test asserts that
   the state's float is that value, with no tolerance, and is not the curve's own float32
   (`record.curve.to_preset`) where the scale does not hold it, which a fix of `to_preset` leaves as
-  it is. The distance of its display from the one set is counted in double steps by `_ulps`, with
-  its direction: at each row of `tests/data/volume-floor.txt` the probe counted the row's own, 0 at
-  issue #13's value and +1 or −1 at three of the 308,386 values at or below `volume`'s floor whose
-  display lands off. The rows are one file, read through `tests/conftest.py`'s `volume_floor` by the
-  unit and the integration tests and by the probe through `recorded_rows`, and its header names
-  what found them and which the probe measured. The test and the probe run one sequence, `initial`
-  loaded before each set; `_held_after_a_set` and `_ulps` are written once in the test module, which
-  the probe imports and prints by blob and source, so the test and the probe compute the same thing.
-  Verified against `tests/integration/test_vital_plugin.py`
-  (`test_at_or_below_volume_s_floor_a_set_holds_the_normalized_path_s_value`), `tests/conftest.py`,
-  `tests/data/volume-floor.txt` and the `verification/plugin-probe.txt` of the revision after
-  PR 14's review.
+  it is. Where a row records a step, the value lands at it, read by `tests/conftest.py`'s
+  `stepped`, the one spelling every test and the probe use: at each row of
+  `tests/data/volume-floor.txt` the display, in double steps, 0 at issue #13's value and +1 or −1 at
+  three of the 308,386 values at or below `volume`'s floor whose display lands off; at each row of
+  `tests/data/power-of-two-presets.txt` the held preset, in float32 steps, one below the power on
+  `env_1_delay` and `env_3_hold`. The rows are files, read through `tests/conftest.py`'s fixtures by
+  the unit and the integration tests and by the probe through `recorded_rows`, and each header
+  names what found them and which the probe measured. The test and the probe run one sequence,
+  `initial` loaded before each set; `_held_after_a_set` is written once in the test module, and the
+  probe imports it and `stepped` and prints them by blob and source, so the test and the probe
+  compute the same thing. Verified against `tests/integration/test_vital_plugin.py`
+  (`test_at_or_below_volume_s_floor_a_set_holds_the_normalized_path_s_value`,
+  `test_a_held_power_of_two_set_through_the_host_lands_as_recorded`), `tests/conftest.py`
+  (`stepped`), both row files and the `verification/plugin-probe.txt` of the revision after PR 14's
+  second review.
