@@ -1,4 +1,4 @@
-"""Rounding to float32 is IEEE's, and `fma32` gives the value Vital's own build reports."""
+"""Rounding to float32 is IEEE's, a float32's neighbour C's, and `fma32` Vital's build's."""
 
 import math
 import struct
@@ -9,7 +9,7 @@ import pytest
 from hypothesis import example, given
 from hypothesis import strategies as st
 
-from patchbay_vital.float32 import fma32, round_to_float32, to_float32
+from patchbay_vital.float32 import fma32, next_float32, round_to_float32, to_float32
 
 _RECORDED = 2700  # a floor on the vectors: an emptied file must not pass
 _PARAMETERS = 252  # the parameters they were measured on (the spec's verification/probes.txt)
@@ -86,6 +86,35 @@ def test_an_infinity_or_a_nan_is_returned_as_it_is() -> None:
     assert to_float32(math.inf) == math.inf
     assert to_float32(-math.inf) == -math.inf
     assert math.isnan(to_float32(math.nan))
+
+
+@given(st.floats(width=32), st.floats(width=32))
+@example(0.0, 1.0)  # from zero, the smallest subnormal of the direction's sign
+@example(0.0, -1.0)
+@example(-0.0, 1.0)
+@example(1.0, 0.0)  # below a power of two the step halves: 1 - 2 ** -24
+@example(1.0, 2.0)  # above it, 1 + 2 ** -23
+@example(-1.0, 0.0)  # toward zero a negative value's magnitude falls
+@example(_LARGEST, math.inf)  # past the largest float32, infinity
+@example(math.inf, 0.0)  # from infinity, the largest float32
+@example(1.0, 1.0)  # toward itself, itself
+def test_a_float32_steps_to_its_neighbour_as_numpy_steps_it(value: float, toward: float) -> None:
+    """The float32 next to a float32, either way, is numpy's `nextafter` in float32, signs too."""
+    ours = next_float32(value, toward)
+    with np.errstate(over="ignore"):
+        theirs = float(np.nextafter(np.float32(value), np.float32(toward)))
+    if math.isnan(theirs):
+        assert math.isnan(ours)
+        return
+    assert ours == theirs
+    assert math.copysign(1.0, ours) == math.copysign(1.0, theirs)
+
+
+def test_a_double_that_is_no_float32_steps_from_its_nearest() -> None:
+    """A double between two float32s is first rounded to the nearer, then stepped from there."""
+    nearest = to_float32(0.1)
+    assert nearest != 0.1  # noqa: PLR2004 - 0.1 is no float32
+    assert next_float32(0.1, 1.0) == _next_up(nearest)
 
 
 def test_every_recorded_vector_is_the_plugin_s_value(pytestconfig: pytest.Config) -> None:

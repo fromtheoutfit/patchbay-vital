@@ -6,16 +6,16 @@ wrote from the plugin (`verification/census-run.txt`), is held to the same prope
 """
 
 import math
-from collections.abc import Callable
+from fractions import Fraction
 from typing import Literal
 
-import numpy as np
 import pytest
 from hypothesis import example, given
 from hypothesis import strategies as st
 from patchbay import Parameter, ParameterId, PatchbayValidationError, PresetKey, Quantity, Unit
 
 from patchbay_vital.errors import ParameterRangeError, UnknownParameterError
+from patchbay_vital.float32 import next_float32, round_to_float32
 from patchbay_vital.parameters import (
     PRESET_ONLY_KEYS,
     DisplayCurve,
@@ -201,44 +201,30 @@ def test_a_value_the_parameter_holds_comes_back_exactly(
 ) -> None:
     """A displayed value goes to a preset value and back to the same display, every time.
 
-    The preset value the parameter holds comes back through the normalized path, and the preset
-    value the display maps to is that one, and a set of the display shows it again exactly, but at
-    two stated exceptions: where a held power of two's normalized path lands one float32 below it
-    (`_lands_below_its_power_of_two`), and where a curve's offset absorbs the skew so that
-    neighbouring presets share a display (`_shares_its_display`), a set there showing the display
-    or a neighbouring double. Issue #15 is to remove the first and the neighbouring double; where
-    presets share a display the display cannot say which of them was held, so the preset it maps
-    to stays excused there. The normalized value need not come back, many landing on one float32
-    preset value.
+    The preset value the parameter holds comes back through the normalized path; the preset value
+    the display maps to is one the scale holds, which a set of the display holds again; and it is
+    the held one, but where a curve's offset absorbs the skew so that neighbouring presets share a
+    display (`_shares_its_display`): there the display cannot say which of them was held. The
+    normalized value need not come back, many landing on one float32 preset value.
     """
     _assert_comes_back(record, normalized)
 
 
 def _assert_comes_back(record: MappedParameter, normalized: float) -> None:
-    """Assert a value's display, held preset and preset come back, and what a set of it shows.
+    """Assert a value's display, held preset and preset come back, and what a set of it holds.
 
-    The display comes back through `to_preset` on every value. The held preset comes back through
-    the normalized path but where `_lands_below_its_power_of_two`; the preset the display maps to
-    is the held one but where `_shares_its_display`; and a set of the display shows it exactly but
-    at those two, the display or a neighbouring double where the preset shares its display. Each
-    exception is consulted only where its claim fails, so it excuses nothing that holds; the
-    sweep shows every failure has its exception's shape. Issue #15 is to remove the power of two's
-    exception and the neighbouring double, not the shared display's excuse of the preset.
+    Every check is exact on every value. The one excuse, `_shares_its_display`, is consulted only
+    where the preset the display maps to is not the held one, so it excuses nothing that holds;
+    issue #15's spec counts every value it excuses over every float32 normalized value of every
+    group its sweep reproduces (`verification/sweep.txt`).
     """
     preset = record.scale.to_preset(normalized)
     display = record.from_normalized(normalized)
     back = record.to_preset(display)
     assert record.to_display(back) == display
-    held = record.scale.to_preset(record.scale.to_normalized(preset))
-    assert held == preset or _lands_below_its_power_of_two(preset, held)
+    assert record.scale.to_preset(record.scale.to_normalized(preset)) == preset
+    assert record.scale.to_preset(record.to_normalized(display)) == back
     assert back == preset or _shares_its_display(record, preset)
-    shown = record.to_display(record.scale.to_preset(record.to_normalized(display)))
-    neighbours = (math.nextafter(display, -math.inf), math.nextafter(display, math.inf))
-    assert (
-        shown == display
-        or (_shares_its_display(record, preset) and shown in neighbours)
-        or _lands_below_its_power_of_two(preset, held)
-    )
 
 
 def _shares_its_display(record: MappedParameter, preset: float) -> bool:
@@ -248,92 +234,121 @@ def _shares_its_display(record: MappedParameter, preset: float) -> bool:
     square root at or below 2 ** -43, the preset of normalized 1.53642479121845e-17, is within
     3.4e-7 dB of its -80 dB offset, below a double's spacing there (measured over every 53rd
     float32 in [0, 2 ** -43] and every float32 above it to 2 ** -43 + 2,000,000 steps, the host
-    spec's shape.md, Decision 6). There the preset a display maps to may be another that shows it,
-    a float32 the scale does not hold, and a set of the display shows it or a neighbouring double.
-    A value of the record's own scale and curve, never its name: the revision after PR 14's second
-    review counts, on every record its sweep reproduces, every failure the exception excuses
-    (`verification/sweep.txt`). Issue #15 is to return the held neighbour that shows the display.
+    spec's shape.md, Decision 6). There the preset a display maps to may be another held one that
+    shows it. A value of the record's own scale and curve, never its name: issue #15's spec counts,
+    on every record its sweep reproduces, every value the exception excuses
+    (`verification/sweep.txt`).
     """
     shown = record.to_display(preset)
-    below = float(np.nextafter(np.float32(preset), np.float32(-np.inf)))
-    above = float(np.nextafter(np.float32(preset), np.float32(np.inf)))
+    below, above = next_float32(preset, -math.inf), next_float32(preset, math.inf)
     return shown in (record.to_display(below), record.to_display(above))
 
 
-def _lands_below_its_power_of_two(preset: float, held: float) -> bool:
-    """Say whether a preset is a positive power of two and `held` the float32 just below it.
-
-    The one way the normalized path is known to miss a preset the scale holds: on the 12
-    `env_N_delay` and `env_N_hold` records, at 126 powers of two from 2 ** -125 to 1, the float32
-    nearest `preset / span` multiplies back short of the power, where the float32 spacing halves,
-    and lands one float32 below it, as Vital holds it (the revision after PR 14's review,
-    `verification/sweep.txt` and `verification/plugin-probe.txt`). Issue #15's fix removes
-    this exception from `_assert_comes_back`, on purpose.
-    """
-    below = float(np.nextafter(np.float32(preset), np.float32(-np.inf)))
-    return preset > 0 and preset == 2.0 ** (math.frexp(preset)[1] - 1) and held == below
-
-
 def test_where_volume_s_offset_absorbs_a_preset() -> None:
-    """At 2 ** -43 two presets share a display; the float32 above it is the first told apart."""
+    """At 2 ** -43 two presets share a display; the float32 above it is the first told apart.
+
+    The curve's own float32 for 2 ** -43's display is another preset, one the scale does not hold;
+    the map takes a held preset that shows the display instead, as a set of it holds on Vital
+    (issue #15).
+    """
     last = 2.0**-43
-    first = float(np.nextafter(np.float32(last), np.float32(1.0)))
-    assert _VOLUME.to_preset(_VOLUME.to_display(last)) != last
-    assert _VOLUME.to_display(_VOLUME.to_preset(_VOLUME.to_display(last))) == _VOLUME.to_display(
-        last
-    )
-    assert _VOLUME.to_preset(_VOLUME.to_display(first)) == first
+    first = next_float32(last, 1.0)
+    display = _VOLUME.to_display(last)
+    own = _VOLUME.curve.to_preset(display)
+    assert own != last
+    assert not _VOLUME.scale.holds(own)
+    back = _VOLUME.to_preset(display)
+    assert _VOLUME.scale.holds(back)
+    assert _VOLUME.to_display(back) == display
     assert _shares_its_display(_VOLUME, last)
+    assert not _shares_its_display(_VOLUME, first)
+    assert _VOLUME.to_preset(_VOLUME.to_display(first)) == first
 
 
-def test_at_or_below_volume_s_floor_a_set_s_display_lands_as_recorded(
-    volume_floor: tuple[tuple[float, int], ...],
-    stepped: Callable[[float, int, int], float],
-) -> None:
-    """At or below 2 ** -43 a set's display lands where each row says: issue #15 changes it.
+_VOLUME_FLOOR = (
+    5.857149595214349e-20,  # issue #13's value
+    3.4694490199051456e-18,  # the smallest of the former one-ulp landings
+    1.439742266862027e-17,  # a former one-ulp landing below the display
+    1.53642479121845e-17,  # the floor's own, preset 2 ** -43
+)
+"""`volume`'s normalized values at or below its floor, pinned; `test_vital_plugin.py` holds Vital
+at the same ones."""
 
-    This is the committed map's behaviour today, held so it changes only on purpose. At each row
-    of `tests/data/volume-floor.txt`, `volume`'s preset shares its display with a neighbouring
-    float32 and the curve's own float32 for the display (`curve.to_preset`) is not one the scale
-    holds; the normalized path lands on a held preset shown at the row's step, the display itself
-    or the double above (+1) or below (-1) it, as Vital holds it (`test_vital_plugin.py` reads the
-    same rows). Issue #15's fix is expected to change the three non-zero rows, on purpose; it
-    leaves the 0-step row and the curve's own float32 as they are.
+_POWERS_OF_TWO = (
+    0.7071068286895752,  # 1.0 on the envelope records
+    0.3535534143447876,  # 0.5 on the envelope records
+    6.74349621476722e-07,  # 2 ** -20 on the envelope records
+)
+"""Normalized values of held powers of two on the envelope records, pinned; `test_vital_plugin.py`
+holds Vital at the same ones."""
+
+
+@pytest.mark.parametrize("normalized", _VOLUME_FLOOR)
+def test_at_or_below_volume_s_floor_a_display_maps_to_a_held_preset(normalized: float) -> None:
+    """Where the curve's own float32 for a display is one the scale skips, a held one is taken.
+
+    At each pinned value `volume`'s preset shares its display with a neighbouring float32, and the
+    float32 nearest the curve's inverse is not one the scale holds: before issue #15 the map gave
+    it, and a set of the display held a neighbour, shown at the display or a double from it, as
+    Vital holds it. The map now takes the held float32 next to it that shows the display, so the
+    value comes back as every value does.
     """
     record = parameter_map().find(ParameterId("volume"))
-    for normalized, steps in volume_floor:
-        _assert_comes_back(record, normalized)
-        preset = record.scale.to_preset(normalized)
-        display = record.from_normalized(normalized)
-        own = record.curve.to_preset(display)
-        held = record.scale.to_preset(record.to_normalized(display))
-        assert _shares_its_display(record, preset), normalized
-        assert record.scale.to_preset(record.scale.to_normalized(own)) != own, normalized
-        assert record.to_display(held) == stepped(display, steps, 64), (normalized, steps)
+    _assert_comes_back(record, normalized)
+    display = record.from_normalized(normalized)
+    assert _shares_its_display(record, record.scale.to_preset(normalized))
+    assert not record.scale.holds(record.curve.to_preset(display))
 
 
-def test_a_held_power_of_two_lands_as_recorded_through_the_normalized_path(
-    power_of_two_presets: tuple[tuple[float, int], ...],
-    stepped: Callable[[float, int, int], float],
+@pytest.mark.parametrize("name", ["env_1_delay", "env_3_hold"])
+@pytest.mark.parametrize("normalized", _POWERS_OF_TWO)
+def test_a_held_power_of_two_comes_back_through_the_normalized_path(
+    name: str, normalized: float
 ) -> None:
-    """A held power of two's normalized path lands where each row says: issue #15 changes it.
+    """A held power of two's normalized value is the one that lands on it, not the one below.
 
-    This is the committed map's behaviour today, held so it changes only on purpose. At each row
-    of `tests/data/power-of-two-presets.txt`, `env_1_delay`'s held preset is a power of two, which
-    the row's own normalized value lands on by construction, so a float32 that lands on the power
-    exists; the normalized path, the float32 nearest `preset / span`, gives a preset the row's
-    float32 steps from it, one below, as Vital holds it (`test_vital_plugin.py` reads the same
-    rows). Issue #15's fix is expected to change the rows to 0, on purpose, and to drop
-    `_lands_below_its_power_of_two`.
+    On the 12 `env_N_delay` and `env_N_hold` records, at 126 powers of two each, the float32
+    nearest `preset / span` multiplies back short of the power, where the float32 spacing halves,
+    and lands one float32 below it: before issue #15 the map gave it, and a set of 1.0 s held
+    0.9999999403953552 on Vital. The map now steps to the float32 that lands on the power, here
+    the pinned value itself.
     """
-    record = parameter_map().find(ParameterId("env_1_delay"))
-    for normalized, steps in power_of_two_presets:
-        _assert_comes_back(record, normalized)
-        preset = record.scale.to_preset(normalized)
-        held = record.scale.to_preset(record.scale.to_normalized(preset))
-        assert preset == 2.0 ** (math.frexp(preset)[1] - 1), normalized
-        assert held == stepped(preset, steps, 32), (normalized, steps)
-        assert _lands_below_its_power_of_two(preset, held) == (steps == -1), normalized
+    record = parameter_map().find(ParameterId(name))
+    _assert_comes_back(record, normalized)
+    scale = record.scale
+    preset = scale.to_preset(normalized)
+    assert math.frexp(preset)[0] == 0.5  # noqa: PLR2004 - a power of two's significand
+    nearest = round_to_float32((Fraction(preset) - Fraction(scale.minimum)) / Fraction(scale.span))
+    assert scale.to_preset(nearest) == next_float32(preset, 0.0)
+    assert scale.to_normalized(preset) == normalized
+
+
+def test_a_scale_holds_its_values_and_none_past_its_ends() -> None:
+    """A value a normalized value in [0, 1] lands on is held; a float32 past either end is not.
+
+    Some normalized value past 1 or below 0 lands on the float32 just past each end of `[0, 1]`,
+    but the host sets no such value, so the plugin cannot hold it.
+    """
+    scale = _LEVEL.scale
+    assert (scale.minimum, scale.maximum) == (0.0, 1.0)
+    assert all(scale.holds(value) for value in (0.0, 0.5, 1.0))
+    for past in (next_float32(1.0, 2.0), next_float32(0.0, -1.0)):
+        assert scale.to_preset(scale.to_normalized(past)) == past, past
+        assert not scale.holds(past), past
+
+
+def test_an_arbitrary_display_keeps_the_curve_s_float32() -> None:
+    """A display no held float32 next to its own shows keeps the curve's float32, held or not.
+
+    `beats_per_minute` at 216.85141355537831, issue #8's finding 1: the float32 nearest the
+    curve's inverse is not one the scale holds, and a set holds a neighbour that is not the
+    nearest one held. Whether a set should take the nearer held neighbour is issue #8's to decide,
+    so issue #15's fix leaves this value as it was.
+    """
+    display = 216.85141355537831
+    own = _TEMPO.curve.to_preset(display)
+    assert _TEMPO.to_preset(display) == own
+    assert not _TEMPO.scale.holds(own)
 
 
 @pytest.mark.parametrize("record", _RECORDS, ids=lambda record: record.id)

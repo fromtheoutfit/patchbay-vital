@@ -5,21 +5,21 @@ Vital may not be redistributed, so these tests run where it is installed, at the
 (the host spec's shape.md, Decision 10), so every audio assertion is a measure with a named
 tolerance, and each says which probe its number came from (`verification/probes.txt`,
 `verification/host-probes.txt`). A state's floats are read with the host's own `_floats`, so a test
-compares what the census reads.
+compares what the census reads, and a state whose floats a test measures is written with the
+package's `dumps`, Vital's own float writer, so the plugin is given text it could have written.
 """
 
 import base64
 import json
 import platform
 import sys
-from collections.abc import Callable
 from pathlib import Path
 
 import numpy as np
 import pytest
 from patchbay import ParameterId
 
-from patchbay_vital import loads
+from patchbay_vital import VitalSettings, dumps, loads
 from patchbay_vital.census import build_map
 from patchbay_vital.errors import ParameterRangeError, PluginRenderError, UnknownParameterError
 from patchbay_vital.host import DEFAULT_PATH, VitalHost, _floats
@@ -120,76 +120,80 @@ def test_a_value_set_through_the_host_is_the_one_the_state_holds(host: VitalHost
             assert record.from_normalized(host.get(record.id)) == record.to_display(held)
 
 
-def test_at_or_below_volume_s_floor_a_set_holds_the_normalized_path_s_value(
-    host: VitalHost,
-    initial: bytes,
-    volume_floor: tuple[tuple[float, int], ...],
-    stepped: Callable[[float, int, int], float],
-) -> None:
-    """At or below the floor, Vital holds the normalized path's value, not an unheld float32.
+_VOLUME_FLOOR = (
+    5.857149595214349e-20,  # issue #13's value
+    3.4694490199051456e-18,  # the smallest of the former one-ulp landings
+    1.439742266862027e-17,  # a former one-ulp landing below the display
+    1.53642479121845e-17,  # the floor's own, preset 2 ** -43
+)
+"""`volume`'s normalized values at or below its floor, pinned; `test_parameters.py` holds the map
+at the same ones."""
 
-    Each row of `tests/data/volume-floor.txt` is a normalized value at or below `volume`'s
-    2 ** -43 whose display maps to a float32 the scale does not hold. Set from `initial`, as the
-    probe set it, Vital holds the scale's value at `to_normalized`'s result, exactly, never the
-    float32 nearest the curve's inverse (`record.curve.to_preset`), and its display lands at the
-    row's step from the display set, read by `stepped` as the unit test reads it (the revisions
-    after PR 14's reviews, `verification/plugin-probe.txt`). Where `to_preset`'s float32 is one
-    the scale holds, as on most values at or below the floor, a set holds it and no row records
-    it. Issue #15's fix is expected to change the three non-zero rows, on purpose; the unit test
-    reads the same file.
+_POWERS_OF_TWO = (
+    0.7071068286895752,  # 1.0 on the envelope records
+    0.3535534143447876,  # 0.5 on the envelope records
+    6.74349621476722e-07,  # 2 ** -20 on the envelope records
+)
+"""Normalized values of held powers of two on the envelope records, pinned; `test_parameters.py`
+holds the map at the same ones."""
+
+
+def test_at_or_below_volume_s_floor_a_set_holds_the_map_s_preset(
+    host: VitalHost, initial: bytes
+) -> None:
+    """At or below the floor, a set of a display holds the map's preset, which shows the display.
+
+    At each of `_VOLUME_FLOOR`, a display at or below `volume`'s 2 ** -43 whose curve float32
+    (`record.curve.to_preset`) is not one the scale holds. Set from `initial`, as the probe set it,
+    Vital holds `to_preset`'s value exactly, a preset the scale holds, never the curve's float32,
+    and its display is the one set (issue #15's spec, `verification/plugin-probe.txt`). Before
+    issue #15 the map gave the curve's float32 and Vital held a neighbour, shown a double off at
+    three of these.
     """
     record = parameter_map().find(ParameterId("volume"))
-    for normalized, steps in volume_floor:
+    for normalized in _VOLUME_FLOOR:
         host.load_state(initial)
         display = record.from_normalized(normalized)
         held = _held_after_a_set(host, record, display)
-        assert held == record.scale.to_preset(record.to_normalized(display)), normalized
+        assert held == record.to_preset(display), normalized
+        assert record.scale.holds(held), normalized
         assert held != record.curve.to_preset(display), normalized
-        assert record.to_display(held) == stepped(display, steps, 64), (normalized, steps)
+        assert record.to_display(held) == display, normalized
 
 
-def test_a_held_power_of_two_set_through_the_host_lands_as_recorded(
-    host: VitalHost,
-    initial: bytes,
-    power_of_two_presets: tuple[tuple[float, int], ...],
-    stepped: Callable[[float, int, int], float],
-) -> None:
-    """A held power of two set through the host lands where each row says: issue #15 changes it.
+def test_a_held_power_of_two_set_through_the_host_is_held(host: VitalHost, initial: bytes) -> None:
+    """A held power of two set through the host is held: a set of 1.0 s holds 1.0.
 
-    At each row of `tests/data/power-of-two-presets.txt`, on `env_1_delay` and `env_3_hold`, two
-    of the 12 records sharing a scale and curve: the preset is a power of two, and set from
-    `initial` through the map's normalized path Vital holds the scale's value at that path,
-    exactly, the row's float32 steps from the power, one below, read by `stepped` as the unit test
-    reads it (the revision after PR 14's second review, `verification/plugin-probe.txt`). Issue
-    #15's fix is expected to change the rows to 0, on purpose, and this test then holds Vital at
-    the power itself.
+    At each of `_POWERS_OF_TWO`, on `env_1_delay` and on `env_3_hold`, which shares its scale and
+    curve: set from `initial` through the map's normalized path, Vital holds the power itself
+    (issue #15's spec, `verification/plugin-probe.txt`). Before issue #15 the map's normalized
+    value was the float32 below, and Vital held the float32 below the power.
     """
+    first = parameter_map().find(ParameterId("env_1_delay"))
     for name in ("env_1_delay", "env_3_hold"):
         record = parameter_map().find(ParameterId(name))
-        for normalized, steps in power_of_two_presets:
+        assert (record.scale, record.curve) == (first.scale, first.curve), name
+        for normalized in _POWERS_OF_TWO:
             host.load_state(initial)
             preset = record.scale.to_preset(normalized)
             held = _held_after_a_set(host, record, record.to_display(preset))
-            assert held == record.scale.to_preset(record.scale.to_normalized(preset)), (
-                name,
-                normalized,
-            )
-            assert held == stepped(preset, steps, 32), (name, normalized, steps)
+            assert held == preset, (name, normalized)
 
 
 def test_a_load_holds_volume_s_unheld_float32_as_its_neighbour_and_chorus_feedback_as_given(
-    host: VitalHost, initial: bytes, volume_floor: tuple[tuple[float, int], ...]
+    host: VitalHost, initial: bytes
 ) -> None:
     """A load of volume at a float32 its scale does not hold is held as the normalized path's.
 
     An observation no one has explained, held so that a Vital which changes it fails here by name.
-    For each row of `tests/data/volume-floor.txt`, a load of `initial` and then, with no set
-    between them, of `initial` holding `volume` at the curve's own float32 for the row's display
-    (`curve.to_preset`), which the scale does not hold and issue #15 leaves as it is, is held at
-    the normalized path's value for that float32; `chorus_feedback`'s off-grid initial value in the
-    same load is held as given. The probe saw the same after each of the four histories it tried
-    before the first of those loads: a fresh instance, the census's sets, a set of each of the
-    two, and the measure's own sets (the revisions after PR 14's reviews,
+    For each of `_VOLUME_FLOOR`, a load of `initial` and then, with no set between them, of
+    `initial` holding `volume` at the curve's own float32 for the value's display
+    (`curve.to_preset`), which the scale does not hold, is held at the normalized path's value for
+    that float32; `chorus_feedback`'s off-grid initial value in the same load is held as given. The
+    state is written with the package's `dumps`, which gives the plugin's own text back byte for
+    byte, so it differs from text Vital wrote only in `volume`'s value. The probe saw the same
+    after each of the four histories it tried before the first of those loads: a fresh instance,
+    the census's sets, a set of each of the two, and the measure's own sets (issue #15's spec,
     `verification/plugin-probe.txt`; first seen in issue #13's). This test does not rely on which
     of them precedes it in a run.
     """
@@ -197,14 +201,17 @@ def test_a_load_holds_volume_s_unheld_float32_as_its_neighbour_and_chorus_feedba
     assert (host.name, host.version) == (committed.instrument, committed.vital_version)
     volume = committed.find(ParameterId("volume"))
     chorus = committed.find(ParameterId("chorus_feedback"))
-    document = json.loads(initial)
-    given = document["settings"][chorus.preset_key]
-    assert chorus.scale.to_preset(chorus.scale.to_normalized(given)) != given  # off the grid
-    for normalized, _ in volume_floor:
+    text = initial.decode("utf-8")
+    preset = loads(text)
+    assert dumps(preset) == text
+    given = _floats(initial)[chorus.preset_key]
+    assert not chorus.scale.holds(given)  # off the grid
+    for normalized in _VOLUME_FLOOR:
         own = volume.curve.to_preset(volume.from_normalized(normalized))
-        document["settings"][volume.preset_key] = own
+        values = {**preset.settings.values, volume.preset_key: own}
+        state = dumps(preset.model_copy(update={"settings": VitalSettings(values=values)}))
         host.load_state(initial)
-        host.load_state(json.dumps(document).encode())
+        host.load_state(state.encode("utf-8"))
         floats = _floats(host.state())
         held = volume.scale.to_preset(volume.scale.to_normalized(own))
         assert held != own, normalized

@@ -12,9 +12,12 @@ double computed first and then narrowed rounds twice, so `fma32` computes the ex
 A float32 is returned as the Python float that holds it exactly: every float32 is a double.
 Rounding follows IEEE 754's round to nearest: a magnitude past the largest float32 by half its
 step or more is infinity, and one below the smallest subnormal by more than half of it is zero.
+`next_float32` steps from one float32 to the next, on its bits, the one way the package and its
+tests step a float32.
 """
 
 import math
+import struct
 from fractions import Fraction
 
 _MANTISSA_BITS = 24
@@ -28,6 +31,10 @@ _SUBNORMAL_QUANTUM = _MIN_NORMAL_EXPONENT - (_MANTISSA_BITS - 1)
 
 _OVERFLOW = Fraction(2**128)
 """The magnitude a rounded float32 reaches only by overflowing: 2 ** 128 is past the largest."""
+
+_FLOAT32 = struct.Struct("<f")
+_BITS = struct.Struct("<I")
+"""A float32 and its bits, read through each other to step from one float32 to the next."""
 
 
 def round_to_float32(value: Fraction) -> float:
@@ -58,3 +65,24 @@ def to_float32(value: float) -> float:
 def fma32(factor: float, multiplier: float, addend: float) -> float:
     """Return `factor * multiplier + addend` computed exactly and rounded once to float32."""
     return round_to_float32(Fraction(factor) * Fraction(multiplier) + Fraction(addend))
+
+
+def next_float32(value: float, toward: float) -> float:
+    """Return the float32 next to `value` in the direction of `toward`, as C's `nextafterf` does.
+
+    `value` is a float32, as every value the plugin holds is; a double that is not one is first
+    rounded to the nearest. `toward` equal to it is returned; from a zero the step is the smallest
+    subnormal of `toward`'s sign, and from an infinity the largest float32; a NaN gives a NaN. The
+    step is made on the float32's bits, so it is exact.
+    """
+    start = to_float32(value)
+    if math.isnan(start) or math.isnan(toward):
+        return math.nan
+    if start == toward:
+        return toward
+    if start == 0:
+        return math.copysign(math.ldexp(1.0, _SUBNORMAL_QUANTUM), toward)
+    bits: int = _BITS.unpack(_FLOAT32.pack(start))[0]
+    bits += 1 if (start < toward) == (start > 0) else -1
+    stepped: float = _FLOAT32.unpack(_BITS.pack(bits))[0]
+    return stepped

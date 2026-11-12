@@ -7,18 +7,19 @@ default are in the unit the plugin displays, and the two conversions between the
 
 - `NormalizedScale`, the host's normalized value in `[0, 1]` and the preset's value: `linear`, the
   preset value is `r * span + minimum` rounded once to float32 (`float32.fma32`, as Vital's build
-  computes it), or `indexed`, the same rounded to a whole number;
+  computes it), or `indexed`, the same rounded to a whole number; and back, a normalized value
+  that lands on the preset value wherever one does;
 - `DisplayCurve`, the preset's value and the displayed one: `multiply * skew(preset) + offset`,
   the skew one of the six measured at 1.6.4. A value a parameter holds goes to the display and back
-  to that display exactly, and to the same preset value but where a curve's offset absorbs it:
-  at or below `volume`'s 2 ** -43 neighbouring presets share a display. A displayed value goes to
-  the float32 nearest the curve's inverse, an indexed scale's a whole number, which need not be
-  one the scale holds, at or below that floor or for an arbitrary display; a set then holds the
-  scale's value at `to_normalized`'s result, as Vital does (the host spec's
-  `verification/probes.txt`, probe 4; the `verification/sweep.txt` and
-  `verification/plugin-probe.txt` of issue #13's spec and of the revision after PR 14's review).
-  Issue #15 is to take, at or below the floor, the held neighbour that shows the display. A
-  choice or a boolean takes a whole index and nothing else, core's rule for them.
+  to that display exactly, through `MappedParameter.to_preset` to a preset value the scale holds,
+  and through the normalized path to that preset value again: the one it came from but where a
+  curve's offset absorbs the skew, at or below `volume`'s 2 ** -43, where neighbouring presets
+  share a display and the display cannot say which was held. A displayed value no held preset
+  shows goes to the float32 nearest the curve's inverse, an indexed scale's a whole number, which
+  need not be one the scale holds; a set then holds the scale's value at `to_normalized`'s result,
+  as Vital does (the host spec's `verification/probes.txt`, probe 4; issue #15's spec,
+  `verification/sweep.txt` and `verification/plugin-probe.txt`). A choice or a boolean takes a
+  whole index and nothing else, core's rule for them.
 
 Every range, kind and constant is the plugin's own, measured, never written from Vital's source.
 pedalboard's key for a parameter is `host_id`, which only `patchbay_vital.host` interprets. The
@@ -43,7 +44,7 @@ from patchbay import Parameter, ParameterId, PatchbayModel, PresetKey
 from pydantic import Field, field_validator, model_validator
 
 from patchbay_vital.errors import ParameterRangeError, UnknownParameterError
-from patchbay_vital.float32 import fma32, round_to_float32, to_float32
+from patchbay_vital.float32 import fma32, next_float32, round_to_float32, to_float32
 from patchbay_vital.preset import SLOT_KEY
 
 PRESET_ONLY_KEYS = frozenset({PresetKey("chorus_damping")})
@@ -109,16 +110,33 @@ class NormalizedScale(PatchbayModel, frozen=True):
         return _round_half_away(value) if self.kind == "indexed" else value
 
     def to_normalized(self, preset: float) -> float:
-        """Return the normalized value the host sets for a preset, the nearest float32 quotient.
+        """Return the normalized value the host sets for a preset, one that lands on it if any does.
 
-        For a value the scale holds, `to_preset` of the result is that value again (probe 4, P3),
-        but where the value is a power of two the nearest float32 multiplies back short of: on the
-        12 `env_N_delay` and `env_N_hold` records, at 126 powers of two from 2 ** -125 to 1, it
-        lands one float32 below, as Vital holds it, where the float32 above lands on the power
-        (the revision after PR 14's review, `verification/sweep.txt` and
-        `verification/plugin-probe.txt`). Issue #15 is to return the neighbour that lands on it.
+        The float32 nearest `(preset - minimum) / span`, unless `to_preset` of it misses the preset:
+        then the float32 next to it toward the preset, where that is in `[0, 1]` and lands on it.
+        The scale rises with `r`, so only that side can. On the 12 `env_N_delay` and `env_N_hold`
+        records, at 126 powers of two each from 2 ** -125 to 1, the nearest multiplies back short
+        of the power, where the float32 spacing halves, and its neighbour lands on it (issue #15).
+        So a value the scale holds comes back through `to_preset` exactly, on every float32
+        normalized value of every group issue #15's spec counts (`verification/sweep.txt`); a
+        value it does not hold keeps the nearest quotient.
         """
-        return round_to_float32((Fraction(preset) - Fraction(self.minimum)) / Fraction(self.span))
+        nearest = round_to_float32(
+            (Fraction(preset) - Fraction(self.minimum)) / Fraction(self.span)
+        )
+        landed = self.to_preset(nearest)
+        if landed == preset:
+            return nearest
+        toward = next_float32(nearest, math.copysign(math.inf, preset - landed))
+        return toward if 0.0 <= toward <= 1.0 and self.to_preset(toward) == preset else nearest
+
+    def holds(self, preset: float) -> bool:
+        """Say whether the plugin can hold a preset value.
+
+        It can when a normalized value in `[0, 1]` lands on it; `to_normalized` finds one if any.
+        """
+        normalized = self.to_normalized(preset)
+        return 0.0 <= normalized <= 1.0 and self.to_preset(normalized) == preset
 
     @model_validator(mode="after")
     def _bounds_are_float32_and_ordered(self) -> Self:
@@ -178,7 +196,7 @@ class DisplayCurve(PatchbayModel, frozen=True):
 
     def to_preset(self, display: float) -> float:
         """Return the float32 preset value nearest the one a displayed value comes from."""
-        return to_float32(_SKEWS[self.kind][1]((display - self.offset) / self.multiply))
+        return to_float32(_inverse(self, display))
 
     @field_validator("multiply", mode="after")
     @classmethod
@@ -187,6 +205,11 @@ class DisplayCurve(PatchbayModel, frozen=True):
             msg = "a curve's multiply is not zero"
             raise ValueError(msg)
         return multiply
+
+
+def _inverse(curve: DisplayCurve, display: float) -> float:
+    """Return the preset value a display comes from through a curve, before rounding to float32."""
+    return _SKEWS[curve.kind][1]((display - curve.offset) / curve.multiply)
 
 
 @functools.lru_cache(maxsize=4096)
@@ -242,26 +265,42 @@ class MappedParameter(PatchbayModel, frozen=True):
         return self.curve.to_display(preset)
 
     def to_preset(self, display: float) -> float:
-        """Return the float32 preset value nearest a display's curve inverse, within the scale.
+        """Return the preset value a display comes from: one the scale holds where one shows it.
 
-        On an indexed scale that is a whole number, as the plugin holds it. It need not be one the
-        scale holds, at or below `volume`'s 2 ** -43, where presets share a display, or for an
-        arbitrary display value; where it is not, a set of `to_normalized`'s result holds a
-        neighbour, as Vital does (issue #13), and at or below the floor issue #15 is to return
-        the held neighbour that shows the display. ParameterRangeError when the value is outside
-        the parameter's bounds, or is not a whole index where the parameter is a choice or a
-        boolean. The bounds are the parameter's own and the scale's ends displayed through this
-        platform's libm, the same on the machine the map was measured on and a double ulp apart on
-        another.
+        The float32 nearest the curve's inverse, within the scale; on an indexed scale the nearest
+        whole number, as the plugin holds it. Where the scale does not hold that float32, the
+        float32 next to it, either side, that the scale holds and that shows the display exactly,
+        the nearer the curve's inverse where both do. That is at or below `volume`'s 2 ** -43,
+        where neighbouring presets share a display: there a set of the display holds a preset that
+        shows it, on Vital as in the map, so the display comes back through the normalized path
+        exactly (issue #15). A display no held float32 next to it shows keeps the nearest float32,
+        which need not be one the scale holds; a set then holds the scale's value at
+        `to_normalized`'s result, as Vital does (issue #8 decides whether a set should take the
+        nearer held neighbour). ParameterRangeError when the value is outside the parameter's
+        bounds, or is not a whole index where the parameter is a choice or a boolean. The bounds
+        are the parameter's own and the scale's ends displayed through this platform's libm, the
+        same on the machine the map was measured on and a double ulp apart on another.
         """
-        parameter, scale = self.parameter, self.scale
-        low, high = displayed_ends(self.curve, scale)
+        parameter, scale, curve = self.parameter, self.scale, self.curve
+        low, high = displayed_ends(curve, scale)
         low, high = min(low, parameter.minimum), max(high, parameter.maximum)
         whole = parameter.kind == "continuous" or display.is_integer()
         if not (low <= display <= high and whole):
             raise ParameterRangeError(self.id, parameter.minimum, parameter.maximum, display)
-        preset = min(max(self.curve.to_preset(display), scale.minimum), scale.maximum)
-        return _round_half_away(preset) if scale.kind == "indexed" else preset
+        preset = min(max(curve.to_preset(display), scale.minimum), scale.maximum)
+        if scale.kind == "indexed":
+            return _round_half_away(preset)
+        if scale.holds(preset):
+            return preset
+        inverse = _inverse(curve, display)
+        neighbours = sorted(
+            (next_float32(preset, -math.inf), next_float32(preset, math.inf)),
+            key=lambda neighbour: abs(neighbour - inverse),
+        )
+        for neighbour in neighbours:
+            if scale.holds(neighbour) and curve.to_display(neighbour) == display:
+                return neighbour
+        return preset
 
     def to_normalized(self, display: float) -> float:
         """Return the normalized value the host sets for a displayed value.

@@ -1,0 +1,135 @@
+Issue #15's spec: scripts/gate.sh, run 2026-11-12 11:19 EST on branch refactor/13-the-parameter-map-volumes-display-does-not-come-back-through-the-normalized-path-below-2--43-hypothesis-normalized-5857149595214349e-20
+at 5e284ecbbad7b29f667eaec4f96a8f08793f2537, machine arm64, Vital installed at /Library/Audio/Plug-Ins/VST3/Vital.vst3
+the tree (git status --short), the final one, after the retrospective's edits:
+   M CHANGELOG.md
+   M README.md
+   M agent-os/standards/index.yml
+   M agent-os/standards/vital/measures.md
+   M agent-os/standards/vital/parameter-map.md
+   M agent-os/standards/vital/plugin-state.md
+   M src/patchbay_vital/float32.py
+   M src/patchbay_vital/parameters.py
+   D tests/conftest.py
+   D tests/data/power-of-two-presets.txt
+   D tests/data/volume-floor.txt
+   M tests/integration/test_vital_plugin.py
+   M tests/unit/test_float32.py
+   M tests/unit/test_parameters.py
+  ?? agent-os/specs/2026-11-12-0937-map-inverses-land-on-held-presets/
+
+
+== 1/6  bash -n on every shell script under scripts/ (tracked or untracked, not ignored), in a tree with no tracked file a .gitignore ignores
+ok   scripts/gate-negative-tests.sh
+ok   scripts/gate.sh
+ok   scripts/sync-standards.sh
+
+== 2/6  uv sync --locked, then uv run --locked ruff format --check over the .py and .pyi files git lists (the locked toolchain; the formatter)
+FAIL  step 2/6: tests/conftest.py is tracked but missing from the disk
+exit=1
+
+
+== the second run: a scratch copy of the same tree with its three removals staged
+The run above is the tree's: step 2 fails naming tests/conftest.py, which this spec removes and
+git still tracks, since an agent never stages (base/process/ownership.md). As the base standard
+says of a file a step refuses before the owner stages it, this second run is a scratch copy of
+the tree, every file as it stands, with the removals staged in the copy's own index
+(git rm --cached tests/conftest.py tests/data/volume-floor.txt tests/data/power-of-two-presets.txt),
+beside a local clone of ../patchbay-standards. The owner's git rm of the three turns the tree's run
+green. Run 2026-11-12 11:21 EST, the copy at 5e284ecbbad7b29f667eaec4f96a8f08793f2537 on branch
+refactor/13-the-parameter-map-volumes-display-does-not-come-back-through-the-normalized-path-below-2--43-hypothesis-normalized-5857149595214349e-20, machine arm64, Vital installed at /Library/Audio/Plug-Ins/VST3/Vital.vst3
+the copy's tree (git status --short):
+   M CHANGELOG.md
+   M README.md
+   M agent-os/standards/index.yml
+   M agent-os/standards/vital/measures.md
+   M agent-os/standards/vital/parameter-map.md
+   M agent-os/standards/vital/plugin-state.md
+   M src/patchbay_vital/float32.py
+   M src/patchbay_vital/parameters.py
+  D  tests/conftest.py
+  D  tests/data/power-of-two-presets.txt
+  D  tests/data/volume-floor.txt
+   M tests/integration/test_vital_plugin.py
+   M tests/unit/test_float32.py
+   M tests/unit/test_parameters.py
+  ?? agent-os/specs/2026-11-12-0937-map-inverses-land-on-held-presets/
+
+
+== 1/6  bash -n on every shell script under scripts/ (tracked or untracked, not ignored), in a tree with no tracked file a .gitignore ignores
+ok   scripts/gate-negative-tests.sh
+ok   scripts/gate.sh
+ok   scripts/sync-standards.sh
+
+== 2/6  uv sync --locked, then uv run --locked ruff format --check over the .py and .pyi files git lists (the locked toolchain; the formatter)
+Using CPython 3.12.16
+Creating virtual environment at: .venv
+Resolved 33 packages in 2ms
+   Building patchbay-vital @ file:///private/tmp/claude-501/-Users-michaelwitwicki-Code-Audio-patchbay-vital/2489e718-faab-4da2-9697-a3fc29424f2d/scratchpad/gate/patchbay-vital
+      Built patchbay-vital @ file:///private/tmp/claude-501/-Users-michaelwitwicki-Code-Audio-patchbay-vital/2489e718-faab-4da2-9697-a3fc29424f2d/scratchpad/gate/patchbay-vital
+Prepared 1 package in 3ms
+Installed 32 packages in 36ms
+ + annotated-types==0.8.0
+ + ast-serialize==0.13.1
+ + cfgv==3.5.0
+ + distlib==0.4.4
+ + filelock==4.2.9
+ + hypothesis==6.170.14
+ + identify==2.6.20
+ + iniconfig==2.3.1
+ + librt==0.16.0
+ + mypy==2.4.1
+ + mypy-extensions==1.2.0
+ + nodeenv==1.12.0
+ + numpy==2.5.4
+ + packaging==26.3
+ + patchbay-core==0.0.1 (from git+https://github.com/fromtheoutfit/patchbay@dd2bcad69dadeb38c6e1e660b2e0ddced13861eb)
+ + patchbay-vital==0.0.1 (from file:///private/tmp/claude-501/-Users-michaelwitwicki-Code-Audio-patchbay-vital/2489e718-faab-4da2-9697-a3fc29424f2d/scratchpad/gate/patchbay-vital)
+ + pathspec==1.1.1
+ + pedalboard==0.9.26
+ + platformdirs==4.14.5
+ + pluggy==1.7.0
+ + pre-commit==4.7.0
+ + pydantic==2.14.3
+ + pydantic-core==2.50.4
+ + pygments==2.21.0
+ + pytest==9.2.0
+ + python-discovery==1.9.5
+ + pyyaml==6.0.3
+ + ruff==0.17.4
+ + sortedcontainers==2.4.0
+ + typing-extensions==4.16.0
+ + typing-inspection==0.4.5
+ + virtualenv==21.15.6
+ok   the locked toolchain synced
+26 files already formatted
+ok   26 file(s) formatted
+
+== 3/6  uv run --locked ruff check over the same files (the linter: [tool.ruff.lint] of pyproject.toml)
+All checks passed!
+ok   no violation
+
+== 4/6  uv run --locked mypy over the .py and .pyi files git lists under src/ and tests/ ([tool.mypy] of pyproject.toml: strict)
+Success: no issues found in 26 source files
+ok   no type error
+
+== 5/6  uv run --locked pytest -c pyproject.toml -p no:doctest ([tool.pytest.ini_options] of pyproject.toml, over tests/, once nothing pytest would read is one git ignores)
+........................................................................ [ 14%]
+........................................................................ [ 28%]
+........................................................................ [ 42%]
+........................................................................ [ 56%]
+........................................................................ [ 71%]
+........................................................................ [ 85%]
+........................................................................ [ 99%]
+...                                                                      [100%]
+507 passed in 33.71s
+ok   every test passed
+
+== 6/6  scripts/sync-standards.sh --check: agent-os/standards/base/, the base: section and the script match patchbay-standards at the commit in .version (../patchbay-standards)
+check base standards against e31f7dbfb474752339a43fe08a37ab26c7956f5c  (/private/tmp/claude-501/-Users-michaelwitwicki-Code-Audio-patchbay-vital/2489e718-faab-4da2-9697-a3fc29424f2d/scratchpad/gate/patchbay-standards)
+  index    base: section identical
+  script   scripts/sync-standards.sh matches
+{"mode":"check","upstream":"/private/tmp/claude-501/-Users-michaelwitwicki-Code-Audio-patchbay-vital/2489e718-faab-4da2-9697-a3fc29424f2d/scratchpad/gate/patchbay-standards","commit":"e31f7dbfb474752339a43fe08a37ab26c7956f5c","missing":[],"extra":[],"changed":[],"index":"identical","script":"matches","ok":true}
+ok   agent-os/standards/base and the base: section of agent-os/standards/index.yml match patchbay-standards at e31f7dbfb474752339a43fe08a37ab26c7956f5c
+
+Gate steps 1-6 passed. Steps 7-9 are judgment, recorded in shape.md: Docs, Version, the standards retrospective.
+exit=0
