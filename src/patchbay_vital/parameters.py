@@ -11,11 +11,13 @@ default are in the unit the plugin displays, and the two conversions between the
 - `DisplayCurve`, the preset's value and the displayed one: `multiply * skew(preset) + offset`,
   the skew one of the six measured at 1.6.4. A value a parameter holds goes to the display and back
   to that display exactly, and to the same preset value but where a curve's offset absorbs it:
-  below `volume`'s 2 ** -43 neighbouring presets share a display. A displayed value goes to the
-  float32 nearest the curve's inverse, an indexed scale's a whole number, which need not be one
-  the scale holds, below that floor or for an arbitrary display; a set then holds the scale's
-  value at `to_normalized`'s result, as Vital does (the host spec's `verification/probes.txt`,
-  probe 4; issue #13's spec, `verification/sweep.txt` and `verification/plugin-probe.txt`). A
+  at or below `volume`'s 2 ** -43 neighbouring presets share a display. A displayed value goes to
+  the float32 nearest the curve's inverse, an indexed scale's a whole number, which need not be
+  one the scale holds, at or below that floor or for an arbitrary display; a set then holds the
+  scale's value at `to_normalized`'s result, as Vital does (the host spec's
+  `verification/probes.txt`, probe 4; the `verification/sweep.txt` and
+  `verification/plugin-probe.txt` of issue #13's spec and of the revision after PR 14's review).
+  Issue #15 is to take, at or below the floor, the held neighbour that shows the display. A
   choice or a boolean takes a whole index and nothing else, core's rule for them.
 
 Every range, kind and constant is the plugin's own, measured, never written from Vital's source.
@@ -107,10 +109,14 @@ class NormalizedScale(PatchbayModel, frozen=True):
         return _round_half_away(value) if self.kind == "indexed" else value
 
     def to_normalized(self, preset: float) -> float:
-        """Return the normalized value the host sets for a preset value.
+        """Return the normalized value the host sets for a preset, the nearest float32 quotient.
 
-        For a value the scale holds, `to_preset` of the result is that value again: the float32
-        nearest `(preset - minimum) / span` lands on it (probe 4, P3).
+        For a value the scale holds, `to_preset` of the result is that value again (probe 4, P3),
+        but where the value is a power of two the nearest float32 multiplies back short of: on the
+        12 `env_N_delay` and `env_N_hold` records, at 126 powers of two from 2 ** -125 to 1, it
+        lands one float32 below, as Vital holds it, where the float32 above lands on the power
+        (the revision after PR 14's review, `verification/sweep.txt` and
+        `verification/plugin-probe.txt`). Issue #15 is to return the neighbour that lands on it.
         """
         return round_to_float32((Fraction(preset) - Fraction(self.minimum)) / Fraction(self.span))
 
@@ -239,12 +245,14 @@ class MappedParameter(PatchbayModel, frozen=True):
         """Return the float32 preset value nearest a display's curve inverse, within the scale.
 
         On an indexed scale that is a whole number, as the plugin holds it. It need not be one the
-        scale holds, below `volume`'s 2 ** -43, where presets share a display, or for an arbitrary
-        display value; where it is not, a set of `to_normalized`'s result holds a neighbour, as
-        Vital does (issue #13). ParameterRangeError when the value is outside the parameter's
-        bounds, or is not a whole index where the parameter is a choice or a boolean. The bounds
-        are the parameter's own and the scale's ends displayed through this platform's libm, the
-        same on the machine the map was measured on and a double ulp apart on another.
+        scale holds, at or below `volume`'s 2 ** -43, where presets share a display, or for an
+        arbitrary display value; where it is not, a set of `to_normalized`'s result holds a
+        neighbour, as Vital does (issue #13), and at or below the floor issue #15 is to return
+        the held neighbour that shows the display. ParameterRangeError when the value is outside
+        the parameter's bounds, or is not a whole index where the parameter is a choice or a
+        boolean. The bounds are the parameter's own and the scale's ends displayed through this
+        platform's libm, the same on the machine the map was measured on and a double ulp apart on
+        another.
         """
         parameter, scale = self.parameter, self.scale
         low, high = displayed_ends(self.curve, scale)

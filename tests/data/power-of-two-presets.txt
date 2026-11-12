@@ -1,0 +1,13 @@
+# A held power of two whose normalized path lands short of it: one row a value.
+# Columns: the normalized value as its float32's eight hex digits; the float32 steps, in value
+# order, by which the preset a set of it holds lands from the preset it holds; a note.
+# The rows are env_1_delay's; the 11 records sharing its scale and curve, env_N_delay and
+# env_N_hold, land the same. Found by the revision after PR 14's review
+# (agent-os/specs/2026-11-11-1555-revision-after-pr-14-review/verification/sweep-first.txt) and
+# counted in its verification/sweep.txt: on each of the 12 records, 126 powers of two, 2 ** -125 to
+# 1, land one float32 below. Issue #15's fix is expected to change the row to 0, on purpose.
+# Measured on the plugin: the row, by that folder's verification/plugin-probe.txt, on arm64,
+# Vital 1.6.4 through pedalboard 0.9.26, on env_1_delay and env_3_hold: a set held the float32
+# below.
+# Read by tests/conftest.py (power_of_two_presets) for tests/unit/test_parameters.py.
+3f3504f4 -1 env_1_delay at preset 1.0, display 1.0 s: a set holds 0.9999999403953552

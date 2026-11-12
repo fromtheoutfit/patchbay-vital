@@ -181,20 +181,39 @@ writes the entry, in that commit
 
 ### Fixed
 
-- The parameter map's property below `volume`'s floor, issue #13,
-  `agent-os/specs/2026-11-11-1449-volume-preset-through-the-set-path/`. At normalized
+- The parameter map's property at or below `volume`'s floor, issue #13,
+  `agent-os/specs/2026-11-11-1449-volume-preset-through-the-set-path/`, revised after the review of
+  PR 14, `agent-os/specs/2026-11-11-1555-revision-after-pr-14-review/`. At normalized
   `5.857149595214349e-20` the display maps to a float32 the scale does not hold, so the second
   assertion of `_assert_comes_back` failed whenever Hypothesis drew it; counted over every float32
-  normalized value, it fails on 16,069,858, all at or below 2 ** -43. The property was wrong, not
-  the map: Vital holds exactly the value the map's normalized path computes. The version stays
-  0.0.1.
-  - `_assert_comes_back` asserts the display's preset back through the normalized path above the
-    floor only, beside the preset itself, and the held preset back through the normalized path
-    everywhere; the issue's value and `_ONE_ULP_OFF` are pinned with `@example`.
-  - `test_below_volume_s_floor_a_set_s_display_comes_back_one_ulp_off` holds what the map does
-    today on 308,386 normalized values in exponents -58 to -56, a set's display one double ulp
-    off, which issue #8 decides.
-  - `test_below_volume_s_floor_a_set_holds_the_normalized_path_s_value` measures Vital: below the
-    floor it holds the scale's value at `to_normalized`'s result, never `to_preset`'s.
+  normalized value, it fails on 16,069,858, all at or below 2 ** -43. The property was wrong there,
+  and so is the map, whose fix is issue #15: Vital holds exactly the value the map's normalized
+  path computes, which where `to_preset`'s float32 is not one the scale holds is a neighbour of it.
+  The revision's count found the map's other inverse missing too, also #15's: on the 12
+  `env_N_delay` and `env_N_hold` records, at 126 held powers of two a record, `to_normalized` lands
+  one float32 below, so a set of 1.0 s holds 0.9999999403953552 on Vital. No behaviour changes; the
+  version stays 0.0.1.
+  - `_assert_comes_back` asserts the display on every value, and the held preset through the
+    normalized path but where `_lands_below_its_power_of_two` says it lands one float32 below a
+    power of two, and the display's preset above the floor. A set's display is exact above the floor
+    and the display or a neighbouring double at or below it, counted over every float32 normalized
+    value of 60 of the map's 69 scale and curve groups and of each record with a curve offset. The
+    issue's value is pinned with `@example`.
+  - `tests/data/volume-floor.txt` holds four values at or below the floor, each with where a set's
+    display lands today: the issue's exactly; of the 308,386 that land one double ulp off, the
+    smallest, one above (+1), and two one below (-1), the floor's own among them.
+    `tests/conftest.py` reads it for the unit and the integration tests.
+  - `test_at_or_below_volume_s_floor_a_set_s_display_lands_as_recorded` holds the map at each row,
+    which issue #15 changes on purpose; so does
+    `test_a_held_power_of_two_lands_as_recorded_through_the_normalized_path` at
+    `tests/data/power-of-two-presets.txt`'s row, `env_1_delay` at 1.0 landing one float32 below.
+  - `test_at_or_below_volume_s_floor_a_set_holds_the_normalized_path_s_value` measures Vital at
+    each row: it holds the scale's value at `to_normalized`'s result, never the curve's unheld
+    float32. And
+    `test_a_load_holds_volume_s_unheld_float32_as_its_neighbour_and_chorus_feedback_as_given`
+    holds a load moving that float32 to the same value while `chorus_feedback`'s off-grid one is
+    held as given.
   - `MappedParameter.to_preset` and the module's docstring say `to_preset`'s value need not be
-    one the scale holds, below the floor or for an arbitrary display.
+    one the scale holds, at or below the floor or for an arbitrary display, and
+    `NormalizedScale.to_normalized`'s says where a held power of two does not come back; each
+    names issue #15.

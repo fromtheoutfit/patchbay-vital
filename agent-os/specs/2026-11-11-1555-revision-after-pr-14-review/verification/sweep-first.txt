@@ -1,0 +1,1004 @@
+The revision after PR 14's review: the sweep, run 2026-11-11 16:11 EST on branch refactor/13-the-parameter-map-volumes-display-does-not-come-back-through-the-normalized-path-below-2--43-hypothesis-normalized-5857149595214349e-20
+at 0568b32c8bef09ea363ea560f8748d91f91ce809, machine arm64, Python 3.12.16
+the tree before the run (git status --short):
+  ?? agent-os/specs/2026-11-11-1555-revision-after-pr-14-review/
+
+== the script, run from the repository root as: uv run --locked python sweep.py
+```python
+"""The revision after PR 14's review: every float32 normalized value through the property's paths.
+
+Counted for every scale/curve group of the committed map whose curve this arithmetic reproduces
+bit for bit (linear, quadratic, quartic, square_root), and for each of the six records with a
+curve offset directly. The exponential groups are listed and not counted: their skew is the
+platform's pow or log2, which numpy's own functions do not reproduce.
+
+P0 = scale.to_preset(r), the preset the parameter holds; D0 = to_display(P0); P1 = to_preset(D0);
+N = scale.to_normalized; P2 = scale.to_preset(N(P1)), what a set of D0 holds.
+  A1   to_display(P1) != D0      _assert_comes_back: the display back through the preset
+  HELD S(N(P0)) != P0            the scale's inverse on the preset the parameter holds
+  A2   S(N(P1)) != P1            the display's preset back through the normalized path
+  A3   P1 != P0                  the preset back; the property asserts it above the floor only
+  SET  to_display(P2) - D0       in double steps, value order: 0, +1, -1 or other
+The floor is `_ABSORBED`'s, preset 2 ** -43, for volume only; a record without one asserts A3
+everywhere. `bound!` counts what breaks the property as this revision states it: A1 or HELD
+anywhere, A3 or a nonzero SET above the floor, a SET of more than one step at or below it.
+
+The arithmetic is the map's, exactly: r * span is exact in a double (24 x 24 bits); a sum is
+rounded once to float32 with TwoSum's remainder deciding a double that lands on a float32
+midpoint; a quotient's nearest float32 is chosen from three candidates by exact distance, ties to
+the even significand. A value whose subtraction this cannot certify exact is given to the shipped
+scalar `NormalizedScale.to_normalized` instead, and counted (`scalar`). Before counting, each
+group is checked against the shipped scalar methods on 200,007 values, every one of P0, D0, P1,
+P2 and S(N(P0)); a group with a mismatch is not counted.
+"""
+
+import math
+import multiprocessing
+import time
+
+import numpy as np
+from patchbay import ParameterId
+
+from patchbay_vital.parameters import parameter_map
+
+FLOOR = {"volume": 2.0**-43}
+REPRODUCED = ("linear", "quadratic", "quartic", "square_root")
+ROWS = (5.857149595214349e-20, 3.4694490199051456e-18, 1.439742266862027e-17, 1.53642479121845e-17)
+CHUNK = 1 << 22
+SIGN = np.int64(0x7FFFFFFFFFFFFFFF)
+
+
+def two_sum(a, b):
+    s = a + b
+    bp = s - a
+    ap = s - bp
+    return s, (a - ap) + (b - bp)
+
+
+def round32(s, err):
+    """Return the float32 nearest s + err exactly, s a double and err its exact remainder."""
+    c32 = s.astype(np.float32)
+    c = c32.astype(np.float64)
+    diff = s - c
+    toward = np.where(diff > 0, np.float32(np.inf), np.float32(-np.inf))
+    nb = np.nextafter(c32, toward).astype(np.float64)
+    away = (diff != 0) & (2 * diff == nb - c) & (err != 0) & (np.sign(err) == np.sign(diff))
+    return np.where(away, nb, c)
+
+
+def half_away(v):
+    return np.copysign(np.floor(np.abs(v) + 0.5), v)
+
+
+def ordered(x):
+    """Return each double's place in value order as an int64, both zeros at 0."""
+    bits = x.view(np.int64)
+    return np.where(bits < 0, -(bits & SIGN), bits)
+
+
+class Vec:
+    def __init__(self, rec):
+        s, c = rec.scale, rec.curve
+        self.rec = rec
+        self.mn, self.mx, self.span, self.ix = s.minimum, s.maximum, s.span, s.kind == "indexed"
+        self.kind, self.mul, self.off = c.kind, c.multiply, c.offset
+        assert self.kind in REPRODUCED
+        self.scalar = 0
+
+    def S(self, r):
+        s, err = two_sum(r * self.span, np.float64(self.mn))
+        v = round32(s, err)
+        return half_away(v) if self.ix else v
+
+    def N(self, p):
+        a, ea = two_sum(p, np.float64(-self.mn))
+        q = (a / self.span).astype(np.float32)
+        best = None
+        unsure = ea != 0
+        for c32 in (np.nextafter(q, np.float32(-np.inf)), q, np.nextafter(q, np.float32(np.inf))):
+            c = c32.astype(np.float64)
+            d, ed = two_sum(c * self.span, -a)
+            unsure |= ed != 0
+            d = np.abs(d)
+            even = (c32.view(np.uint32) & 1) == 0
+            if best is None:
+                best, bd, be = c, d, even
+            else:
+                take = (d < bd) | ((d == bd) & even & ~be)
+                best, bd, be = np.where(take, c, best), np.where(take, d, bd), np.where(take, even, be)
+        if unsure.any():
+            index = np.flatnonzero(unsure)
+            self.scalar += index.size
+            best = best.copy()
+            best[index] = [self.rec.scale.to_normalized(float(x)) for x in p[index]]
+        return best
+
+    def skew(self, p):
+        if self.kind == "linear":
+            return p
+        if self.kind == "quadratic":
+            return p * p
+        if self.kind == "quartic":
+            s = p * p
+            return s * s
+        return np.sqrt(np.maximum(p, 0.0))
+
+    def unskew(self, y):
+        if self.kind == "linear":
+            return y
+        if self.kind == "quadratic":
+            return np.sqrt(np.maximum(y, 0.0))
+        if self.kind == "quartic":
+            return np.sqrt(np.maximum(np.sqrt(np.maximum(y, 0.0)), 0.0))
+        return y * y
+
+    def disp(self, p):
+        return self.mul * self.skew(p) + self.off
+
+    def inv(self, d):
+        v = self.unskew((d - self.off) / self.mul)
+        p = np.minimum(np.maximum(v.astype(np.float32).astype(np.float64), self.mn), self.mx)
+        return half_away(p) if self.ix else p
+
+    def paths(self, r):
+        p0 = self.S(r)
+        d0 = self.disp(p0)
+        p1 = self.inv(d0)
+        p2 = self.S(self.N(p1))
+        held = self.S(self.N(p0))
+        return p0, d0, p1, p2, held
+
+
+def scalar_paths(rec, x):
+    d = rec.from_normalized(x)
+    return (
+        rec.scale.to_preset(x),
+        d,
+        rec.to_preset(d),
+        rec.scale.to_preset(rec.to_normalized(d)),
+        rec.scale.to_preset(rec.scale.to_normalized(rec.scale.to_preset(x))),
+    )
+
+
+def check(name):
+    """Return mismatches and scalar fallbacks of the vectorised paths against the scalar methods."""
+    rec = parameter_map().find(ParameterId(name))
+    v = Vec(rec)
+    rng = np.random.default_rng(14)
+    bits = rng.integers(0, 0x3F800001, 200_000, dtype=np.uint32)
+    named = np.array([*ROWS, 0.0, 1.0, 2.0**-149], dtype=np.float32)
+    sample = np.concatenate([bits.view(np.float32), named]).astype(np.float64)
+    vector = v.paths(sample)
+    bad = 0
+    for i in range(sample.size):
+        try:
+            scalar = scalar_paths(rec, float(sample[i]))
+        except Exception:  # noqa: BLE001 - a raise is a mismatch, counted
+            bad += 1
+            continue
+        bad += scalar != tuple(float(column[i]) for column in vector)
+    return sample.size, bad, v.scalar
+
+
+SPANS = [("zero", 0, 1), ("sub", 1, 1 << 23)]
+SPANS += [(str(e - 127), e << 23, (e + 1) << 23) for e in range(1, 127)]
+SPANS += [("one", 0x3F800000, 0x3F800001)]
+COLUMNS = ("below", "A1", "HELD", "A2", "A3", "SET0", "SET+1", "SET-1", "SET?", "above!", "bound!")
+
+
+def count(name):
+    """Count every float32 normalized value through one record's paths, by binade."""
+    started = time.time()
+    checked, mismatches, check_scalar = check(name)
+    result = {"name": name, "checked": checked, "mismatches": mismatches,
+              "check_scalar": check_scalar, "rows": [], "quiet": []}
+    if mismatches:
+        return result
+    rec = parameter_map().find(ParameterId(name))
+    v = Vec(rec)
+    floor = FLOOR.get(name, -math.inf)
+    total = np.zeros(len(COLUMNS) + 1, dtype=np.int64)
+    for label, lo, hi in SPANS:
+        row = np.zeros(len(COLUMNS) + 1, dtype=np.int64)
+        for start in range(lo, hi, CHUNK):
+            r = np.arange(start, min(hi, start + CHUNK), dtype=np.uint32)
+            r = r.view(np.float32).astype(np.float64)
+            p0, d0, p1, p2, held = v.paths(r)
+            below = p0 <= floor
+            a1, hd, a2, a3 = v.disp(p1) != d0, held != p0, p2 != p1, p1 != p0
+            steps = ordered(v.disp(p2)) - ordered(d0)
+            s0, sp, sm = steps == 0, steps == 1, steps == -1
+            far = ~(s0 | sp | sm)
+            above = ~below & (a1 | hd | a2 | a3 | ~s0)
+            bound = a1 | hd | (~below & (a3 | ~s0)) | (below & far)
+            flags = (below, a1, hd, a2, a3, s0, sp, sm, far, above, bound)
+            row += [r.size, *(int(np.count_nonzero(f)) for f in flags)]
+        total += row
+        # a binade is printed where anything but SET0 is counted
+        if row[2:].any() and (row[1:6].any() or row[7:].any()):
+            result["rows"].append((label, row.tolist()))
+        else:
+            result["quiet"].append(label)
+    result["total"] = total.tolist()
+    result["scalar"] = v.scalar
+    result["seconds"] = time.time() - started
+    return result
+
+
+def group_key(rec):
+    p, s, c = rec.parameter, rec.scale, rec.curve
+    return (p.kind, s.kind, s.minimum, s.maximum, c.kind, c.multiply, c.offset, p.minimum, p.maximum)
+
+
+def main():
+    m = parameter_map()
+    groups = {}
+    for rec in m.parameters:
+        groups.setdefault(group_key(rec), []).append(rec.id)
+    counted = [(key, ids) for key, ids in groups.items() if key[4] in REPRODUCED]
+    skipped = [(key, ids) for key, ids in groups.items() if key[4] not in REPRODUCED]
+    offset = [rec.id for rec in m.parameters if rec.curve.offset != 0]
+    print(f"== the committed map: {len(m.parameters)} records in {len(groups)} groups, keyed by")
+    print("   (parameter kind, scale kind, scale min, scale max, curve kind, multiply, offset,")
+    print("    parameter min, parameter max): every method the paths call reads these alone")
+    print(f"-- counted, {len(counted)} groups ({', '.join(REPRODUCED)}), each by its first id:")
+    for key, ids in counted:
+        more = f" and {len(ids) - 1} more" if len(ids) > 1 else ""
+        print(f"  {ids[0]}{more}: {key}")
+    print(f"-- not counted, {len(skipped)} groups: the skew is the platform's pow or log2, which")
+    print("   numpy's exp2 and log2 do not reproduce bit for bit; the property's exponent-spread")
+    print("   draws and pinned examples hold them")
+    for key, ids in skipped:
+        more = f" and {len(ids) - 1} more" if len(ids) > 1 else ""
+        print(f"  {ids[0]}{more}: {key}")
+    print(f"-- the six records with a curve offset, each counted directly: {offset}")
+    names = [ids[0] for _, ids in counted]
+    names += [name for name in offset if name not in names]
+
+    started = time.time()
+    with multiprocessing.Pool(10) as pool:
+        results = {r["name"]: r for r in pool.imap_unordered(count, names)}
+    print(f"\n== {len(names)} counts in {time.time() - started:.0f} s on 10 processes")
+
+    print("\n== the check against the shipped scalar methods, per count, before counting")
+    print("   (200,000 bit patterns uniform over [0, 1], the four rows of tests/data/volume-floor.txt,")
+    print("    0, 1 and 2 ** -149; P0, D0, P1, P2 and S(N(P0)) each compared)")
+    for name in names:
+        r = results[name]
+        print(f"  {name}: {r['checked']} values, mismatches {r['mismatches']},"
+              f" scalar fallbacks {r['check_scalar']}")
+
+    print("\n== every float32 normalized value, 1,065,353,217 a count, by its exponent")
+    print("  binade: the float32 exponent of r ('sub' subnormal); below: P0 at or below the floor;")
+    print("  then each count; above!: any failure above the floor; bound!: the property broken")
+    head = f"{'binade':>6} {'n':>10} " + " ".join(f"{c:>9}" for c in COLUMNS)
+    grand = np.zeros(len(COLUMNS) + 1, dtype=np.int64)
+    for name in names:
+        r = results[name]
+        rec = m.find(ParameterId(name))
+        print(f"\n-- {name}: scale {rec.scale.kind} [{rec.scale.minimum!r}, {rec.scale.maximum!r}],"
+              f" curve {rec.curve.kind} x{rec.curve.multiply!r} {rec.curve.offset:+},"
+              f" parameter [{rec.parameter.minimum!r}, {rec.parameter.maximum!r}]")
+        if r["mismatches"]:
+            print("  NOT COUNTED: the check found a mismatch")
+            continue
+        print(head)
+        for label, row in r["rows"]:
+            print(f"{label:>6} {row[0]:>10} " + " ".join(f"{x:>9}" for x in row[1:]))
+        t = r["total"]
+        print(f"{'total':>6} {t[0]:>10} " + " ".join(f"{x:>9}" for x in t[1:]))
+        grand += t
+        quiet = r["quiet"]
+        print(f"  only SET0 in the {len(quiet)} binades not printed; scalar fallbacks {r['scalar']};"
+              f" {r['seconds']:.0f} s")
+
+    print("\n== summary over every count")
+    for column, value in zip(("n", *COLUMNS), grand, strict=True):
+        print(f"  {column}: {value}")
+
+    volume = m.find(ParameterId("volume"))
+    print("\n== volume's floor and the rows of tests/data/volume-floor.txt")
+    print(f"  N(2 ** -43) = {volume.scale.to_normalized(2.0**-43)!r}")
+    for r in ROWS:
+        d0 = volume.from_normalized(r)
+        p1 = volume.to_preset(d0)
+        p2 = volume.scale.to_preset(volume.to_normalized(d0))
+        shown = volume.to_display(p2)
+        step = 0 if shown == d0 else (1 if shown == math.nextafter(d0, math.inf) else
+                                      (-1 if shown == math.nextafter(d0, -math.inf) else None))
+        held = volume.scale.to_preset(volume.scale.to_normalized(p1)) == p1
+        print(f"  r = {r!r} ({np.float32(r).view(np.uint32):08x}): P0 {volume.scale.to_preset(r)!r},"
+              f" D0 {d0!r}, P1 {p1!r} (held {held}), P2 {p2!r}, set's display step {step:+d}")
+
+
+if __name__ == "__main__":
+    main()
+```
+
+== its output
+== the committed map: 903 records in 69 groups, keyed by
+   (parameter kind, scale kind, scale min, scale max, curve kind, multiply, offset,
+    parameter min, parameter max): every method the paths call reads these alone
+-- counted, 60 groups (linear, quadratic, quartic, square_root), each by its first id:
+  beats_per_minute: ('continuous', 'linear', 0.3333333432674408, 5.0, 'linear', 60.0, 0.0, 20.000000596046448, 300.0)
+  bypass and 242 more: ('boolean', 'indexed', 0.0, 1.0, 'linear', 1.0, 0.0, 0.0, 1.0)
+  chorus_cutoff and 7 more: ('continuous', 'linear', 8.0, 136.0, 'linear', 1.0, 0.0, 8.0, 136.0)
+  chorus_dry_wet and 32 more: ('continuous', 'linear', 0.0, 1.0, 'linear', 100.0, 0.0, 0.0, 100.0)
+  chorus_feedback: ('continuous', 'linear', -0.949999988079071, 0.949999988079071, 'linear', 100.0, 0.0, -94.9999988079071, 94.9999988079071)
+  chorus_spread and 35 more: ('continuous', 'linear', 0.0, 1.0, 'linear', 1.0, 0.0, 0.0, 1.0)
+  chorus_sync and 10 more: ('choice', 'indexed', 0.0, 3.0, 'linear', 1.0, 0.0, 0.0, 3.0)
+  chorus_tempo and 2 more: ('choice', 'indexed', 0.0, 10.0, 'linear', 1.0, 0.0, 0.0, 10.0)
+  chorus_voices: ('continuous', 'indexed', 1.0, 4.0, 'linear', 4.0, 0.0, 4.0, 16.0)
+  compressor_band_gain and 3 more: ('continuous', 'linear', -30.0, 30.0, 'linear', 1.0, 0.0, -30.0, 30.0)
+  compressor_band_lower_ratio and 68 more: ('continuous', 'linear', -1.0, 1.0, 'linear', 1.0, 0.0, -1.0, 1.0)
+  compressor_band_lower_threshold and 5 more: ('continuous', 'linear', -80.0, 0.0, 'linear', 1.0, 0.0, -80.0, 0.0)
+  delay_aux_tempo and 1 more: ('choice', 'indexed', 4.0, 12.0, 'linear', 1.0, -4.0, 0.0, 8.0)
+  delay_feedback and 28 more: ('continuous', 'linear', -1.0, 1.0, 'linear', 100.0, 0.0, -100.0, 100.0)
+  distortion_filter_blend and 4 more: ('continuous', 'linear', 0.0, 2.0, 'linear', 1.0, 0.0, 0.0, 2.0)
+  distortion_filter_order and 4 more: ('choice', 'indexed', 0.0, 2.0, 'linear', 1.0, 0.0, 0.0, 2.0)
+  distortion_type: ('choice', 'indexed', 0.0, 5.0, 'linear', 1.0, 0.0, 0.0, 5.0)
+  effect_chain_order: ('continuous', 'indexed', 0.0, 362879.0, 'linear', 1.0, 0.0, 0.0, 362879.0)
+  env_1_attack and 17 more: ('continuous', 'linear', 0.0, 2.378420114517212, 'quartic', 1.0, 0.0, 0.0, 32.00031669012587)
+  env_1_attack_power and 17 more: ('continuous', 'linear', -20.0, 20.0, 'linear', 1.0, 0.0, -20.0, 20.0)
+  env_1_delay and 11 more: ('continuous', 'linear', 0.0, 1.4142135381698608, 'quartic', 1.0, 0.0, 0.0, 3.9999997261716707)
+  eq_band_gain and 2 more: ('continuous', 'linear', -15.0, 15.0, 'linear', 1.0, 0.0, -15.0, 15.0)
+  eq_band_mode and 4 more: ('choice', 'indexed', 0.0, 1.0, 'linear', 1.0, 0.0, 0.0, 1.0)
+  eq_band_resonance and 3 more: ('continuous', 'linear', 0.0, 1.0, 'quadratic', 100.0, 0.0, 0.0, 100.0)
+  filter_1_blend_transpose and 2 more: ('continuous', 'linear', 0.0, 84.0, 'linear', 1.0, 0.0, 0.0, 84.0)
+  filter_1_cutoff and 2 more: ('continuous', 'linear', 8.0, 136.0, 'linear', 1.0, -60.0, -52.0, 76.0)
+  filter_1_drive and 2 more: ('continuous', 'linear', 0.0, 20.0, 'linear', 1.0, 0.0, 0.0, 20.0)
+  filter_1_formant_resonance and 2 more: ('continuous', 'linear', 0.30000001192092896, 1.0, 'linear', 100.0, 0.0, 30.000001192092896, 100.0)
+  filter_1_formant_transpose and 2 more: ('continuous', 'linear', -12.0, 12.0, 'linear', 1.0, 0.0, -12.0, 12.0)
+  filter_1_model and 2 more: ('choice', 'indexed', 0.0, 7.0, 'linear', 1.0, 0.0, 0.0, 7.0)
+  filter_1_style and 2 more: ('choice', 'indexed', 0.0, 8.0, 'linear', 1.0, 0.0, 0.0, 8.0)
+  flanger_dry_wet: ('continuous', 'linear', 0.0, 0.5, 'linear', 200.0, 0.0, 0.0, 100.0)
+  flanger_phase_offset and 7 more: ('continuous', 'linear', 0.0, 1.0, 'linear', 360.0, 0.0, 0.0, 360.0)
+  lfo_1_delay_time and 7 more: ('continuous', 'linear', 0.0, 4.0, 'linear', 1.0, 0.0, 0.0, 4.0)
+  lfo_1_fade_time and 7 more: ('continuous', 'linear', 0.0, 8.0, 'linear', 1.0, 0.0, 0.0, 8.0)
+  lfo_1_keytrack_transpose and 11 more: ('continuous', 'indexed', -60.0, 36.0, 'linear', 1.0, 0.0, -60.0, 36.0)
+  lfo_1_stereo and 7 more: ('continuous', 'linear', -0.5, 0.5, 'linear', 1.0, 0.0, -0.5, 0.5)
+  lfo_1_sync and 12 more: ('choice', 'indexed', 0.0, 4.0, 'linear', 1.0, 0.0, 0.0, 4.0)
+  lfo_1_sync_type and 7 more: ('choice', 'indexed', 0.0, 6.0, 'linear', 1.0, 0.0, 0.0, 6.0)
+  lfo_1_tempo and 17 more: ('choice', 'indexed', 0.0, 12.0, 'linear', 1.0, 0.0, 0.0, 12.0)
+  modulation_10_power and 63 more: ('continuous', 'linear', -10.0, 10.0, 'linear', 1.0, 0.0, -10.0, 10.0)
+  osc_1_destination and 3 more: ('choice', 'indexed', 0.0, 14.0, 'linear', 1.0, 0.0, 0.0, 14.0)
+  osc_1_detune_power and 2 more: ('continuous', 'linear', -5.0, 5.0, 'linear', 1.0, 0.0, -5.0, 5.0)
+  osc_1_detune_range and 3 more: ('continuous', 'linear', 0.0, 48.0, 'linear', 1.0, 0.0, 0.0, 48.0)
+  osc_1_distortion_spread and 5 more: ('continuous', 'linear', -0.5, 0.5, 'linear', 200.0, 0.0, -100.0, 100.0)
+  osc_1_frame_spread and 2 more: ('continuous', 'linear', -128.0, 128.0, 'linear', 1.0, 0.0, -128.0, 128.0)
+  osc_1_level and 3 more: ('continuous', 'linear', 0.0, 1.0, 'quadratic', 1.0, 0.0, 0.0, 1.0)
+  osc_1_spectral_morph_type and 2 more: ('choice', 'indexed', 0.0, 16.0, 'linear', 1.0, 0.0, 0.0, 16.0)
+  osc_1_transpose and 4 more: ('continuous', 'indexed', -48.0, 48.0, 'linear', 1.0, 0.0, -48.0, 48.0)
+  osc_1_transpose_quantize and 3 more: ('continuous', 'indexed', 0.0, 8191.0, 'linear', 1.0, 0.0, 0.0, 8191.0)
+  osc_1_unison_detune and 2 more: ('continuous', 'linear', 0.0, 10.0, 'quadratic', 1.0, 0.0, 0.0, 100.0)
+  osc_1_unison_voices and 2 more: ('continuous', 'indexed', 1.0, 16.0, 'linear', 1.0, 0.0, 1.0, 16.0)
+  osc_1_wave_frame and 2 more: ('continuous', 'linear', 0.0, 256.0, 'linear', 1.0, 0.0, 0.0, 256.0)
+  pitch_bend_range: ('continuous', 'indexed', 0.0, 48.0, 'linear', 1.0, 0.0, 0.0, 48.0)
+  polyphony: ('continuous', 'indexed', 1.0, 32.0, 'linear', 1.0, 0.0, 1.0, 32.0)
+  portamento_slope: ('continuous', 'linear', -8.0, 8.0, 'linear', 1.0, 0.0, -8.0, 8.0)
+  reverb_delay: ('continuous', 'linear', 0.0, 0.30000001192092896, 'linear', 1.0, 0.0, 0.0, 0.30000001192092896)
+  reverb_high_shelf_cutoff and 3 more: ('continuous', 'linear', 0.0, 128.0, 'linear', 1.0, 0.0, 0.0, 128.0)
+  reverb_high_shelf_gain and 1 more: ('continuous', 'linear', -6.0, 0.0, 'linear', 1.0, 0.0, -6.0, 0.0)
+  volume: ('continuous', 'linear', 0.0, 7399.4404296875, 'square_root', 1.0, -80.0, -80.0, 6.020000172561609)
+-- not counted, 9 groups: the skew is the platform's pow or log2, which
+   numpy's exp2 and log2 do not reproduce bit for bit; the property's exponent-spread
+   draws and pinned examples hold them
+  chorus_delay_1 and 1 more: ('continuous', 'linear', -10.0, -5.64385986328125, 'exponential', 1.0, 0.0, 0.0009765625, 0.01999994907445102)
+  chorus_frequency: ('continuous', 'linear', -6.0, 3.0, 'exponential_inverted', 1.0, 0.0, 0.125, 64.0)
+  delay_aux_frequency and 1 more: ('continuous', 'linear', -2.0, 9.0, 'exponential_inverted', 1.0, 0.0, 0.001953125, 4.0)
+  flanger_frequency and 1 more: ('continuous', 'linear', -5.0, 2.0, 'exponential_inverted', 1.0, 0.0, 0.25, 32.0)
+  lfo_1_frequency and 11 more: ('continuous', 'linear', -7.0, 9.0, 'exponential_inverted', 1.0, 0.0, 0.001953125, 128.0)
+  lfo_1_smooth_time and 136 more: ('continuous', 'linear', -10.0, 4.0, 'exponential', 1.0, 0.0, 0.0009765625, 16.0)
+  oversampling: ('continuous', 'indexed', 0.0, 3.0, 'exponential', 1.0, 0.0, 1.0, 8.0)
+  reverb_chorus_frequency: ('continuous', 'linear', -8.0, 3.0, 'exponential', 1.0, 0.0, 0.00390625, 8.0)
+  reverb_decay_time: ('continuous', 'linear', -6.0, 6.0, 'exponential', 1.0, 0.0, 0.015625, 64.0)
+-- the six records with a curve offset, each counted directly: ['delay_aux_tempo', 'delay_tempo', 'filter_1_cutoff', 'filter_2_cutoff', 'filter_fx_cutoff', 'volume']
+
+== 63 counts in 1297 s on 10 processes
+
+== the check against the shipped scalar methods, per count, before counting
+   (200,000 bit patterns uniform over [0, 1], the four rows of tests/data/volume-floor.txt,
+    0, 1 and 2 ** -149; P0, D0, P1, P2 and S(N(P0)) each compared)
+  beats_per_minute: 200007 values, mismatches 0, scalar fallbacks 0
+  bypass: 200007 values, mismatches 0, scalar fallbacks 0
+  chorus_cutoff: 200007 values, mismatches 0, scalar fallbacks 0
+  chorus_dry_wet: 200007 values, mismatches 0, scalar fallbacks 0
+  chorus_feedback: 200007 values, mismatches 0, scalar fallbacks 0
+  chorus_spread: 200007 values, mismatches 0, scalar fallbacks 0
+  chorus_sync: 200007 values, mismatches 0, scalar fallbacks 0
+  chorus_tempo: 200007 values, mismatches 0, scalar fallbacks 0
+  chorus_voices: 200007 values, mismatches 0, scalar fallbacks 0
+  compressor_band_gain: 200007 values, mismatches 0, scalar fallbacks 0
+  compressor_band_lower_ratio: 200007 values, mismatches 0, scalar fallbacks 0
+  compressor_band_lower_threshold: 200007 values, mismatches 0, scalar fallbacks 0
+  delay_aux_tempo: 200007 values, mismatches 0, scalar fallbacks 0
+  delay_feedback: 200007 values, mismatches 0, scalar fallbacks 0
+  distortion_filter_blend: 200007 values, mismatches 0, scalar fallbacks 0
+  distortion_filter_order: 200007 values, mismatches 0, scalar fallbacks 0
+  distortion_type: 200007 values, mismatches 0, scalar fallbacks 0
+  effect_chain_order: 200007 values, mismatches 0, scalar fallbacks 0
+  env_1_attack: 200007 values, mismatches 0, scalar fallbacks 0
+  env_1_attack_power: 200007 values, mismatches 0, scalar fallbacks 0
+  env_1_delay: 200007 values, mismatches 0, scalar fallbacks 0
+  eq_band_gain: 200007 values, mismatches 0, scalar fallbacks 0
+  eq_band_mode: 200007 values, mismatches 0, scalar fallbacks 0
+  eq_band_resonance: 200007 values, mismatches 0, scalar fallbacks 0
+  filter_1_blend_transpose: 200007 values, mismatches 0, scalar fallbacks 0
+  filter_1_cutoff: 200007 values, mismatches 0, scalar fallbacks 0
+  filter_1_drive: 200007 values, mismatches 0, scalar fallbacks 0
+  filter_1_formant_resonance: 200007 values, mismatches 0, scalar fallbacks 0
+  filter_1_formant_transpose: 200007 values, mismatches 0, scalar fallbacks 0
+  filter_1_model: 200007 values, mismatches 0, scalar fallbacks 0
+  filter_1_style: 200007 values, mismatches 0, scalar fallbacks 0
+  flanger_dry_wet: 200007 values, mismatches 0, scalar fallbacks 0
+  flanger_phase_offset: 200007 values, mismatches 0, scalar fallbacks 0
+  lfo_1_delay_time: 200007 values, mismatches 0, scalar fallbacks 0
+  lfo_1_fade_time: 200007 values, mismatches 0, scalar fallbacks 0
+  lfo_1_keytrack_transpose: 200007 values, mismatches 0, scalar fallbacks 0
+  lfo_1_stereo: 200007 values, mismatches 0, scalar fallbacks 0
+  lfo_1_sync: 200007 values, mismatches 0, scalar fallbacks 0
+  lfo_1_sync_type: 200007 values, mismatches 0, scalar fallbacks 0
+  lfo_1_tempo: 200007 values, mismatches 0, scalar fallbacks 0
+  modulation_10_power: 200007 values, mismatches 0, scalar fallbacks 0
+  osc_1_destination: 200007 values, mismatches 0, scalar fallbacks 0
+  osc_1_detune_power: 200007 values, mismatches 0, scalar fallbacks 0
+  osc_1_detune_range: 200007 values, mismatches 0, scalar fallbacks 0
+  osc_1_distortion_spread: 200007 values, mismatches 0, scalar fallbacks 0
+  osc_1_frame_spread: 200007 values, mismatches 0, scalar fallbacks 0
+  osc_1_level: 200007 values, mismatches 0, scalar fallbacks 0
+  osc_1_spectral_morph_type: 200007 values, mismatches 0, scalar fallbacks 0
+  osc_1_transpose: 200007 values, mismatches 0, scalar fallbacks 0
+  osc_1_transpose_quantize: 200007 values, mismatches 0, scalar fallbacks 0
+  osc_1_unison_detune: 200007 values, mismatches 0, scalar fallbacks 0
+  osc_1_unison_voices: 200007 values, mismatches 0, scalar fallbacks 0
+  osc_1_wave_frame: 200007 values, mismatches 0, scalar fallbacks 0
+  pitch_bend_range: 200007 values, mismatches 0, scalar fallbacks 0
+  polyphony: 200007 values, mismatches 0, scalar fallbacks 0
+  portamento_slope: 200007 values, mismatches 0, scalar fallbacks 0
+  reverb_delay: 200007 values, mismatches 0, scalar fallbacks 0
+  reverb_high_shelf_cutoff: 200007 values, mismatches 0, scalar fallbacks 0
+  reverb_high_shelf_gain: 200007 values, mismatches 0, scalar fallbacks 0
+  volume: 200007 values, mismatches 0, scalar fallbacks 0
+  delay_tempo: 200007 values, mismatches 0, scalar fallbacks 0
+  filter_2_cutoff: 200007 values, mismatches 0, scalar fallbacks 0
+  filter_fx_cutoff: 200007 values, mismatches 0, scalar fallbacks 0
+
+== every float32 normalized value, 1,065,353,217 a count, by its exponent
+  binade: the float32 exponent of r ('sub' subnormal); below: P0 at or below the floor;
+  then each count; above!: any failure above the floor; bound!: the property broken
+
+-- beats_per_minute: scale linear [0.3333333432674408, 5.0], curve linear x60.0 +0.0, parameter [20.000000596046448, 300.0]
+binade          n     below        A1      HELD        A2        A3      SET0     SET+1     SET-1      SET?    above!    bound!
+ total 1065353217         0         0         0         0         0 1065353217         0         0         0         0         0
+  only SET0 in the 129 binades not printed; scalar fallbacks 0; 207 s
+
+-- bypass: scale indexed [0.0, 1.0], curve linear x1.0 +0.0, parameter [0.0, 1.0]
+binade          n     below        A1      HELD        A2        A3      SET0     SET+1     SET-1      SET?    above!    bound!
+ total 1065353217         0         0         0         0         0 1065353217         0         0         0         0         0
+  only SET0 in the 129 binades not printed; scalar fallbacks 0; 207 s
+
+-- chorus_cutoff: scale linear [8.0, 136.0], curve linear x1.0 +0.0, parameter [8.0, 136.0]
+binade          n     below        A1      HELD        A2        A3      SET0     SET+1     SET-1      SET?    above!    bound!
+ total 1065353217         0         0         0         0         0 1065353217         0         0         0         0         0
+  only SET0 in the 129 binades not printed; scalar fallbacks 0; 206 s
+
+-- chorus_dry_wet: scale linear [0.0, 1.0], curve linear x100.0 +0.0, parameter [0.0, 100.0]
+binade          n     below        A1      HELD        A2        A3      SET0     SET+1     SET-1      SET?    above!    bound!
+ total 1065353217         0         0         0         0         0 1065353217         0         0         0         0         0
+  only SET0 in the 129 binades not printed; scalar fallbacks 0; 209 s
+
+-- chorus_feedback: scale linear [-0.949999988079071, 0.949999988079071], curve linear x100.0 +0.0, parameter [-94.9999988079071, 94.9999988079071]
+binade          n     below        A1      HELD        A2        A3      SET0     SET+1     SET-1      SET?    above!    bound!
+ total 1065353217         0         0         0         0         0 1065353217         0         0         0         0         0
+  only SET0 in the 129 binades not printed; scalar fallbacks 0; 207 s
+
+-- chorus_spread: scale linear [0.0, 1.0], curve linear x1.0 +0.0, parameter [0.0, 1.0]
+binade          n     below        A1      HELD        A2        A3      SET0     SET+1     SET-1      SET?    above!    bound!
+ total 1065353217         0         0         0         0         0 1065353217         0         0         0         0         0
+  only SET0 in the 129 binades not printed; scalar fallbacks 0; 209 s
+
+-- chorus_sync: scale indexed [0.0, 3.0], curve linear x1.0 +0.0, parameter [0.0, 3.0]
+binade          n     below        A1      HELD        A2        A3      SET0     SET+1     SET-1      SET?    above!    bound!
+ total 1065353217         0         0         0         0         0 1065353217         0         0         0         0         0
+  only SET0 in the 129 binades not printed; scalar fallbacks 0; 208 s
+
+-- chorus_tempo: scale indexed [0.0, 10.0], curve linear x1.0 +0.0, parameter [0.0, 10.0]
+binade          n     below        A1      HELD        A2        A3      SET0     SET+1     SET-1      SET?    above!    bound!
+ total 1065353217         0         0         0         0         0 1065353217         0         0         0         0         0
+  only SET0 in the 129 binades not printed; scalar fallbacks 0; 207 s
+
+-- chorus_voices: scale indexed [1.0, 4.0], curve linear x4.0 +0.0, parameter [4.0, 16.0]
+binade          n     below        A1      HELD        A2        A3      SET0     SET+1     SET-1      SET?    above!    bound!
+ total 1065353217         0         0         0         0         0 1065353217         0         0         0         0         0
+  only SET0 in the 129 binades not printed; scalar fallbacks 0; 211 s
+
+-- compressor_band_gain: scale linear [-30.0, 30.0], curve linear x1.0 +0.0, parameter [-30.0, 30.0]
+binade          n     below        A1      HELD        A2        A3      SET0     SET+1     SET-1      SET?    above!    bound!
+ total 1065353217         0         0         0         0         0 1065353217         0         0         0         0         0
+  only SET0 in the 129 binades not printed; scalar fallbacks 0; 205 s
+
+-- compressor_band_lower_ratio: scale linear [-1.0, 1.0], curve linear x1.0 +0.0, parameter [-1.0, 1.0]
+binade          n     below        A1      HELD        A2        A3      SET0     SET+1     SET-1      SET?    above!    bound!
+ total 1065353217         0         0         0         0         0 1065353217         0         0         0         0         0
+  only SET0 in the 129 binades not printed; scalar fallbacks 0; 206 s
+
+-- compressor_band_lower_threshold: scale linear [-80.0, 0.0], curve linear x1.0 +0.0, parameter [-80.0, 0.0]
+binade          n     below        A1      HELD        A2        A3      SET0     SET+1     SET-1      SET?    above!    bound!
+ total 1065353217         0         0         0         0         0 1065353217         0         0         0         0         0
+  only SET0 in the 129 binades not printed; scalar fallbacks 0; 206 s
+
+-- delay_aux_tempo: scale indexed [4.0, 12.0], curve linear x1.0 -4.0, parameter [0.0, 8.0]
+binade          n     below        A1      HELD        A2        A3      SET0     SET+1     SET-1      SET?    above!    bound!
+ total 1065353217         0         0         0         0         0 1065353217         0         0         0         0         0
+  only SET0 in the 129 binades not printed; scalar fallbacks 0; 213 s
+
+-- delay_feedback: scale linear [-1.0, 1.0], curve linear x100.0 +0.0, parameter [-100.0, 100.0]
+binade          n     below        A1      HELD        A2        A3      SET0     SET+1     SET-1      SET?    above!    bound!
+ total 1065353217         0         0         0         0         0 1065353217         0         0         0         0         0
+  only SET0 in the 129 binades not printed; scalar fallbacks 0; 208 s
+
+-- distortion_filter_blend: scale linear [0.0, 2.0], curve linear x1.0 +0.0, parameter [0.0, 2.0]
+binade          n     below        A1      HELD        A2        A3      SET0     SET+1     SET-1      SET?    above!    bound!
+ total 1065353217         0         0         0         0         0 1065353217         0         0         0         0         0
+  only SET0 in the 129 binades not printed; scalar fallbacks 0; 212 s
+
+-- distortion_filter_order: scale indexed [0.0, 2.0], curve linear x1.0 +0.0, parameter [0.0, 2.0]
+binade          n     below        A1      HELD        A2        A3      SET0     SET+1     SET-1      SET?    above!    bound!
+ total 1065353217         0         0         0         0         0 1065353217         0         0         0         0         0
+  only SET0 in the 129 binades not printed; scalar fallbacks 0; 208 s
+
+-- distortion_type: scale indexed [0.0, 5.0], curve linear x1.0 +0.0, parameter [0.0, 5.0]
+binade          n     below        A1      HELD        A2        A3      SET0     SET+1     SET-1      SET?    above!    bound!
+ total 1065353217         0         0         0         0         0 1065353217         0         0         0         0         0
+  only SET0 in the 129 binades not printed; scalar fallbacks 0; 210 s
+
+-- effect_chain_order: scale indexed [0.0, 362879.0], curve linear x1.0 +0.0, parameter [0.0, 362879.0]
+binade          n     below        A1      HELD        A2        A3      SET0     SET+1     SET-1      SET?    above!    bound!
+ total 1065353217         0         0         0         0         0 1065353217         0         0         0         0         0
+  only SET0 in the 129 binades not printed; scalar fallbacks 0; 211 s
+
+-- env_1_attack: scale linear [0.0, 2.378420114517212], curve quartic x1.0 +0.0, parameter [0.0, 32.00031669012587]
+binade          n     below        A1      HELD        A2        A3      SET0     SET+1     SET-1      SET?    above!    bound!
+ total 1065353217         0         0         0         0         0 1065353217         0         0         0         0         0
+  only SET0 in the 129 binades not printed; scalar fallbacks 0; 215 s
+
+-- env_1_attack_power: scale linear [-20.0, 20.0], curve linear x1.0 +0.0, parameter [-20.0, 20.0]
+binade          n     below        A1      HELD        A2        A3      SET0     SET+1     SET-1      SET?    above!    bound!
+ total 1065353217         0         0         0         0         0 1065353217         0         0         0         0         0
+  only SET0 in the 129 binades not printed; scalar fallbacks 0; 207 s
+
+-- env_1_delay: scale linear [0.0, 1.4142135381698608], curve quartic x1.0 +0.0, parameter [0.0, 3.9999997261716707]
+binade          n     below        A1      HELD        A2        A3      SET0     SET+1     SET-1      SET?    above!    bound!
+  -126    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+  -125    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+  -124    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+  -123    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+  -122    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+  -121    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+  -120    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+  -119    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+  -118    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+  -117    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+  -116    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+  -115    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+  -114    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+  -113    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+  -112    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+  -111    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+  -110    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+  -109    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+  -108    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+  -107    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+  -106    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+  -105    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+  -104    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+  -103    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+  -102    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+  -101    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+  -100    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+   -99    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+   -98    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+   -97    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+   -96    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+   -95    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+   -94    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+   -93    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+   -92    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+   -91    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+   -90    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+   -89    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+   -88    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+   -87    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+   -86    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+   -85    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+   -84    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+   -83    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+   -82    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+   -81    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+   -80    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+   -79    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+   -78    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+   -77    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+   -76    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+   -75    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+   -74    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+   -73    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+   -72    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+   -71    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+   -70    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+   -69    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+   -68    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+   -67    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+   -66    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+   -65    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+   -64    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+   -63    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+   -62    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+   -61    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+   -60    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+   -59    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+   -58    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+   -57    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+   -56    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+   -55    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+   -54    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+   -53    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+   -52    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+   -51    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+   -50    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+   -49    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+   -48    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+   -47    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+   -46    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+   -45    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+   -44    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+   -43    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+   -42    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+   -41    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+   -40    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+   -39    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+   -38    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+   -37    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+   -36    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+   -35    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+   -34    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+   -33    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+   -32    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+   -31    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+   -30    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+   -29    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+   -28    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+   -27    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+   -26    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+   -25    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+   -24    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+   -23    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+   -22    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+   -21    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+   -20    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+   -19    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+   -18    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+   -17    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+   -16    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+   -15    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+   -14    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+   -13    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+   -12    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+   -11    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+   -10    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+    -9    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+    -8    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+    -7    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+    -6    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+    -5    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+    -4    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+    -3    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+    -2    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+    -1    8388608         0         0         1         1         0   8388607         0         0         1         1         1
+ total 1065353217         0         0       126       126         0 1065353091         0         0       126       126       126
+  only SET0 in the 3 binades not printed; scalar fallbacks 0; 211 s
+
+-- eq_band_gain: scale linear [-15.0, 15.0], curve linear x1.0 +0.0, parameter [-15.0, 15.0]
+binade          n     below        A1      HELD        A2        A3      SET0     SET+1     SET-1      SET?    above!    bound!
+ total 1065353217         0         0         0         0         0 1065353217         0         0         0         0         0
+  only SET0 in the 129 binades not printed; scalar fallbacks 0; 195 s
+
+-- eq_band_mode: scale indexed [0.0, 1.0], curve linear x1.0 +0.0, parameter [0.0, 1.0]
+binade          n     below        A1      HELD        A2        A3      SET0     SET+1     SET-1      SET?    above!    bound!
+ total 1065353217         0         0         0         0         0 1065353217         0         0         0         0         0
+  only SET0 in the 129 binades not printed; scalar fallbacks 0; 199 s
+
+-- eq_band_resonance: scale linear [0.0, 1.0], curve quadratic x100.0 +0.0, parameter [0.0, 100.0]
+binade          n     below        A1      HELD        A2        A3      SET0     SET+1     SET-1      SET?    above!    bound!
+ total 1065353217         0         0         0         0         0 1065353217         0         0         0         0         0
+  only SET0 in the 129 binades not printed; scalar fallbacks 0; 208 s
+
+-- filter_1_blend_transpose: scale linear [0.0, 84.0], curve linear x1.0 +0.0, parameter [0.0, 84.0]
+binade          n     below        A1      HELD        A2        A3      SET0     SET+1     SET-1      SET?    above!    bound!
+ total 1065353217         0         0         0         0         0 1065353217         0         0         0         0         0
+  only SET0 in the 129 binades not printed; scalar fallbacks 0; 207 s
+
+-- filter_1_cutoff: scale linear [8.0, 136.0], curve linear x1.0 -60.0, parameter [-52.0, 76.0]
+binade          n     below        A1      HELD        A2        A3      SET0     SET+1     SET-1      SET?    above!    bound!
+ total 1065353217         0         0         0         0         0 1065353217         0         0         0         0         0
+  only SET0 in the 129 binades not printed; scalar fallbacks 0; 198 s
+
+-- filter_1_drive: scale linear [0.0, 20.0], curve linear x1.0 +0.0, parameter [0.0, 20.0]
+binade          n     below        A1      HELD        A2        A3      SET0     SET+1     SET-1      SET?    above!    bound!
+ total 1065353217         0         0         0         0         0 1065353217         0         0         0         0         0
+  only SET0 in the 129 binades not printed; scalar fallbacks 0; 205 s
+
+-- filter_1_formant_resonance: scale linear [0.30000001192092896, 1.0], curve linear x100.0 +0.0, parameter [30.000001192092896, 100.0]
+binade          n     below        A1      HELD        A2        A3      SET0     SET+1     SET-1      SET?    above!    bound!
+ total 1065353217         0         0         0         0         0 1065353217         0         0         0         0         0
+  only SET0 in the 129 binades not printed; scalar fallbacks 0; 201 s
+
+-- filter_1_formant_transpose: scale linear [-12.0, 12.0], curve linear x1.0 +0.0, parameter [-12.0, 12.0]
+binade          n     below        A1      HELD        A2        A3      SET0     SET+1     SET-1      SET?    above!    bound!
+ total 1065353217         0         0         0         0         0 1065353217         0         0         0         0         0
+  only SET0 in the 129 binades not printed; scalar fallbacks 0; 201 s
+
+-- filter_1_model: scale indexed [0.0, 7.0], curve linear x1.0 +0.0, parameter [0.0, 7.0]
+binade          n     below        A1      HELD        A2        A3      SET0     SET+1     SET-1      SET?    above!    bound!
+ total 1065353217         0         0         0         0         0 1065353217         0         0         0         0         0
+  only SET0 in the 129 binades not printed; scalar fallbacks 0; 202 s
+
+-- filter_1_style: scale indexed [0.0, 8.0], curve linear x1.0 +0.0, parameter [0.0, 8.0]
+binade          n     below        A1      HELD        A2        A3      SET0     SET+1     SET-1      SET?    above!    bound!
+ total 1065353217         0         0         0         0         0 1065353217         0         0         0         0         0
+  only SET0 in the 129 binades not printed; scalar fallbacks 0; 184 s
+
+-- flanger_dry_wet: scale linear [0.0, 0.5], curve linear x200.0 +0.0, parameter [0.0, 100.0]
+binade          n     below        A1      HELD        A2        A3      SET0     SET+1     SET-1      SET?    above!    bound!
+ total 1065353217         0         0         0         0         0 1065353217         0         0         0         0         0
+  only SET0 in the 129 binades not printed; scalar fallbacks 0; 201 s
+
+-- flanger_phase_offset: scale linear [0.0, 1.0], curve linear x360.0 +0.0, parameter [0.0, 360.0]
+binade          n     below        A1      HELD        A2        A3      SET0     SET+1     SET-1      SET?    above!    bound!
+ total 1065353217         0         0         0         0         0 1065353217         0         0         0         0         0
+  only SET0 in the 129 binades not printed; scalar fallbacks 0; 202 s
+
+-- lfo_1_delay_time: scale linear [0.0, 4.0], curve linear x1.0 +0.0, parameter [0.0, 4.0]
+binade          n     below        A1      HELD        A2        A3      SET0     SET+1     SET-1      SET?    above!    bound!
+ total 1065353217         0         0         0         0         0 1065353217         0         0         0         0         0
+  only SET0 in the 129 binades not printed; scalar fallbacks 0; 204 s
+
+-- lfo_1_fade_time: scale linear [0.0, 8.0], curve linear x1.0 +0.0, parameter [0.0, 8.0]
+binade          n     below        A1      HELD        A2        A3      SET0     SET+1     SET-1      SET?    above!    bound!
+ total 1065353217         0         0         0         0         0 1065353217         0         0         0         0         0
+  only SET0 in the 129 binades not printed; scalar fallbacks 0; 205 s
+
+-- lfo_1_keytrack_transpose: scale indexed [-60.0, 36.0], curve linear x1.0 +0.0, parameter [-60.0, 36.0]
+binade          n     below        A1      HELD        A2        A3      SET0     SET+1     SET-1      SET?    above!    bound!
+ total 1065353217         0         0         0         0         0 1065353217         0         0         0         0         0
+  only SET0 in the 129 binades not printed; scalar fallbacks 0; 206 s
+
+-- lfo_1_stereo: scale linear [-0.5, 0.5], curve linear x1.0 +0.0, parameter [-0.5, 0.5]
+binade          n     below        A1      HELD        A2        A3      SET0     SET+1     SET-1      SET?    above!    bound!
+ total 1065353217         0         0         0         0         0 1065353217         0         0         0         0         0
+  only SET0 in the 129 binades not printed; scalar fallbacks 0; 200 s
+
+-- lfo_1_sync: scale indexed [0.0, 4.0], curve linear x1.0 +0.0, parameter [0.0, 4.0]
+binade          n     below        A1      HELD        A2        A3      SET0     SET+1     SET-1      SET?    above!    bound!
+ total 1065353217         0         0         0         0         0 1065353217         0         0         0         0         0
+  only SET0 in the 129 binades not printed; scalar fallbacks 0; 202 s
+
+-- lfo_1_sync_type: scale indexed [0.0, 6.0], curve linear x1.0 +0.0, parameter [0.0, 6.0]
+binade          n     below        A1      HELD        A2        A3      SET0     SET+1     SET-1      SET?    above!    bound!
+ total 1065353217         0         0         0         0         0 1065353217         0         0         0         0         0
+  only SET0 in the 129 binades not printed; scalar fallbacks 0; 202 s
+
+-- lfo_1_tempo: scale indexed [0.0, 12.0], curve linear x1.0 +0.0, parameter [0.0, 12.0]
+binade          n     below        A1      HELD        A2        A3      SET0     SET+1     SET-1      SET?    above!    bound!
+ total 1065353217         0         0         0         0         0 1065353217         0         0         0         0         0
+  only SET0 in the 129 binades not printed; scalar fallbacks 0; 202 s
+
+-- modulation_10_power: scale linear [-10.0, 10.0], curve linear x1.0 +0.0, parameter [-10.0, 10.0]
+binade          n     below        A1      HELD        A2        A3      SET0     SET+1     SET-1      SET?    above!    bound!
+ total 1065353217         0         0         0         0         0 1065353217         0         0         0         0         0
+  only SET0 in the 129 binades not printed; scalar fallbacks 0; 182 s
+
+-- osc_1_destination: scale indexed [0.0, 14.0], curve linear x1.0 +0.0, parameter [0.0, 14.0]
+binade          n     below        A1      HELD        A2        A3      SET0     SET+1     SET-1      SET?    above!    bound!
+ total 1065353217         0         0         0         0         0 1065353217         0         0         0         0         0
+  only SET0 in the 129 binades not printed; scalar fallbacks 0; 196 s
+
+-- osc_1_detune_power: scale linear [-5.0, 5.0], curve linear x1.0 +0.0, parameter [-5.0, 5.0]
+binade          n     below        A1      HELD        A2        A3      SET0     SET+1     SET-1      SET?    above!    bound!
+ total 1065353217         0         0         0         0         0 1065353217         0         0         0         0         0
+  only SET0 in the 129 binades not printed; scalar fallbacks 0; 197 s
+
+-- osc_1_detune_range: scale linear [0.0, 48.0], curve linear x1.0 +0.0, parameter [0.0, 48.0]
+binade          n     below        A1      HELD        A2        A3      SET0     SET+1     SET-1      SET?    above!    bound!
+ total 1065353217         0         0         0         0         0 1065353217         0         0         0         0         0
+  only SET0 in the 129 binades not printed; scalar fallbacks 0; 207 s
+
+-- osc_1_distortion_spread: scale linear [-0.5, 0.5], curve linear x200.0 +0.0, parameter [-100.0, 100.0]
+binade          n     below        A1      HELD        A2        A3      SET0     SET+1     SET-1      SET?    above!    bound!
+ total 1065353217         0         0         0         0         0 1065353217         0         0         0         0         0
+  only SET0 in the 129 binades not printed; scalar fallbacks 0; 202 s
+
+-- osc_1_frame_spread: scale linear [-128.0, 128.0], curve linear x1.0 +0.0, parameter [-128.0, 128.0]
+binade          n     below        A1      HELD        A2        A3      SET0     SET+1     SET-1      SET?    above!    bound!
+ total 1065353217         0         0         0         0         0 1065353217         0         0         0         0         0
+  only SET0 in the 129 binades not printed; scalar fallbacks 0; 202 s
+
+-- osc_1_level: scale linear [0.0, 1.0], curve quadratic x1.0 +0.0, parameter [0.0, 1.0]
+binade          n     below        A1      HELD        A2        A3      SET0     SET+1     SET-1      SET?    above!    bound!
+ total 1065353217         0         0         0         0         0 1065353217         0         0         0         0         0
+  only SET0 in the 129 binades not printed; scalar fallbacks 0; 205 s
+
+-- osc_1_spectral_morph_type: scale indexed [0.0, 16.0], curve linear x1.0 +0.0, parameter [0.0, 16.0]
+binade          n     below        A1      HELD        A2        A3      SET0     SET+1     SET-1      SET?    above!    bound!
+ total 1065353217         0         0         0         0         0 1065353217         0         0         0         0         0
+  only SET0 in the 129 binades not printed; scalar fallbacks 0; 202 s
+
+-- osc_1_transpose: scale indexed [-48.0, 48.0], curve linear x1.0 +0.0, parameter [-48.0, 48.0]
+binade          n     below        A1      HELD        A2        A3      SET0     SET+1     SET-1      SET?    above!    bound!
+ total 1065353217         0         0         0         0         0 1065353217         0         0         0         0         0
+  only SET0 in the 129 binades not printed; scalar fallbacks 0; 207 s
+
+-- osc_1_transpose_quantize: scale indexed [0.0, 8191.0], curve linear x1.0 +0.0, parameter [0.0, 8191.0]
+binade          n     below        A1      HELD        A2        A3      SET0     SET+1     SET-1      SET?    above!    bound!
+ total 1065353217         0         0         0         0         0 1065353217         0         0         0         0         0
+  only SET0 in the 129 binades not printed; scalar fallbacks 0; 204 s
+
+-- osc_1_unison_detune: scale linear [0.0, 10.0], curve quadratic x1.0 +0.0, parameter [0.0, 100.0]
+binade          n     below        A1      HELD        A2        A3      SET0     SET+1     SET-1      SET?    above!    bound!
+ total 1065353217         0         0         0         0         0 1065353217         0         0         0         0         0
+  only SET0 in the 129 binades not printed; scalar fallbacks 0; 190 s
+
+-- osc_1_unison_voices: scale indexed [1.0, 16.0], curve linear x1.0 +0.0, parameter [1.0, 16.0]
+binade          n     below        A1      HELD        A2        A3      SET0     SET+1     SET-1      SET?    above!    bound!
+ total 1065353217         0         0         0         0         0 1065353217         0         0         0         0         0
+  only SET0 in the 129 binades not printed; scalar fallbacks 0; 193 s
+
+-- osc_1_wave_frame: scale linear [0.0, 256.0], curve linear x1.0 +0.0, parameter [0.0, 256.0]
+binade          n     below        A1      HELD        A2        A3      SET0     SET+1     SET-1      SET?    above!    bound!
+ total 1065353217         0         0         0         0         0 1065353217         0         0         0         0         0
+  only SET0 in the 129 binades not printed; scalar fallbacks 0; 192 s
+
+-- pitch_bend_range: scale indexed [0.0, 48.0], curve linear x1.0 +0.0, parameter [0.0, 48.0]
+binade          n     below        A1      HELD        A2        A3      SET0     SET+1     SET-1      SET?    above!    bound!
+ total 1065353217         0         0         0         0         0 1065353217         0         0         0         0         0
+  only SET0 in the 129 binades not printed; scalar fallbacks 0; 198 s
+
+-- polyphony: scale indexed [1.0, 32.0], curve linear x1.0 +0.0, parameter [1.0, 32.0]
+binade          n     below        A1      HELD        A2        A3      SET0     SET+1     SET-1      SET?    above!    bound!
+ total 1065353217         0         0         0         0         0 1065353217         0         0         0         0         0
+  only SET0 in the 129 binades not printed; scalar fallbacks 0; 203 s
+
+-- portamento_slope: scale linear [-8.0, 8.0], curve linear x1.0 +0.0, parameter [-8.0, 8.0]
+binade          n     below        A1      HELD        A2        A3      SET0     SET+1     SET-1      SET?    above!    bound!
+ total 1065353217         0         0         0         0         0 1065353217         0         0         0         0         0
+  only SET0 in the 129 binades not printed; scalar fallbacks 0; 196 s
+
+-- reverb_delay: scale linear [0.0, 0.30000001192092896], curve linear x1.0 +0.0, parameter [0.0, 0.30000001192092896]
+binade          n     below        A1      HELD        A2        A3      SET0     SET+1     SET-1      SET?    above!    bound!
+ total 1065353217         0         0         0         0         0 1065353217         0         0         0         0         0
+  only SET0 in the 129 binades not printed; scalar fallbacks 0; 204 s
+
+-- reverb_high_shelf_cutoff: scale linear [0.0, 128.0], curve linear x1.0 +0.0, parameter [0.0, 128.0]
+binade          n     below        A1      HELD        A2        A3      SET0     SET+1     SET-1      SET?    above!    bound!
+ total 1065353217         0         0         0         0         0 1065353217         0         0         0         0         0
+  only SET0 in the 129 binades not printed; scalar fallbacks 0; 202 s
+
+-- reverb_high_shelf_gain: scale linear [-6.0, 0.0], curve linear x1.0 +0.0, parameter [-6.0, 0.0]
+binade          n     below        A1      HELD        A2        A3      SET0     SET+1     SET-1      SET?    above!    bound!
+ total 1065353217         0         0         0         0         0 1065353217         0         0         0         0         0
+  only SET0 in the 129 binades not printed; scalar fallbacks 0; 197 s
+
+-- volume: scale linear [0.0, 7399.4404296875], curve square_root x1.0 -80.0, parameter [-80.0, 6.020000172561609]
+binade          n     below        A1      HELD        A2        A3      SET0     SET+1     SET-1      SET?    above!    bound!
+  zero          1         1         0         0         0         0         1         0         0         0         0         0
+   sub    8388607   8388607         0         0         0   8388607   8388607         0         0         0         0         0
+  -126    8388608   8388608         0         0         0   8388608   8388608         0         0         0         0         0
+  -125    8388608   8388608         0         0         0   8388608   8388608         0         0         0         0         0
+  -124    8388608   8388608         0         0         0   8388608   8388608         0         0         0         0         0
+  -123    8388608   8388608         0         0         0   8388608   8388608         0         0         0         0         0
+  -122    8388608   8388608         0         0         0   8388608   8388608         0         0         0         0         0
+  -121    8388608   8388608         0         0         0   8388608   8388608         0         0         0         0         0
+  -120    8388608   8388608         0         0         0   8388608   8388608         0         0         0         0         0
+  -119    8388608   8388608         0         0         0   8388608   8388608         0         0         0         0         0
+  -118    8388608   8388608         0         0         0   8388608   8388608         0         0         0         0         0
+  -117    8388608   8388608         0         0         0   8388608   8388608         0         0         0         0         0
+  -116    8388608   8388608         0         0         0   8388608   8388608         0         0         0         0         0
+  -115    8388608   8388608         0         0         0   8388608   8388608         0         0         0         0         0
+  -114    8388608   8388608         0         0         0   8388608   8388608         0         0         0         0         0
+  -113    8388608   8388608         0         0         0   8388608   8388608         0         0         0         0         0
+  -112    8388608   8388608         0         0         0   8388608   8388608         0         0         0         0         0
+  -111    8388608   8388608         0         0         0   8388608   8388608         0         0         0         0         0
+  -110    8388608   8388608         0         0         0   8388608   8388608         0         0         0         0         0
+  -109    8388608   8388608         0         0         0   8388608   8388608         0         0         0         0         0
+  -108    8388608   8388608         0         0         0   8388608   8388608         0         0         0         0         0
+  -107    8388608   8388608         0         0         0   8388608   8388608         0         0         0         0         0
+  -106    8388608   8388608         0         0         0   8388608   8388608         0         0         0         0         0
+  -105    8388608   8388608         0         0         0   8388607   8388608         0         0         0         0         0
+  -104    8388608   8388608         0         0         0   8388608   8388608         0         0         0         0         0
+  -103    8388608   8388608         0         0         0   8388607   8388608         0         0         0         0         0
+  -102    8388608   8388608         0         0         0   8388607   8388608         0         0         0         0         0
+  -101    8388608   8388608         0         0         0   8388606   8388608         0         0         0         0         0
+  -100    8388608   8388608         0         0         0   8388605   8388608         0         0         0         0         0
+   -99    8388608   8388608         0         0         0   8388605   8388608         0         0         0         0         0
+   -98    8388608   8388608         0         0         0   8388602   8388608         0         0         0         0         0
+   -97    8388608   8388608         0         0         0   8388602   8388608         0         0         0         0         0
+   -96    8388608   8388608         0         0         0   8388598   8388608         0         0         0         0         0
+   -95    8388608   8388608         0         0    562305   8388595   8388608         0         0         0         0         0
+   -94    8388608   8388608         0         0    408125   8388590   8388608         0         0         0         0         0
+   -93    8388608   8388608         0         0    281154   8388582   8388608         0         0         0         0         0
+   -92    8388608   8388608         0         0    603118   8388571   8388608         0         0         0         0         0
+   -91    8388608   8388608         0         0    284554   8388557   8388608         0         0         0         0         0
+   -90    8388608   8388608         0         0    501087   8388536   8388608         0         0         0         0         0
+   -89    8388608   8388608         0         0    284554   8388506   8388608         0         0         0         0         0
+   -88    8388608   8388608         0         0    500946   8388462   8388608         0         0         0         0         0
+   -87    8388608   8388608         0         0    391331   8388405   8388608         0         0         0         0         0
+   -86    8388608   8388608         0         0    499599   8388320   8388608         0         0         0         0         0
+   -85    8388608   8388608         0         0    424971   8388200   8388608         0         0         0         0         0
+   -84    8388608   8388608         0         0    375629   8388015   8388608         0         0         0         0         0
+   -83    8388608   8388608         0         0    418161   8387776   8388608         0         0         0         0         0
+   -82    8388608   8388608         0         0    374656   8387431   8388608         0         0         0         0         0
+   -81    8388608   8388608         0         0    398086   8386938   8388608         0         0         0         0         0
+   -80    8388608   8388608         0         0    384163   8386249   8388608         0         0         0         0         0
+   -79    8388608   8388608         0         0    371769   8385244   8388608         0         0         0         0         0
+   -78    8388608   8388608         0         0    390516   8383871   8388608         0         0         0         0         0
+   -77    8388608   8388608         0         0    384836   8381866   8388608         0         0         0         0         0
+   -76    8388608   8388608         0         0    404347   8379177   8388608         0         0         0         0         0
+   -75    8388608   8388608         0         0    388471   8375219   8388608         0         0         0         0         0
+   -74    8388608   8388608         0         0    400972   8369734   8388608         0         0         0         0         0
+   -73    8388608   8388608         0         0    402160   8361854   8388608         0         0         0         0         0
+   -72    8388608   8388608         0         0    407216   8350839   8388608         0         0         0         0         0
+   -71    8388608   8388608         0         0    396003   8335048   8388608         0         0         0         0         0
+   -70    8388608   8388608         0         0    401179   8312877   8388608         0         0         0         0         0
+   -69    8388608   8388608         0         0    401856   8281691   8388608         0         0         0         0         0
+   -68    8388608   8388608         0         0    402063   8237069   8388608         0         0         0         0         0
+   -67    8388608   8388608         0         0    404778   8174679   8388608         0         0         0         0         0
+   -66    8388608   8388608         0         0    404491   8085768   8388608         0         0         0         0         0
+   -65    8388608   8388608         0         0    405288   7960731   8388608         0         0         0         0         0
+   -64    8388608   8388608         0         0    400407   7782666   8388608         0         0         0         0         0
+   -63    8388608   8388608         0         0    401183   7532615   8388608         0         0         0         0         0
+   -62    8388608   8388608         0         0    395683   7177035   8388608         0         0         0         0         0
+   -61    8388608   8388608         0         0    408755   6676393   8388608         0         0         0         0         0
+   -60    8388608   8388608         0         0    377507   5965914   8388608         0         0         0         0         0
+   -59    8388608   8388608         0         0    412700   4964332   8388608         0         0         0         0         0
+   -58    8388608   8388608         0         0    462181   3543927   8356729     15963     15916         0         0         0
+   -57    8388608   8388608         0         0    353626   1538265   8211897     88089     88622         0         0         0
+   -56    8388608    898511         0         0    199432    247162   8288812     50048     49748         0         0         0
+ total 1065353217 596489679         0         0  16069858 572449131 1065044831    154100    154286         0         0         0
+  only SET0 in the 56 binades not printed; scalar fallbacks 0; 202 s
+
+-- delay_tempo: scale indexed [4.0, 12.0], curve linear x1.0 -4.0, parameter [0.0, 8.0]
+binade          n     below        A1      HELD        A2        A3      SET0     SET+1     SET-1      SET?    above!    bound!
+ total 1065353217         0         0         0         0         0 1065353217         0         0         0         0         0
+  only SET0 in the 129 binades not printed; scalar fallbacks 0; 122 s
+
+-- filter_2_cutoff: scale linear [8.0, 136.0], curve linear x1.0 -60.0, parameter [-52.0, 76.0]
+binade          n     below        A1      HELD        A2        A3      SET0     SET+1     SET-1      SET?    above!    bound!
+ total 1065353217         0         0         0         0         0 1065353217         0         0         0         0         0
+  only SET0 in the 129 binades not printed; scalar fallbacks 0; 92 s
+
+-- filter_fx_cutoff: scale linear [8.0, 136.0], curve linear x1.0 -60.0, parameter [-52.0, 76.0]
+binade          n     below        A1      HELD        A2        A3      SET0     SET+1     SET-1      SET?    above!    bound!
+ total 1065353217         0         0         0         0         0 1065353217         0         0         0         0         0
+  only SET0 in the 129 binades not printed; scalar fallbacks 0; 90 s
+
+== summary over every count
+  n: 67117252671
+  below: 596489679
+  A1: 0
+  HELD: 126
+  A2: 16069984
+  A3: 572449131
+  SET0: 67116944159
+  SET+1: 154100
+  SET-1: 154286
+  SET?: 126
+  above!: 126
+  bound!: 126
+
+== volume's floor and the rows of tests/data/volume-floor.txt
+  N(2 ** -43) = 1.53642479121845e-17
+  r = 5.857149595214349e-20 (1f8a4c4c): P0 4.3339629239370393e-16, D0 -79.99999997918182, P1 4.3339650415194074e-16 (held False), P2 4.3339647768216114e-16, set's display step +0
+  r = 3.4694490199051456e-18 (22800005): P0 2.567198129153469e-14, D0 -79.99999983977521, P1 2.5671982985600583e-14 (held False), P2 2.5671984679666478e-14, set's display step +1
+  r = 1.439742266862027e-17 (2384caf4): P0 1.0653287198800557e-13, D0 -79.99999967360627, P1 1.0653286521174199e-13 (held False), P2 1.0653285843547841e-13, set's display step -1
+  r = 1.53642479121845e-17 (238db5ce): P0 1.1368683772161603e-13, D0 -79.99999966282522, P1 1.1368683094535245e-13 (held False), P2 1.1368682416908887e-13, set's display step -1
+exit=0

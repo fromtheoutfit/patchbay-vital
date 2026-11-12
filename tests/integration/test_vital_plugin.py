@@ -40,10 +40,6 @@ _CONTROL_VARIATION = 0.1  # the same, unrouted (probes: 0.0176)
 _QUIET = 1e-6  # peak from 0.15 s to a note at 0.5 s (host probes: 0, the start's transient gone)
 _ONSET = 1e-3  # where a note has begun (host probes: past 1e-3 at +5 to +8 samples)
 _ONSET_SAMPLES = 96  # 2 ms at 48 kHz, a generous bound on that
-# volume's normalized values below its 2 ** -43 floor, each with the double ulps the display of what
-# a set holds is off the display set (issue #13's plugin probe: Vital held the normalized path's
-# preset at both, never to_preset's; 0 ulps at the issue's value, 1 at the smallest of 308,386)
-_BELOW_VOLUME_S_FLOOR = {5.857149595214349e-20: 0, 3.4694490199051456e-18: 1}
 
 
 @pytest.fixture(scope="module")
@@ -79,8 +75,9 @@ def host(vital: VitalHost, initial: bytes) -> VitalHost:
     return vital
 
 
-def _ulps(a: float, b: float) -> int:
-    bits = np.array([a, b], dtype=np.float32).view(np.int32)
+def _ulps(a: float, b: float, dtype: type[np.float32] | type[np.float64] = np.float32) -> int:
+    """Return how many float32 steps two values of one sign are apart; doubles by `np.float64`."""
+    bits = np.array([a, b], dtype=dtype).view(np.int32 if dtype is np.float32 else np.int64)
     return abs(int(bits[0]) - int(bits[1]))
 
 
@@ -105,44 +102,78 @@ def _one_of_each() -> list[MappedParameter]:
     return list(seen.values())
 
 
-def test_a_value_set_through_the_host_is_the_one_the_state_holds(host: VitalHost) -> None:
-    """Per kind, scale and curve: a displayed value set normalized lands on its preset value."""
-    for record in _one_of_each():
-        parameter = record.parameter
-        middle = record.from_normalized(0.37)
-        for display in (parameter.minimum, middle, parameter.maximum):
-            host.set(record.id, record.to_normalized(display))
-            held = _floats(host.state())[record.preset_key]
-            assert held == record.to_preset(display), (record.id, display)
-            assert record.from_normalized(host.get(record.id)) == record.to_display(held)
-
-
 def _held_after_a_set(host: VitalHost, record: MappedParameter, display: float) -> float:
     """Set a display through the host, normalized as the map gives it; return the state's value."""
     host.set(record.id, record.to_normalized(display))
     return _floats(host.state())[record.preset_key]
 
 
-def _double_ulps(a: float, b: float) -> int:
-    """Return how many doubles apart two values of one sign are, as `_ulps` counts float32 steps."""
-    bits = np.array([a, b], dtype=np.float64).view(np.int64)
-    return abs(int(bits[0]) - int(bits[1]))
+def test_a_value_set_through_the_host_is_the_one_the_state_holds(host: VitalHost) -> None:
+    """Per kind, scale and curve: a displayed value set normalized lands on its preset value."""
+    for record in _one_of_each():
+        parameter = record.parameter
+        middle = record.from_normalized(0.37)
+        for display in (parameter.minimum, middle, parameter.maximum):
+            held = _held_after_a_set(host, record, display)
+            assert held == record.to_preset(display), (record.id, display)
+            assert record.from_normalized(host.get(record.id)) == record.to_display(held)
 
 
-def test_below_volume_s_floor_a_set_holds_the_normalized_path_s_value(host: VitalHost) -> None:
-    """Below 2 ** -43 the plugin holds the scale's value at `to_normalized`'s, not `to_preset`'s.
+def test_at_or_below_volume_s_floor_a_set_holds_the_normalized_path_s_value(
+    host: VitalHost, initial: bytes, volume_floor: tuple[tuple[float, int], ...]
+) -> None:
+    """At or below the floor, Vital holds the normalized path's value, not an unheld float32.
 
-    The display maps to a float32 the scale does not hold (issue #13); Vital holds the neighbour
-    the map's normalized path computes, its display the one set or one double ulp off, as the
-    probe measured (`_BELOW_VOLUME_S_FLOOR`). Which of them a set should hold is issue #8's.
+    Each row of `tests/data/volume-floor.txt` is a normalized value at or below `volume`'s
+    2 ** -43 whose display maps to a float32 the scale does not hold. Set from `initial`, as the
+    probe set it, Vital holds the scale's value at `to_normalized`'s result, exactly, never the
+    float32 nearest the curve's inverse (`record.curve.to_preset`), and its display lands at the
+    row's step from the display set (the revision after PR 14's review,
+    `verification/plugin-probe.txt`). Where `to_preset`'s float32 is one the scale holds, as on
+    most values at or below the floor, a set holds it and no row records it. Issue #15's fix
+    is expected to change the three non-zero rows, on purpose; the unit test reads the same file.
     """
     record = parameter_map().find(ParameterId("volume"))
-    for normalized, ulps in _BELOW_VOLUME_S_FLOOR.items():
+    for normalized, steps in volume_floor:
+        host.load_state(initial)
         display = record.from_normalized(normalized)
         held = _held_after_a_set(host, record, display)
+        shown = record.to_display(held)
         assert held == record.scale.to_preset(record.to_normalized(display)), normalized
-        assert held != record.to_preset(display), normalized
-        assert _double_ulps(record.to_display(held), display) == ulps, normalized
+        assert held != record.curve.to_preset(display), normalized
+        assert _ulps(shown, display, np.float64) == abs(steps), normalized
+        assert (shown > display) - (shown < display) == steps, normalized
+
+
+def test_a_load_holds_volume_s_unheld_float32_as_its_neighbour_and_chorus_feedback_as_given(
+    host: VitalHost, initial: bytes, volume_floor: tuple[tuple[float, int], ...]
+) -> None:
+    """A load of volume at a float32 its scale does not hold is held as the normalized path's.
+
+    An observation no one has explained, held so that a Vital which changes it fails here by name.
+    For each row of `tests/data/volume-floor.txt`, a load of `initial` holding `volume` at
+    `to_preset`'s float32, which the scale does not hold, and no set before it is held at the
+    normalized path's value; `chorus_feedback`'s off-grid initial value in the same load is held as
+    given. The probe saw the same after every history this module can give the load: a fresh
+    instance, the census's sets, a set of each of the two, and the measure's own sets (the revision
+    after PR 14's review, `verification/plugin-probe.txt`; first seen in issue #13's).
+    """
+    committed = parameter_map()
+    assert (host.name, host.version) == (committed.instrument, committed.vital_version)
+    volume = committed.find(ParameterId("volume"))
+    chorus = committed.find(ParameterId("chorus_feedback"))
+    document = json.loads(initial)
+    given = document["settings"][chorus.preset_key]
+    assert chorus.scale.to_preset(chorus.scale.to_normalized(given)) != given  # off the grid
+    for normalized, _ in volume_floor:
+        display = volume.from_normalized(normalized)
+        document["settings"][volume.preset_key] = volume.to_preset(display)
+        host.load_state(initial)
+        host.load_state(json.dumps(document).encode())
+        floats = _floats(host.state())
+        held = volume.scale.to_preset(volume.to_normalized(display))
+        assert floats[volume.preset_key] == held, normalized
+        assert floats[chorus.preset_key] == given, normalized
 
 
 def test_the_codec_reads_and_writes_the_plugin_s_own_bytes(host: VitalHost) -> None:
