@@ -5,9 +5,13 @@
 # env_N_hold, land the same. Found by the revision after PR 14's review
 # (agent-os/specs/2026-11-11-1555-revision-after-pr-14-review/verification/sweep-first.txt) and
 # counted in its verification/sweep.txt: on each of the 12 records, 126 powers of two, 2 ** -125 to
-# 1, land one float32 below. Issue #15's fix is expected to change the row to 0, on purpose.
-# Measured on the plugin: the row, by that folder's verification/plugin-probe.txt, on arm64,
-# Vital 1.6.4 through pedalboard 0.9.26, on env_1_delay and env_3_hold: a set held the float32
-# below.
-# Read by tests/conftest.py (power_of_two_presets) for tests/unit/test_parameters.py.
+# 1, land one float32 below. Issue #15's fix is expected to change the rows to 0, on purpose.
+# Measured on the plugin: every row, on env_1_delay and env_3_hold, on arm64, Vital 1.6.4 through
+# pedalboard 0.9.26: a set through the map held the float32 below. The first row by that folder's
+# verification/plugin-probe.txt; every row by the revision after PR 14's second review's
+# (agent-os/specs/2026-11-11-2044-revision-after-pr-14-second-review/verification/plugin-probe.txt).
+# Read by tests/conftest.py (power_of_two_presets) for tests/unit/test_parameters.py and
+# tests/integration/test_vital_plugin.py.
 3f3504f4 -1 env_1_delay at preset 1.0, display 1.0 s: a set holds 0.9999999403953552
+3eb504f4 -1 env_1_delay at preset 0.5, display 0.0625 s: a set holds 0.4999999701976776
+353504f4 -1 env_1_delay at preset 2 ** -20, display 8.27e-25 s: a set holds 9.536742595628311e-07

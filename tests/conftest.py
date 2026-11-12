@@ -2,20 +2,27 @@
 
 `volume-floor.txt` holds `volume`'s values at or below its floor, and `power-of-two-presets.txt` a
 held power of two whose normalized path lands short of it, each row a value and the step it lands
-at today. A conftest, not a plain module like `tests/unit/builders.py`: `tests/` is no package, so
-pytest puts each test file's own directory on the import path and `tests/integration` never sees a
-module of `tests/unit`. The tests that read the rows take a fixture, so one reader serves both,
-here in the directory that holds them (`base/testing/tests.md`). A script outside pytest reads the
-same files through `recorded_rows`.
+at today; `stepped` reads a row's step the one way every test reads it. A conftest, not a plain
+module like `tests/unit/builders.py`: `tests/` is no package, so pytest puts each test file's own
+directory on the import path and `tests/integration` never sees a module of `tests/unit`. The
+tests that read the rows take a fixture, so one reader serves both, here in the directory that
+holds them (`base/testing/tests.md`). A script outside pytest reads the same files through
+`recorded_rows`.
 """
 
+import math
 import struct
+from collections.abc import Callable
 from pathlib import Path
 
+import numpy as np
 import pytest
 
 _HEX_DIGITS = 8
 """A float32 written as its bits, as `tests/data/fma-vectors.txt` writes one."""
+
+_WIDTHS = (32, 64)
+"""The widths `stepped` counts in, float32 and double."""
 
 _STEPS = frozenset({-1, 0, 1})
 """The distances a row may record, one step either way or none: the property's bound."""
@@ -45,6 +52,30 @@ def recorded_rows(path: Path) -> tuple[tuple[float, int], ...]:
         msg = f"{path.name} holds no row"
         raise ValueError(msg)
     return tuple(rows)
+
+
+def stepped(value: float, steps: int, width: int) -> float:
+    """Return the float `steps` steps from `value` in value order, float32 steps or doubles.
+
+    `width` is 32 or 64; `value` must be one of that width exactly. A row's step column is read
+    through this, in the unit and the integration tests alike. ValueError for another width or a
+    value of another width.
+    """
+    dtype = np.float32 if width == _WIDTHS[0] else np.float64
+    if width not in _WIDTHS or float(dtype(value)) != value:
+        msg = f"not a float of width {width}: {value!r}"
+        raise ValueError(msg)
+    x = dtype(value)
+    toward = dtype(math.copysign(math.inf, steps))
+    for _ in range(abs(steps)):
+        x = np.nextafter(x, toward)
+    return float(x)
+
+
+@pytest.fixture(name="stepped")
+def _stepped() -> Callable[[float, int, int], float]:
+    """Return `stepped`, so a test taking fixtures reads a row's step as the others do."""
+    return stepped
 
 
 @pytest.fixture

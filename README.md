@@ -54,7 +54,8 @@ audio = host.render([(bytes([0x90, 60, 100]), 0.0)], 48000, 48000)   # (2, 48000
   Vital's, whose license forbids that: its one `.vital` is a 1.6.4 save with the media replaced;
   `fma-vectors.txt` holds the plugin's own values that `float32.py` is held to;
   `volume-floor.txt` and `power-of-two-presets.txt` hold where the map lands today at values issue
-  #15 is to change, read through the fixtures of `conftest.py`, the one module both trees share.
+  #15 is to change, read through the fixtures of `conftest.py`, the one module both trees share,
+  whose `stepped` reads a row's step.
 - `pyproject.toml`: the one configuration file. Every tool the gate runs is configured under
   `[tool.*]` there and nowhere else, with no `setup.py`, `setup.cfg`, `requirements*.txt`,
   `tox.ini`, `.flake8`, `mypy.ini`, `pytest.ini`, `.ruff.toml` or `uv.toml`. The `[tool.*]` sections
