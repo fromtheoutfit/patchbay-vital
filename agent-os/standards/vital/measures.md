@@ -7,7 +7,8 @@ How a test asserts what Vital rendered or holds. Written from
 `verification/plugin-probe.txt` of the spec of issue #13
 (`agent-os/specs/2026-11-11-1449-volume-preset-through-the-set-path/`) and of
 the revisions after PR 14's reviews (`agent-os/specs/2026-11-11-1555-revision-after-pr-14-review/`
-and `agent-os/specs/2026-11-11-2044-revision-after-pr-14-second-review/`).
+and `agent-os/specs/2026-11-11-2044-revision-after-pr-14-second-review/`) and of the spec of issue
+#15 (`agent-os/specs/2026-11-12-0937-map-inverses-land-on-held-presets/`).
 
 - **Vital's audio is not sample-reproducible**, so no test compares samples: two renders in a row
   differ, and so do two instances in one state (spectral centroids 4657 and 4610 Hz). Verified
@@ -22,23 +23,18 @@ and `agent-os/specs/2026-11-11-2044-revision-after-pr-14-second-review/`).
   did: `_variation` is the probes' 20 ms RMS coefficient of variation over 0.2-1.4 s. Verified
   against `tests/integration/test_vital_plugin.py` (`_variation`) and `verification/probes.txt`
   (`variation`).
-- **What Vital holds after a set is compared exactly with the value the map computes. How far that
-  value's display lands from the display set is a measure, a count the probe made.** The map gives
-  the preset a set holds, the scale's value at `to_normalized`'s result, and the test asserts that
-  the state's float is that value, with no tolerance, and is not the curve's own float32
-  (`record.curve.to_preset`) where the scale does not hold it, which a fix of `to_preset` leaves as
-  it is. Where a row records a step, the value lands at it, read by `tests/conftest.py`'s
-  `stepped`, the one spelling every test and the probe use: at each row of
-  `tests/data/volume-floor.txt` the display, in double steps, 0 at issue #13's value and +1 or −1 at
-  three of the 308,386 values at or below `volume`'s floor whose display lands off; at each row of
-  `tests/data/power-of-two-presets.txt` the held preset, in float32 steps, one below the power on
-  `env_1_delay` and `env_3_hold`. The rows are files, read through `tests/conftest.py`'s fixtures by
-  the unit and the integration tests and by the probe through `recorded_rows`, and each header
-  names what found them and which the probe measured. The test and the probe run one sequence,
+- **What Vital holds after a set is compared exactly with the value the map computes, and its
+  display with the display set.** The map gives the preset a set holds, the scale's value at
+  `to_normalized`'s result, and the test asserts that the state's float is that value, with no
+  tolerance: at `volume`'s pinned values at or below its floor it is `to_preset`'s value, one the
+  scale holds and never the curve's own float32 (`record.curve.to_preset`), and its display is the
+  display set; at the envelope records' pinned powers of two it is the power, a set of 1.0 s holding
+  1.0. The pinned values are constants in the integration module, written as the unit module
+  writes the same values, each with a comment naming it. The test and the probe run one sequence,
   `initial` loaded before each set; `_held_after_a_set` is written once in the test module, and the
-  probe imports it and `stepped` and prints them by blob and source, so the test and the probe
-  compute the same thing. Verified against `tests/integration/test_vital_plugin.py`
-  (`test_at_or_below_volume_s_floor_a_set_holds_the_normalized_path_s_value`,
-  `test_a_held_power_of_two_set_through_the_host_lands_as_recorded`), `tests/conftest.py`
-  (`stepped`), both row files and the `verification/plugin-probe.txt` of the revision after PR 14's
-  second review.
+  probe imports it and the pinned values and prints them by blob and source, so the test and the
+  probe compute the same thing. Verified against `tests/integration/test_vital_plugin.py`
+  (`test_at_or_below_volume_s_floor_a_set_holds_the_map_s_preset`,
+  `test_a_held_power_of_two_set_through_the_host_is_held`, `_held_after_a_set`, `_VOLUME_FLOOR`,
+  `_POWERS_OF_TWO`) and the `verification/plugin-probe.txt` of issue #15's spec
+  (`agent-os/specs/2026-11-12-0937-map-inverses-land-on-held-presets/`).

@@ -10,9 +10,10 @@ pedalboard 0.9.26 on arm64, of the revision after the review of PR 9
 review (`agent-os/specs/2026-11-10-1307-revision-after-pr-9-second-review/`), of the revision
 after the third (`agent-os/specs/2026-11-10-1438-revision-after-pr-9-third-review/`), of the spec
 of issue #13 (`agent-os/specs/2026-11-11-1449-volume-preset-through-the-set-path/`), of the
-revision after PR 14's review (`agent-os/specs/2026-11-11-1555-revision-after-pr-14-review/`) and
-of the revision after its second review
-(`agent-os/specs/2026-11-11-2044-revision-after-pr-14-second-review/`).
+revision after PR 14's review (`agent-os/specs/2026-11-11-1555-revision-after-pr-14-review/`), of
+the revision after its second review
+(`agent-os/specs/2026-11-11-2044-revision-after-pr-14-second-review/`) and of the spec of issue #15
+(`agent-os/specs/2026-11-12-0937-map-inverses-land-on-held-presets/`).
 
 ## Where it comes from
 
@@ -70,10 +71,20 @@ of the revision after its second review
   land on: 0.5 on every boolean's scale computes to exactly 0.5 and the plugin holds 1 there, so
   `round`, a half to even, would fit no boolean. The span is computed once per pair of bounds and
   kept by them, never on the model, so a copy with another bound has its own. No tolerance
-  anywhere. Verified against `parameters.py` (`NormalizedScale`, `_round_half_away`, `_span`),
-  `float32.py`, `tests/unit/test_float32.py` (`test_every_recorded_vector_is_the_plugin_s_value`),
-  `tests/data/fma-vectors.txt`, `test_a_half_on_the_grid_goes_away_from_zero` and
-  `test_a_scale_s_span_is_kept_by_its_bounds_so_a_copy_has_its_own`.
+  anywhere. Back, `to_normalized` is the float32 nearest `(preset − minimum) / span`, unless
+  `to_preset` of it misses the preset; then the float32 one step toward the preset
+  (`float32.next_float32`), where that is in [0, 1] and lands on it, the scale rising with `r` so
+  only that side can. On the 12 `env_N_delay` and `env_N_hold` records, at 126 powers of two each
+  from 2 ** -125 to 1, the nearest multiplies back one float32 short, where the spacing halves, and
+  only the step lands, so a set of 1.0 s holds 1.0 on Vital. `holds` says whether some normalized
+  value in [0, 1] lands on a preset value, which `to_normalized` finds where any does. Verified
+  against `parameters.py` (`NormalizedScale`, `_round_half_away`, `_span`), `float32.py`,
+  `tests/unit/test_float32.py` (`test_every_recorded_vector_is_the_plugin_s_value`,
+  `test_a_float32_steps_to_its_neighbour_as_numpy_steps_it`), `tests/data/fma-vectors.txt`,
+  `test_a_half_on_the_grid_goes_away_from_zero`,
+  `test_a_scale_s_span_is_kept_by_its_bounds_so_a_copy_has_its_own`,
+  `test_a_held_power_of_two_comes_back_through_the_normalized_path` and
+  `test_a_scale_holds_its_values_and_none_past_its_ends`.
 - **Preset ↔ display is a curve: `multiply · skew(preset) + offset`**, the skew one of the six
   measured (linear, quadratic, quartic, square root, 2^x, 2^−x), its constants the shortest decimals
   that print every display text at six significant digits. A record's `Parameter` is in display
@@ -90,76 +101,67 @@ of the revision after its second review
   `test_a_record_holds_together_in_float32_so_a_libm_an_ulp_apart_still_reads_it`,
   `test_a_record_s_displayed_ends_are_the_scale_s_through_its_curve_in_order`,
   `test_a_curve_and_its_unit_are_found_from_the_texts`.
-- **A displayed value comes back exactly; the preset a parameter holds comes back through the
-  normalized path, the preset a display maps to is that one, and a set of the display shows it
-  again exactly, each but at two exceptions stated over values, never a record's name.**
-  `_assert_comes_back` makes each exact check first, on every value. Only where that check fails
-  does it ask the exception's predicate, and the value passes then only if the predicate holds.
-  So an exception excuses the failures where its predicate holds and never a value whose exact
-  check passed, however widely the predicate itself holds. The sweep counts, on every group it
-  reproduces, that no failure is left without its exception: `HELDx`, `A3x` and `SETx` are 0.
-  - **A held power of two the normalized path lands short of** (`_lands_below_its_power_of_two`).
-    `NormalizedScale.to_normalized` is the float32 nearest `(preset - minimum) / span`: on the 12
-    `env_N_delay` and `env_N_hold` records, at 126 held powers of two a record from 2 ** -125 to 1,
-    it multiplies back short of the power, where the float32 spacing halves, and lands one float32
-    below, as Vital holds it (a set of 1.0 s holds 0.9999999403953552 and shows about 0.99999976
-    s), so a set's display there is not exact either. HELD fails nowhere else, the 9 exponential
-    groups counted too. The rows of `tests/data/power-of-two-presets.txt`, 1.0, 0.5 and 2 ** -20,
-    hold it, a unit and an integration test reading them, until issue #15 returns the neighbour
-    that lands on the power.
-  - **A preset that shares its display with a neighbouring float32** (`_shares_its_display`), the
-    curve's offset absorbing the skew: `volume`'s presets at or below 2 ** -43, normalized
-    1.53642479121845e-17, display within 3.4e-7 dB of −80 dB. The predicate holds on 589,224,972 of
-    `volume`'s normalized values. On 572,449,131 of them the display maps to another preset that
-    shows it, the exact check of the display's preset fails, and the predicate excuses it; on
-    16,069,858 of those the other preset is a float32 the scale does not hold. On the other
-    16,775,841 nothing fails, so the predicate is never asked there and excuses nothing. A set holds
-    the scale's value at `to_normalized`'s result, as Vital does; its display is off on 308,386
-    values, each excused as one neighbouring double, 154,100 above and 154,286 below, none further.
-    No other record counted shares a display. Issue #15 is to take there the held neighbour that
-    shows the display, which removes the neighbouring double and not the preset's excuse: the
-    display cannot say which of the presets sharing it was held. Until then the four rows of
-    `tests/data/volume-floor.txt`, each with the step its set's display lands at, hold the committed
-    map in both directions, read through `tests/conftest.py`'s fixture and its `stepped` by the unit
-    and the integration tests, whose header says #15 changes its three non-zero rows.
+- **A displayed value comes back exactly, and so do the preset a parameter holds and the preset a
+  display maps to, each through the normalized path, on every value; and the preset a display maps
+  to is the held one but where neighbouring presets share a display, the one exception, stated over
+  values, never a record's name.** `MappedParameter.to_preset` gives the float32 nearest the
+  curve's inverse, within the scale, wherever the scale holds it. Where it does not, it gives the
+  float32 next to it, either side, that the scale holds and that shows the display exactly, the
+  nearer the curve's inverse where both do; where neither does, the curve's float32. So a set of
+  any display a parameter shows holds a preset that shows it, on Vital as in the map: at or below
+  `volume`'s 2 ** -43 the curve's float32 is one the scale skips on 16,069,858 values, where before
+  issue #15 a set held a neighbour of it, shown a double off on 308,386.
 
-  An arbitrary display value goes to the float32 nearest the curve's inverse, on an indexed scale a
-  whole number rounded a half away from zero as the plugin rounds, which need not be one the scale
-  holds (5.7% of `volume`'s, issue #8's finding 1). Verified against `MappedParameter.to_preset`,
-  `NormalizedScale.to_normalized`, `_assert_comes_back`, `_shares_its_display`,
-  `_lands_below_its_power_of_two` and `test_a_value_the_parameter_holds_comes_back_exactly`,
+  The exception, in plain words: `_assert_comes_back` runs every check exactly first, on every
+  value. Only where the check that the display's preset is the held one fails does it ask
+  `_shares_its_display`, true where the preset shows the display of the float32 just below or just
+  above it, the curve's offset absorbing the skew; the value then passes only if that holds. So the
+  exception excuses a failure where its predicate holds and never a value whose exact check passed.
+  On `volume` the predicate holds on 589,224,972 normalized values, at or below its 2 ** -43,
+  within 3.4e-7 dB of −80 dB. The check fails on 570,997,534 of them and each is excused: the
+  display's preset is another held one that shows the display, and the display cannot say which
+  of them was held. On the other 18,227,438 nothing fails, so the predicate is never asked; nor on
+  the 1,042,983,597 values where it holds on the 9 exponential groups, `oversampling`'s whole
+  numbers among them. No failure is left without the predicate's shape (`A3x` 0).
+
+  An arbitrary display no held float32 next to its own shows keeps the curve's float32, on an
+  indexed scale a whole number rounded a half away from zero as the plugin rounds, which need not
+  be one the scale holds (5.7% of `volume`'s, issue #8's finding 1). The values that found each
+  defect are pinned as constants written the same way in the unit and the integration modules,
+  each with a comment naming it. Verified against `MappedParameter.to_preset`,
+  `NormalizedScale.to_normalized`, `NormalizedScale.holds`, `_assert_comes_back`,
+  `_shares_its_display` and `test_a_value_the_parameter_holds_comes_back_exactly`,
+  `test_every_committed_record_comes_back_exactly`, `test_where_volume_s_offset_absorbs_a_preset`,
+  `test_at_or_below_volume_s_floor_a_display_maps_to_a_held_preset`,
+  `test_an_arbitrary_display_keeps_the_curve_s_float32`,
   `test_a_value_between_an_indexed_scale_s_steps_goes_to_the_nearest_step`,
-  `test_where_volume_s_offset_absorbs_a_preset`,
-  `test_at_or_below_volume_s_floor_a_set_s_display_lands_as_recorded`,
-  `test_a_held_power_of_two_lands_as_recorded_through_the_normalized_path`,
-  `test_every_committed_record_comes_back_exactly`, `tests/integration/test_vital_plugin.py`
-  (`test_at_or_below_volume_s_floor_a_set_holds_the_normalized_path_s_value`,
-  `test_a_held_power_of_two_set_through_the_host_lands_as_recorded`), both row files,
-  `tests/conftest.py`, `verification/census-run.txt`, and the `verification/sweep.txt` and
-  `verification/plugin-probe.txt` of issue #13's spec and of the revisions after PR 14's reviews,
-  the first's `verification/sweep-first.txt` finding the power of two and the second's
-  `verification/mutation.txt` showing the shared display followed by value, not by name, and a
-  check that fails another way where a predicate holds not excused.
+  `tests/integration/test_vital_plugin.py`
+  (`test_at_or_below_volume_s_floor_a_set_holds_the_map_s_preset`,
+  `test_a_held_power_of_two_set_through_the_host_is_held`), `verification/census-run.txt`, and
+  issue #15's spec's `verification/sweep.txt`, `verification/plugin-probe.txt` and
+  `verification/mutation.txt`; the defects were first found by the `verification/sweep.txt` of
+  issue #13's spec and the `verification/sweep-first.txt` of the revision after PR 14's review.
 - **A claim about every value a scale holds is counted over every float32 normalized value,
-  exponent by exponent, wherever the count reproduces the map's arithmetic bit for bit, and is never
-  drawn uniformly; an exception's count is of the failures it does not cover, not of its
-  predicate.** 56% of the float32 values in [0, 1] lie at or below `volume`'s floor and about
-  1.5e-17 of its measure, so probe 4's 2000 uniform draws a parameter never reached it and
-  Hypothesis's 32-bit floats did. The count reproduces the map's arithmetic exactly in numpy for
-  the `linear`, `quadratic`, `quartic` and `square_root` curves, and is checked against the shipped
-  scalar methods, and the tests' own `_shares_its_display`, on 200,007 values of a group before it
-  counts that group, a value it cannot certify exact going to the scalar method: 60 of the map's 69
-  scale and curve groups, and each of the six records with a curve offset and of the 12 envelope
-  delay and hold records, 1,065,353,217 values each. HELD reads the scale alone, so it is counted
-  on the 9 `exponential` and `exponential_inverted` groups too, and fails on none of their values.
-  Their other claims, the display coming back, the display's preset and the set path, pass through
-  the platform's `pow` and `log2`, which numpy's own do not reproduce, so they rest on the
-  property's exponent-spread draws and pinned examples; counting them would call the platform's
-  libm value by value, hours of compute, open until it is scheduled. An exception consulted only
-  where its claim fails is counted by the failures it leaves (`HELDx`, `A3x`, `SETx`, all 0): its
-  predicate alone may hold wider. Verified against the `verification/sweep.txt` of the revision
-  after PR 14's second review (`agent-os/specs/2026-11-11-2044-revision-after-pr-14-second-review/`)
-  and the `@example`s of `test_a_value_the_parameter_holds_comes_back_exactly`.
+  exponent by exponent, and is never drawn uniformly; an exception is counted by the failures it
+  leaves, and a fix by what it changed and what it changed that it must not have.** 56% of the
+  float32 values in [0, 1] lie at or below `volume`'s floor and about 1.5e-17 of its measure, so
+  probe 4's 2000 uniform draws a parameter never reached it and Hypothesis's 32-bit floats did.
+  Issue #15's spec counts all 69 of the map's scale and curve groups, each of the six records with
+  a curve offset and each of the 12 envelope delay and hold records, 1,065,353,217 values each. It
+  reproduces the map's arithmetic exactly in numpy for the `linear`, `quadratic`, `quartic` and
+  `square_root` curves, 60 groups. For the 9 `exponential` and `exponential_inverted` groups it
+  calls the platform's own `pow` and `log2` value by value, as `DisplayCurve` does, so that count
+  is true of the machine it ran on, macOS 26.6.2 on arm64, whose libSystem 1351 holds the libm,
+  and of another machine only as far as its libm gives the same values. Each count is checked
+  against the shipped scalar methods, and the tests' own `_shares_its_display`, on 200,010 values
+  of its group before it counts, a value it cannot certify exact going to an exact scalar
+  quotient. An exception consulted only where its claim fails is counted by the failures it leaves
+  (`A3x` 0): its predicate alone may hold wider. A fix is counted by what it changed and by what it
+  changed that it must not have: the display's preset only where the curve's float32 was not held
+  (`CHANGED` 16,069,858, `CHANGEDx` 0), the normalized value only where the nearest quotient
+  missed (`NCHANGED` 1,512, `NCHANGEDx` 0). Verified against issue #15's spec's
+  `verification/sweep.txt`, both its sections, and the `@example`s of
+  `test_a_value_the_parameter_holds_comes_back_exactly`.
 
 ## Units and kinds
 
