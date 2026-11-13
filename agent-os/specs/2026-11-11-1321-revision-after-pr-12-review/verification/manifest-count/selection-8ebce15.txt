@@ -1,0 +1,99 @@
+The tests -m integration selects in tests/integration/test_factory_round_trip.py, as it was at 8ebce15
+
+Made 2026-11-11 on branch feature/11-gate-move-the-patchbay-core-pin-to-the-head-carrying-patchbay18-and-say-what-the-integration-marker-needs, after the last edit to the gate's scripts. One run of pytest, its whole output below this heading, then its exit status.
+
+Copy: the files git lists in the tree (tracked, and untracked not ignored), made from 8ebce15 and this revision's changes as handed over (the owner's commit of this revision holds them), copied to <scratch>/sel-8ebce15/patchbay-vital outside the repository and not a git repository, with <scratch>/sel-8ebce15/patchbay-standards beside it, a symlink to the sibling checkout ../patchbay-standards.
+
+Nothing applied to the copy.
+
+Then, in <scratch>/sel-8ebce15/patchbay-vital, the module as it was at 8ebce15, marked as a whole by its pytestmark: `git -C <repository> show 8ebce15:tests/integration/test_factory_round_trip.py > tests/integration/test_factory_round_trip.py`.
+
+Command, in <scratch>/sel-8ebce15/patchbay-vital: uv run --locked pytest -c pyproject.toml -p no:doctest -p no:cacheprovider -m integration --collect-only tests/integration/test_factory_round_trip.py
+
+Must: all 77 collected, test_the_manifest_holds_the_expected_count among them; exit 0.
+
+Using CPython 3.12.16
+Creating virtual environment at: .venv
+   Building patchbay-vital @ file://<scratch>/sel-8ebce15/patchbay-vital
+      Built patchbay-vital @ file://<scratch>/sel-8ebce15/patchbay-vital
+Installed 32 packages in 54ms
+tests/integration/test_factory_round_trip.py::test_the_manifest_holds_the_expected_count
+tests/integration/test_factory_round_trip.py::test_the_installed_presets_are_the_manifest_s
+tests/integration/test_factory_round_trip.py::test_a_factory_preset_round_trips[Factory/Presets/Ah Eh Ee Oh.vital]
+tests/integration/test_factory_round_trip.py::test_a_factory_preset_round_trips[Factory/Presets/FM Drum Circle.vital]
+tests/integration/test_factory_round_trip.py::test_a_factory_preset_round_trips[Factory/Presets/Plucked String.vital]
+tests/integration/test_factory_round_trip.py::test_a_factory_preset_round_trips[Factory/Presets/Shepard Tone Template.vital]
+tests/integration/test_factory_round_trip.py::test_a_factory_preset_round_trips[Factory/Presets/Staggered Phrases.vital]
+tests/integration/test_factory_round_trip.py::test_a_factory_preset_round_trips[Factory/Presets/Text To Wavetable Template.vital]
+tests/integration/test_factory_round_trip.py::test_a_factory_preset_round_trips[Factory/Presets/Touch Tone.vital]
+tests/integration/test_factory_round_trip.py::test_a_pack_preset_round_trips[Afro/Presets/Banana Wob.vital]
+tests/integration/test_factory_round_trip.py::test_a_pack_preset_round_trips[Afro/Presets/Kick Drum 1.vital]
+tests/integration/test_factory_round_trip.py::test_a_pack_preset_round_trips[Afro/Presets/Random Amp Growl.vital]
+tests/integration/test_factory_round_trip.py::test_a_pack_preset_round_trips[Billain/Presets/Factory Presets/Cinema Bells.vital]
+tests/integration/test_factory_round_trip.py::test_a_pack_preset_round_trips[Billain/Presets/Factory Presets/Railgun.vital]
+tests/integration/test_factory_round_trip.py::test_a_pack_preset_round_trips[Databroth/Presets/Factory Presets/Ceramic.vital]
+tests/integration/test_factory_round_trip.py::test_a_pack_preset_round_trips[Databroth/Presets/Factory Presets/Disrupt.vital]
+tests/integration/test_factory_round_trip.py::test_a_pack_preset_round_trips[Databroth/Presets/Factory Presets/Feeder.vital]
+tests/integration/test_factory_round_trip.py::test_a_pack_preset_round_trips[Databroth/Presets/Factory Presets/Fleet.vital]
+tests/integration/test_factory_round_trip.py::test_a_pack_preset_round_trips[Databroth/Presets/Factory Presets/Gorgled.vital]
+tests/integration/test_factory_round_trip.py::test_a_pack_preset_round_trips[Databroth/Presets/Factory Presets/Snowcrash.vital]
+tests/integration/test_factory_round_trip.py::test_a_pack_preset_round_trips[Glorkglunk/Presets/Digestive Trauma.vital]
+tests/integration/test_factory_round_trip.py::test_a_pack_preset_round_trips[Glorkglunk/Presets/Special Glitch Thing.vital]
+tests/integration/test_factory_round_trip.py::test_a_pack_preset_round_trips[Glorkglunk/Presets/Squish Clicker.vital]
+tests/integration/test_factory_round_trip.py::test_a_pack_preset_round_trips[Glorkglunk/Presets/THUNK.vital]
+tests/integration/test_factory_round_trip.py::test_a_pack_preset_round_trips[Glorkglunk/Presets/Thumpus.vital]
+tests/integration/test_factory_round_trip.py::test_a_pack_preset_round_trips[Halcyon Future Riddim Vol 1/Presets/Aweminus/Swiss Army Knife.vital]
+tests/integration/test_factory_round_trip.py::test_a_pack_preset_round_trips[Halcyon Future Riddim Vol 1/Presets/Oolacile/Boot Scre3n.vital]
+tests/integration/test_factory_round_trip.py::test_a_pack_preset_round_trips[Halcyon Future Riddim Vol 1/Presets/Oolacile/Memory Leak.vital]
+tests/integration/test_factory_round_trip.py::test_a_pack_preset_round_trips[Halcyon Future Riddim Vol 1/Presets/Oolacile/Oolacile Evil Dubstep Bass.vital]
+tests/integration/test_factory_round_trip.py::test_a_pack_preset_round_trips[Halcyon Future Riddim Vol 1/Presets/Oolacile/Satellites.vital]
+tests/integration/test_factory_round_trip.py::test_a_pack_preset_round_trips[Halcyon Future Riddim Vol 1/Presets/Oolacile/Space Station.vital]
+tests/integration/test_factory_round_trip.py::test_a_pack_preset_round_trips[Halcyon Future Riddim Vol 1/Presets/Phonon/Simple Weoum.vital]
+tests/integration/test_factory_round_trip.py::test_a_pack_preset_round_trips[Halcyon Future Riddim Vol 1/Presets/Voltra/VLT Future Gun.vital]
+tests/integration/test_factory_round_trip.py::test_a_pack_preset_round_trips[In The Mix/Presets/Analog Pad.vital]
+tests/integration/test_factory_round_trip.py::test_a_pack_preset_round_trips[In The Mix/Presets/Distant Majestic Lead.vital]
+tests/integration/test_factory_round_trip.py::test_a_pack_preset_round_trips[In The Mix/Presets/Growl Bass Sidechain.vital]
+tests/integration/test_factory_round_trip.py::test_a_pack_preset_round_trips[In The Mix/Presets/Moog Pluck.vital]
+tests/integration/test_factory_round_trip.py::test_a_pack_preset_round_trips[In The Mix/Presets/Strings Section.vital]
+tests/integration/test_factory_round_trip.py::test_a_pack_preset_round_trips[Level 8/Presets/Factory Presets/Complex Electro 1.vital]
+tests/integration/test_factory_round_trip.py::test_a_pack_preset_round_trips[Level 8/Presets/Factory Presets/Crescendo Bells.vital]
+tests/integration/test_factory_round_trip.py::test_a_pack_preset_round_trips[Level 8/Presets/Factory Presets/Damped Horn.vital]
+tests/integration/test_factory_round_trip.py::test_a_pack_preset_round_trips[Level 8/Presets/Factory Presets/FM Mode.vital]
+tests/integration/test_factory_round_trip.py::test_a_pack_preset_round_trips[Level 8/Presets/Factory Presets/Horror of Melbourne 1.vital]
+tests/integration/test_factory_round_trip.py::test_a_pack_preset_round_trips[Level 8/Presets/Factory Presets/Smoker's Lounge.vital]
+tests/integration/test_factory_round_trip.py::test_a_pack_preset_round_trips[Mr Bill/Presets/Cursed Steps.vital]
+tests/integration/test_factory_round_trip.py::test_a_pack_preset_round_trips[Mr Bill/Presets/E4 One Note Metallophone.vital]
+tests/integration/test_factory_round_trip.py::test_a_pack_preset_round_trips[Mr Bill/Presets/Float Chords.vital]
+tests/integration/test_factory_round_trip.py::test_a_pack_preset_round_trips[Mr Bill/Presets/Honk Wub.vital]
+tests/integration/test_factory_round_trip.py::test_a_pack_preset_round_trips[Mr Bill/Presets/LORN Style Lead.vital]
+tests/integration/test_factory_round_trip.py::test_a_pack_preset_round_trips[Mr Bill/Presets/Real Squarepusher Hours.vital]
+tests/integration/test_factory_round_trip.py::test_a_pack_preset_round_trips[Mr Bill/Presets/Remedial Shikari.vital]
+tests/integration/test_factory_round_trip.py::test_a_pack_preset_round_trips[Mr Bill/Presets/Super Nice Pluck.vital]
+tests/integration/test_factory_round_trip.py::test_a_pack_preset_round_trips[Navi Retlav Studio/Presets/Factory Presets/Dispersed Grit.vital]
+tests/integration/test_factory_round_trip.py::test_a_pack_preset_round_trips[Navi Retlav Studio/Presets/Factory Presets/Drowning Machine.vital]
+tests/integration/test_factory_round_trip.py::test_a_pack_preset_round_trips[Navi Retlav Studio/Presets/Factory Presets/Phaser Man.vital]
+tests/integration/test_factory_round_trip.py::test_a_pack_preset_round_trips[Navi Retlav Studio/Presets/Factory Presets/Physical Tension.vital]
+tests/integration/test_factory_round_trip.py::test_a_pack_preset_round_trips[Navi Retlav Studio/Presets/Factory Presets/Skew Resandal.vital]
+tests/integration/test_factory_round_trip.py::test_a_pack_preset_round_trips[Navi Retlav Studio/Presets/Factory Presets/Super Pluck.vital]
+tests/integration/test_factory_round_trip.py::test_a_pack_preset_round_trips[Unsystematic Fragmentation/Presets/Factory Presets/A happy ending of the world.vital]
+tests/integration/test_factory_round_trip.py::test_a_pack_preset_round_trips[Unsystematic Fragmentation/Presets/Factory Presets/Chorusy Keys.vital]
+tests/integration/test_factory_round_trip.py::test_a_pack_preset_round_trips[Unsystematic Fragmentation/Presets/Factory Presets/Fun Pulse.vital]
+tests/integration/test_factory_round_trip.py::test_a_pack_preset_round_trips[Unsystematic Fragmentation/Presets/Factory Presets/Moving Harmonics.vital]
+tests/integration/test_factory_round_trip.py::test_a_pack_preset_round_trips[Unsystematic Fragmentation/Presets/Factory Presets/Phaser Entropy .vital]
+tests/integration/test_factory_round_trip.py::test_a_pack_preset_round_trips[Unsystematic Fragmentation/Presets/Factory Presets/corrupted_...+=boot-_.vital]
+tests/integration/test_factory_round_trip.py::test_a_pack_preset_round_trips[Yuli Yolo/Presets/Factory Presets/A Night in Kalyan.vital]
+tests/integration/test_factory_round_trip.py::test_a_pack_preset_round_trips[Yuli Yolo/Presets/Factory Presets/Abbysun.vital]
+tests/integration/test_factory_round_trip.py::test_a_pack_preset_round_trips[Yuli Yolo/Presets/Factory Presets/DIY.vital]
+tests/integration/test_factory_round_trip.py::test_a_pack_preset_round_trips[Yuli Yolo/Presets/Factory Presets/Destruction.vital]
+tests/integration/test_factory_round_trip.py::test_a_pack_preset_round_trips[Yuli Yolo/Presets/Factory Presets/Easy Mallet.vital]
+tests/integration/test_factory_round_trip.py::test_a_pack_preset_round_trips[Yuli Yolo/Presets/Factory Presets/Jupiter Bass.vital]
+tests/integration/test_factory_round_trip.py::test_a_pack_preset_round_trips[Yuli Yolo/Presets/Factory Presets/Keystation.vital]
+tests/integration/test_factory_round_trip.py::test_a_pack_preset_round_trips[Yuli Yolo/Presets/Factory Presets/Metal Head.vital]
+tests/integration/test_factory_round_trip.py::test_a_pack_preset_round_trips[Yuli Yolo/Presets/Factory Presets/Salomon.vital]
+tests/integration/test_factory_round_trip.py::test_a_pack_preset_round_trips[Yuli Yolo/Presets/Factory Presets/Synthetic Quartet.vital]
+tests/integration/test_factory_round_trip.py::test_a_pack_preset_round_trips[inktome/Presets/Big Stomp.vital]
+tests/integration/test_factory_round_trip.py::test_a_pack_preset_round_trips[inktome/Presets/Digital roller.vital]
+tests/integration/test_factory_round_trip.py::test_a_pack_preset_round_trips[inktome/Presets/Piano from the yard sale.vital]
+
+77 tests collected in 1.22s
+exit=0

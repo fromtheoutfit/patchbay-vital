@@ -1,0 +1,29 @@
+tests/integration/test_factory_round_trip.py, as it was at 8ebce15, marked as a whole, where no preset is installed
+
+Made 2026-11-11 on branch feature/11-gate-move-the-patchbay-core-pin-to-the-head-carrying-patchbay18-and-say-what-the-integration-marker-needs, after the last edit to the gate's scripts. One run of pytest, its whole output below this heading, then its exit status.
+
+Copy: the files git lists in the tree (tracked, and untracked not ignored), made from 8ebce15 and this revision's changes as handed over (the owner's commit of this revision holds them), copied to <scratch>/nop-8ebce15/patchbay-vital outside the repository and not a git repository, with <scratch>/nop-8ebce15/patchbay-standards beside it, a symlink to the sibling checkout ../patchbay-standards.
+
+Nothing applied to the copy.
+
+Then, in <scratch>/nop-8ebce15/patchbay-vital, the module as it was at 8ebce15, marked as a whole by its pytestmark: `git -C <repository> show 8ebce15:tests/integration/test_factory_round_trip.py > tests/integration/test_factory_round_trip.py`. <scratch>/empty-home is an empty directory; uv runs with the real HOME, pytest's process with the empty one.
+
+Command, in <scratch>/nop-8ebce15/patchbay-vital: uv run --locked env HOME=<scratch>/empty-home pytest -c pyproject.toml -p no:doctest -p no:cacheprovider -rA tests/integration/test_factory_round_trip.py
+
+Must: the same as no-presets-now.txt: the marker skipped nothing, so test_the_manifest_holds_the_expected_count PASSED there too; 1 passed, 76 skipped, exit 0.
+
+Using CPython 3.12.16
+Creating virtual environment at: .venv
+   Building patchbay-vital @ file://<scratch>/nop-8ebce15/patchbay-vital
+      Built patchbay-vital @ file://<scratch>/nop-8ebce15/patchbay-vital
+Installed 32 packages in 52ms
+.sssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss [ 93%]
+sssss                                                                    [100%]
+==================================== PASSES ====================================
+=========================== short test summary info ============================
+PASSED tests/integration/test_factory_round_trip.py::test_the_manifest_holds_the_expected_count
+SKIPPED [1] tests/integration/test_factory_round_trip.py:79: no installed Vital presets at <scratch>/empty-home/Music/Vital
+SKIPPED [7] tests/integration/test_factory_round_trip.py:93: no installed Vital presets at <scratch>/empty-home/Music/Vital
+SKIPPED [68] tests/integration/test_factory_round_trip.py:98: no installed Vital presets at <scratch>/empty-home/Music/Vital
+1 passed, 76 skipped in 1.24s
+exit=0

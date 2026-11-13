@@ -209,9 +209,9 @@ and every file its evidence rests on: `scripts/`, `pyproject.toml`, `uv.lock`, `
 PR 14's three new ones among them, against this branch's pin: `main` ran them against `dd2bcad`,
 and CI has no Vital and skips them.
 
-**What was not rerun.** `verification/guards/`, `mutations/`, `pin-moves/`, `t/`, `manifest/` and
-`new-pin-gate.txt` stand as recorded on 2026-11-11: each rests only on files the merge left as they
-were.
+**What was not rerun.** `verification/guards/`, `mutations/`, `pin-moves/`, `t/`,
+`manifest-count/` and `new-pin-gate.txt` stand as recorded on 2026-11-11: each rests only on files
+the merge left as they were.
 
 **Case j** (owner, asked before the runs). `verification/ci-negative-test.txt` was recorded on
 2026-11-11, before the merge, and the harness reruns its tests when a spec adds a file under a
@@ -323,10 +323,13 @@ day's but where they give a later date.
   `t-diff.txt`'s `diff -u` prints nothing (exit 0) once uv's and pytest's timings and the memory
   addresses in pytest's assertion message are normalized. The first comparison, normalizing
   timings alone, differed in one address only.
-- **The manifest-count test**, `verification/manifest/`: `-m integration` selects 76 of the
+- **The manifest-count test**, `verification/manifest-count/`: `-m integration` selects 76 of the
   module's 77 tests as shipped, the manifest's count not among them, and all 77 at `8ebce15`. With
   `HOME` an empty directory, so no preset is installed, it PASSED and the 76 SKIPPED naming the
-  absent presets, as shipped and at `8ebce15` alike: the marker never skipped it.
+  absent presets, as shipped and at `8ebce15` alike: the marker never skipped it. The folder was
+  `verification/manifest/` until 2026-11-13, after `be567c2`: `.gitignore`'s `MANIFEST` matches
+  that name on a file system that ignores case, so its four transcripts, made on 2026-11-11, were
+  in no commit before the one that renames it.
 - **The hosted runs:** on 2026-11-11 CI's log could not be read from here (HTTP 403, the
   organization's two-factor rule), and the run of this revision existed only after the owner's
   push. On 2026-11-13 `gh run view --log` reads them:
