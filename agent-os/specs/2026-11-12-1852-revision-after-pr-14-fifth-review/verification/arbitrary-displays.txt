@@ -1,0 +1,103 @@
+The revision after PR 14's fifth review: arbitrary displays of volume, and the fourth-review sweep's check, by branch, run 2026-11-12 19:05 EST on branch
+refactor/13-the-parameter-map-volumes-display-does-not-come-back-through-the-normalized-path-below-2--43-hypothesis-normalized-5857149595214349e-20, machine arm64, Python 3.12.16
+the tree before the run:
+  HEAD d21f1607e5f42c4c50bd59d76a72b6d899998782
+  git status --porcelain=v1, 3 lines:
+     M src/patchbay_vital/parameters.py
+     M tests/unit/test_parameters.py
+    ?? agent-os/specs/2026-11-12-1852-revision-after-pr-14-fifth-review/
+  git hash-object of each file the run reads, HEAD's blob beside it:
+    e49d5e9dd275ba8b592103621566206e9a654fa2  src/patchbay_vital/parameters.py  (HEAD 6cc729a8f442581d9d0e68afac929e3afd1a684a)
+    27a1e91bd4483e2fbdebf444799b51f78617ab0e  src/patchbay_vital/float32.py  (HEAD 27a1e91bd4483e2fbdebf444799b51f78617ab0e)
+    109ae1887be396e43ce7939b7115ec9745b6c6ca  src/patchbay_vital/data/parameters.json  (HEAD 109ae1887be396e43ce7939b7115ec9745b6c6ca)
+  git hash-object of the script: 2436d6365b638f9f7c3ffc0450238415ab1fed13  <scratchpad>/r5/arbitrary_displays.py
+
+== the script, run from the repository root as: uv run --locked python <scratchpad>/r5/arbitrary_displays.py <the fourth-review scratchpad>/r4
+```python
+"""The revision after PR 14's fifth review: how often an arbitrary display takes the third branch.
+
+`vital/parameter-map.md` says that of 20,000 displays drawn uniformly over `volume`'s range (seed
+8), 5.4% take `to_preset`'s third branch, with no script recorded. This draws them, with numpy's
+`default_rng(8).uniform` over the parameter's bounds, and reads the branch each takes from the
+shipped `to_preset`'s result, as the direct count does: P1 the curve's float32 for the display,
+clamped; `landed` what a set of P1 holds; `other` the float32 next to P1 away from `landed`. The
+same is counted on the sample the fourth-review sweep checked its reproduction on, to say how many
+of its 200,010 values reach each branch (finding 3). Run from the repository root:
+uv run --locked python <scratchpad>/r5/arbitrary_displays.py <the fourth-review scratch folder>
+"""
+
+import math
+import sys
+from collections import Counter
+
+import numpy as np
+from patchbay import ParameterId
+from patchbay_vital.float32 import next_float32
+from patchbay_vital.parameters import parameter_map
+
+
+def branch(rec, display):
+    scale, curve = rec.scale, rec.curve
+    back = rec.to_preset(display)
+    p1 = min(max(curve.to_preset(display), scale.minimum), scale.maximum)
+    if back == p1:
+        return "KEPT" if scale.holds(p1) else "UNHELD (the third branch)"
+    landed = scale.to_preset(scale.to_normalized(p1))
+    if landed != p1 and back == landed:
+        return "PLUGIN (the first branch)"
+    if landed != p1 and back == next_float32(p1, math.copysign(math.inf, p1 - landed)):
+        return "OTHER (the second branch)"
+    return "UNKNOWN"
+
+
+def main():
+    rec = parameter_map().find(ParameterId("volume"))
+    p = rec.parameter
+    displays = np.random.default_rng(8).uniform(p.minimum, p.maximum, 20_000).tolist()
+    counts = Counter(branch(rec, d) for d in displays)
+    print(f"== 1. volume, 20,000 displays uniform over [{p.minimum!r}, {p.maximum!r}],"
+          " numpy default_rng(8):")
+    for name, n in sorted(counts.items()):
+        print(f"   {name}: {n} ({n / 200:.2f}%)")
+    shown = sum(rec.to_display(rec.to_preset(d)) == d for d in displays)
+    print(f"   displays some preset the map gives shows exactly: {shown}")
+
+    sys.path.insert(0, sys.argv[1])
+    import sweep  # noqa: PLC0415 - the fourth-review revision's script, for its sample()
+
+    values = sweep.sample().tolist()
+    counts = Counter(branch(rec, rec.from_normalized(x)) for x in values)
+    print(f"== 2. volume, the {len(values):,} values the fourth-review sweep checked its"
+          " reproduction on (its sample(): 200,000 bit patterns uniform over [0, 1], seed 15, the"
+          " seven pinned values, 0, 1 and 2 ** -149), by the branch each takes:")
+    for name, n in sorted(counts.items()):
+        print(f"   {name}: {n}")
+
+
+if __name__ == "__main__":
+    main()
+```
+
+== its output
+== 1. volume, 20,000 displays uniform over [-80.0, 6.020000172561609], numpy default_rng(8):
+   KEPT: 18892 (94.46%)
+   UNHELD (the third branch): 1108 (5.54%)
+   displays some preset the map gives shows exactly: 0
+== 2. volume, the 200,010 values the fourth-review sweep checked its reproduction on (its sample(): 200,000 bit patterns uniform over [0, 1], seed 15, the seven pinned values, 0, 1 and 2 ** -149), by the branch each takes:
+   KEPT: 196952
+   OTHER (the second branch): 69
+   PLUGIN (the first branch): 2989
+exit=0
+
+the tree after the run:
+  HEAD d21f1607e5f42c4c50bd59d76a72b6d899998782
+  git status --porcelain=v1, 3 lines:
+     M src/patchbay_vital/parameters.py
+     M tests/unit/test_parameters.py
+    ?? agent-os/specs/2026-11-12-1852-revision-after-pr-14-fifth-review/
+  git hash-object of each file the run reads, HEAD's blob beside it:
+    e49d5e9dd275ba8b592103621566206e9a654fa2  src/patchbay_vital/parameters.py  (HEAD 6cc729a8f442581d9d0e68afac929e3afd1a684a)
+    27a1e91bd4483e2fbdebf444799b51f78617ab0e  src/patchbay_vital/float32.py  (HEAD 27a1e91bd4483e2fbdebf444799b51f78617ab0e)
+    109ae1887be396e43ce7939b7115ec9745b6c6ca  src/patchbay_vital/data/parameters.json  (HEAD 109ae1887be396e43ce7939b7115ec9745b6c6ca)
+cmp: the tree after the run is the tree before it, line for line
+  the fourth-review revision's sweep.py, imported for its sample(): ff9d98771e28d4c236af4b5014c1d1a4f83a1e65 (its transcript prints ff9d98771e28d4c236af4b5014c1d1a4f83a1e65)

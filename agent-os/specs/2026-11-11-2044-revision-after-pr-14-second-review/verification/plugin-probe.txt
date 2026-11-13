@@ -1,0 +1,254 @@
+The revision after PR 14's second review: the plugin probe, run 2026-11-11 21:19 EST on branch refactor/13-the-parameter-map-volumes-display-does-not-come-back-through-the-normalized-path-below-2--43-hypothesis-normalized-5857149595214349e-20
+at c15944648c8c74725dab676e5d8883dd60277e4d, machine arm64, Vital at /Library/Audio/Plug-Ins/VST3/Vital.vst3
+the tree before the run (git status --short):
+   M CHANGELOG.md
+   M tests/conftest.py
+   M tests/data/power-of-two-presets.txt
+   M tests/data/volume-floor.txt
+   M tests/integration/test_vital_plugin.py
+   M tests/unit/test_parameters.py
+  ?? agent-os/specs/2026-11-11-2044-revision-after-pr-14-second-review/
+
+== the script, run from the repository root as: uv run --locked python plugin_probe.py
+   (blank lines the plugin prints are dropped)
+```python
+"""The revision after PR 14's second review: what Vital holds at the rows after a set and a load.
+
+Run from the repository root. The rows are `tests/data/volume-floor.txt` and
+`tests/data/power-of-two-presets.txt`, read by `tests/conftest.py`'s `recorded_rows`, and a row's
+step read by its `stepped`; the set is the integration test's `_held_after_a_set`, imported from
+`tests/integration/test_vital_plugin.py`, so the probe measures what the tests do, in the order
+they do it. Each imported file is printed by its blob, and
+each helper by its source, so the transcript pins what ran.
+P0 = scale.to_preset(r), D0 = to_display(P0), P1 = to_preset(D0), C1 = curve.to_preset(D0) (the
+curve's own float32, P1 here), P2 = scale.to_preset(to_normalized(D0)).
+"""
+
+import importlib.metadata
+import inspect
+import json
+import platform
+import subprocess
+import sys
+from pathlib import Path
+
+sys.path.insert(0, "tests")
+sys.path.insert(0, "tests/integration")
+
+import conftest  # noqa: E402
+import test_vital_plugin as t  # noqa: E402
+from patchbay import ParameterId  # noqa: E402
+
+from patchbay_vital.census import build_map  # noqa: E402
+from patchbay_vital.host import VitalHost, _floats  # noqa: E402
+from patchbay_vital.parameters import parameter_map  # noqa: E402
+
+FILES = (
+    "tests/conftest.py",
+    "tests/integration/test_vital_plugin.py",
+    "tests/data/volume-floor.txt",
+    "tests/data/power-of-two-presets.txt",
+)
+
+
+def git(*args):
+    done = subprocess.run(["git", *args], capture_output=True, text=True, check=False)
+    return done.stdout.strip() if done.returncode == 0 else ""
+
+
+print("== what the probe imports and reads, by blob (git hash-object; HEAD's blob beside it)")
+for name in FILES:
+    head = git("rev-parse", f"HEAD:{name}") or "not in HEAD"
+    print(f"  {name}: {git('hash-object', name)} (HEAD: {head})")
+print("\n== the helpers it calls, as imported")
+for function in (conftest.recorded_rows, conftest.stepped, t._held_after_a_set):
+    print(inspect.getsource(function).rstrip())
+    print()
+
+rows = conftest.recorded_rows(Path("tests/data/volume-floor.txt"))
+powers = conftest.recorded_rows(Path("tests/data/power-of-two-presets.txt"))
+committed = parameter_map()
+volume = committed.find(ParameterId("volume"))
+chorus = committed.find(ParameterId("chorus_feedback"))
+scale = volume.scale
+host = VitalHost()
+initial = host.state()
+print(f"machine {platform.machine()}, the map's {committed.machine}; {host.name} {host.version},"
+      f" the map's {committed.instrument} {committed.vital_version};"
+      f" pedalboard {importlib.metadata.version('pedalboard')}")
+print(f"the rows: volume-floor.txt {rows}; power-of-two-presets.txt {powers}")
+
+
+def step(shown, d0, width):
+    """Return the signed steps from d0 to shown, as `stepped` counts them, or None past one."""
+    for steps in (0, 1, -1):
+        if conftest.stepped(d0, steps, width) == shown:
+            return steps
+    return None
+
+
+print("\n== 1. a set, the measure's own sequence: load initial, set D0 normalized as the map gives it")
+print("   (test_at_or_below_volume_s_floor_a_set_holds_the_normalized_path_s_value)")
+for r, steps in rows:
+    host.load_state(initial)
+    p0 = scale.to_preset(r)
+    d0 = volume.from_normalized(r)
+    p1 = volume.to_preset(d0)
+    c1 = volume.curve.to_preset(d0)
+    p2 = scale.to_preset(volume.to_normalized(d0))
+    held = t._held_after_a_set(host, volume, d0)
+    print(f"r={r!r}: P0 {p0!r}, P1 {p1!r} (held by the scale"
+          f" {scale.to_preset(scale.to_normalized(p1)) == p1}, == C1 {p1 == c1}), P2 {p2!r};"
+          f" Vital holds {held!r}: == P2 {held == p2}, == C1 {held == c1};"
+          f" its display {step(volume.to_display(held), d0, 64):+d} double steps from D0"
+          f" (the row's: {steps:+d}; == stepped(D0, {steps:+d}, 64)"
+          f" {volume.to_display(held) == conftest.stepped(d0, steps, 64)})")
+
+
+def load_rows(instance, label):
+    """The load test's own sequence: per row, load initial, then initial with the curve's own C1."""
+    document = json.loads(initial)
+    given = document["settings"]["chorus_feedback"]
+    on_grid = chorus.scale.to_preset(chorus.scale.to_normalized(given)) == given
+    print(f"-- {label}; chorus_feedback given {given!r} (on the host's grid: {on_grid})")
+    for r, _ in rows:
+        d0 = volume.from_normalized(r)
+        p1 = volume.curve.to_preset(d0)
+        p2 = scale.to_preset(scale.to_normalized(p1))
+        document["settings"]["volume"] = p1
+        instance.load_state(initial)
+        instance.load_state(json.dumps(document).encode())
+        floats = _floats(instance.state())
+        print(f"  r={r!r}: volume given C1 {p1!r}, Vital holds {floats['volume']!r}:"
+              f" == S(N(C1)) {floats['volume'] == p2}, == C1 {floats['volume'] == p1};"
+              f" chorus_feedback held {floats['chorus_feedback']!r}, == given"
+              f" {floats['chorus_feedback'] == given}")
+
+
+print("\n== 2. a load, the load test's own sequence, after each of four histories before its first load")
+print("   (test_a_load_holds_volume_s_unheld_float32_as_its_neighbour_and_chorus_feedback_as_given)")
+load_rows(VitalHost(), "a fresh instance, nothing set before")
+census = VitalHost()
+build_map(census)
+census.load_state(initial)
+load_rows(census, "after the census's measure, which sets every parameter, and a load of initial")
+both = VitalHost()
+both.set(volume.id, 0.5)
+both.set(chorus.id, 0.5)
+both.load_state(initial)
+load_rows(both, "after a set of volume and of chorus_feedback, and a load of initial")
+load_rows(host, "the instance of section 1, after its sets")
+
+
+print("\n== 3. a held power of two, power-of-two-presets.txt's rows, the power-of-two test's own")
+print("   sequence: load initial, set the preset's display through the map (_held_after_a_set),")
+print("   read; then, for the record, load initial, set the float32 above the map's normalized value")
+print("   (test_a_held_power_of_two_set_through_the_host_lands_as_recorded)")
+for name in ("env_1_delay", "env_3_hold"):
+    record = committed.find(ParameterId(name))
+    for r, steps in powers:
+        preset = record.scale.to_preset(r)
+        mapped = record.scale.to_normalized(preset)
+        above = float(t.np.nextafter(t.np.float32(mapped), t.np.float32(1.0)))
+        host.load_state(initial)
+        held = t._held_after_a_set(host, record, record.to_display(preset))
+        host.load_state(initial)
+        host.set(record.id, above)
+        held_above = _floats(host.state())[record.preset_key]
+        print(f"{name} r={r!r}: preset {preset!r}, display {record.to_display(preset)!r};"
+              f" through the map, normalized {mapped!r}: Vital holds {held!r},"
+              f" == S(N(preset)) {held == record.scale.to_preset(mapped)},"
+              f" {step(held, preset, 32):+d} float32 steps from the preset (the row's: {steps:+d});"
+              f" the float32 above, {above!r}: Vital holds {held_above!r}")
+```
+
+== its output
+== what the probe imports and reads, by blob (git hash-object; HEAD's blob beside it)
+  tests/conftest.py: 31cdf23434c413c28566ddb3f06b4c1280a4025c (HEAD: e71b0053c8caa82ff50d773b6a00e9e3ce43df51)
+  tests/integration/test_vital_plugin.py: 46057e441556a40d462f6565a3f63cd1ce1df0ce (HEAD: ea2b5568f8bb3279940a4113a85c807a93d1c5b9)
+  tests/data/volume-floor.txt: 7fa6e67af320cd9bc8bad936e6e9fda75c748635 (HEAD: de6c9644721444eaf1b4c195058d80f01d7b89a0)
+  tests/data/power-of-two-presets.txt: d7c03ffaed20859ab09cc6500e1e81627ef2796e (HEAD: 8665053f7c455a498cddadcbf544a1872328f85a)
+== the helpers it calls, as imported
+def recorded_rows(path: Path) -> tuple[tuple[float, int], ...]:
+    """Return each row's normalized value and the signed steps it lands at, as its file counts them.
+    A line is a row but a blank one or a `#` comment. A row that is not eight hex digits and a
+    step of -1, 0 or +1, or a file with no row, raises ValueError naming the file and the line.
+    """
+    rows: list[tuple[float, int]] = []
+    for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+        if not line.strip() or line.startswith("#"):
+            continue
+        fields = line.split()
+        try:
+            token, steps = fields[0], int(fields[1])
+            if len(token) != _HEX_DIGITS or steps not in _STEPS:
+                raise ValueError(token)  # noqa: TRY301 - one refusal for every malformed shape
+            value: float = struct.unpack(">f", bytes.fromhex(token))[0]
+        except (IndexError, ValueError) as error:
+            msg = f"{path.name}:{number}: not a float32's hex digits and a step of -1, 0 or +1"
+            raise ValueError(msg) from error
+        rows.append((value, steps))
+    if not rows:
+        msg = f"{path.name} holds no row"
+        raise ValueError(msg)
+    return tuple(rows)
+def stepped(value: float, steps: int, width: int) -> float:
+    """Return the float `steps` steps from `value` in value order, float32 steps or doubles.
+    `width` is 32 or 64; `value` must be one of that width exactly. A row's step column is read
+    through this, in the unit and the integration tests alike. ValueError for another width or a
+    value of another width.
+    """
+    dtype = np.float32 if width == _WIDTHS[0] else np.float64
+    if width not in _WIDTHS or float(dtype(value)) != value:
+        msg = f"not a float of width {width}: {value!r}"
+        raise ValueError(msg)
+    x = dtype(value)
+    toward = dtype(math.copysign(math.inf, steps))
+    for _ in range(abs(steps)):
+        x = np.nextafter(x, toward)
+    return float(x)
+def _held_after_a_set(host: VitalHost, record: MappedParameter, display: float) -> float:
+    """Set a display through the host, normalized as the map gives it; return the state's value."""
+    host.set(record.id, record.to_normalized(display))
+    return _floats(host.state())[record.preset_key]
+machine arm64, the map's arm64; Vital 1.6.4, the map's Vital 1.6.4; pedalboard 0.9.26
+the rows: volume-floor.txt ((5.857149595214349e-20, 0), (3.4694490199051456e-18, 1), (1.439742266862027e-17, -1), (1.53642479121845e-17, -1)); power-of-two-presets.txt ((0.7071068286895752, -1), (0.3535534143447876, -1), (6.74349621476722e-07, -1))
+== 1. a set, the measure's own sequence: load initial, set D0 normalized as the map gives it
+   (test_at_or_below_volume_s_floor_a_set_holds_the_normalized_path_s_value)
+r=5.857149595214349e-20: P0 4.3339629239370393e-16, P1 4.3339650415194074e-16 (held by the scale False, == C1 True), P2 4.3339647768216114e-16; Vital holds 4.3339647768216114e-16: == P2 True, == C1 False; its display +0 double steps from D0 (the row's: +0; == stepped(D0, +0, 64) True)
+r=3.4694490199051456e-18: P0 2.567198129153469e-14, P1 2.5671982985600583e-14 (held by the scale False, == C1 True), P2 2.5671984679666478e-14; Vital holds 2.5671984679666478e-14: == P2 True, == C1 False; its display +1 double steps from D0 (the row's: +1; == stepped(D0, +1, 64) True)
+r=1.439742266862027e-17: P0 1.0653287198800557e-13, P1 1.0653286521174199e-13 (held by the scale False, == C1 True), P2 1.0653285843547841e-13; Vital holds 1.0653285843547841e-13: == P2 True, == C1 False; its display -1 double steps from D0 (the row's: -1; == stepped(D0, -1, 64) True)
+r=1.53642479121845e-17: P0 1.1368683772161603e-13, P1 1.1368683094535245e-13 (held by the scale False, == C1 True), P2 1.1368682416908887e-13; Vital holds 1.1368682416908887e-13: == P2 True, == C1 False; its display -1 double steps from D0 (the row's: -1; == stepped(D0, -1, 64) True)
+== 2. a load, the load test's own sequence, after each of four histories before its first load
+   (test_a_load_holds_volume_s_unheld_float32_as_its_neighbour_and_chorus_feedback_as_given)
+-- a fresh instance, nothing set before; chorus_feedback given 0.4000000059604645 (on the host's grid: False)
+  r=5.857149595214349e-20: volume given C1 4.3339650415194074e-16, Vital holds 4.3339647768216114e-16: == S(N(C1)) True, == C1 False; chorus_feedback held 0.4000000059604645, == given True
+  r=3.4694490199051456e-18: volume given C1 2.5671982985600583e-14, Vital holds 2.5671984679666478e-14: == S(N(C1)) True, == C1 False; chorus_feedback held 0.4000000059604645, == given True
+  r=1.439742266862027e-17: volume given C1 1.0653286521174199e-13, Vital holds 1.0653285843547841e-13: == S(N(C1)) True, == C1 False; chorus_feedback held 0.4000000059604645, == given True
+  r=1.53642479121845e-17: volume given C1 1.1368683094535245e-13, Vital holds 1.1368682416908887e-13: == S(N(C1)) True, == C1 False; chorus_feedback held 0.4000000059604645, == given True
+-- after the census's measure, which sets every parameter, and a load of initial; chorus_feedback given 0.4000000059604645 (on the host's grid: False)
+  r=5.857149595214349e-20: volume given C1 4.3339650415194074e-16, Vital holds 4.3339647768216114e-16: == S(N(C1)) True, == C1 False; chorus_feedback held 0.4000000059604645, == given True
+  r=3.4694490199051456e-18: volume given C1 2.5671982985600583e-14, Vital holds 2.5671984679666478e-14: == S(N(C1)) True, == C1 False; chorus_feedback held 0.4000000059604645, == given True
+  r=1.439742266862027e-17: volume given C1 1.0653286521174199e-13, Vital holds 1.0653285843547841e-13: == S(N(C1)) True, == C1 False; chorus_feedback held 0.4000000059604645, == given True
+  r=1.53642479121845e-17: volume given C1 1.1368683094535245e-13, Vital holds 1.1368682416908887e-13: == S(N(C1)) True, == C1 False; chorus_feedback held 0.4000000059604645, == given True
+-- after a set of volume and of chorus_feedback, and a load of initial; chorus_feedback given 0.4000000059604645 (on the host's grid: False)
+  r=5.857149595214349e-20: volume given C1 4.3339650415194074e-16, Vital holds 4.3339647768216114e-16: == S(N(C1)) True, == C1 False; chorus_feedback held 0.4000000059604645, == given True
+  r=3.4694490199051456e-18: volume given C1 2.5671982985600583e-14, Vital holds 2.5671984679666478e-14: == S(N(C1)) True, == C1 False; chorus_feedback held 0.4000000059604645, == given True
+  r=1.439742266862027e-17: volume given C1 1.0653286521174199e-13, Vital holds 1.0653285843547841e-13: == S(N(C1)) True, == C1 False; chorus_feedback held 0.4000000059604645, == given True
+  r=1.53642479121845e-17: volume given C1 1.1368683094535245e-13, Vital holds 1.1368682416908887e-13: == S(N(C1)) True, == C1 False; chorus_feedback held 0.4000000059604645, == given True
+-- the instance of section 1, after its sets; chorus_feedback given 0.4000000059604645 (on the host's grid: False)
+  r=5.857149595214349e-20: volume given C1 4.3339650415194074e-16, Vital holds 4.3339647768216114e-16: == S(N(C1)) True, == C1 False; chorus_feedback held 0.4000000059604645, == given True
+  r=3.4694490199051456e-18: volume given C1 2.5671982985600583e-14, Vital holds 2.5671984679666478e-14: == S(N(C1)) True, == C1 False; chorus_feedback held 0.4000000059604645, == given True
+  r=1.439742266862027e-17: volume given C1 1.0653286521174199e-13, Vital holds 1.0653285843547841e-13: == S(N(C1)) True, == C1 False; chorus_feedback held 0.4000000059604645, == given True
+  r=1.53642479121845e-17: volume given C1 1.1368683094535245e-13, Vital holds 1.1368682416908887e-13: == S(N(C1)) True, == C1 False; chorus_feedback held 0.4000000059604645, == given True
+== 3. a held power of two, power-of-two-presets.txt's rows, the power-of-two test's own
+   sequence: load initial, set the preset's display through the map (_held_after_a_set),
+   read; then, for the record, load initial, set the float32 above the map's normalized value
+   (test_a_held_power_of_two_set_through_the_host_lands_as_recorded)
+env_1_delay r=0.7071068286895752: preset 1.0, display 1.0; through the map, normalized 0.7071067690849304: Vital holds 0.9999999403953552, == S(N(preset)) True, -1 float32 steps from the preset (the row's: -1); the float32 above, 0.7071068286895752: Vital holds 1.0
+env_1_delay r=0.3535534143447876: preset 0.5, display 0.0625; through the map, normalized 0.3535533845424652: Vital holds 0.4999999701976776, == S(N(preset)) True, -1 float32 steps from the preset (the row's: -1); the float32 above, 0.3535534143447876: Vital holds 0.5
+env_1_delay r=6.74349621476722e-07: preset 9.5367431640625e-07, display 8.271806125530277e-25; through the map, normalized 6.743495646333031e-07: Vital holds 9.536742595628311e-07, == S(N(preset)) True, -1 float32 steps from the preset (the row's: -1); the float32 above, 6.74349621476722e-07: Vital holds 9.5367431640625e-07
+env_3_hold r=0.7071068286895752: preset 1.0, display 1.0; through the map, normalized 0.7071067690849304: Vital holds 0.9999999403953552, == S(N(preset)) True, -1 float32 steps from the preset (the row's: -1); the float32 above, 0.7071068286895752: Vital holds 1.0
+env_3_hold r=0.3535534143447876: preset 0.5, display 0.0625; through the map, normalized 0.3535533845424652: Vital holds 0.4999999701976776, == S(N(preset)) True, -1 float32 steps from the preset (the row's: -1); the float32 above, 0.3535534143447876: Vital holds 0.5
+env_3_hold r=6.74349621476722e-07: preset 9.5367431640625e-07, display 8.271806125530277e-25; through the map, normalized 6.743495646333031e-07: Vital holds 9.536742595628311e-07, == S(N(preset)) True, -1 float32 steps from the preset (the row's: -1); the float32 above, 6.74349621476722e-07: Vital holds 9.5367431640625e-07
+exit=0

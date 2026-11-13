@@ -1,0 +1,882 @@
+The revision after PR 14's fifth review: the direct count, section A, run 2026-11-12 18:57 EST on branch
+refactor/13-the-parameter-map-volumes-display-does-not-come-back-through-the-normalized-path-below-2--43-hypothesis-normalized-5857149595214349e-20, machine arm64, macOS 26.6.2 (25G83), 14 cores, Python 3.12.16
+the trees before the run:
+  HEAD d21f1607e5f42c4c50bd59d76a72b6d899998782
+  git status --porcelain=v1 --untracked-files=all, 4 lines:
+     M src/patchbay_vital/parameters.py
+    ?? agent-os/specs/2026-11-12-1852-revision-after-pr-14-fifth-review/plan.md
+    ?? agent-os/specs/2026-11-12-1852-revision-after-pr-14-fifth-review/references.md
+    ?? agent-os/specs/2026-11-12-1852-revision-after-pr-14-fifth-review/standards.md
+  this branch's tree, git hash-object of each file the run reads, HEAD's blob beside it:
+    e49d5e9dd275ba8b592103621566206e9a654fa2  src/patchbay_vital/parameters.py  (HEAD 6cc729a8f442581d9d0e68afac929e3afd1a684a)
+    27a1e91bd4483e2fbdebf444799b51f78617ab0e  src/patchbay_vital/float32.py  (HEAD 27a1e91bd4483e2fbdebf444799b51f78617ab0e)
+    d8265cd5668a70b1802e3d7b1917104935e292ff  src/patchbay_vital/errors.py  (HEAD d8265cd5668a70b1802e3d7b1917104935e292ff)
+    f75e2e85d570f3db4bf5ec206bf9143f1ca4922f  src/patchbay_vital/preset.py  (HEAD f75e2e85d570f3db4bf5ec206bf9143f1ca4922f)
+    50fe09b3c3b285b3d569a8b7eb2f76981c7d6164  src/patchbay_vital/__init__.py  (HEAD 50fe09b3c3b285b3d569a8b7eb2f76981c7d6164)
+    109ae1887be396e43ce7939b7115ec9745b6c6ca  src/patchbay_vital/data/parameters.json  (HEAD 109ae1887be396e43ce7939b7115ec9745b6c6ca)
+  main's tree, commit 558b85b56d1f69eaa71dbf0598ce3e65bf391356, extracted with git archive: git hash-object of
+  each extracted file, the blob of main's commit beside it:
+    da6e92b2edd68863505aea08963d9a759477d787  <scratchpad>/r5/main/src/patchbay_vital/parameters.py  (main da6e92b2edd68863505aea08963d9a759477d787)
+    57659eb7e95b42d8b02f14e6fe861c1c09f67992  <scratchpad>/r5/main/src/patchbay_vital/float32.py  (main 57659eb7e95b42d8b02f14e6fe861c1c09f67992)
+    d8265cd5668a70b1802e3d7b1917104935e292ff  <scratchpad>/r5/main/src/patchbay_vital/errors.py  (main d8265cd5668a70b1802e3d7b1917104935e292ff)
+    f75e2e85d570f3db4bf5ec206bf9143f1ca4922f  <scratchpad>/r5/main/src/patchbay_vital/preset.py  (main f75e2e85d570f3db4bf5ec206bf9143f1ca4922f)
+    50fe09b3c3b285b3d569a8b7eb2f76981c7d6164  <scratchpad>/r5/main/src/patchbay_vital/__init__.py  (main 50fe09b3c3b285b3d569a8b7eb2f76981c7d6164)
+    109ae1887be396e43ce7939b7115ec9745b6c6ca  <scratchpad>/r5/main/src/patchbay_vital/data/parameters.json  (main 109ae1887be396e43ce7939b7115ec9745b6c6ca)
+  git hash-object of each script the run runs:
+    fc6b90951f25380c1640a06d8ab5388c0246a59a  <scratchpad>/r5/direct_count.py
+    08982ddfc6f9cb7239c0b49af0acb4f147fb8aec  <scratchpad>/r5/group_key.py
+    42dbfb2279bbec2f6fca607180022235c60e1846  <scratchpad>/r5/tree.sh
+    7aad50e6816361d9be2ef351aecd91c5371fd0b1  <scratchpad>/r5/run_direct.sh
+
+== the script, run from the repository root as: bash <scratchpad>/r5/run_direct.sh <scratchpad>/r5 A, then BC
+```bash
+#!/bin/bash
+# The direct count's two sections. Run from the repository root: bash run_direct.sh <scratch> A|BC
+set -u
+R=$1; stage=$2
+FILES="src/patchbay_vital/parameters.py src/patchbay_vital/float32.py src/patchbay_vital/errors.py src/patchbay_vital/preset.py src/patchbay_vital/__init__.py src/patchbay_vital/data/parameters.json"
+count() { caffeinate -i uv run --locked python "$R/direct_count.py" --main "$R/main/src" --main-processes 4 --branch-processes 8 "$@"; echo "exit=$?"; }
+scrub() { sed -e "s#$R#<scratchpad>/r5#g" -e "s#$PWD/##g"; }
+{
+echo "The revision after PR 14's fifth review: the direct count, section $stage, run $(date '+%Y-%m-%d %H:%M %Z') on branch"
+echo "$(git branch --show-current), machine $(uname -m), $(sw_vers -productName) $(sw_vers -productVersion) ($(sw_vers -buildVersion)), $(sysctl -n hw.ncpu) cores, $(uv run --locked python -V)"
+echo "the trees before the run:"
+bash "$R/tree.sh" "$R/main/src" $FILES | tee "$R/tree-before-$stage.txt"
+echo "  git hash-object of each script the run runs:"
+for s in direct_count.py group_key.py tree.sh run_direct.sh; do echo "    $(git hash-object "$R/$s")  <scratchpad>/r5/$s"; done
+if [ "$stage" = A ]; then
+  echo
+  echo "== the script, run from the repository root as: bash <scratchpad>/r5/run_direct.sh <scratchpad>/r5 A, then BC"
+  echo '```bash'; cat "$R/run_direct.sh"; echo '```'
+  echo '```python'; cat "$R/direct_count.py"; echo '```'
+  echo
+  echo "== 1. the cost, before anything is counted"
+  count --branch "$PWD/src" --record volume --time
+  count --branch "$PWD/src" --record env_1_delay --time
+  echo
+  echo "== 2. volume, the binades where the fourth-review sweep counted a value leaving KEPT (-95 to -56) and one either side"
+  count --branch "$PWD/src" --record volume --from -96 --to -55
+  echo
+  echo "== 3. a control: the same pass over binade -56 with branches 1 and 2 of to_preset swapped in a scratch copy of this branch's src"
+  echo "   (the copy's diff from the tree:)"
+  diff "$PWD/src/patchbay_vital/parameters.py" "$R/m7/src/patchbay_vital/parameters.py" | sed 's/^/   /'
+  count --branch "$R/m7/src" --record volume --from -56 --to -56 --label ", branches 1 and 2 swapped"
+else
+  echo
+  echo "== 4. volume, every binade below -96"
+  count --branch "$PWD/src" --record volume --to -97
+  echo
+  echo "== 5. volume, every binade above -55"
+  count --branch "$PWD/src" --record volume --from -54
+  echo
+  echo "== 6. the 12 envelope records are one group: uv run --locked python <scratchpad>/r5/group_key.py"
+  echo '```python'; cat "$R/group_key.py"; echo '```'
+  uv run --locked python "$R/group_key.py"; echo "exit=$?"
+  echo
+  echo "== 7. env_1_delay, every float32 normalized value"
+  count --branch "$PWD/src" --record env_1_delay
+fi
+echo
+echo "the trees after the run:"
+bash "$R/tree.sh" "$R/main/src" $FILES | tee "$R/tree-after-$stage.txt"
+cmp "$R/tree-before-$stage.txt" "$R/tree-after-$stage.txt" && echo "cmp: the trees before and after are the same"
+} 2>&1 | scrub
+```
+```python
+"""The revision after PR 14's fifth review: `main`'s shipped methods against this branch's, directly.
+
+Nothing is reproduced. Two pools of processes each import `patchbay_vital` from one tree, `main`'s
+(an extract of its commit) or this branch's, by putting that tree's `src` first on `sys.path`
+before the first import, and each calls its own tree's scalar methods on every float32 normalized
+value r of a record, as a caller would:
+
+  P0 = scale.to_preset(r)            the preset the parameter holds
+  D0 = record.from_normalized(r)     its display
+  TP = record.to_preset(D0)          the display's preset
+  TN = record.to_normalized(D0)      the normalized value a set of the display sends
+  HN = scale.to_normalized(P0)       the held preset's normalized value
+
+This process compares the two trees' five values on every r and counts, by binade of r:
+
+  S!=, D!=   P0 or D0 differs (the scale and the curve forward, unchanged since `main`)
+  PRESET     TP differs from `main`'s
+  NORM       TN differs from `main`'s
+  HELDNORM   HN differs from `main`'s
+  ANY        any of the five differs
+
+and, from this branch's own result TP on a linear scale, which branch of `to_preset`'s rule the
+value took. P1 is the curve's float32 for D0, clamped to the scale; `landed` is what a set of P1
+holds, scale.to_preset(scale.to_normalized(P1)); `other` is the float32 next to P1 away from
+`landed`. The three are distinct wherever `landed` is not P1, so TP names its branch:
+
+  KEPT       TP == P1 and a set of it holds it (0 <= TN <= 1 and scale.to_preset(TN) == TP)
+  PLUGIN     TP == landed != P1         the first branch
+  OTHER      TP == other, landed != P1  the second branch
+  UNHELD     TP == P1 and a set of it does not hold it: the third branch
+  UNKNOWN    none of these
+  PN         of PLUGIN, scale.to_normalized(P1) != TN: the normalized value computed on the way
+             to the first branch is not the one the scale gives the preset returned
+
+Every count is also split at `volume`'s floor exactly, by P0 <= 2 ** -43 and P0 > 2 ** -43, value
+by value, never by binade.
+
+OUT counts what the run stops on, at once:
+  on `volume`    a difference from `main` on a value that is not PLUGIN or OTHER, any HELDNORM,
+                 any UNHELD or UNKNOWN;
+  on an envelope record
+                 a difference from `main` where P0 is not a power of two, any PLUGIN, OTHER,
+                 UNHELD or UNKNOWN.
+
+Run from the repository root:
+  uv run --locked python direct_count.py --main <main's src> --branch <this branch's src>
+      --record <id> [--from <binade> --to <binade>] [--time [--budget <hours>]] [--label <text>]
+      [--main-processes <n>] [--branch-processes <n>]
+"""
+
+import argparse
+import math
+import multiprocessing
+import sys
+import time
+
+import numpy as np
+
+FLOOR = 2.0**-43
+CHUNK = 1 << 16
+SPANS = [("zero", 0, 1), ("sub", 1, 1 << 23)]
+SPANS += [(str(e - 127), e << 23, (e + 1) << 23) for e in range(1, 127)]
+SPANS += [("one", 0x3F800000, 0x3F800001)]
+COMPARED = ("S!=", "D!=", "PRESET", "NORM", "HELDNORM", "ANY")
+BRANCHES = ("KEPT", "PLUGIN", "OTHER", "UNHELD", "UNKNOWN")
+COLUMNS = ("n", *COMPARED, *BRANCHES, "PN", "OUT")
+
+_TREE = {}
+
+
+def use(src):
+    """A worker's initializer: import `patchbay_vital` from one tree, before anything else does."""
+    sys.path.insert(0, src)
+    import patchbay  # noqa: PLC0415
+    import patchbay_vital.float32  # noqa: PLC0415
+    import patchbay_vital.parameters  # noqa: PLC0415
+
+    _TREE["parameters"] = patchbay_vital.parameters
+    _TREE["float32"] = patchbay_vital.float32
+    _TREE["id"] = patchbay.ParameterId
+
+
+def where():
+    """Return the files this worker's tree was imported from."""
+    return _TREE["parameters"].__file__, _TREE["float32"].__file__
+
+
+def work(job):
+    """Call one tree's methods on every float32 normalized value of a bit-pattern range."""
+    name, lo, hi, classify = job
+    record = _TREE["parameters"].parameter_map().find(_TREE["id"](name))
+    scale, curve = record.scale, record.curve
+    linear = scale.kind == "linear"
+    values = np.arange(lo, hi, dtype=np.uint32).view(np.float32).astype(np.float64).tolist()
+    out = np.empty((5, len(values)))
+    branch = np.full(len(values), -1, np.int8)
+    on_the_way = np.zeros(len(values), bool)
+    step = _TREE["float32"].next_float32 if classify else None
+    for i, r in enumerate(values):
+        p0 = scale.to_preset(r)
+        d0 = record.from_normalized(r)
+        tp = record.to_preset(d0)
+        tn = record.to_normalized(d0)
+        out[:, i] = (p0, d0, tp, tn, scale.to_normalized(p0))
+        if not (classify and linear):
+            continue
+        p1 = min(max(curve.to_preset(d0), scale.minimum), scale.maximum)
+        if tp == p1:
+            branch[i] = 0 if 0.0 <= tn <= 1.0 and scale.to_preset(tn) == tp else 3
+            continue
+        way = scale.to_normalized(p1)
+        landed = scale.to_preset(way)
+        if landed == p1:
+            branch[i] = 4
+        elif tp == landed:
+            branch[i] = 1
+            on_the_way[i] = way != tn
+        elif tp == step(p1, math.copysign(math.inf, p1 - landed)):
+            branch[i] = 2
+        else:
+            branch[i] = 4
+    return lo, out, branch, on_the_way
+
+
+def tally(record_kind, ours, theirs, branch, on_the_way):
+    """Return the counts at or below the floor and above it, and the values the run stops on."""
+    p0 = ours[0]
+    differs = [ours[k] != theirs[k] for k in range(5)]
+    anything = differs[0] | differs[1] | differs[2] | differs[3] | differs[4]
+    classes = [branch == b for b in range(len(BRANCHES))]
+    if record_kind == "volume":
+        moved = classes[1] | classes[2]
+        out = (anything & ~moved) | differs[4] | classes[3] | classes[4]
+    else:
+        power = np.frexp(p0)[0] == 0.5  # noqa: PLR2004 - a power of two's significand
+        out = (anything & ~power) | classes[1] | classes[2] | classes[3] | classes[4]
+    flags = (*differs, anything, *classes, on_the_way, out)
+    below = p0 <= FLOOR
+    rows = []
+    for side in (below, ~below):
+        rows.append([int(np.count_nonzero(side)), *(int(np.count_nonzero(f & side)) for f in flags)])
+    return np.array(rows, dtype=np.int64), np.flatnonzero(out)
+
+
+def spans(first, last):
+    labels = [label for label, _, _ in SPANS]
+    lo = 0 if first is None else labels.index(first)
+    hi = len(SPANS) - 1 if last is None else labels.index(last)
+    return SPANS[lo : hi + 1]
+
+
+def line(label, row):
+    return f"{label:>12} " + " ".join(f"{int(v):>11}" for v in row)
+
+
+def timing(pools, name, where_from):
+    """Time each tree on 200,000 values, half at the floor binades and half over every binade."""
+    rng = np.random.default_rng(21)
+    report = {}
+    for side, pool in pools.items():
+        started = time.time()
+        jobs = []
+        for start in rng.integers(0x10000000, 0x3F000000, 4, dtype=np.uint32).tolist():
+            jobs.append(pool.apply_async(work, ((name, start, start + 50_000, side == "branch"),)))
+        for job in jobs:
+            job.get()
+        report[side] = (time.time() - started) / 50_000 * 1e6
+        print(f"  {side} ({where_from[side]}): {report[side]:.1f} us a value, 4 ranges of 50,000"
+              " values in 4 processes at once")
+    return report
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--main", required=True)
+    parser.add_argument("--branch", required=True)
+    parser.add_argument("--record", required=True)
+    parser.add_argument("--from", dest="first")
+    parser.add_argument("--to", dest="last")
+    parser.add_argument("--main-processes", type=int, default=5)
+    parser.add_argument("--branch-processes", type=int, default=7)
+    parser.add_argument("--time", action="store_true")
+    parser.add_argument("--label", default="")
+    parser.add_argument("--budget", type=float, default=4.0)
+    args = parser.parse_args()
+    kind = "volume" if args.record == "volume" else "envelope"
+    context = multiprocessing.get_context("spawn")
+    sizes = {"main": args.main_processes, "branch": args.branch_processes}
+    sources = {"main": args.main, "branch": args.branch}
+    pools = {s: context.Pool(sizes[s], initializer=use, initargs=(sources[s],)) for s in sizes}
+    where_from = {}
+    for side, pool in pools.items():
+        files = pool.apply(where)
+        where_from[side] = files[0]
+        print(f"== the {side} pool, {sizes[side]} processes, imports {files[0]}")
+        print(f"   and {files[1]}")
+        if not all(f.startswith(sources[side]) for f in files):
+            print("   NOT the tree asked for: stopping")
+            return 2
+    if args.time:
+        print(f"== timing on {args.record}")
+        took = timing(pools, args.record, where_from)
+        total = 1_065_353_217
+        wall = max(took["main"] / sizes["main"], took["branch"] / sizes["branch"]) * total / 3.6e9
+        cpu = (took["main"] + took["branch"]) * total / 3.6e9
+        print(f"   every float32 normalized value of one record, {total:,}: about {cpu:.1f}"
+              f" CPU-hours, {wall:.2f} hours wall on these pools")
+        if wall > args.budget:
+            print(f"   more than the {args.budget} hours a record the owner allowed (8 for the two):"
+                  " stopping")
+            return 3
+        return 0
+    chosen = spans(args.first, args.last)
+    print(f"== {args.record}{args.label}: binades {chosen[0][0]} to {chosen[-1][0]},"
+          f" {sum(hi - lo for _, lo, hi in chosen):,} float32 normalized values, each through both"
+          " trees")
+    print(line("binade", ()) + " ".join(f"{c:>11}" for c in COLUMNS))
+    started = time.time()
+    total = np.zeros((2, len(COLUMNS)), dtype=np.int64)
+    quiet = []
+    for label, lo, hi in chosen:
+        row = np.zeros((2, len(COLUMNS)), dtype=np.int64)
+        jobs = []
+        for start in range(lo, hi, CHUNK):
+            end = min(hi, start + CHUNK)
+            jobs.append((
+                pools["main"].apply_async(work, ((args.record, start, end, False),)),
+                pools["branch"].apply_async(work, ((args.record, start, end, True),)),
+            ))
+        for theirs_job, ours_job in jobs:
+            start, theirs, _, _ = theirs_job.get()
+            _, ours, branch, on_the_way = ours_job.get()
+            counted, stops = tally(kind, ours, theirs, branch, on_the_way)
+            row += counted
+            if stops.size:
+                print(line(label, row.sum(axis=0)))
+                print(f"== OUT: {stops.size} values in the range from bit pattern {start}; the first:")
+                for i in stops[:5].tolist():
+                    bits = np.array([start + i], dtype=np.uint32).view(np.float32)[0]
+                    print(f"   r {float(bits)!r}: this branch's P0, D0, TP, TN, HN"
+                          f" {[float(v) for v in ours[:, i]]!r}, main's"
+                          f" {[float(v) for v in theirs[:, i]]!r}, branch"
+                          f" {BRANCHES[branch[i]] if branch[i] >= 0 else 'none'}")
+                print("== stopped at once, as the owner asked")
+                for pool in pools.values():
+                    pool.terminate()
+                return 1
+        total += row
+        whole = row.sum(axis=0)
+        if whole[1:].any() and not (whole[7] == whole[0] and not whole[1:7].any()):
+            if row[0, 0] and row[1, 0]:
+                print(line(label, whole))
+                print(line("<= 2**-43", row[0]))
+                print(line("> 2**-43", row[1]))
+            else:
+                print(line(label, whole))
+        else:
+            quiet.append(label)
+        sys.stdout.flush()
+    print(line("total", total.sum(axis=0)))
+    print(line("P0 <= 2**-43", total[0]))
+    print(line("P0 > 2**-43", total[1]))
+    print(f"  every value KEPT and nothing differing from main in {len(quiet)} binades:"
+          f" {', '.join(quiet) if quiet else 'none'}")
+    print(f"  {time.time() - started:.0f} s")
+    for pool in pools.values():
+        pool.close()
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
+```
+
+== 1. the cost, before anything is counted
+== the main pool, 4 processes, imports <scratchpad>/r5/main/src/patchbay_vital/parameters.py
+   and <scratchpad>/r5/main/src/patchbay_vital/float32.py
+== the branch pool, 8 processes, imports src/patchbay_vital/parameters.py
+   and src/patchbay_vital/float32.py
+== timing on volume
+  main (<scratchpad>/r5/main/src/patchbay_vital/parameters.py): 38.9 us a value, 4 ranges of 50,000 values in 4 processes at once
+  branch (src/patchbay_vital/parameters.py): 83.2 us a value, 4 ranges of 50,000 values in 4 processes at once
+   every float32 normalized value of one record, 1,065,353,217: about 36.1 CPU-hours, 3.08 hours wall on these pools
+exit=0
+== the main pool, 4 processes, imports <scratchpad>/r5/main/src/patchbay_vital/parameters.py
+   and <scratchpad>/r5/main/src/patchbay_vital/float32.py
+== the branch pool, 8 processes, imports src/patchbay_vital/parameters.py
+   and src/patchbay_vital/float32.py
+== timing on env_1_delay
+  main (<scratchpad>/r5/main/src/patchbay_vital/parameters.py): 37.6 us a value, 4 ranges of 50,000 values in 4 processes at once
+  branch (src/patchbay_vital/parameters.py): 83.5 us a value, 4 ranges of 50,000 values in 4 processes at once
+   every float32 normalized value of one record, 1,065,353,217: about 35.8 CPU-hours, 3.09 hours wall on these pools
+exit=0
+
+== 2. volume, the binades where the fourth-review sweep counted a value leaving KEPT (-95 to -56) and one either side
+== the main pool, 4 processes, imports <scratchpad>/r5/main/src/patchbay_vital/parameters.py
+   and <scratchpad>/r5/main/src/patchbay_vital/float32.py
+== the branch pool, 8 processes, imports src/patchbay_vital/parameters.py
+   and src/patchbay_vital/float32.py
+== volume: binades -96 to -55, 352,321,536 float32 normalized values, each through both trees
+      binade           n         S!=         D!=      PRESET        NORM    HELDNORM         ANY        KEPT      PLUGIN       OTHER      UNHELD     UNKNOWN          PN         OUT
+         -95     8388608           0           0      562305           0           0      562305     7826303      562305           0           0           0           0           0
+         -94     8388608           0           0      408125           0           0      408125     7980483      408125           0           0           0           0           0
+         -93     8388608           0           0      281154           0           0      281154     8107454      281154           0           0           0           0           0
+         -92     8388608           0           0      603118           0           0      603118     7785490      603118           0           0           0           0           0
+         -91     8388608           0           0      284554           0           0      284554     8104054      284554           0           0           0           0           0
+         -90     8388608           0           0      501087           0           0      501087     7887521      501087           0           0           0           0           0
+         -89     8388608           0           0      284554           0           0      284554     8104054      284554           0           0           0           0           0
+         -88     8388608           0           0      500946           0           0      500946     7887662      500946           0           0           0           0           0
+         -87     8388608           0           0      391331           0           0      391331     7997277      391331           0           0           0           0           0
+         -86     8388608           0           0      499599           0           0      499599     7889009      499599           0           0           0           0           0
+         -85     8388608           0           0      424971           0           0      424971     7963637      424971           0           0           0           0           0
+         -84     8388608           0           0      375629           0           0      375629     8012979      375629           0           0           0           0           0
+         -83     8388608           0           0      418161           0           0      418161     7970447      418161           0           0           0           0           0
+         -82     8388608           0           0      374656           0           0      374656     8013952      374656           0           0           0           0           0
+         -81     8388608           0           0      398086           0           0      398086     7990522      398086           0           0           0           0           0
+         -80     8388608           0           0      384163           0           0      384163     8004445      384163           0           0           0           0           0
+         -79     8388608           0           0      371769           0           0      371769     8016839      371769           0           0           0           0           0
+         -78     8388608           0           0      390516           0           0      390516     7998092      390516           0           0           0           0           0
+         -77     8388608           0           0      384836           0           0      384836     8003772      384836           0           0           0           0           0
+         -76     8388608           0           0      404347           0           0      404347     7984261      404347           0           0           0           0           0
+         -75     8388608           0           0      388471           0           0      388471     8000137      388471           0           0           0           0           0
+         -74     8388608           0           0      400972           0           0      400972     7987636      400972           0           0           0           0           0
+         -73     8388608           0           0      402160           0           0      402160     7986448      402160           0           0           0           0           0
+         -72     8388608           0           0      407216           0           0      407216     7981392      407216           0           0           0           0           0
+         -71     8388608           0           0      396003           0           0      396003     7992605      396003           0           0           0           0           0
+         -70     8388608           0           0      401179           0           0      401179     7987429      401179           0           0           0           0           0
+         -69     8388608           0           0      401856           0           0      401856     7986752      401856           0           0           0           0           0
+         -68     8388608           0           0      402063           0           0      402063     7986545      402063           0           0           0           0           0
+         -67     8388608           0           0      404778           0           0      404778     7983830      404778           0           0           0           0           0
+         -66     8388608           0           0      404491           0           0      404491     7984117      404491           0           0           0           0           0
+         -65     8388608           0           0      405288           0           0      405288     7983320      405288           0           0           0           0           0
+         -64     8388608           0           0      400407           0           0      400407     7988201      400407           0           0           0           0           0
+         -63     8388608           0           0      401183           0           0      401183     7987425      401183           0           0           0           0           0
+         -62     8388608           0           0      395683           0           0      395683     7992925      395683           0           0           0           0           0
+         -61     8388608           0           0      408755           0           0      408755     7979853      408755           0           0           0           0           0
+         -60     8388608           0           0      377507           0           0      377507     8011101      377507           0           0           0           0           0
+         -59     8388608           0           0      412700           0           0      412700     7975908      412700           0           0           0           0           0
+         -58     8388608           0           0      462181       31879           0      462181     7926427      430302       31879           0           0           0           0
+         -57     8388608           0           0      353626      176711           0      353626     8034982      176915      176711           0           0           0           0
+         -56     8388608           0           0      199432       99796           0      199432     8189176       99636       99796           0           0           0           0
+   <= 2**-43      898511           0           0      199432       99796           0      199432      699079       99636       99796           0           0           0           0
+    > 2**-43     7490097           0           0           0           0           0           0     7490097           0           0           0           0           0           0
+       total   352321536           0           0    16069858      308386           0    16069858   336251678    15761472      308386           0           0           0           0
+P0 <= 2**-43   336442831           0           0    16069858      308386           0    16069858   320372973    15761472      308386           0           0           0           0
+ P0 > 2**-43    15878705           0           0           0           0           0           0    15878705           0           0           0           0           0           0
+  every value KEPT and nothing differing from main in 2 binades: -96, -55
+  4999 s
+exit=0
+
+== 3. a control: the same pass over binade -56 with branches 1 and 2 of to_preset swapped in a scratch copy of this branch's src
+   (the copy's diff from the tree:)
+   340,341d339
+   <         if curve.to_display(landed) == display:
+   <             return landed, None
+   344a343,344
+   >         if curve.to_display(landed) == display:
+   >             return landed, None
+== the main pool, 4 processes, imports <scratchpad>/r5/main/src/patchbay_vital/parameters.py
+   and <scratchpad>/r5/main/src/patchbay_vital/float32.py
+== the branch pool, 8 processes, imports <scratchpad>/r5/m7/src/patchbay_vital/parameters.py
+   and <scratchpad>/r5/m7/src/patchbay_vital/float32.py
+== volume, branches 1 and 2 swapped: binades -56 to -56, 8,388,608 float32 normalized values, each through both trees
+      binade           n         S!=         D!=      PRESET        NORM    HELDNORM         ANY        KEPT      PLUGIN       OTHER      UNHELD     UNKNOWN          PN         OUT
+         -56     8388608           0           0      199432       99796           0      199432     8189176       99636       99796           0           0           0           0
+   <= 2**-43      898511           0           0      199432       99796           0      199432      699079       99636       99796           0           0           0           0
+    > 2**-43     7490097           0           0           0           0           0           0     7490097           0           0           0           0           0           0
+       total     8388608           0           0      199432       99796           0      199432     8189176       99636       99796           0           0           0           0
+P0 <= 2**-43      898511           0           0      199432       99796           0      199432      699079       99636       99796           0           0           0           0
+ P0 > 2**-43     7490097           0           0           0           0           0           0     7490097           0           0           0           0           0           0
+  every value KEPT and nothing differing from main in 0 binades: none
+  113 s
+exit=0
+
+the trees after the run:
+  HEAD d21f1607e5f42c4c50bd59d76a72b6d899998782
+  git status --porcelain=v1 --untracked-files=all, 11 lines:
+     M src/patchbay_vital/parameters.py
+     M tests/unit/test_parameters.py
+    ?? agent-os/specs/2026-11-12-1852-revision-after-pr-14-fifth-review/plan.md
+    ?? agent-os/specs/2026-11-12-1852-revision-after-pr-14-fifth-review/references.md
+    ?? agent-os/specs/2026-11-12-1852-revision-after-pr-14-fifth-review/shape.md
+    ?? agent-os/specs/2026-11-12-1852-revision-after-pr-14-fifth-review/standards.md
+    ?? agent-os/specs/2026-11-12-1852-revision-after-pr-14-fifth-review/verification/arbitrary-displays.txt
+    ?? agent-os/specs/2026-11-12-1852-revision-after-pr-14-fifth-review/verification/duplicates.txt
+    ?? agent-os/specs/2026-11-12-1852-revision-after-pr-14-fifth-review/verification/guards.txt
+    ?? agent-os/specs/2026-11-12-1852-revision-after-pr-14-fifth-review/verification/mutation.txt
+    ?? agent-os/specs/2026-11-12-1852-revision-after-pr-14-fifth-review/verification/plugin-probe.txt
+  this branch's tree, git hash-object of each file the run reads, HEAD's blob beside it:
+    e49d5e9dd275ba8b592103621566206e9a654fa2  src/patchbay_vital/parameters.py  (HEAD 6cc729a8f442581d9d0e68afac929e3afd1a684a)
+    27a1e91bd4483e2fbdebf444799b51f78617ab0e  src/patchbay_vital/float32.py  (HEAD 27a1e91bd4483e2fbdebf444799b51f78617ab0e)
+    d8265cd5668a70b1802e3d7b1917104935e292ff  src/patchbay_vital/errors.py  (HEAD d8265cd5668a70b1802e3d7b1917104935e292ff)
+    f75e2e85d570f3db4bf5ec206bf9143f1ca4922f  src/patchbay_vital/preset.py  (HEAD f75e2e85d570f3db4bf5ec206bf9143f1ca4922f)
+    50fe09b3c3b285b3d569a8b7eb2f76981c7d6164  src/patchbay_vital/__init__.py  (HEAD 50fe09b3c3b285b3d569a8b7eb2f76981c7d6164)
+    109ae1887be396e43ce7939b7115ec9745b6c6ca  src/patchbay_vital/data/parameters.json  (HEAD 109ae1887be396e43ce7939b7115ec9745b6c6ca)
+  main's tree, commit 558b85b56d1f69eaa71dbf0598ce3e65bf391356, extracted with git archive: git hash-object of
+  each extracted file, the blob of main's commit beside it:
+    da6e92b2edd68863505aea08963d9a759477d787  <scratchpad>/r5/main/src/patchbay_vital/parameters.py  (main da6e92b2edd68863505aea08963d9a759477d787)
+    57659eb7e95b42d8b02f14e6fe861c1c09f67992  <scratchpad>/r5/main/src/patchbay_vital/float32.py  (main 57659eb7e95b42d8b02f14e6fe861c1c09f67992)
+    d8265cd5668a70b1802e3d7b1917104935e292ff  <scratchpad>/r5/main/src/patchbay_vital/errors.py  (main d8265cd5668a70b1802e3d7b1917104935e292ff)
+    f75e2e85d570f3db4bf5ec206bf9143f1ca4922f  <scratchpad>/r5/main/src/patchbay_vital/preset.py  (main f75e2e85d570f3db4bf5ec206bf9143f1ca4922f)
+    50fe09b3c3b285b3d569a8b7eb2f76981c7d6164  <scratchpad>/r5/main/src/patchbay_vital/__init__.py  (main 50fe09b3c3b285b3d569a8b7eb2f76981c7d6164)
+    109ae1887be396e43ce7939b7115ec9745b6c6ca  <scratchpad>/r5/main/src/patchbay_vital/data/parameters.json  (main 109ae1887be396e43ce7939b7115ec9745b6c6ca)
+<scratchpad>/r5/tree-before-A.txt <scratchpad>/r5/tree-after-A.txt differ: char 100, line 2
+
+== a note on section A's last line. The two listings differ in `git status` alone, as this diff of
+== them shows: the spec's shape.md, its smaller transcripts and the edits to
+== tests/unit/test_parameters.py were written while the count ran. The count reads none of those
+== files, and the blob of every file it reads is the same before and after, above. Nothing was
+== written to the repository while section BC ran, and its two listings are the same.
+   2c2
+   <   git status --porcelain=v1 --untracked-files=all, 4 lines:
+   ---
+   >   git status --porcelain=v1 --untracked-files=all, 11 lines:
+   3a4
+   >      M tests/unit/test_parameters.py
+   5a7
+   >     ?? agent-os/specs/2026-11-12-1852-revision-after-pr-14-fifth-review/shape.md
+   6a9,13
+   >     ?? agent-os/specs/2026-11-12-1852-revision-after-pr-14-fifth-review/verification/arbitrary-displays.txt
+   >     ?? agent-os/specs/2026-11-12-1852-revision-after-pr-14-fifth-review/verification/duplicates.txt
+   >     ?? agent-os/specs/2026-11-12-1852-revision-after-pr-14-fifth-review/verification/guards.txt
+   >     ?? agent-os/specs/2026-11-12-1852-revision-after-pr-14-fifth-review/verification/mutation.txt
+   >     ?? agent-os/specs/2026-11-12-1852-revision-after-pr-14-fifth-review/verification/plugin-probe.txt
+
+== between the sections the wrapper run_direct.sh changed, in these lines alone: a count that does
+== not exit 0 now ends the run, and sed writes each line as it comes. Section A ran the script
+== embedded above (blob 7aad50e6816361d9be2ef351aecd91c5371fd0b1), section BC the changed one
+== (blob c29657e5646615a8a63cca7a0854e3f20f8f6565, in its header). diff of the two:
+   6,7c6,11
+   < count() { caffeinate -i uv run --locked python "$R/direct_count.py" --main "$R/main/src" --main-processes 4 --branch-processes 8 "$@"; echo "exit=$?"; }
+   < scrub() { sed -e "s#$R#<scratchpad>/r5#g" -e "s#$PWD/##g"; }
+   ---
+   > count() {
+   >   caffeinate -i uv run --locked python "$R/direct_count.py" --main "$R/main/src" --main-processes 4 --branch-processes 8 "$@"
+   >   status=$?; echo "exit=$status"
+   >   if [ "$status" -ne 0 ]; then echo "== a count did not exit 0: nothing after it is run"; exit "$status"; fi
+   > }
+   > scrub() { sed -l -e "s#$R#<scratchpad>/r5#g" -e "s#$PWD/##g"; }
+
+The revision after PR 14's fifth review: the direct count, section BC, run 2026-11-12 20:24 EST on branch
+refactor/13-the-parameter-map-volumes-display-does-not-come-back-through-the-normalized-path-below-2--43-hypothesis-normalized-5857149595214349e-20, machine arm64, macOS 26.6.2 (25G83), 14 cores, Python 3.12.16
+the trees before the run:
+  HEAD d21f1607e5f42c4c50bd59d76a72b6d899998782
+  git status --porcelain=v1 --untracked-files=all, 11 lines:
+     M src/patchbay_vital/parameters.py
+     M tests/unit/test_parameters.py
+    ?? agent-os/specs/2026-11-12-1852-revision-after-pr-14-fifth-review/plan.md
+    ?? agent-os/specs/2026-11-12-1852-revision-after-pr-14-fifth-review/references.md
+    ?? agent-os/specs/2026-11-12-1852-revision-after-pr-14-fifth-review/shape.md
+    ?? agent-os/specs/2026-11-12-1852-revision-after-pr-14-fifth-review/standards.md
+    ?? agent-os/specs/2026-11-12-1852-revision-after-pr-14-fifth-review/verification/arbitrary-displays.txt
+    ?? agent-os/specs/2026-11-12-1852-revision-after-pr-14-fifth-review/verification/duplicates.txt
+    ?? agent-os/specs/2026-11-12-1852-revision-after-pr-14-fifth-review/verification/guards.txt
+    ?? agent-os/specs/2026-11-12-1852-revision-after-pr-14-fifth-review/verification/mutation.txt
+    ?? agent-os/specs/2026-11-12-1852-revision-after-pr-14-fifth-review/verification/plugin-probe.txt
+  this branch's tree, git hash-object of each file the run reads, HEAD's blob beside it:
+    e49d5e9dd275ba8b592103621566206e9a654fa2  src/patchbay_vital/parameters.py  (HEAD 6cc729a8f442581d9d0e68afac929e3afd1a684a)
+    27a1e91bd4483e2fbdebf444799b51f78617ab0e  src/patchbay_vital/float32.py  (HEAD 27a1e91bd4483e2fbdebf444799b51f78617ab0e)
+    d8265cd5668a70b1802e3d7b1917104935e292ff  src/patchbay_vital/errors.py  (HEAD d8265cd5668a70b1802e3d7b1917104935e292ff)
+    f75e2e85d570f3db4bf5ec206bf9143f1ca4922f  src/patchbay_vital/preset.py  (HEAD f75e2e85d570f3db4bf5ec206bf9143f1ca4922f)
+    50fe09b3c3b285b3d569a8b7eb2f76981c7d6164  src/patchbay_vital/__init__.py  (HEAD 50fe09b3c3b285b3d569a8b7eb2f76981c7d6164)
+    109ae1887be396e43ce7939b7115ec9745b6c6ca  src/patchbay_vital/data/parameters.json  (HEAD 109ae1887be396e43ce7939b7115ec9745b6c6ca)
+  main's tree, commit 558b85b56d1f69eaa71dbf0598ce3e65bf391356, extracted with git archive: git hash-object of
+  each extracted file, the blob of main's commit beside it:
+    da6e92b2edd68863505aea08963d9a759477d787  <scratchpad>/r5/main/src/patchbay_vital/parameters.py  (main da6e92b2edd68863505aea08963d9a759477d787)
+    57659eb7e95b42d8b02f14e6fe861c1c09f67992  <scratchpad>/r5/main/src/patchbay_vital/float32.py  (main 57659eb7e95b42d8b02f14e6fe861c1c09f67992)
+    d8265cd5668a70b1802e3d7b1917104935e292ff  <scratchpad>/r5/main/src/patchbay_vital/errors.py  (main d8265cd5668a70b1802e3d7b1917104935e292ff)
+    f75e2e85d570f3db4bf5ec206bf9143f1ca4922f  <scratchpad>/r5/main/src/patchbay_vital/preset.py  (main f75e2e85d570f3db4bf5ec206bf9143f1ca4922f)
+    50fe09b3c3b285b3d569a8b7eb2f76981c7d6164  <scratchpad>/r5/main/src/patchbay_vital/__init__.py  (main 50fe09b3c3b285b3d569a8b7eb2f76981c7d6164)
+    109ae1887be396e43ce7939b7115ec9745b6c6ca  <scratchpad>/r5/main/src/patchbay_vital/data/parameters.json  (main 109ae1887be396e43ce7939b7115ec9745b6c6ca)
+  git hash-object of each script the run runs:
+    fc6b90951f25380c1640a06d8ab5388c0246a59a  <scratchpad>/r5/direct_count.py
+    08982ddfc6f9cb7239c0b49af0acb4f147fb8aec  <scratchpad>/r5/group_key.py
+    42dbfb2279bbec2f6fca607180022235c60e1846  <scratchpad>/r5/tree.sh
+    c29657e5646615a8a63cca7a0854e3f20f8f6565  <scratchpad>/r5/run_direct.sh
+
+== 4. volume, every binade below -96
+== the main pool, 4 processes, imports <scratchpad>/r5/main/src/patchbay_vital/parameters.py
+   and <scratchpad>/r5/main/src/patchbay_vital/float32.py
+== the branch pool, 8 processes, imports src/patchbay_vital/parameters.py
+   and src/patchbay_vital/float32.py
+== volume: binades zero to -97, 260,046,848 float32 normalized values, each through both trees
+      binade           n         S!=         D!=      PRESET        NORM    HELDNORM         ANY        KEPT      PLUGIN       OTHER      UNHELD     UNKNOWN          PN         OUT
+       total   260046848           0           0           0           0           0           0   260046848           0           0           0           0           0           0
+P0 <= 2**-43   260046848           0           0           0           0           0           0   260046848           0           0           0           0           0           0
+ P0 > 2**-43           0           0           0           0           0           0           0           0           0           0           0           0           0           0
+  every value KEPT and nothing differing from main in 32 binades: zero, sub, -126, -125, -124, -123, -122, -121, -120, -119, -118, -117, -116, -115, -114, -113, -112, -111, -110, -109, -108, -107, -106, -105, -104, -103, -102, -101, -100, -99, -98, -97
+  2652 s
+exit=0
+
+== 5. volume, every binade above -55
+== the main pool, 4 processes, imports <scratchpad>/r5/main/src/patchbay_vital/parameters.py
+   and <scratchpad>/r5/main/src/patchbay_vital/float32.py
+== the branch pool, 8 processes, imports src/patchbay_vital/parameters.py
+   and src/patchbay_vital/float32.py
+== volume: binades -54 to one, 452,984,833 float32 normalized values, each through both trees
+      binade           n         S!=         D!=      PRESET        NORM    HELDNORM         ANY        KEPT      PLUGIN       OTHER      UNHELD     UNKNOWN          PN         OUT
+       total   452984833           0           0           0           0           0           0   452984833           0           0           0           0           0           0
+P0 <= 2**-43           0           0           0           0           0           0           0           0           0           0           0           0           0           0
+ P0 > 2**-43   452984833           0           0           0           0           0           0   452984833           0           0           0           0           0           0
+  every value KEPT and nothing differing from main in 55 binades: -54, -53, -52, -51, -50, -49, -48, -47, -46, -45, -44, -43, -42, -41, -40, -39, -38, -37, -36, -35, -34, -33, -32, -31, -30, -29, -28, -27, -26, -25, -24, -23, -22, -21, -20, -19, -18, -17, -16, -15, -14, -13, -12, -11, -10, -9, -8, -7, -6, -5, -4, -3, -2, -1, one
+  5760 s
+exit=0
+
+== 6. the 12 envelope records are one group: uv run --locked python <scratchpad>/r5/group_key.py
+```python
+"""The revision after PR 14's fifth review: the 12 envelope records are one group, shown.
+
+Prints, for each `env_N_delay` and `env_N_hold` record of the committed map, every field the
+direct count's calls read, and then, from the shipped source itself, which attributes of a record,
+its parameter, its scale and its curve each method called reads: the syntax tree of each function
+is walked for attribute reads, and a call to another function or method is followed by name. So
+two records equal in those fields give every call the same inputs. Run from the repository root:
+uv run --locked python <scratchpad>/r5/group_key.py
+"""
+
+import ast
+import inspect
+import textwrap
+
+from patchbay_vital import parameters
+from patchbay_vital.parameters import DisplayCurve, MappedParameter, NormalizedScale, parameter_map
+
+CALLED = [
+    (NormalizedScale, "to_preset"), (NormalizedScale, "to_normalized"), (NormalizedScale, "holds"),
+    (NormalizedScale, "span"), (parameters, "_landing"), (parameters, "_span"),
+    (DisplayCurve, "to_display"), (DisplayCurve, "to_preset"), (parameters, "displayed_ends"),
+    (parameters, "_displayed_ends"), (MappedParameter, "from_normalized"),
+    (MappedParameter, "to_display"), (MappedParameter, "to_preset"),
+    (MappedParameter, "to_normalized"), (MappedParameter, "_resolve"), (MappedParameter, "id"),
+]
+
+
+def source(owner, name):
+    member = inspect.getattr_static(owner, name)
+    member = member.fget if isinstance(member, property) else member
+    member = getattr(member, "__wrapped__", member)
+    lines, first = inspect.getsourcelines(member)
+    return ast.parse(textwrap.dedent("".join(lines))), first
+
+
+def reads(tree):
+    """Return every `<name>.<attribute>` read in a function, as written."""
+    found = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name):
+            found.add(f"{node.value.id}.{node.attr}")
+        elif isinstance(node, ast.Attribute) and isinstance(node.value, ast.Attribute):
+            inner = node.value
+            if isinstance(inner.value, ast.Name):
+                found.add(f"{inner.value.id}.{inner.attr}.{node.attr}")
+    return sorted(found)
+
+
+def main():
+    m = parameter_map()
+    records = [r for r in m.parameters
+               if r.id.startswith("env_") and r.id.rsplit("_", 1)[1] in ("delay", "hold")]
+    print(f"== the {len(records)} envelope delay and hold records, every field the calls read:")
+    print("   id: parameter.kind parameter.minimum parameter.maximum | scale.kind scale.minimum"
+          " scale.maximum | curve.kind curve.multiply curve.offset")
+    keys = set()
+    for r in records:
+        p, s, c = r.parameter, r.scale, r.curve
+        key = (p.kind, p.minimum, p.maximum, s.kind, s.minimum, s.maximum, c.kind, c.multiply,
+               c.offset)
+        keys.add(key)
+        print(f"   {r.id}: {p.kind} {p.minimum!r} {p.maximum!r} | {s.kind} {s.minimum!r}"
+              f" {s.maximum!r} | {c.kind} {c.multiply!r} {c.offset!r}")
+    print(f"== distinct keys among them: {len(keys)}")
+    print("== what each method the count calls, and each it calls in turn, reads, from")
+    print(f"   {inspect.getsourcefile(parameters)}:")
+    for owner, name in CALLED:
+        tree, first = source(owner, name)
+        print(f"   {getattr(owner, '__name__', 'parameters').replace('patchbay_vital.', '')}.{name}"
+              f" (line {first}): {', '.join(reads(tree)) or 'no attribute'}")
+    print("== of a record these read only: parameter.kind, parameter.minimum, parameter.maximum,")
+    print("   scale (kind, minimum, maximum, and span, computed from the two bounds) and curve")
+    print("   (kind, multiply, offset); `self.id`, which is parameter.id, is read only to raise")
+    print("   ParameterRangeError, which no call of the count raised (a raise ends the run).")
+
+
+if __name__ == "__main__":
+    main()
+```
+== the 12 envelope delay and hold records, every field the calls read:
+   id: parameter.kind parameter.minimum parameter.maximum | scale.kind scale.minimum scale.maximum | curve.kind curve.multiply curve.offset
+   env_1_delay: continuous 0.0 3.9999997261716707 | linear 0.0 1.4142135381698608 | quartic 1.0 0.0
+   env_1_hold: continuous 0.0 3.9999997261716707 | linear 0.0 1.4142135381698608 | quartic 1.0 0.0
+   env_2_delay: continuous 0.0 3.9999997261716707 | linear 0.0 1.4142135381698608 | quartic 1.0 0.0
+   env_2_hold: continuous 0.0 3.9999997261716707 | linear 0.0 1.4142135381698608 | quartic 1.0 0.0
+   env_3_delay: continuous 0.0 3.9999997261716707 | linear 0.0 1.4142135381698608 | quartic 1.0 0.0
+   env_3_hold: continuous 0.0 3.9999997261716707 | linear 0.0 1.4142135381698608 | quartic 1.0 0.0
+   env_4_delay: continuous 0.0 3.9999997261716707 | linear 0.0 1.4142135381698608 | quartic 1.0 0.0
+   env_4_hold: continuous 0.0 3.9999997261716707 | linear 0.0 1.4142135381698608 | quartic 1.0 0.0
+   env_5_delay: continuous 0.0 3.9999997261716707 | linear 0.0 1.4142135381698608 | quartic 1.0 0.0
+   env_5_hold: continuous 0.0 3.9999997261716707 | linear 0.0 1.4142135381698608 | quartic 1.0 0.0
+   env_6_delay: continuous 0.0 3.9999997261716707 | linear 0.0 1.4142135381698608 | quartic 1.0 0.0
+   env_6_hold: continuous 0.0 3.9999997261716707 | linear 0.0 1.4142135381698608 | quartic 1.0 0.0
+== distinct keys among them: 1
+== what each method the count calls, and each it calls in turn, reads, from
+   src/patchbay_vital/parameters.py:
+   NormalizedScale.to_preset (line 110): self.kind, self.minimum, self.span
+   NormalizedScale.to_normalized (line 115): no attribute
+   NormalizedScale.holds (line 129): no attribute
+   NormalizedScale.span (line 101): self.maximum, self.minimum
+   parameters._landing (line 151): math.copysign, math.inf, scale.minimum, scale.span, scale.to_preset
+   parameters._span (line 83): functools.lru_cache
+   DisplayCurve.to_display (line 208): self.kind, self.multiply, self.offset
+   DisplayCurve.to_preset (line 212): self.kind, self.multiply, self.offset
+   parameters.displayed_ends (line 234): curve.kind, curve.multiply, curve.offset, scale.maximum, scale.minimum
+   parameters._displayed_ends (line 225): curve.to_display, functools.lru_cache
+   MappedParameter.from_normalized (line 347): self.id, self.scale, self.scale.to_preset, self.to_display
+   MappedParameter.to_display (line 273): self.curve, self.curve.to_display
+   MappedParameter.to_preset (line 277): self._resolve
+   MappedParameter.to_normalized (line 307): self._resolve, self.scale, self.scale.to_normalized
+   MappedParameter._resolve (line 315): curve.to_display, curve.to_preset, display.is_integer, math.copysign, math.inf, parameter.kind, parameter.maximum, parameter.minimum, scale.holds, scale.kind, scale.maximum, scale.minimum, self.curve, self.id, self.parameter, self.scale
+   MappedParameter.id (line 263): self.parameter, self.parameter.id
+== of a record these read only: parameter.kind, parameter.minimum, parameter.maximum,
+   scale (kind, minimum, maximum, and span, computed from the two bounds) and curve
+   (kind, multiply, offset); `self.id`, which is parameter.id, is read only to raise
+   ParameterRangeError, which no call of the count raised (a raise ends the run).
+exit=0
+
+== 7. env_1_delay, every float32 normalized value
+== the main pool, 4 processes, imports <scratchpad>/r5/main/src/patchbay_vital/parameters.py
+   and <scratchpad>/r5/main/src/patchbay_vital/float32.py
+== the branch pool, 8 processes, imports src/patchbay_vital/parameters.py
+   and src/patchbay_vital/float32.py
+== env_1_delay: binades zero to one, 1,065,353,217 float32 normalized values, each through both trees
+      binade           n         S!=         D!=      PRESET        NORM    HELDNORM         ANY        KEPT      PLUGIN       OTHER      UNHELD     UNKNOWN          PN         OUT
+        -126     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+        -125     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+        -124     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+        -123     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+        -122     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+        -121     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+        -120     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+        -119     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+        -118     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+        -117     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+        -116     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+        -115     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+        -114     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+        -113     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+        -112     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+        -111     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+        -110     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+        -109     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+        -108     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+        -107     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+        -106     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+        -105     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+        -104     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+        -103     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+        -102     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+        -101     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+        -100     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+         -99     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+         -98     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+         -97     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+         -96     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+         -95     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+         -94     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+         -93     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+         -92     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+         -91     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+         -90     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+         -89     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+         -88     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+         -87     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+         -86     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+         -85     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+         -84     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+         -83     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+         -82     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+         -81     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+         -80     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+         -79     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+         -78     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+         -77     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+         -76     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+         -75     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+         -74     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+         -73     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+         -72     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+         -71     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+         -70     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+         -69     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+         -68     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+         -67     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+         -66     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+         -65     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+         -64     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+         -63     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+         -62     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+         -61     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+         -60     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+         -59     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+         -58     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+         -57     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+         -56     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+         -55     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+         -54     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+         -53     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+         -52     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+         -51     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+         -50     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+         -49     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+         -48     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+         -47     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+         -46     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+         -45     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+         -44     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+   <= 2**-43     3474677           0           0           0           1           1           1     3474677           0           0           0           0           0           0
+    > 2**-43     4913931           0           0           0           0           0           0     4913931           0           0           0           0           0           0
+         -43     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+         -42     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+         -41     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+         -40     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+         -39     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+         -38     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+         -37     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+         -36     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+         -35     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+         -34     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+         -33     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+         -32     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+         -31     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+         -30     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+         -29     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+         -28     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+         -27     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+         -26     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+         -25     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+         -24     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+         -23     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+         -22     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+         -21     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+         -20     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+         -19     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+         -18     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+         -17     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+         -16     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+         -15     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+         -14     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+         -13     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+         -12     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+         -11     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+         -10     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+          -9     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+          -8     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+          -7     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+          -6     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+          -5     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+          -4     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+          -3     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+          -2     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+          -1     8388608           0           0           0           1           1           1     8388608           0           0           0           0           0           0
+       total  1065353217           0           0           0         126         126         126  1065353217           0           0           0           0           0           0
+P0 <= 2**-43   699729141           0           0           0          83          83          83   699729141           0           0           0           0           0           0
+ P0 > 2**-43   365624076           0           0           0          43          43          43   365624076           0           0           0           0           0           0
+  every value KEPT and nothing differing from main in 3 binades: zero, sub, one
+  14043 s
+exit=0
+
+the trees after the run:
+  HEAD d21f1607e5f42c4c50bd59d76a72b6d899998782
+  git status --porcelain=v1 --untracked-files=all, 11 lines:
+     M src/patchbay_vital/parameters.py
+     M tests/unit/test_parameters.py
+    ?? agent-os/specs/2026-11-12-1852-revision-after-pr-14-fifth-review/plan.md
+    ?? agent-os/specs/2026-11-12-1852-revision-after-pr-14-fifth-review/references.md
+    ?? agent-os/specs/2026-11-12-1852-revision-after-pr-14-fifth-review/shape.md
+    ?? agent-os/specs/2026-11-12-1852-revision-after-pr-14-fifth-review/standards.md
+    ?? agent-os/specs/2026-11-12-1852-revision-after-pr-14-fifth-review/verification/arbitrary-displays.txt
+    ?? agent-os/specs/2026-11-12-1852-revision-after-pr-14-fifth-review/verification/duplicates.txt
+    ?? agent-os/specs/2026-11-12-1852-revision-after-pr-14-fifth-review/verification/guards.txt
+    ?? agent-os/specs/2026-11-12-1852-revision-after-pr-14-fifth-review/verification/mutation.txt
+    ?? agent-os/specs/2026-11-12-1852-revision-after-pr-14-fifth-review/verification/plugin-probe.txt
+  this branch's tree, git hash-object of each file the run reads, HEAD's blob beside it:
+    e49d5e9dd275ba8b592103621566206e9a654fa2  src/patchbay_vital/parameters.py  (HEAD 6cc729a8f442581d9d0e68afac929e3afd1a684a)
+    27a1e91bd4483e2fbdebf444799b51f78617ab0e  src/patchbay_vital/float32.py  (HEAD 27a1e91bd4483e2fbdebf444799b51f78617ab0e)
+    d8265cd5668a70b1802e3d7b1917104935e292ff  src/patchbay_vital/errors.py  (HEAD d8265cd5668a70b1802e3d7b1917104935e292ff)
+    f75e2e85d570f3db4bf5ec206bf9143f1ca4922f  src/patchbay_vital/preset.py  (HEAD f75e2e85d570f3db4bf5ec206bf9143f1ca4922f)
+    50fe09b3c3b285b3d569a8b7eb2f76981c7d6164  src/patchbay_vital/__init__.py  (HEAD 50fe09b3c3b285b3d569a8b7eb2f76981c7d6164)
+    109ae1887be396e43ce7939b7115ec9745b6c6ca  src/patchbay_vital/data/parameters.json  (HEAD 109ae1887be396e43ce7939b7115ec9745b6c6ca)
+  main's tree, commit 558b85b56d1f69eaa71dbf0598ce3e65bf391356, extracted with git archive: git hash-object of
+  each extracted file, the blob of main's commit beside it:
+    da6e92b2edd68863505aea08963d9a759477d787  <scratchpad>/r5/main/src/patchbay_vital/parameters.py  (main da6e92b2edd68863505aea08963d9a759477d787)
+    57659eb7e95b42d8b02f14e6fe861c1c09f67992  <scratchpad>/r5/main/src/patchbay_vital/float32.py  (main 57659eb7e95b42d8b02f14e6fe861c1c09f67992)
+    d8265cd5668a70b1802e3d7b1917104935e292ff  <scratchpad>/r5/main/src/patchbay_vital/errors.py  (main d8265cd5668a70b1802e3d7b1917104935e292ff)
+    f75e2e85d570f3db4bf5ec206bf9143f1ca4922f  <scratchpad>/r5/main/src/patchbay_vital/preset.py  (main f75e2e85d570f3db4bf5ec206bf9143f1ca4922f)
+    50fe09b3c3b285b3d569a8b7eb2f76981c7d6164  <scratchpad>/r5/main/src/patchbay_vital/__init__.py  (main 50fe09b3c3b285b3d569a8b7eb2f76981c7d6164)
+    109ae1887be396e43ce7939b7115ec9745b6c6ca  <scratchpad>/r5/main/src/patchbay_vital/data/parameters.json  (main 109ae1887be396e43ce7939b7115ec9745b6c6ca)
+cmp: the trees before and after are the same

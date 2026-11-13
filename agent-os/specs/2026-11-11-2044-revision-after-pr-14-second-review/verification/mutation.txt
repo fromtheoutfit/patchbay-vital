@@ -1,0 +1,295 @@
+The revision after PR 14's second review: the exceptions follow values, and excuse only their own shape, run 2026-11-11 21:27 EST
+on branch refactor/13-the-parameter-map-volumes-display-does-not-come-back-through-the-normalized-path-below-2--43-hypothesis-normalized-5857149595214349e-20 at c15944648c8c74725dab676e5d8883dd60277e4d, machine arm64; the working tree is not touched
+the tree (git status --short):
+   M CHANGELOG.md
+   M README.md
+   M tests/conftest.py
+   M tests/data/power-of-two-presets.txt
+   M tests/data/volume-floor.txt
+   M tests/integration/test_vital_plugin.py
+   M tests/unit/test_parameters.py
+  ?? agent-os/specs/2026-11-11-2044-revision-after-pr-14-second-review/
+tests/unit/test_parameters.py, this revision's: 651bc1a90b620b320ed8a4bdfb208c00b95405a6; HEAD's: 464cb0a6ae4eec34d621929cf5831278fc55768d, written to <scratch>/head_test_parameters.py
+
+############ part 1: M1 and M2, the allowance by value and not by name, on this tree's src/
+
+== the script, run from the repository root as: uv run --locked python mutation.py <scratch>/head_test_parameters.py
+```python
+"""The revision after PR 14's second review: the floor's allowance follows values, not a name.
+
+Run from the repository root. Loads this revision's tests/unit/test_parameters.py and HEAD's
+(written to the path given as the first argument, `git show HEAD:tests/unit/test_parameters.py`),
+both against this tree's src/, which only docstrings separate from HEAD's.
+
+M1, the same absorption under another name: volume's committed record copied under the id
+`renamed_volume`. At every row of tests/data/volume-floor.txt, this revision's `_assert_comes_back`
+passes, the allowance found by `_shares_its_display`; HEAD's fails, its `_ABSORBED` keyed by id.
+
+M2, the name without the absorption: a record named `volume` with volume's scale and a square
+root curve with no offset, so no two neighbouring presets share a display. HEAD's
+`_assert_comes_back` takes its floor branch, asserting neither A3 nor an exact set, wherever the
+preset is at or below 2 ** -43; this revision's consults `_shares_its_display` only where a claim
+fails, and no claim fails, so it asserts A3 and the set path exactly there. No test-failure form
+of M2 exists: with a monotone curve, a display that maps to another preset is a display two presets
+share, and a set lands one double off only where the display cannot tell neighbours apart, so a
+record without the absorption has no failure HEAD's branch could hide. So M2 counts the branch
+each takes, over the rows and over 10,000 presets at or below the floor.
+"""
+
+import importlib.util
+import math
+import sys
+from pathlib import Path
+
+import numpy as np
+from patchbay import ParameterId
+
+from patchbay_vital.parameters import DisplayCurve, parameter_map
+
+sys.path.insert(0, "tests")
+import conftest  # noqa: E402
+
+
+def load(name, path):
+    spec = importlib.util.spec_from_file_location(name, path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+ours = load("ours", "tests/unit/test_parameters.py")
+head = load("head", sys.argv[1])
+rows = conftest.recorded_rows(Path("tests/data/volume-floor.txt"))
+volume = parameter_map().find(ParameterId("volume"))
+
+print("== M1: volume's record under the id renamed_volume")
+renamed = volume.model_copy(
+    update={"parameter": volume.parameter.model_copy(update={"id": ParameterId("renamed_volume")})}
+)
+print(f"  scale and curve volume's: {renamed.scale == volume.scale and renamed.curve == volume.curve};"
+      f" id {renamed.id!r}")
+for normalized, _ in rows:
+    outcome = []
+    for label, module in (("this revision", ours), ("HEAD", head)):
+        try:
+            module._assert_comes_back(renamed, normalized)
+            outcome.append(f"{label} passes")
+        except AssertionError as error:
+            line = error.__traceback__.tb_next.tb_lineno if error.__traceback__.tb_next else "?"
+            outcome.append(f"{label} fails (AssertionError at its line {line})")
+    print(f"  r={normalized!r}: " + "; ".join(outcome))
+
+print("\n== M2: a record named volume, volume's scale, a square root curve with no offset")
+plain = ours._record(
+    "volume",
+    "volume",
+    scale=volume.scale,
+    curve=DisplayCurve(kind="square_root", multiply=1.0, offset=0.0),
+    preset_default=volume.preset_default,
+    unit=volume.parameter.unit,
+    host_unit=volume.host_unit,
+)
+print(f"  id {plain.id!r}, curve {plain.curve!r}")
+floor_bits = int(np.float32(volume.scale.to_normalized(2.0**-43)).view(np.uint32))
+rng = np.random.default_rng(15)
+sample = rng.integers(1, floor_bits + 1, 10_000, dtype=np.uint32).view(np.float32).astype(np.float64)
+values = [normalized for normalized, _ in rows] + [float(x) for x in sample]
+values = [x for x in values if plain.scale.to_preset(x) <= 2.0**-43]
+calls = {"n": 0}
+real = ours._shares_its_display
+
+
+def counted(record, preset):
+    calls["n"] += 1
+    return real(record, preset)
+
+
+ours._shares_its_display = counted
+head_branch = ours_failed = head_failed = shares_true = 0
+for x in values:
+    preset = plain.scale.to_preset(x)
+    head_branch += not preset > head._ABSORBED.get(plain.id, -math.inf)
+    shares_true += real(plain, preset)
+    for module in (ours, head):
+        try:
+            module._assert_comes_back(plain, x)
+        except AssertionError:
+            if module is ours:
+                ours_failed += 1
+            else:
+                head_failed += 1
+ours._shares_its_display = real
+print(f"  {len(values)} values with a preset at or below 2 ** -43 (the four rows and the sample)")
+print(f"  HEAD's floor branch taken, A3 and an exact set not asserted: {head_branch}")
+print(f"  this revision's _shares_its_display consulted: {calls['n']}; true on any of them: {shares_true}")
+print(f"  _assert_comes_back failures: this revision {ours_failed}, HEAD {head_failed}")
+```
+
+== its output
+== M1: volume's record under the id renamed_volume
+  scale and curve volume's: True; id 'renamed_volume'
+  r=5.857149595214349e-20: this revision passes; HEAD fails (AssertionError at its line 240)
+  r=3.4694490199051456e-18: this revision passes; HEAD fails (AssertionError at its line 240)
+  r=1.439742266862027e-17: this revision passes; HEAD fails (AssertionError at its line 240)
+  r=1.53642479121845e-17: this revision passes; HEAD fails (AssertionError at its line 240)
+
+== M2: a record named volume, volume's scale, a square root curve with no offset
+  id 'volume', curve DisplayCurve(kind='square_root', multiply=1.0, offset=0.0)
+  10004 values with a preset at or below 2 ** -43 (the four rows and the sample)
+  HEAD's floor branch taken, A3 and an exact set not asserted: 10004
+  this revision's _shares_its_display consulted: 0; true on any of them: 0
+  _assert_comes_back failures: this revision 0, HEAD 0
+exit=0
+
+############ part 2: M3 and M4, a check failing another way where a predicate holds, on a mutated copy of src/
+
+== the mutation (diff of src/patchbay_vital/parameters.py, the tree's against <scratch>/mut3's)
+--- src/patchbay_vital/parameters.py	2026-11-11 19:55:29
++++ <scratch>/mut3/src/patchbay_vital/parameters.py	2026-11-11 21:26:53
+@@ -118,8 +118,19 @@
+         (the revision after PR 14's review, `verification/sweep.txt` and
+         `verification/plugin-probe.txt`). Issue #15 is to return the neighbour that lands on it.
+         """
+-        return round_to_float32((Fraction(preset) - Fraction(self.minimum)) / Fraction(self.span))
++        result = round_to_float32((Fraction(preset) - Fraction(self.minimum)) / Fraction(self.span))
++        import numpy as np  # MUTATION, both cases below
+ 
++        missed = self.to_preset(result) != preset
++        # M3: an unheld preset in (1e-13, 2 ** -43] is sent 8 float32 steps up
++        if missed and 1e-13 < preset <= 2.0**-43:
++            for _ in range(8):
++                result = float(np.nextafter(np.float32(result), np.float32(1.0)))
++        # M4: a power of two the nearest quotient misses is sent one float32 further down
++        if missed and preset > 0 and preset == 2.0 ** (math.frexp(preset)[1] - 1):
++            result = float(np.nextafter(np.float32(result), np.float32(-np.inf)))
++        return result
++
+     @model_validator(mode="after")
+     def _bounds_are_float32_and_ordered(self) -> Self:
+         if not (_is_float32(self.minimum) and _is_float32(self.maximum)):
+
+== the script, run from the repository root as: PYTHONPATH=<scratch>/mut3/src uv run --locked python mutation_b.py
+```python
+"""M3 and M4: a check that fails another way where a predicate holds is not excused.
+
+Run from the repository root with a mutated copy of src/ first on the path: its
+`NormalizedScale.to_normalized` sends an unheld preset in (1e-13, 2 ** -43] eight float32 steps up
+(M3), and a power of two the nearest quotient misses one float32 further down (M4). This
+revision's tests/unit/test_parameters.py is loaded against it.
+
+M3: at volume's rows and at 10,000 values of binade -56 where `_shares_its_display` holds, the set
+path now lands several doubles off: the exact check fails, the predicate is asked and holds, and
+the value still fails, because the excuse is "one neighbouring double", not "shares a display".
+M4: at env_1_delay's power-of-two rows the held preset lands two float32 below the power: HELD's
+exact check fails, `_lands_below_its_power_of_two` is asked and is false, so the value fails.
+A3 has no such case: A1, the display coming back, is asserted first on every value, so a value
+that fails A3 and passes A1 is a preset whose display another preset shows, which is the shared
+display itself; an A3 failure of any other shape fails A1 first.
+"""
+
+import importlib.util
+import sys
+from pathlib import Path
+
+import numpy as np
+from patchbay import ParameterId
+
+import patchbay_vital.parameters as parameters
+from patchbay_vital.parameters import parameter_map
+
+sys.path.insert(0, "tests")
+import conftest  # noqa: E402
+
+spec = importlib.util.spec_from_file_location("ours", "tests/unit/test_parameters.py")
+ours = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(ours)
+print(f"patchbay_vital.parameters from {parameters.__file__.split('/src/')[0].split('/')[-1]}/src/...")
+
+volume = parameter_map().find(ParameterId("volume"))
+rows = conftest.recorded_rows(Path("tests/data/volume-floor.txt"))
+rng = np.random.default_rng(16)
+binade = rng.integers((-56 + 127) << 23, (-55 + 127) << 23, 10_000, dtype=np.uint32)
+values = [r for r, _ in rows] + [float(x) for x in binade.view(np.float32)]
+asked = held_true = failed = 0
+real = ours._shares_its_display
+
+
+def counted(record, preset):
+    global asked, held_true
+    asked += 1
+    answer = real(record, preset)
+    held_true += answer
+    return answer
+
+
+ours._shares_its_display = counted
+shared = [x for x in values if real(volume, volume.scale.to_preset(x))]
+landing = {"exact": 0, "one neighbouring double": 0, "further": 0}
+further_failed = other_failed = 0
+for x in shared:
+    display = volume.from_normalized(x)
+    shown = volume.to_display(volume.scale.to_preset(volume.to_normalized(display)))
+    near = shown in (conftest.stepped(display, -1, 64), conftest.stepped(display, 1, 64))
+    kind = "exact" if shown == display else ("one neighbouring double" if near else "further")
+    landing[kind] += 1
+    try:
+        ours._assert_comes_back(volume, x)
+    except AssertionError:
+        failed += 1
+        if kind == "further":
+            further_failed += 1
+        else:
+            other_failed += 1
+ours._shares_its_display = real
+print("\n== M3: the set path pushed several doubles off where the preset shares its display")
+print(f"  {len(shared)} of {len(values)} values (the four rows, 10,000 of binade -56) share a display,"
+      f" the predicate true on each")
+print(f"  a set's display lands: {landing}")
+print(f"  _assert_comes_back fails on {failed}: {further_failed} of the {landing['further']} landing"
+      f" further, {other_failed} others; the predicate asked {asked} times, true {held_true}")
+for r, steps in rows:
+    try:
+        ours._assert_comes_back(volume, r)
+        print(f"  row r={r!r} (step {steps:+d}): passes")
+    except AssertionError as error:
+        frame = error.__traceback__
+        while frame.tb_next:
+            frame = frame.tb_next
+        print(f"  row r={r!r} (step {steps:+d}): fails at test_parameters.py:{frame.tb_lineno}")
+
+print("\n== M4: a held power of two pushed a second float32 below")
+delay = parameter_map().find(ParameterId("env_1_delay"))
+for r, steps in conftest.recorded_rows(Path("tests/data/power-of-two-presets.txt")):
+    preset = delay.scale.to_preset(r)
+    held = delay.scale.to_preset(delay.scale.to_normalized(preset))
+    excused = ours._lands_below_its_power_of_two(preset, held)
+    try:
+        ours._assert_comes_back(delay, r)
+        outcome = "passes"
+    except AssertionError as error:
+        frame = error.__traceback__
+        while frame.tb_next:
+            frame = frame.tb_next
+        outcome = f"fails at test_parameters.py:{frame.tb_lineno}"
+    print(f"  r={r!r}: preset {preset!r}, held {held!r}"
+          f" ({conftest.stepped(preset, -2, 32) == held and 'two float32 below' or 'other'});"
+          f" _lands_below_its_power_of_two {excused}; _assert_comes_back {outcome}")
+```
+
+== its output
+patchbay_vital.parameters from mut3/src/...
+
+== M3: the set path pushed several doubles off where the preset shares its display
+  562 of 10004 values (the four rows, 10,000 of binade -56) share a display, the predicate true on each
+  a set's display lands: {'exact': 329, 'one neighbouring double': 1, 'further': 232}
+  _assert_comes_back fails on 232: 232 of the 232 landing further, 0 others; the predicate asked 519 times, true 519
+  row r=5.857149595214349e-20 (step +0): passes
+  row r=3.4694490199051456e-18 (step +1): passes
+  row r=1.439742266862027e-17 (step -1): fails at test_parameters.py:238
+  row r=1.53642479121845e-17 (step -1): fails at test_parameters.py:238
+
+== M4: a held power of two pushed a second float32 below
+  r=0.7071068286895752: preset 1.0, held 0.9999998807907104 (two float32 below); _lands_below_its_power_of_two False; _assert_comes_back fails at test_parameters.py:233
+  r=0.3535534143447876: preset 0.5, held 0.4999999403953552 (two float32 below); _lands_below_its_power_of_two False; _assert_comes_back fails at test_parameters.py:233
+  r=6.74349621476722e-07: preset 9.5367431640625e-07, held 9.536742027194123e-07 (two float32 below); _lands_below_its_power_of_two False; _assert_comes_back fails at test_parameters.py:233
+exit=0

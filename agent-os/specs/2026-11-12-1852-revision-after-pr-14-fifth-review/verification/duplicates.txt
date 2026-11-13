@@ -1,0 +1,134 @@
+The revision after PR 14's fifth review: the 14 records counted beside their groups, each table whole, run 2026-11-12 19:05 EST on branch
+refactor/13-the-parameter-map-volumes-display-does-not-come-back-through-the-normalized-path-below-2--43-hypothesis-normalized-5857149595214349e-20, machine arm64, Python 3.12.16
+the tree before the run:
+  HEAD d21f1607e5f42c4c50bd59d76a72b6d899998782
+  git status --porcelain=v1, 3 lines:
+     M src/patchbay_vital/parameters.py
+     M tests/unit/test_parameters.py
+    ?? agent-os/specs/2026-11-12-1852-revision-after-pr-14-fifth-review/
+  git hash-object of each file the run reads, HEAD's blob beside it:
+    e49d5e9dd275ba8b592103621566206e9a654fa2  src/patchbay_vital/parameters.py  (HEAD 6cc729a8f442581d9d0e68afac929e3afd1a684a)
+    109ae1887be396e43ce7939b7115ec9745b6c6ca  src/patchbay_vital/data/parameters.json  (HEAD 109ae1887be396e43ce7939b7115ec9745b6c6ca)
+    6f30e49be0ffc939696eadc6a599dafbdece52f7  agent-os/specs/2026-11-12-1319-revision-after-pr-14-fourth-review/verification/sweep.txt  (HEAD 6f30e49be0ffc939696eadc6a599dafbdece52f7)
+  git hash-object of the script: d80d4451439877b507d847b9ee4fc294676b79c9  <scratchpad>/r5/duplicates.py
+
+== the script, run from the repository root as: uv run --locked python <scratchpad>/r5/duplicates.py agent-os/specs/2026-11-12-1319-revision-after-pr-14-fourth-review/verification/sweep.txt
+```python
+"""The revision after PR 14's fifth review: each record counted beside its group, table for table.
+
+The fourth-review revision's `sweep.py` counted the six records with a curve offset and the 12
+envelope delay and hold records directly, each beside its group's count. Its `duplicates.py`
+compared each such record's binade rows and total with its group's first record's, and skipped
+each table's closing line, which holds the number of binades where nothing but n was counted and
+the number of values given to the exact scalar computation. This reads the same transcript and
+compares each table whole: the line after the record's name (its scale, curve and bounds), the
+column header, every binade row, the total, and the closing line with only its run time, the
+seconds at its end, removed. Run from the repository root:
+uv run --locked python <scratchpad>/r5/duplicates.py <the fourth-review sweep.txt>
+"""
+
+import re
+import sys
+
+from patchbay import ParameterId
+from patchbay_vital.parameters import parameter_map
+
+
+def group_key(rec):
+    p, s, c = rec.parameter, rec.scale, rec.curve
+    return (p.kind, s.kind, s.minimum, s.maximum, c.kind, c.multiply, c.offset, p.minimum, p.maximum)
+
+
+def tables(path):
+    """Return each counted record's table: its heading less its name, and every line to its last."""
+    out, name, rows = {}, None, []
+    with open(path, encoding="utf-8") as transcript:
+        for line in transcript:
+            line = line.rstrip("\n")
+            if line.startswith("== the script, run from the repository root beside"):
+                break  # the exponential section, which counts each group once
+            if line.startswith("-- ") and ": scale " in line:
+                name, rows = line[3:].split(":", 1)[0], [line[3:].split(":", 1)[1]]
+            elif name and line.startswith("  nothing but n counted"):
+                closing, seconds = re.subn(r"; [0-9]+ s$", "", line)
+                assert seconds == 1, line
+                out[name] = [*rows, closing]
+                name = None
+            elif name:
+                rows.append(line)
+    return out
+
+
+def main():
+    counted = tables(sys.argv[1])
+    groups = {}
+    for rec in parameter_map().parameters:
+        groups.setdefault(group_key(rec), []).append(rec.id)
+    first = {rid: ids[0] for ids in groups.values() for rid in ids}
+    direct = [name for name in counted if first[ParameterId(name)] != name]
+    print(f"== {len(counted)} tables read; {len(direct)} records counted beside their group, each"
+          " against its group's first record")
+    same = 0
+    for name in direct:
+        group = first[ParameterId(name)]
+        ours, theirs = counted[name], counted[group]
+        equal = ours == theirs
+        same += equal
+        print(f"  {name} against {group}: {len(ours)} and {len(theirs)} lines (heading, header,"
+              f" binades, total, closing line), identical {equal}")
+        print(f"    closing line: {ours[-1].strip()}")
+        for a, b in zip(ours, theirs, strict=False):
+            if a != b:
+                print(f"    differs: {a!r}\n         from {b!r}")
+    print(f"== {same} of {len(direct)} identical, every line of each table, the run time alone left"
+          " out")
+
+
+if __name__ == "__main__":
+    main()
+```
+
+== its output
+== 83 tables read; 14 records counted beside their group, each against its group's first record
+  delay_tempo against delay_aux_tempo: 4 and 4 lines (heading, header, binades, total, closing line), identical True
+    closing line: nothing but n counted in the 129 binades not printed; scalar fallbacks 0
+  filter_2_cutoff against filter_1_cutoff: 133 and 133 lines (heading, header, binades, total, closing line), identical True
+    closing line: nothing but n counted in the 0 binades not printed; scalar fallbacks 0
+  filter_fx_cutoff against filter_1_cutoff: 133 and 133 lines (heading, header, binades, total, closing line), identical True
+    closing line: nothing but n counted in the 0 binades not printed; scalar fallbacks 0
+  env_1_hold against env_1_delay: 133 and 133 lines (heading, header, binades, total, closing line), identical True
+    closing line: nothing but n counted in the 0 binades not printed; scalar fallbacks 0
+  env_2_delay against env_1_delay: 133 and 133 lines (heading, header, binades, total, closing line), identical True
+    closing line: nothing but n counted in the 0 binades not printed; scalar fallbacks 0
+  env_2_hold against env_1_delay: 133 and 133 lines (heading, header, binades, total, closing line), identical True
+    closing line: nothing but n counted in the 0 binades not printed; scalar fallbacks 0
+  env_3_delay against env_1_delay: 133 and 133 lines (heading, header, binades, total, closing line), identical True
+    closing line: nothing but n counted in the 0 binades not printed; scalar fallbacks 0
+  env_3_hold against env_1_delay: 133 and 133 lines (heading, header, binades, total, closing line), identical True
+    closing line: nothing but n counted in the 0 binades not printed; scalar fallbacks 0
+  env_4_delay against env_1_delay: 133 and 133 lines (heading, header, binades, total, closing line), identical True
+    closing line: nothing but n counted in the 0 binades not printed; scalar fallbacks 0
+  env_4_hold against env_1_delay: 133 and 133 lines (heading, header, binades, total, closing line), identical True
+    closing line: nothing but n counted in the 0 binades not printed; scalar fallbacks 0
+  env_5_delay against env_1_delay: 133 and 133 lines (heading, header, binades, total, closing line), identical True
+    closing line: nothing but n counted in the 0 binades not printed; scalar fallbacks 0
+  env_5_hold against env_1_delay: 133 and 133 lines (heading, header, binades, total, closing line), identical True
+    closing line: nothing but n counted in the 0 binades not printed; scalar fallbacks 0
+  env_6_delay against env_1_delay: 133 and 133 lines (heading, header, binades, total, closing line), identical True
+    closing line: nothing but n counted in the 0 binades not printed; scalar fallbacks 0
+  env_6_hold against env_1_delay: 133 and 133 lines (heading, header, binades, total, closing line), identical True
+    closing line: nothing but n counted in the 0 binades not printed; scalar fallbacks 0
+== 14 of 14 identical, every line of each table, the run time alone left out
+exit=0
+
+the tree after the run:
+  HEAD d21f1607e5f42c4c50bd59d76a72b6d899998782
+  git status --porcelain=v1, 3 lines:
+     M src/patchbay_vital/parameters.py
+     M tests/unit/test_parameters.py
+    ?? agent-os/specs/2026-11-12-1852-revision-after-pr-14-fifth-review/
+  git hash-object of each file the run reads, HEAD's blob beside it:
+    e49d5e9dd275ba8b592103621566206e9a654fa2  src/patchbay_vital/parameters.py  (HEAD 6cc729a8f442581d9d0e68afac929e3afd1a684a)
+    109ae1887be396e43ce7939b7115ec9745b6c6ca  src/patchbay_vital/data/parameters.json  (HEAD 109ae1887be396e43ce7939b7115ec9745b6c6ca)
+    6f30e49be0ffc939696eadc6a599dafbdece52f7  agent-os/specs/2026-11-12-1319-revision-after-pr-14-fourth-review/verification/sweep.txt  (HEAD 6f30e49be0ffc939696eadc6a599dafbdece52f7)
+cmp: the tree after the run is the tree before it, line for line

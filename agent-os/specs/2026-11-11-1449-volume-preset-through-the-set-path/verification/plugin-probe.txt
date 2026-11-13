@@ -1,0 +1,105 @@
+Issue #13's plugin probe, run 2026-11-11 15:09 EST on branch refactor/13-the-parameter-map-volumes-display-does-not-come-back-through-the-normalized-path-below-2--43-hypothesis-normalized-5857149595214349e-20
+at 558b85b56d1f69eaa71dbf0598ce3e65bf391356, machine arm64, Vital at /Library/Audio/Plug-Ins/VST3/Vital.vst3
+the tree before the run (git status --short):
+   M CHANGELOG.md
+   M src/patchbay_vital/parameters.py
+   M tests/integration/test_vital_plugin.py
+   M tests/unit/test_parameters.py
+  ?? agent-os/specs/2026-11-11-1449-volume-preset-through-the-set-path/
+
+== the script, run from the repository root as: uv run --locked python plugin_probe.py
+   (blank lines the plugin prints are dropped)
+```python
+"""Issue #13: what Vital itself holds after a set below volume's floor, and after a load.
+
+Run from the repository root. The set is the integration test's own helper, `_held_after_a_set`,
+and the distance its `_double_ulps`, imported from `tests/integration/test_vital_plugin.py`, so
+the probe measures what the test does. P0 = scale.to_preset(r), D0 = to_display(P0),
+P1 = to_preset(D0), P2 = scale.to_preset(to_normalized(D0)).
+"""
+
+import importlib.metadata
+import json
+import platform
+import sys
+
+sys.path.insert(0, "tests/integration")
+
+from patchbay import ParameterId  # noqa: E402
+
+import test_vital_plugin as t  # noqa: E402
+from patchbay_vital.host import VitalHost, _floats  # noqa: E402
+from patchbay_vital.parameters import parameter_map  # noqa: E402
+
+record = parameter_map().find(ParameterId("volume"))
+scale = record.scale
+host = VitalHost()
+initial = host.state()
+print(f"machine {platform.machine()}, the map's {parameter_map().machine}; {host.name} {host.version};"
+      f" pedalboard {importlib.metadata.version('pedalboard')}; host {host.host}")
+
+print("\n== a set of D0, normalized as the map gives it (the test's _held_after_a_set)")
+SET_FAILURES = (6.938902175713354e-18, 1.3877796079620582e-17, 1.439742266862027e-17)
+for r in (*t._BELOW_VOLUME_S_FLOOR, *SET_FAILURES):
+    host.load_state(initial)
+    p0 = scale.to_preset(r)
+    d0 = record.from_normalized(r)
+    p1 = record.to_preset(d0)
+    p2 = scale.to_preset(record.to_normalized(d0))
+    held = t._held_after_a_set(host, record, d0)
+    print(f"r={r!r}: P0 {p0!r}, P1 {p1!r}, P2 {p2!r}; Vital holds {held!r}:"
+          f" == P2 {held == p2}, == P1 {held == p1}, == P0 {held == p0};"
+          f" its display {t._double_ulps(record.to_display(held), d0)} double ulps off D0"
+          f" (the test's constant: {t._BELOW_VOLUME_S_FLOOR.get(r, '-')})")
+
+print("\n== a set of r itself")
+for r in t._BELOW_VOLUME_S_FLOOR:
+    host.load_state(initial)
+    host.set(record.id, r)
+    held = _floats(host.state())[record.preset_key]
+    print(f"r={r!r}: Vital holds {held!r}, == P0 {held == scale.to_preset(r)}")
+
+print("\n== a load holding P1 at the issue's value")
+r = 5.857149595214349e-20
+d0 = record.from_normalized(r)
+p1, p2 = record.to_preset(d0), scale.to_preset(record.to_normalized(d0))
+document = json.loads(initial)
+document["settings"]["volume"] = p1
+text = json.dumps(document).encode()
+host.load_state(initial)
+host.set(record.id, r)
+host.load_state(text)
+after_set = _floats(host.state())[record.preset_key]
+print(f"after a set of volume, then the load: Vital holds {after_set!r}, == P1 {after_set == p1},"
+      f" == P2 {after_set == p2}")
+fresh = VitalHost()
+fresh.load_state(text)
+floats = _floats(fresh.state())
+first = floats[record.preset_key]
+print(f"a fresh instance, no set, the load: Vital holds {first!r}, == P1 {first == p1},"
+      f" == P2 {first == p2}")
+# the host spec's off-grid case in the same load: chorus_feedback's init default, off the grid,
+# was held exactly by a load with no host set before it (its verification/discovery.md)
+chorus = parameter_map().find(ParameterId("chorus_feedback"))
+given = document["settings"]["chorus_feedback"]
+on_grid = chorus.scale.to_preset(chorus.scale.to_normalized(given))
+print(f"  the same load's chorus_feedback: given {given!r} (on the host's grid: {on_grid == given}),"
+      f" Vital holds {floats['chorus_feedback']!r}, == given {floats['chorus_feedback'] == given}")
+```
+
+== its output
+machine arm64, the map's arm64; Vital 1.6.4; pedalboard 0.9.26; host pedalboard 0.9.26
+== a set of D0, normalized as the map gives it (the test's _held_after_a_set)
+r=5.857149595214349e-20: P0 4.3339629239370393e-16, P1 4.3339650415194074e-16, P2 4.3339647768216114e-16; Vital holds 4.3339647768216114e-16: == P2 True, == P1 False, == P0 False; its display 0 double ulps off D0 (the test's constant: 0)
+r=3.4694490199051456e-18: P0 2.567198129153469e-14, P1 2.5671982985600583e-14, P2 2.5671984679666478e-14; Vital holds 2.5671984679666478e-14: == P2 True, == P1 False, == P0 False; its display 1 double ulps off D0 (the test's constant: 1)
+r=6.938902175713354e-18: P0 5.134399307625548e-14, P1 5.134399646438727e-14, P2 5.1343999852519057e-14; Vital holds 5.1343999852519057e-14: == P2 True, == P1 False, == P0 False; its display 1 double ulps off D0 (the test's constant: -)
+r=1.3877796079620582e-17: P0 1.0268792516613875e-13, P1 1.0268793194240233e-13, P2 1.0268793871866591e-13; Vital holds 1.0268793871866591e-13: == P2 True, == P1 False, == P0 False; its display 1 double ulps off D0 (the test's constant: -)
+r=1.439742266862027e-17: P0 1.0653287198800557e-13, P1 1.0653286521174199e-13, P2 1.0653285843547841e-13; Vital holds 1.0653285843547841e-13: == P2 True, == P1 False, == P0 False; its display 1 double ulps off D0 (the test's constant: -)
+== a set of r itself
+r=5.857149595214349e-20: Vital holds 4.3339629239370393e-16, == P0 True
+r=3.4694490199051456e-18: Vital holds 2.567198129153469e-14, == P0 True
+== a load holding P1 at the issue's value
+after a set of volume, then the load: Vital holds 4.3339647768216114e-16, == P1 False, == P2 True
+a fresh instance, no set, the load: Vital holds 4.3339647768216114e-16, == P1 False, == P2 True
+  the same load's chorus_feedback: given 0.4000000059604645 (on the host's grid: False), Vital holds 0.4000000059604645, == given True
+exit=0

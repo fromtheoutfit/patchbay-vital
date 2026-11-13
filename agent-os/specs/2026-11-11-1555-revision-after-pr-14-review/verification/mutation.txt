@@ -1,0 +1,104 @@
+The revision after PR 14's review: a mutation of the map, run 2026-11-11 17:07 EST on branch refactor/13-the-parameter-map-volumes-display-does-not-come-back-through-the-normalized-path-below-2--43-hypothesis-normalized-5857149595214349e-20
+at 0568b32c8bef09ea363ea560f8748d91f91ce809, machine arm64, Python 3.12.16, on scratch copies; the working tree is not touched
+the tree copied (git status --short):
+   M CHANGELOG.md
+   M src/patchbay_vital/parameters.py
+   M tests/integration/test_vital_plugin.py
+   M tests/unit/test_parameters.py
+  ?? agent-os/specs/2026-11-11-1555-revision-after-pr-14-review/
+  ?? tests/conftest.py
+  ?? tests/data/power-of-two-presets.txt
+  ?? tests/data/volume-floor.txt
+
+Finding 3 says a regression in NormalizedScale.to_normalized that touches only presets the scale
+does not hold, or pushes a set's display at or below volume's floor two or more ulps off, passed
+PR 14's property. The mutation below sends an unheld preset in (1e-13, 2 ** -43] eight float32
+steps up, so a set's display there lands several double ulps off; it leaves every held preset,
+and _ONE_ULP_OFF's preset 2.57e-14, as they were. Two copies of src/ and tests/ carry it: one
+with this revision's tests, one with PR 14's tests/unit/test_parameters.py (HEAD's) and without
+the files this revision adds. Each runs tests/unit/test_parameters.py with the copy's src/ first
+on the path.
+
+== the mutation (diff of src/patchbay_vital/parameters.py, the tree's against the copies')
+--- src/patchbay_vital/parameters.py	2026-11-11 17:04:27
++++ <scratch>/mut/src/patchbay_vital/parameters.py	2026-11-11 17:07:21
+@@ -119,7 +119,13 @@
+         `verification/plugin-probe.txt`). Issue #15 is to return the neighbour that lands on
+         it.
+         """
+-        return round_to_float32((Fraction(preset) - Fraction(self.minimum)) / Fraction(self.span))
++        result = round_to_float32((Fraction(preset) - Fraction(self.minimum)) / Fraction(self.span))
++        # MUTATION: an unheld preset in (1e-13, 2 ** -43] is sent 8 float32 steps up
++        if 1e-13 < preset <= 2.0**-43 and self.to_preset(result) != preset:
++            import numpy as np
++            for _ in range(8):
++                result = float(np.nextafter(np.float32(result), np.float32(1.0)))
++        return result
+ 
+     @model_validator(mode="after")
+     def _bounds_are_float32_and_ordered(self) -> Self:
+
+== this revision's tests on the mutation: PYTHONPATH=<scratch>/mut/src python -m pytest -c pyproject.toml -p no:doctest tests/unit/test_parameters.py
+  patchbay_vital.parameters from <scratch>/mut/src/patchbay_vital/parameters.py
+...................................F.................................... [100%]
+=================================== FAILURES ===================================
+______ test_at_or_below_volume_s_floor_a_set_s_display_lands_as_recorded _______
+
+volume_floor = ((5.857149595214349e-20, 0), (3.4694490199051456e-18, 1), (1.439742266862027e-17, -1), (1.53642479121845e-17, -1))
+
+    def test_at_or_below_volume_s_floor_a_set_s_display_lands_as_recorded(
+        volume_floor: tuple[tuple[float, int], ...],
+    ) -> None:
+        """At or below 2 ** -43 a set's display lands where each row says: issue #15 changes it.
+    
+        This is the map's behaviour today, held so it changes only on purpose. At each row of
+        `tests/data/volume-floor.txt` the display maps to a float32 the scale does not hold;
+        `to_preset`'s value shows the display, and the normalized path lands on a held neighbour shown
+        at the row's step, the display itself or the double above (+1) or below (-1) it, as Vital
+        holds it (`test_vital_plugin.py` reads the same rows). Issue #15's fix is expected to
+        change the three non-zero rows, on purpose.
+        """
+        for normalized, steps in volume_floor:
+>           _assert_comes_back(_VOLUME, normalized)
+
+tests/unit/test_parameters.py:288: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+record = MappedParameter(parameter=Parameter(id='volume', label='Volume', kind='continuous', unit=<Unit.db: 'db'>, minimum=-80....e(kind='square_root', multiply=1.0, offset=-80.0), preset_default=5473.04052734375, host_unit='dB', choice_labels=None)
+normalized = 1.439742266862027e-17
+
+    def _assert_comes_back(record: MappedParameter, normalized: float) -> None:
+        """Assert a value's display and held preset come back, and bound what a set of it shows.
+    
+        The display comes back through `to_preset`, every time, and the held preset through the
+        normalized path, but where `_lands_below_its_power_of_two` says it lands one float32 below a
+        power of two. Above `_ABSORBED` the preset the display maps to is the held one, so a set shows
+        the display exactly where the held preset comes back, which follows from those; at or below it
+        a set shows the display or a neighbouring double. Issue #15 removes both exceptions.
+        """
+        preset = record.scale.to_preset(normalized)
+        display = record.from_normalized(normalized)
+        back = record.to_preset(display)
+        assert record.to_display(back) == display
+        held = record.scale.to_preset(record.scale.to_normalized(preset))
+        assert held == preset or _lands_below_its_power_of_two(preset, held)
+        if preset > _ABSORBED.get(record.id, -math.inf):
+            assert back == preset
+        else:
+            shown = record.to_display(record.scale.to_preset(record.to_normalized(display)))
+>           assert shown in (
+                math.nextafter(display, -math.inf),
+                display,
+                math.nextafter(display, math.inf),
+            )
+E           assert -79.99999967360613 in (-79.99999967360628, -79.99999967360627, -79.99999967360625)
+
+tests/unit/test_parameters.py:243: AssertionError
+=========================== short test summary info ============================
+FAILED tests/unit/test_parameters.py::test_at_or_below_volume_s_floor_a_set_s_display_lands_as_recorded
+exit=1
+
+== PR 14's tests on the mutation: the same, in <scratch>/mut-old
+  patchbay_vital.parameters from <scratch>/mut-old/src/patchbay_vital/parameters.py
+.......................................................................  [100%]
+exit=0
