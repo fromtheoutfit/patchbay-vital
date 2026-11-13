@@ -1,0 +1,123 @@
+The revision after PR 14's fourth review: scripts/gate.sh, run 2026-11-12 15:31 EST on branch
+refactor/13-the-parameter-map-volumes-display-does-not-come-back-through-the-normalized-path-below-2--43-hypothesis-normalized-5857149595214349e-20, machine arm64, Vital installed at /Library/Audio/Plug-Ins/VST3/Vital.vst3
+the tree before the run:
+  HEAD f3625d1ce548446ba773aaf0ecd5a93c5deaf704
+  git status --porcelain=v1 --untracked-files=all, 17 lines:
+     M CHANGELOG.md
+     M agent-os/standards/index.yml
+     M agent-os/standards/vital/measures.md
+     M agent-os/standards/vital/parameter-map.md
+     M src/patchbay_vital/float32.py
+     M src/patchbay_vital/parameters.py
+     M tests/integration/test_vital_plugin.py
+     M tests/unit/test_float32.py
+     M tests/unit/test_parameters.py
+    ?? agent-os/specs/2026-11-12-1319-revision-after-pr-14-fourth-review/plan.md
+    ?? agent-os/specs/2026-11-12-1319-revision-after-pr-14-fourth-review/references.md
+    ?? agent-os/specs/2026-11-12-1319-revision-after-pr-14-fourth-review/shape.md
+    ?? agent-os/specs/2026-11-12-1319-revision-after-pr-14-fourth-review/standards.md
+    ?? agent-os/specs/2026-11-12-1319-revision-after-pr-14-fourth-review/verification/mutation.txt
+    ?? agent-os/specs/2026-11-12-1319-revision-after-pr-14-fourth-review/verification/plugin-probe.txt
+    ?? agent-os/specs/2026-11-12-1319-revision-after-pr-14-fourth-review/verification/sweep-afterwards.txt
+    ?? agent-os/specs/2026-11-12-1319-revision-after-pr-14-fourth-review/verification/sweep.txt
+  git hash-object of each of those 17 paths (a deleted one marked so):
+    19ebd6e2099b8cdeb2347419f930340809700995  CHANGELOG.md
+    323bbd6dac4d2c8166e752c70fc38b3d8d670f9d  agent-os/specs/2026-11-12-1319-revision-after-pr-14-fourth-review/plan.md
+    218f87a6d545fc236168ebc87dfbff44adfbd518  agent-os/specs/2026-11-12-1319-revision-after-pr-14-fourth-review/references.md
+    feb5a837ea7466e43f1e5ea06afa01081af28d77  agent-os/specs/2026-11-12-1319-revision-after-pr-14-fourth-review/shape.md
+    25375a4eb8c55623cc6cd19cc58f2a5c34590c75  agent-os/specs/2026-11-12-1319-revision-after-pr-14-fourth-review/standards.md
+    78dd955238ed4b0b8aeaacf56afd144616696759  agent-os/specs/2026-11-12-1319-revision-after-pr-14-fourth-review/verification/mutation.txt
+    7ac2701e7764a43b4e219893aa8ec13b353c2a01  agent-os/specs/2026-11-12-1319-revision-after-pr-14-fourth-review/verification/plugin-probe.txt
+    dd63582995be5ad539005fceb6889f6b6d1a6e12  agent-os/specs/2026-11-12-1319-revision-after-pr-14-fourth-review/verification/sweep-afterwards.txt
+    6f30e49be0ffc939696eadc6a599dafbdece52f7  agent-os/specs/2026-11-12-1319-revision-after-pr-14-fourth-review/verification/sweep.txt
+    b636dfbed0d9cbe7596d2dd92f5be849cb809b9d  agent-os/standards/index.yml
+    dda3628eeec370861e6a469d2c82ecdbf1c1465e  agent-os/standards/vital/measures.md
+    2a6f61ffb496208e3478cb8d77349eaed902389c  agent-os/standards/vital/parameter-map.md
+    27a1e91bd4483e2fbdebf444799b51f78617ab0e  src/patchbay_vital/float32.py
+    6cc729a8f442581d9d0e68afac929e3afd1a684a  src/patchbay_vital/parameters.py
+    344dca006ecf4d5d740073c1ee0f7e95a8e0f5e0  tests/integration/test_vital_plugin.py
+    30c55ede7a4d93930b727f6248f5369545c33e34  tests/unit/test_float32.py
+    ba70782b5fb4bd4252251629cd8b280056f1bcb7  tests/unit/test_parameters.py
+
+
+== 1/6  bash -n on every shell script under scripts/ (tracked or untracked, not ignored), in a tree with no tracked file a .gitignore ignores
+ok   scripts/gate-negative-tests.sh
+ok   scripts/gate.sh
+ok   scripts/sync-standards.sh
+
+== 2/6  uv sync --locked, then uv run --locked ruff format --check over the .py and .pyi files git lists (the locked toolchain; the formatter)
+Resolved 33 packages in 2ms
+Checked 32 packages in 0.64ms
+ok   the locked toolchain synced
+26 files already formatted
+ok   26 file(s) formatted
+
+== 3/6  uv run --locked ruff check over the same files (the linter: [tool.ruff.lint] of pyproject.toml)
+All checks passed!
+ok   no violation
+
+== 4/6  uv run --locked mypy over the .py and .pyi files git lists under src/ and tests/ ([tool.mypy] of pyproject.toml: strict)
+Success: no issues found in 26 source files
+ok   no type error
+
+== 5/6  uv run --locked pytest -c pyproject.toml -p no:doctest ([tool.pytest.ini_options] of pyproject.toml, over tests/, once nothing pytest would read is one git ignores)
+........................................................................ [ 14%]
+........................................................................ [ 28%]
+........................................................................ [ 42%]
+........................................................................ [ 56%]
+........................................................................ [ 70%]
+........................................................................ [ 84%]
+........................................................................ [ 98%]
+..........                                                               [100%]
+514 passed in 31.40s
+ok   every test passed
+
+== 6/6  scripts/sync-standards.sh --check: agent-os/standards/base/, the base: section and the script match patchbay-standards at the commit in .version (../patchbay-standards)
+check base standards against e31f7dbfb474752339a43fe08a37ab26c7956f5c  (/Users/michaelwitwicki/Code/Audio/patchbay-standards)
+  index    base: section identical
+  script   scripts/sync-standards.sh matches
+{"mode":"check","upstream":"/Users/michaelwitwicki/Code/Audio/patchbay-standards","commit":"e31f7dbfb474752339a43fe08a37ab26c7956f5c","missing":[],"extra":[],"changed":[],"index":"identical","script":"matches","ok":true}
+ok   agent-os/standards/base and the base: section of agent-os/standards/index.yml match patchbay-standards at e31f7dbfb474752339a43fe08a37ab26c7956f5c
+
+Gate steps 1-6 passed. Steps 7-9 are judgment, recorded in shape.md: Docs, Version, the standards retrospective.
+exit=0
+
+the tree after the run:
+  HEAD f3625d1ce548446ba773aaf0ecd5a93c5deaf704
+  git status --porcelain=v1 --untracked-files=all, 17 lines:
+     M CHANGELOG.md
+     M agent-os/standards/index.yml
+     M agent-os/standards/vital/measures.md
+     M agent-os/standards/vital/parameter-map.md
+     M src/patchbay_vital/float32.py
+     M src/patchbay_vital/parameters.py
+     M tests/integration/test_vital_plugin.py
+     M tests/unit/test_float32.py
+     M tests/unit/test_parameters.py
+    ?? agent-os/specs/2026-11-12-1319-revision-after-pr-14-fourth-review/plan.md
+    ?? agent-os/specs/2026-11-12-1319-revision-after-pr-14-fourth-review/references.md
+    ?? agent-os/specs/2026-11-12-1319-revision-after-pr-14-fourth-review/shape.md
+    ?? agent-os/specs/2026-11-12-1319-revision-after-pr-14-fourth-review/standards.md
+    ?? agent-os/specs/2026-11-12-1319-revision-after-pr-14-fourth-review/verification/mutation.txt
+    ?? agent-os/specs/2026-11-12-1319-revision-after-pr-14-fourth-review/verification/plugin-probe.txt
+    ?? agent-os/specs/2026-11-12-1319-revision-after-pr-14-fourth-review/verification/sweep-afterwards.txt
+    ?? agent-os/specs/2026-11-12-1319-revision-after-pr-14-fourth-review/verification/sweep.txt
+  git hash-object of each of those 17 paths (a deleted one marked so):
+    19ebd6e2099b8cdeb2347419f930340809700995  CHANGELOG.md
+    323bbd6dac4d2c8166e752c70fc38b3d8d670f9d  agent-os/specs/2026-11-12-1319-revision-after-pr-14-fourth-review/plan.md
+    218f87a6d545fc236168ebc87dfbff44adfbd518  agent-os/specs/2026-11-12-1319-revision-after-pr-14-fourth-review/references.md
+    feb5a837ea7466e43f1e5ea06afa01081af28d77  agent-os/specs/2026-11-12-1319-revision-after-pr-14-fourth-review/shape.md
+    25375a4eb8c55623cc6cd19cc58f2a5c34590c75  agent-os/specs/2026-11-12-1319-revision-after-pr-14-fourth-review/standards.md
+    78dd955238ed4b0b8aeaacf56afd144616696759  agent-os/specs/2026-11-12-1319-revision-after-pr-14-fourth-review/verification/mutation.txt
+    7ac2701e7764a43b4e219893aa8ec13b353c2a01  agent-os/specs/2026-11-12-1319-revision-after-pr-14-fourth-review/verification/plugin-probe.txt
+    dd63582995be5ad539005fceb6889f6b6d1a6e12  agent-os/specs/2026-11-12-1319-revision-after-pr-14-fourth-review/verification/sweep-afterwards.txt
+    6f30e49be0ffc939696eadc6a599dafbdece52f7  agent-os/specs/2026-11-12-1319-revision-after-pr-14-fourth-review/verification/sweep.txt
+    b636dfbed0d9cbe7596d2dd92f5be849cb809b9d  agent-os/standards/index.yml
+    dda3628eeec370861e6a469d2c82ecdbf1c1465e  agent-os/standards/vital/measures.md
+    2a6f61ffb496208e3478cb8d77349eaed902389c  agent-os/standards/vital/parameter-map.md
+    27a1e91bd4483e2fbdebf444799b51f78617ab0e  src/patchbay_vital/float32.py
+    6cc729a8f442581d9d0e68afac929e3afd1a684a  src/patchbay_vital/parameters.py
+    344dca006ecf4d5d740073c1ee0f7e95a8e0f5e0  tests/integration/test_vital_plugin.py
+    30c55ede7a4d93930b727f6248f5369545c33e34  tests/unit/test_float32.py
+    ba70782b5fb4bd4252251629cd8b280056f1bcb7  tests/unit/test_parameters.py
+cmp: the tree after the run is the tree before it, line for line

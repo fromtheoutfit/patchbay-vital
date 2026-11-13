@@ -7,11 +7,21 @@ default are in the unit the plugin displays, and the two conversions between the
 
 - `NormalizedScale`, the host's normalized value in `[0, 1]` and the preset's value: `linear`, the
   preset value is `r * span + minimum` rounded once to float32 (`float32.fma32`, as Vital's build
-  computes it), or `indexed`, the same rounded to a whole number;
+  computes it), or `indexed`, the same rounded to a whole number; and back, a normalized value
+  that lands on the preset value wherever one does;
 - `DisplayCurve`, the preset's value and the displayed one: `multiply * skew(preset) + offset`,
   the skew one of the six measured at 1.6.4. A value a parameter holds goes to the display and back
-  exactly; an arbitrary display value comes back as the nearest one the parameter holds, an indexed
-  scale's a whole number (the host spec's `verification/probes.txt`, probe 4), and a choice or a
+  to that display exactly, through `MappedParameter.to_preset` to a preset value the scale holds,
+  and through the normalized path to that preset value again: the one it came from but where
+  neighbouring presets share a display and the display cannot say which was held, as at or below
+  `volume`'s 2 ** -43, where its offset absorbs the skew. `to_preset` gives, in this order, what a
+  set of the curve's float32 holds, Vital's own rounding of it, where that is the float32 itself or
+  shows the display; else the float32 on its other side, where that shows the display and the
+  scale holds it; else the curve's float32, for a display no held preset shows, which need not be
+  one the scale holds (issue #16). An indexed scale's is the nearest whole number. A set holds the
+  scale's value at `to_normalized`'s result, as Vital does (the host spec's
+  `verification/probes.txt`, probe 4; the `verification/direct-count.txt` and
+  `verification/plugin-probe.txt` of the revision after PR 14's fifth review). A choice or a
   boolean takes a whole index and nothing else, core's rule for them.
 
 Every range, kind and constant is the plugin's own, measured, never written from Vital's source.
@@ -37,7 +47,7 @@ from patchbay import Parameter, ParameterId, PatchbayModel, PresetKey
 from pydantic import Field, field_validator, model_validator
 
 from patchbay_vital.errors import ParameterRangeError, UnknownParameterError
-from patchbay_vital.float32 import fma32, round_to_float32, to_float32
+from patchbay_vital.float32 import fma32, next_float32, round_to_float32, to_float32
 from patchbay_vital.preset import SLOT_KEY
 
 PRESET_ONLY_KEYS = frozenset({PresetKey("chorus_damping")})
@@ -103,12 +113,26 @@ class NormalizedScale(PatchbayModel, frozen=True):
         return _round_half_away(value) if self.kind == "indexed" else value
 
     def to_normalized(self, preset: float) -> float:
-        """Return the normalized value the host sets for a preset value.
+        """Return the normalized value the host sets for a preset, one that lands on it if any does.
 
-        For a value the scale holds, `to_preset` of the result is that value again: the float32
-        nearest `(preset - minimum) / span` lands on it (probe 4, P3).
+        The float32 nearest `(preset - minimum) / span`, unless `to_preset` of it misses the preset:
+        then the float32 next to it toward the preset, where that is in `[0, 1]` and lands on it.
+        The scale rises with `r`, so only that side can. On the 12 `env_N_delay` and `env_N_hold`
+        records, at 126 powers of two each from 2 ** -125 to 1, the nearest multiplies back short
+        of the power, where the float32 spacing halves, and its neighbour lands on it (issue #15).
+        So a value the scale holds comes back through `to_preset` exactly, on every float32
+        normalized value of every group issue #15's spec counts (`verification/sweep.txt`); a
+        value it does not hold keeps the nearest quotient.
         """
-        return round_to_float32((Fraction(preset) - Fraction(self.minimum)) / Fraction(self.span))
+        return _landing(self, preset)[0]
+
+    def holds(self, preset: float) -> bool:
+        """Say whether the plugin can hold a preset value.
+
+        It can when a normalized value in `[0, 1]` lands on it; `to_normalized` finds one if any.
+        """
+        normalized, landed = _landing(self, preset)
+        return 0.0 <= normalized <= 1.0 and landed == preset
 
     @model_validator(mode="after")
     def _bounds_are_float32_and_ordered(self) -> Self:
@@ -122,6 +146,25 @@ class NormalizedScale(PatchbayModel, frozen=True):
             msg = "an indexed scale runs between whole numbers"
             raise ValueError(msg)
         return self
+
+
+def _landing(scale: NormalizedScale, preset: float) -> tuple[float, float]:
+    """Return `to_normalized`'s value for a preset and the preset value it lands on, each once.
+
+    The step toward the preset is kept only inside `[0, 1]`, where the host can set it: on
+    `NormalizedScale(kind="linear", minimum=-1.0, maximum=16777216.0)` the float32 above 1 lands on
+    the maximum, which the nearest quotient, 1, misses.
+    """
+    nearest = round_to_float32((Fraction(preset) - Fraction(scale.minimum)) / Fraction(scale.span))
+    landed = scale.to_preset(nearest)
+    if landed == preset:
+        return nearest, landed
+    toward = next_float32(nearest, math.copysign(math.inf, preset - landed))
+    if 0.0 <= toward <= 1.0:
+        stepped = scale.to_preset(toward)
+        if stepped == preset:
+            return toward, stepped
+    return nearest, landed
 
 
 def _square(value: float) -> float:
@@ -232,27 +275,63 @@ class MappedParameter(PatchbayModel, frozen=True):
         return self.curve.to_display(preset)
 
     def to_preset(self, display: float) -> float:
-        """Return the preset value nearest a displayed value, one the parameter holds.
+        """Return the preset value a display comes from: what a set of it holds where that shows it.
 
-        On an indexed scale that is a whole number, as the plugin holds it. ParameterRangeError
+        The curve's inverse, rounded to the nearest float32 and kept within the scale; on an
+        indexed scale the nearest whole number, as the plugin holds it. On a linear scale, in this
+        order:
+
+        1. what a set of that float32 holds, the scale's value at its normalized value, Vital's own
+           rounding of it, where that is the float32 itself, one the scale holds, or shows the
+           display exactly;
+        2. else the float32 on its other side, away from that value, where it shows the display
+           exactly and the scale holds it;
+        3. else the float32 itself, which the scale does not hold.
+
+        The float32 on the other side may lie past an end the scale does not hold, where only a
+        normalized value outside `[0, 1]` lands on it: `holds` refuses it. The first branch gives
+        a value other than the float32, and the second is reached, only where neighbouring presets
+        share a display: on a display a held preset shows, at or below `volume`'s 2 ** -43, where a
+        set of the display holds a preset that shows it, on Vital as in the map, so the display
+        comes back through the normalized path exactly (issue #15). Over every float32 normalized
+        value of `volume`, 15,761,472 take the first branch's set value and 308,386 the second,
+        every one at a held preset at or below 2 ** -43, and none the third (the revision after PR
+        14's fifth review, `verification/direct-count.txt`, read from the shipped results). The
+        revision after its sixth review wrote the rule in this form and `to_normalized` as its
+        preset's own, and its `verification/floor-pass.txt` compares both with the forms counted,
+        value by value below 2 ** -54, and finds no value changed.
+
+        The third is a display no preset shows exactly, an arbitrary one, which keeps the float32
+        as before; a set then holds the scale's value at `to_normalized`'s result, as Vital does.
+        Whether it should give that held value is issue #16's, before issue #8; whether a set keeps
+        a stored value given the display it already shows is #8's finding 3. ParameterRangeError
         when the value is outside the parameter's bounds, or is not a whole index where the
-        parameter is a choice or a boolean. The bounds are the parameter's own and the scale's
-        ends displayed through this platform's libm, the same on the machine the map was measured
-        on and a double ulp apart on another.
+        parameter is a choice or a boolean. The bounds are the parameter's own and the scale's ends
+        displayed through this platform's libm, the same on the machine the map was measured on and
+        a double ulp apart on another.
         """
-        parameter, scale = self.parameter, self.scale
-        low, high = displayed_ends(self.curve, scale)
+        parameter, scale, curve = self.parameter, self.scale, self.curve
+        low, high = displayed_ends(curve, scale)
         low, high = min(low, parameter.minimum), max(high, parameter.maximum)
         whole = parameter.kind == "continuous" or display.is_integer()
         if not (low <= display <= high and whole):
             raise ParameterRangeError(self.id, parameter.minimum, parameter.maximum, display)
-        preset = min(max(self.curve.to_preset(display), scale.minimum), scale.maximum)
-        return _round_half_away(preset) if scale.kind == "indexed" else preset
+        preset = min(max(curve.to_preset(display), scale.minimum), scale.maximum)
+        if scale.kind == "indexed":
+            return _round_half_away(preset)
+        held = _landing(scale, preset)[1]
+        if held == preset or curve.to_display(held) == display:
+            return held
+        other = next_float32(preset, math.copysign(math.inf, preset - held))
+        if curve.to_display(other) == display and scale.holds(other):
+            return other
+        return preset
 
     def to_normalized(self, display: float) -> float:
-        """Return the normalized value the host sets for a displayed value.
+        """Return the normalized value the host sets for a displayed value: its preset's own.
 
-        ParameterRangeError when the value is outside the parameter's bounds.
+        `scale.to_normalized` of `to_preset`'s value, so a set holds that preset wherever the scale
+        holds it. ParameterRangeError when the value is outside the parameter's bounds.
         """
         return self.scale.to_normalized(self.to_preset(display))
 

@@ -1,0 +1,586 @@
+The revision after PR 14's fourth review: the mutations, run 2026-11-12 15:21 EST on branch
+refactor/13-the-parameter-map-volumes-display-does-not-come-back-through-the-normalized-path-below-2--43-hypothesis-normalized-5857149595214349e-20, machine arm64; each on a scratch copy outside the tree, the tree untouched
+the tree before the run:
+  HEAD f3625d1ce548446ba773aaf0ecd5a93c5deaf704
+  git status --porcelain=v1, 7 lines:
+     M CHANGELOG.md
+     M src/patchbay_vital/float32.py
+     M src/patchbay_vital/parameters.py
+     M tests/integration/test_vital_plugin.py
+     M tests/unit/test_float32.py
+     M tests/unit/test_parameters.py
+    ?? agent-os/specs/2026-11-12-1319-revision-after-pr-14-fourth-review/
+  git hash-object of each file the run reads, HEAD's blob beside it:
+    6cc729a8f442581d9d0e68afac929e3afd1a684a  src/patchbay_vital/parameters.py  (HEAD f505cb0eaf073f9e1fb0477d24ad9372fd7a716a)
+    27a1e91bd4483e2fbdebf444799b51f78617ab0e  src/patchbay_vital/float32.py  (HEAD c8f9cdc621506d13587ce6162dd7c020c1d0b850)
+    ba70782b5fb4bd4252251629cd8b280056f1bcb7  tests/unit/test_parameters.py  (HEAD c1c5c77d832c2039ba9c744f61cc77d3272d3f36)
+    30c55ede7a4d93930b727f6248f5369545c33e34  tests/unit/test_float32.py  (HEAD 64b104335209f385c2284cebe4e04e3d1eb289cf)
+    344dca006ecf4d5d740073c1ee0f7e95a8e0f5e0  tests/integration/test_vital_plugin.py  (HEAD 6694698573bc2eb831ece9bbaf9d96129027c293)
+  git hash-object of the script: bbfa553b7226e5afd8523e9fca1a3ca141ef839e  <scratchpad>/r4/mutate.sh
+
+== the script, run from the repository root as: bash <scratchpad>/r4/mutate.sh <scratchpad>/r4
+```bash
+#!/usr/bin/env bash
+# The revision after PR 14's fourth review: each branch, guard and order of the map's two inverses
+# changed on a scratch copy, and the excuse and the AST test's input changed likewise; the unit
+# tests run on each copy.
+# Run from the repository root: bash <scratchpad>/mutate.sh <scratchpad>
+set -u
+repo=$(pwd)
+scratch=$1
+python="$repo/.venv/bin/python"
+P=src/patchbay_vital/parameters.py
+T=tests/unit/test_parameters.py
+I=tests/integration/test_vital_plugin.py
+
+copy() {  # copy the tree as git lists it (tracked or untracked, not ignored, present) to $1
+  rm -rf "$1" && mkdir -p "$1" || exit 2
+  git ls-files -z -co --exclude-standard --deduplicate |
+    while IFS= read -r -d '' f; do [ -f "$f" ] && printf '%s\0' "$f"; done |
+    rsync -a --from0 --files-from=- ./ "$1/" || exit 2
+}
+
+mutate() {  # $1 name, $2 file, $3 python snippet reading s and writing s, $4 extra pytest arguments
+  local dir="$scratch/mutation-$1"
+  copy "$dir"
+  if [ -n "$2" ]; then
+    MUT_FILE="$dir/$2" MUT_CODE="$3" "$python" -I - <<'PY' || exit 2
+import os
+from pathlib import Path
+p = Path(os.environ["MUT_FILE"])
+old = p.read_text()
+scope = {"s": old}
+exec(os.environ["MUT_CODE"], scope)
+assert scope["s"] != old, "the mutation changed nothing"
+p.write_text(scope["s"])
+PY
+    (cd "$dir" && diff -u "$repo/$2" "$2" | sed "s|$repo/||")
+  fi
+  (cd "$dir" && PYTHONPATH="$dir/src" "$python" -c \
+    'import patchbay_vital.parameters as m; print("imports", m.__file__.split("/mutation-")[1])')
+  local status
+  # shellcheck disable=SC2086 # $4 is a list of pytest arguments, split on purpose
+  (cd "$dir" && PYTHONPATH="$dir/src" "$python" -m pytest -c pyproject.toml -p no:doctest \
+    -p no:cacheprovider tests/unit/test_parameters.py tests/unit/test_float32.py -rf ${4:-} \
+    > "$dir.out" 2>&1)
+  status=$?
+  grep -E '^(FAILED|[0-9]+ (passed|failed|deselected)|=+ .*(passed|failed))' "$dir.out" |
+    sed 's/ - .*//'
+  grep -E "^E +(AssertionError|Failed): .*(not assigned|not a plain literal| is .*, here )" \
+    "$dir.out" | sed 's/^E *//' | sort -u
+  echo "exit=$status"
+  rm -f "$dir.out"
+  rm -rf "$dir"
+}
+
+swap() {  # print code that swaps two exact, once-only blocks of s, a before b
+  printf 'a, b = %s, %s\nassert s.count(a) == 1 and s.count(b) == 1 and s.index(a) < s.index(b)\n' "$1" "$2"
+  printf 'i, j = s.index(a), s.index(b)\ns = s[:i] + b + s[i + len(a):j] + a + s[j + len(b):]\n'
+}
+
+HELD='"        if settable and landed == preset:\n            return preset, normalized\n"'
+ONE='"        if settable and curve.to_display(landed) == display:\n            return landed, None\n"'
+TWO='"        other = next_float32(preset, math.copysign(math.inf, preset - landed))\n        other_normalized, other_landed = _landing(scale, other)\n        held = 0.0 <= other_normalized <= 1.0 and other_landed == other\n        if held and curve.to_display(other) == display:\n            return other, other_normalized\n"'
+
+echo "== M0: the tree unmutated (the copy runs, and passes)"
+mutate M0 "" ""
+
+echo
+echo "== M1: to_normalized reverted to the nearest quotient, main's (must fail at the powers of two)"
+mutate M1 $P '
+old = "    if landed == preset:\n        return nearest, landed\n"
+start = s.index(old)
+end = s.index("    return nearest, landed\n", start + len(old)) + len("    return nearest, landed\n")
+s = s[:start] + "    return nearest, landed\n" + s[end:]
+'
+
+echo
+echo "== M2: the snap removed, to_preset the curve's float32 wherever it is unheld (must fail at the floor)"
+mutate M2 $P "
+one, two = $ONE, $TWO
+assert s.count(one + two) == 1
+s = s.replace(one + two, '')
+"
+
+echo
+echo "== M3: holds without its [0, 1] check (must fail where a value past the scale lands)"
+mutate M3 $P '
+old = "        return 0.0 <= normalized <= 1.0 and landed == preset\n"
+assert s.count(old) == 1
+s = s.replace(old, "        return landed == preset\n")
+'
+
+echo
+echo "== M4: the step in to_normalized without its [0, 1] check (must fail on the span of 2 ** 24)"
+mutate M4 $P '
+old = "    if 0.0 <= toward <= 1.0:\n"
+assert s.count(old) == 1
+s = s.replace(old, "    if True:\n")
+'
+
+echo
+echo "== M5: branch 1 without its display check (must fail at the floor values of branch 2)"
+code5='
+old = "        if settable and curve.to_display(landed) == display:\n"
+assert s.count(old) == 1
+s = s.replace(old, "        if settable:\n")
+'
+mutate M5 $P "$code5"
+echo "-- M5 again, issue #8's characterization deselected: the floor values alone catch it"
+mutate M5-deselected $P "$code5" \
+  "--deselect tests/unit/test_parameters.py::test_an_arbitrary_display_keeps_the_curve_s_float32"
+
+echo
+echo "== M6: branch 2 without its display check (must fail issue #8's characterization)"
+mutate M6 $P '
+old = "        if held and curve.to_display(other) == display:\n"
+assert s.count(old) == 1
+s = s.replace(old, "        if held:\n")
+'
+
+echo
+echo "== M7: branches 1 and 2 swapped (must fail at issue #13's value, where both qualify)"
+mutate M7 $P "$(swap "$ONE" "$TWO")"
+
+echo
+echo "== M8: the held branch after branch 1 (expected equivalent: where P1 is held, what a set of"
+echo "   it holds is P1, so branch 1 returns P1 wherever P1 shows the display, and the held branch"
+echo "   the rest)"
+mutate M8 $P "$(swap "$HELD" "$ONE")"
+
+echo
+echo "== M8b: the held branch after branch 2 (expected equivalent on every value the sweep counts:"
+echo "   branch 2 takes a held P1's neighbour only where P1 does not show the display and the"
+echo "   neighbour does, and A1 is 0 on every value, P1 showing it wherever P1 is held)"
+mutate M8b $P "
+held, one, two = $HELD, $ONE, $TWO
+assert s.count(held + one + two) == 1
+s = s.replace(held + one + two, one + two + held)
+"
+
+echo
+echo "== M9: branch 3 before branch 2, branch 2 never reached (must fail at the floor values of branch 2)"
+mutate M9 $P "
+two = $TWO
+assert s.count(two) == 1
+s = s.replace(two, '')
+"
+
+echo
+echo "== M10: _shares_its_display asking either side (must fail where the far side alone shares it)"
+mutate M10 $T '
+old = "    return record.to_display(next_float32(preset, back)) == record.to_display(preset)\n"
+assert s.count(old) == 1
+s = s.replace(old, "    below, above = next_float32(preset, -math.inf), next_float32(preset, math.inf)\n"
+              "    return record.to_display(preset) in (record.to_display(below), record.to_display(above))\n")
+'
+
+echo
+echo "== M11: _VOLUME_FLOOR missing from the integration module (the AST test must fail by name)"
+mutate M11 $I '
+start = s.index("_VOLUME_FLOOR = (\n")
+end = s.index(")\n", start) + 2
+s = s[:start] + s[end:]
+'
+
+echo
+echo "== M12: _VOLUME_FLOOR renamed in the integration module (the AST test must fail by name)"
+mutate M12 $I '
+assert s.count("_VOLUME_FLOOR = (\n") == 1
+s = s.replace("_VOLUME_FLOOR = (\n", "_VOLUME_FLOORS = (\n")
+'
+
+echo
+echo "== M13: _POWERS_OF_TWO no plain literal, tuple(...) of the same values (the AST test must fail by name)"
+mutate M13 $I '
+start = s.index("_POWERS_OF_TWO = (\n")
+end = s.index(")\n", start)
+s = s[:start] + "_POWERS_OF_TWO = tuple((\n" + s[start + len("_POWERS_OF_TWO = (\n"):end] + "))" + s[end + 1:]
+'
+
+echo
+echo "== M14: one _POWERS_OF_TWO value changed in the integration module (the AST test must fail by name)"
+mutate M14 $I '
+old = "    6.74349621476722e-07,  # 2 ** -20 on the envelope records\n"
+assert s.count(old) == 1
+s = s.replace(old, "    6.74349621476723e-07,  # 2 ** -20 on the envelope records\n")
+'
+```
+
+== its output (each mutant's diff, the tests that failed, the count, the exit status)
+== M0: the tree unmutated (the copy runs, and passes)
+imports M0/src/patchbay_vital/parameters.py
+96 passed in 0.54s
+exit=0
+
+== M1: to_normalized reverted to the nearest quotient, main's (must fail at the powers of two)
+--- src/patchbay_vital/parameters.py	2026-11-12 13:33:43
++++ src/patchbay_vital/parameters.py	2026-11-12 15:21:44
+@@ -156,13 +156,6 @@
+     """
+     nearest = round_to_float32((Fraction(preset) - Fraction(scale.minimum)) / Fraction(scale.span))
+     landed = scale.to_preset(nearest)
+-    if landed == preset:
+-        return nearest, landed
+-    toward = next_float32(nearest, math.copysign(math.inf, preset - landed))
+-    if 0.0 <= toward <= 1.0:
+-        stepped = scale.to_preset(toward)
+-        if stepped == preset:
+-            return toward, stepped
+     return nearest, landed
+ 
+ 
+imports M1/src/patchbay_vital/parameters.py
+FAILED tests/unit/test_parameters.py::test_a_held_power_of_two_comes_back_through_the_normalized_path[0.7071068286895752-env_1_delay]
+FAILED tests/unit/test_parameters.py::test_a_held_power_of_two_comes_back_through_the_normalized_path[0.7071068286895752-env_3_hold]
+FAILED tests/unit/test_parameters.py::test_a_held_power_of_two_comes_back_through_the_normalized_path[0.3535534143447876-env_1_delay]
+FAILED tests/unit/test_parameters.py::test_a_held_power_of_two_comes_back_through_the_normalized_path[0.3535534143447876-env_3_hold]
+FAILED tests/unit/test_parameters.py::test_a_held_power_of_two_comes_back_through_the_normalized_path[6.74349621476722e-07-env_1_delay]
+FAILED tests/unit/test_parameters.py::test_a_held_power_of_two_comes_back_through_the_normalized_path[6.74349621476722e-07-env_3_hold]
+6 failed, 90 passed in 0.58s
+exit=1
+
+== M2: the snap removed, to_preset the curve's float32 wherever it is unheld (must fail at the floor)
+--- src/patchbay_vital/parameters.py	2026-11-12 13:33:43
++++ src/patchbay_vital/parameters.py	2026-11-12 15:21:45
+@@ -323,13 +323,6 @@
+         settable = 0.0 <= normalized <= 1.0
+         if settable and landed == preset:
+             return preset, normalized
+-        if settable and curve.to_display(landed) == display:
+-            return landed, None
+-        other = next_float32(preset, math.copysign(math.inf, preset - landed))
+-        other_normalized, other_landed = _landing(scale, other)
+-        held = 0.0 <= other_normalized <= 1.0 and other_landed == other
+-        if held and curve.to_display(other) == display:
+-            return other, other_normalized
+         return preset, normalized
+ 
+     def from_normalized(self, normalized: float) -> float:
+imports M2/src/patchbay_vital/parameters.py
+FAILED tests/unit/test_parameters.py::test_a_value_the_parameter_holds_comes_back_exactly[volume]
+FAILED tests/unit/test_parameters.py::test_where_volume_s_offset_absorbs_a_preset
+FAILED tests/unit/test_parameters.py::test_at_or_below_volume_s_floor_a_display_maps_to_a_held_preset[5.857149595214349e-20]
+FAILED tests/unit/test_parameters.py::test_at_or_below_volume_s_floor_a_display_maps_to_a_held_preset[3.4694490199051456e-18]
+FAILED tests/unit/test_parameters.py::test_at_or_below_volume_s_floor_a_display_maps_to_a_held_preset[1.439742266862027e-17]
+FAILED tests/unit/test_parameters.py::test_at_or_below_volume_s_floor_a_display_maps_to_a_held_preset[1.53642479121845e-17]
+FAILED tests/unit/test_parameters.py::test_a_display_takes_what_a_set_of_the_curve_s_float32_holds[5.857149595214349e-20-4.3339647768216114e-16]
+FAILED tests/unit/test_parameters.py::test_else_a_display_takes_the_float32_on_the_other_side[3.4694490199051456e-18-2.567198129153469e-14]
+FAILED tests/unit/test_parameters.py::test_else_a_display_takes_the_float32_on_the_other_side[1.439742266862027e-17-1.0653287198800557e-13]
+FAILED tests/unit/test_parameters.py::test_else_a_display_takes_the_float32_on_the_other_side[1.53642479121845e-17-1.1368683772161603e-13]
+10 failed, 86 passed in 0.60s
+exit=1
+
+== M3: holds without its [0, 1] check (must fail where a value past the scale lands)
+--- src/patchbay_vital/parameters.py	2026-11-12 13:33:43
++++ src/patchbay_vital/parameters.py	2026-11-12 15:21:46
+@@ -131,7 +131,7 @@
+         It can when a normalized value in `[0, 1]` lands on it; `to_normalized` finds one if any.
+         """
+         normalized, landed = _landing(self, preset)
+-        return 0.0 <= normalized <= 1.0 and landed == preset
++        return landed == preset
+ 
+     @model_validator(mode="after")
+     def _bounds_are_float32_and_ordered(self) -> Self:
+imports M3/src/patchbay_vital/parameters.py
+FAILED tests/unit/test_parameters.py::test_a_scale_holds_its_values_and_none_past_its_ends
+1 failed, 95 passed in 0.56s
+exit=1
+
+== M4: the step in to_normalized without its [0, 1] check (must fail on the span of 2 ** 24)
+--- src/patchbay_vital/parameters.py	2026-11-12 13:33:43
++++ src/patchbay_vital/parameters.py	2026-11-12 15:21:47
+@@ -159,7 +159,7 @@
+     if landed == preset:
+         return nearest, landed
+     toward = next_float32(nearest, math.copysign(math.inf, preset - landed))
+-    if 0.0 <= toward <= 1.0:
++    if True:
+         stepped = scale.to_preset(toward)
+         if stepped == preset:
+             return toward, stepped
+imports M4/src/patchbay_vital/parameters.py
+FAILED tests/unit/test_parameters.py::test_the_step_toward_a_preset_stays_where_the_host_can_set_it
+1 failed, 95 passed in 0.56s
+exit=1
+
+== M5: branch 1 without its display check (must fail at the floor values of branch 2)
+--- src/patchbay_vital/parameters.py	2026-11-12 13:33:43
++++ src/patchbay_vital/parameters.py	2026-11-12 15:21:48
+@@ -323,7 +323,7 @@
+         settable = 0.0 <= normalized <= 1.0
+         if settable and landed == preset:
+             return preset, normalized
+-        if settable and curve.to_display(landed) == display:
++        if settable:
+             return landed, None
+         other = next_float32(preset, math.copysign(math.inf, preset - landed))
+         other_normalized, other_landed = _landing(scale, other)
+imports M5/src/patchbay_vital/parameters.py
+FAILED tests/unit/test_parameters.py::test_where_volume_s_offset_absorbs_a_preset
+FAILED tests/unit/test_parameters.py::test_at_or_below_volume_s_floor_a_display_maps_to_a_held_preset[3.4694490199051456e-18]
+FAILED tests/unit/test_parameters.py::test_at_or_below_volume_s_floor_a_display_maps_to_a_held_preset[1.439742266862027e-17]
+FAILED tests/unit/test_parameters.py::test_at_or_below_volume_s_floor_a_display_maps_to_a_held_preset[1.53642479121845e-17]
+FAILED tests/unit/test_parameters.py::test_else_a_display_takes_the_float32_on_the_other_side[3.4694490199051456e-18-2.567198129153469e-14]
+FAILED tests/unit/test_parameters.py::test_else_a_display_takes_the_float32_on_the_other_side[1.439742266862027e-17-1.0653287198800557e-13]
+FAILED tests/unit/test_parameters.py::test_else_a_display_takes_the_float32_on_the_other_side[1.53642479121845e-17-1.1368683772161603e-13]
+FAILED tests/unit/test_parameters.py::test_an_arbitrary_display_keeps_the_curve_s_float32
+8 failed, 88 passed in 0.58s
+exit=1
+-- M5 again, issue #8's characterization deselected: the floor values alone catch it
+--- src/patchbay_vital/parameters.py	2026-11-12 13:33:43
++++ src/patchbay_vital/parameters.py	2026-11-12 15:21:49
+@@ -323,7 +323,7 @@
+         settable = 0.0 <= normalized <= 1.0
+         if settable and landed == preset:
+             return preset, normalized
+-        if settable and curve.to_display(landed) == display:
++        if settable:
+             return landed, None
+         other = next_float32(preset, math.copysign(math.inf, preset - landed))
+         other_normalized, other_landed = _landing(scale, other)
+imports M5-deselected/src/patchbay_vital/parameters.py
+FAILED tests/unit/test_parameters.py::test_where_volume_s_offset_absorbs_a_preset
+FAILED tests/unit/test_parameters.py::test_at_or_below_volume_s_floor_a_display_maps_to_a_held_preset[3.4694490199051456e-18]
+FAILED tests/unit/test_parameters.py::test_at_or_below_volume_s_floor_a_display_maps_to_a_held_preset[1.439742266862027e-17]
+FAILED tests/unit/test_parameters.py::test_at_or_below_volume_s_floor_a_display_maps_to_a_held_preset[1.53642479121845e-17]
+FAILED tests/unit/test_parameters.py::test_else_a_display_takes_the_float32_on_the_other_side[3.4694490199051456e-18-2.567198129153469e-14]
+FAILED tests/unit/test_parameters.py::test_else_a_display_takes_the_float32_on_the_other_side[1.439742266862027e-17-1.0653287198800557e-13]
+FAILED tests/unit/test_parameters.py::test_else_a_display_takes_the_float32_on_the_other_side[1.53642479121845e-17-1.1368683772161603e-13]
+7 failed, 88 passed, 1 deselected in 0.58s
+exit=1
+
+== M6: branch 2 without its display check (must fail issue #8's characterization)
+--- src/patchbay_vital/parameters.py	2026-11-12 13:33:43
++++ src/patchbay_vital/parameters.py	2026-11-12 15:21:50
+@@ -328,7 +328,7 @@
+         other = next_float32(preset, math.copysign(math.inf, preset - landed))
+         other_normalized, other_landed = _landing(scale, other)
+         held = 0.0 <= other_normalized <= 1.0 and other_landed == other
+-        if held and curve.to_display(other) == display:
++        if held:
+             return other, other_normalized
+         return preset, normalized
+ 
+imports M6/src/patchbay_vital/parameters.py
+FAILED tests/unit/test_parameters.py::test_an_arbitrary_display_keeps_the_curve_s_float32
+1 failed, 95 passed in 0.55s
+exit=1
+
+== M7: branches 1 and 2 swapped (must fail at issue #13's value, where both qualify)
+--- src/patchbay_vital/parameters.py	2026-11-12 13:33:43
++++ src/patchbay_vital/parameters.py	2026-11-12 15:21:51
+@@ -323,13 +323,13 @@
+         settable = 0.0 <= normalized <= 1.0
+         if settable and landed == preset:
+             return preset, normalized
+-        if settable and curve.to_display(landed) == display:
+-            return landed, None
+         other = next_float32(preset, math.copysign(math.inf, preset - landed))
+         other_normalized, other_landed = _landing(scale, other)
+         held = 0.0 <= other_normalized <= 1.0 and other_landed == other
+         if held and curve.to_display(other) == display:
+             return other, other_normalized
++        if settable and curve.to_display(landed) == display:
++            return landed, None
+         return preset, normalized
+ 
+     def from_normalized(self, normalized: float) -> float:
+imports M7/src/patchbay_vital/parameters.py
+FAILED tests/unit/test_parameters.py::test_a_display_takes_what_a_set_of_the_curve_s_float32_holds[5.857149595214349e-20-4.3339647768216114e-16]
+1 failed, 95 passed in 0.55s
+exit=1
+
+== M8: the held branch after branch 1 (expected equivalent: where P1 is held, what a set of
+   it holds is P1, so branch 1 returns P1 wherever P1 shows the display, and the held branch
+   the rest)
+--- src/patchbay_vital/parameters.py	2026-11-12 13:33:43
++++ src/patchbay_vital/parameters.py	2026-11-12 15:21:52
+@@ -321,10 +321,10 @@
+             return _round_half_away(preset), None
+         normalized, landed = _landing(scale, preset)
+         settable = 0.0 <= normalized <= 1.0
+-        if settable and landed == preset:
+-            return preset, normalized
+         if settable and curve.to_display(landed) == display:
+             return landed, None
++        if settable and landed == preset:
++            return preset, normalized
+         other = next_float32(preset, math.copysign(math.inf, preset - landed))
+         other_normalized, other_landed = _landing(scale, other)
+         held = 0.0 <= other_normalized <= 1.0 and other_landed == other
+imports M8/src/patchbay_vital/parameters.py
+96 passed in 0.55s
+exit=0
+
+== M8b: the held branch after branch 2 (expected equivalent on every value the sweep counts:
+   branch 2 takes a held P1's neighbour only where P1 does not show the display and the
+   neighbour does, and A1 is 0 on every value, P1 showing it wherever P1 is held)
+--- src/patchbay_vital/parameters.py	2026-11-12 13:33:43
++++ src/patchbay_vital/parameters.py	2026-11-12 15:21:53
+@@ -321,8 +321,6 @@
+             return _round_half_away(preset), None
+         normalized, landed = _landing(scale, preset)
+         settable = 0.0 <= normalized <= 1.0
+-        if settable and landed == preset:
+-            return preset, normalized
+         if settable and curve.to_display(landed) == display:
+             return landed, None
+         other = next_float32(preset, math.copysign(math.inf, preset - landed))
+@@ -330,6 +328,8 @@
+         held = 0.0 <= other_normalized <= 1.0 and other_landed == other
+         if held and curve.to_display(other) == display:
+             return other, other_normalized
++        if settable and landed == preset:
++            return preset, normalized
+         return preset, normalized
+ 
+     def from_normalized(self, normalized: float) -> float:
+imports M8b/src/patchbay_vital/parameters.py
+96 passed in 0.55s
+exit=0
+
+== M9: branch 3 before branch 2, branch 2 never reached (must fail at the floor values of branch 2)
+--- src/patchbay_vital/parameters.py	2026-11-12 13:33:43
++++ src/patchbay_vital/parameters.py	2026-11-12 15:21:54
+@@ -325,11 +325,6 @@
+             return preset, normalized
+         if settable and curve.to_display(landed) == display:
+             return landed, None
+-        other = next_float32(preset, math.copysign(math.inf, preset - landed))
+-        other_normalized, other_landed = _landing(scale, other)
+-        held = 0.0 <= other_normalized <= 1.0 and other_landed == other
+-        if held and curve.to_display(other) == display:
+-            return other, other_normalized
+         return preset, normalized
+ 
+     def from_normalized(self, normalized: float) -> float:
+imports M9/src/patchbay_vital/parameters.py
+FAILED tests/unit/test_parameters.py::test_where_volume_s_offset_absorbs_a_preset
+FAILED tests/unit/test_parameters.py::test_at_or_below_volume_s_floor_a_display_maps_to_a_held_preset[3.4694490199051456e-18]
+FAILED tests/unit/test_parameters.py::test_at_or_below_volume_s_floor_a_display_maps_to_a_held_preset[1.439742266862027e-17]
+FAILED tests/unit/test_parameters.py::test_at_or_below_volume_s_floor_a_display_maps_to_a_held_preset[1.53642479121845e-17]
+FAILED tests/unit/test_parameters.py::test_else_a_display_takes_the_float32_on_the_other_side[3.4694490199051456e-18-2.567198129153469e-14]
+FAILED tests/unit/test_parameters.py::test_else_a_display_takes_the_float32_on_the_other_side[1.439742266862027e-17-1.0653287198800557e-13]
+FAILED tests/unit/test_parameters.py::test_else_a_display_takes_the_float32_on_the_other_side[1.53642479121845e-17-1.1368683772161603e-13]
+7 failed, 89 passed in 0.59s
+exit=1
+
+== M10: _shares_its_display asking either side (must fail where the far side alone shares it)
+--- tests/unit/test_parameters.py	2026-11-12 15:21:31
++++ tests/unit/test_parameters.py	2026-11-12 15:21:55
+@@ -249,7 +249,8 @@
+     18,227,438 of `volume`'s and 1,042,983,597 of the exponential groups', `oversampling`'s whole
+     numbers among them, whose neighbours the scale does not hold.
+     """
+-    return record.to_display(next_float32(preset, back)) == record.to_display(preset)
++    below, above = next_float32(preset, -math.inf), next_float32(preset, math.inf)
++    return record.to_display(preset) in (record.to_display(below), record.to_display(above))
+ 
+ 
+ def test_where_volume_s_offset_absorbs_a_preset() -> None:
+imports M10/src/patchbay_vital/parameters.py
+FAILED tests/unit/test_parameters.py::test_where_volume_s_offset_absorbs_a_preset
+1 failed, 95 passed in 0.57s
+exit=1
+
+== M11: _VOLUME_FLOOR missing from the integration module (the AST test must fail by name)
+--- tests/integration/test_vital_plugin.py	2026-11-12 13:37:14
++++ tests/integration/test_vital_plugin.py	2026-11-12 15:21:56
+@@ -120,12 +120,6 @@
+             assert record.from_normalized(host.get(record.id)) == record.to_display(held)
+ 
+ 
+-_VOLUME_FLOOR = (
+-    5.857149595214349e-20,  # issue #13's value
+-    3.4694490199051456e-18,  # the smallest of the former one-ulp landings
+-    1.439742266862027e-17,  # a former one-ulp landing below the display
+-    1.53642479121845e-17,  # the floor's own, preset 2 ** -43
+-)
+ """`volume`'s normalized values at or below its floor, pinned; `test_parameters.py` holds the map
+ at the same ones."""
+ 
+imports M11/src/patchbay_vital/parameters.py
+FAILED tests/unit/test_parameters.py::test_the_integration_module_pins_the_same_values[_VOLUME_FLOOR]
+1 failed, 95 passed in 0.58s
+AssertionError: _VOLUME_FLOOR is not assigned in test_vital_plugin.py
+exit=1
+
+== M12: _VOLUME_FLOOR renamed in the integration module (the AST test must fail by name)
+--- tests/integration/test_vital_plugin.py	2026-11-12 13:37:14
++++ tests/integration/test_vital_plugin.py	2026-11-12 15:21:57
+@@ -120,7 +120,7 @@
+             assert record.from_normalized(host.get(record.id)) == record.to_display(held)
+ 
+ 
+-_VOLUME_FLOOR = (
++_VOLUME_FLOORS = (
+     5.857149595214349e-20,  # issue #13's value
+     3.4694490199051456e-18,  # the smallest of the former one-ulp landings
+     1.439742266862027e-17,  # a former one-ulp landing below the display
+imports M12/src/patchbay_vital/parameters.py
+FAILED tests/unit/test_parameters.py::test_the_integration_module_pins_the_same_values[_VOLUME_FLOOR]
+1 failed, 95 passed in 0.59s
+AssertionError: _VOLUME_FLOOR is not assigned in test_vital_plugin.py
+exit=1
+
+== M13: _POWERS_OF_TWO no plain literal, tuple(...) of the same values (the AST test must fail by name)
+--- tests/integration/test_vital_plugin.py	2026-11-12 13:37:14
++++ tests/integration/test_vital_plugin.py	2026-11-12 15:21:58
+@@ -129,11 +129,11 @@
+ """`volume`'s normalized values at or below its floor, pinned; `test_parameters.py` holds the map
+ at the same ones."""
+ 
+-_POWERS_OF_TWO = (
++_POWERS_OF_TWO = tuple((
+     0.7071068286895752,  # 1.0 on the envelope records
+     0.3535534143447876,  # 0.5 on the envelope records
+     6.74349621476722e-07,  # 2 ** -20 on the envelope records
+-)
++))
+ """Normalized values of held powers of two on the envelope records, pinned; `test_parameters.py`
+ holds the map at the same ones."""
+ 
+imports M13/src/patchbay_vital/parameters.py
+FAILED tests/unit/test_parameters.py::test_the_integration_module_pins_the_same_values[_POWERS_OF_TWO]
+1 failed, 95 passed in 0.60s
+Failed: _POWERS_OF_TWO in test_vital_plugin.py is not a plain literal
+exit=1
+
+== M14: one _POWERS_OF_TWO value changed in the integration module (the AST test must fail by name)
+--- tests/integration/test_vital_plugin.py	2026-11-12 13:37:14
++++ tests/integration/test_vital_plugin.py	2026-11-12 15:21:59
+@@ -132,7 +132,7 @@
+ _POWERS_OF_TWO = (
+     0.7071068286895752,  # 1.0 on the envelope records
+     0.3535534143447876,  # 0.5 on the envelope records
+-    6.74349621476722e-07,  # 2 ** -20 on the envelope records
++    6.74349621476723e-07,  # 2 ** -20 on the envelope records
+ )
+ """Normalized values of held powers of two on the envelope records, pinned; `test_parameters.py`
+ holds the map at the same ones."""
+imports M14/src/patchbay_vital/parameters.py
+FAILED tests/unit/test_parameters.py::test_the_integration_module_pins_the_same_values[_POWERS_OF_TWO]
+1 failed, 95 passed in 0.59s
+AssertionError: _POWERS_OF_TWO in test_vital_plugin.py is (0.7071068286895752, 0.3535534143447876, 6.74349621476723e-07), here (0.7071068286895752, 0.3535534143447876, 6.74349621476722e-07)
+exit=1
+exit=0
+
+the tree after the run:
+  HEAD f3625d1ce548446ba773aaf0ecd5a93c5deaf704
+  git status --porcelain=v1, 7 lines:
+     M CHANGELOG.md
+     M src/patchbay_vital/float32.py
+     M src/patchbay_vital/parameters.py
+     M tests/integration/test_vital_plugin.py
+     M tests/unit/test_float32.py
+     M tests/unit/test_parameters.py
+    ?? agent-os/specs/2026-11-12-1319-revision-after-pr-14-fourth-review/
+  git hash-object of each file the run reads, HEAD's blob beside it:
+    6cc729a8f442581d9d0e68afac929e3afd1a684a  src/patchbay_vital/parameters.py  (HEAD f505cb0eaf073f9e1fb0477d24ad9372fd7a716a)
+    27a1e91bd4483e2fbdebf444799b51f78617ab0e  src/patchbay_vital/float32.py  (HEAD c8f9cdc621506d13587ce6162dd7c020c1d0b850)
+    ba70782b5fb4bd4252251629cd8b280056f1bcb7  tests/unit/test_parameters.py  (HEAD c1c5c77d832c2039ba9c744f61cc77d3272d3f36)
+    30c55ede7a4d93930b727f6248f5369545c33e34  tests/unit/test_float32.py  (HEAD 64b104335209f385c2284cebe4e04e3d1eb289cf)
+    344dca006ecf4d5d740073c1ee0f7e95a8e0f5e0  tests/integration/test_vital_plugin.py  (HEAD 6694698573bc2eb831ece9bbaf9d96129027c293)
+cmp: the tree after the run is the tree before it, line for line

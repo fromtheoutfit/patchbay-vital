@@ -178,3 +178,126 @@ writes the entry, in that commit
   - `.claude/commands/agent-os/shape-spec.md` customized for this repository's gate, `CLAUDE.md`,
     `README.md`, `agent-os/product/mission.md` and `tech-stack.md`.
   - `patchbay-core` is not a dependency yet: this spec ships no adapter code.
+
+### Fixed
+
+- The parameter map's two inverses, issue #15,
+  `agent-os/specs/2026-11-12-0937-map-inverses-land-on-held-presets/`, revised after the fourth,
+  fifth and sixth reviews of PR 14,
+  `agent-os/specs/2026-11-12-1319-revision-after-pr-14-fourth-review/`,
+  `agent-os/specs/2026-11-12-1852-revision-after-pr-14-fifth-review/` and
+  `agent-os/specs/2026-11-13-0853-revision-after-pr-14-sixth-review/`. Each missed a preset a set
+  should hold, and Vital held what the map gave. The version stays 0.0.1.
+  - **`NormalizedScale.to_normalized` takes the float32 one step toward the preset** where the
+    nearest quotient misses it and that step, inside [0, 1], lands on it.
+    - On the 12 `env_N_delay` and `env_N_hold` records, at 126 powers of two each from 2 ** -125
+      to 1, the nearest quotient multiplied back one float32 short. So a set of 1.0 s held
+      0.9999999403953552 on Vital, and now holds 1.0.
+    - A step past [0, 1] is never taken. On a span of 2 ** 24 from -1, only the float32 above 1,
+      which the host cannot set, lands on the maximum, so the maximum is not one the scale holds.
+  - **`MappedParameter.to_preset`** handles a display whose curve float32 the scale does not hold.
+    It takes what a set of that float32 holds, Vital's own rounding of it, where that shows the
+    display. Otherwise it takes the float32 on its other side, where the scale holds it and it
+    shows the display. Otherwise it keeps the curve's float32, as before.
+    - At or below `volume`'s 2 ** -43, presets share a display, and a set of a display now shows
+      it again exactly.
+    - On 15,761,472 of `volume`'s values a set holds what it held before, now the value
+      `to_preset` gives.
+    - On the 308,386 where that showed a display one double off, a set holds the float32 on the
+      other side.
+    - The two are tried in that order: where both show the display, the first is taken.
+    - The float32 on the other side is asked of `NormalizedScale.holds`, so one past an end the
+      scale does not hold is never taken.
+    - A display no preset shows exactly keeps the curve's float32, which need not be one the
+      scale holds. The sixth review found that a model storing it disagrees with what Vital holds
+      after a set; that is issue #16, filed to run before #8, which makes `to_preset` return what
+      a set of the display's float32 holds. Whether a set keeps a stored value is left to issue #8
+      (finding 3).
+  - **Written plainer after the sixth review, no value changed.** `to_preset` holds the rule
+    itself, its first branch taking what a set of the curve's float32 holds where that is the
+    float32 or shows the display; `MappedParameter.to_normalized` is the scale's own normalized
+    value for `to_preset`'s preset, `main`'s form, and the private `_resolve` is gone. The second
+    branch compares displays before it asks `holds`. Both trees' shipped methods, `e852aac`'s and
+    the new one's, give the same `to_preset` and `to_normalized` on every float32 normalized value
+    of `volume` below 2 ** -54, 612,368,384 values, and at the envelope group's 143 held powers of
+    two from 2 ** -149 to 2, the 126 above among them (`verification/floor-pass.txt`); no other value can differ, by reading (the spec's shape.md,
+    Decision 5). A call costs more than on `main`, measured on an Apple M4 Pro under macOS 26.6.2
+    (`verification/cost.txt`): on `volume`, `to_preset` about 15 µs against `main`'s 3.5, and
+    `to_normalized` about 27 µs against `main`'s 8 and `e852aac`'s 15, since it lands the
+    preset `to_preset` landed once more; the 903 records at their defaults, 13 ms against
+    `main`'s 4.2 and `e852aac`'s 8.9. No fast path is added (the sixth review's finding 5).
+  - **New:** `NormalizedScale.holds` says whether the plugin can hold a preset value.
+    `float32.next_float32` steps to the next float32 as C's `nextafterf` does, both of its
+    arguments narrowed to float32 first. It is the one way the package steps a float32, and its
+    tests check it against numpy's `nextafter`.
+  - **Counted over every float32 normalized value of all 69 of the map's scale and curve groups,**
+    the 9 exponential ones through this machine's own libm (macOS 26.6.2 on arm64)
+    (`verification/sweep.txt`):
+    - the display, the held preset and the display's preset come back exactly, and a set shows
+      the display again, on every value;
+    - no value reaches the rule's third branch.
+
+    That count is a reproduction's, of the fourth review's revision: numpy for 60 groups, checked
+    against the shipped methods on 200,010 values a group, of which 2,989 take `volume`'s first
+    branch and 69 its second. Its two columns for what changed against `main` where `main`'s
+    value was held were 0 by how the reproduction was built, and are evidence of nothing.
+  - **Counted directly against `main`**
+    (the fifth review's revision, `verification/direct-count.txt`): `main`'s shipped methods and
+    this branch's, each imported from its own tree and called on every float32 normalized value,
+    1,065,353,217 a record, nothing reproduced.
+    - On `volume` the display's preset differs from `main`'s on 16,069,858 values, every one at
+      a held preset at or below 2 ** -43, split value by value. The branch each takes is read
+      from the shipped result: 15,761,472 the first, 308,386 the second, none the third. The
+      normalized value a set sends differs on the 308,386 alone. No value above 2 ** -43 differs
+      or leaves the curve's float32.
+    - On `env_1_delay`, counted for the 12 envelope records, which share every field the methods
+      read, the normalized value differs from `main`'s at 126 held powers of two and nowhere
+      else, and no display's preset differs.
+    - The other 67 groups are not counted directly, by the owner's decision at about 2.5 hours
+      wall a group. What holds there that a value `main`'s
+      quotient lands on is returned unchanged is a unit test,
+      `test_a_quotient_that_lands_is_the_normalized_value_whatever_lands_beside_it`, which fails
+      when `to_normalized` prefers the step (M15 in the fifth review's
+      `verification/mutation.txt`), and the reproduction's count above.
+  - **Vital and the tests.** Vital 1.6.4 holds the map's value at each pinned value after a set
+    (`verification/plugin-probe.txt`). The sixth review's `verification/mutation.txt` shows the
+    tests fail with each branch, guard and order changed, but for one order shown equivalent.
+  - **The pinned values** are written once, in `tests/data/pinned-values.txt`, which both test
+    modules read through `pytestconfig.rootpath`, so `test_the_integration_module_pins_the_same_values`
+    and its reading of the integration module's source are gone.
+    `test_at_or_below_volume_s_floor_a_set_holds_the_map_s_preset` and
+    `test_a_held_power_of_two_set_through_the_host_is_held` hold Vital at them, and
+    `test_every_pinned_value_comes_back_on_every_record` runs them through the property on every
+    hand-built record, where issue #13's value was an `@example`: a decorator cannot read from
+    pytest's root.
+  - **The property's excuse names what a set holds** (the sixth review's finding 1). Where the
+    display's preset is not the held one, `_unnamed_by_its_display` passes it only if the curve's
+    own float32 for the display is not the held preset and the display's preset is what a set of
+    that float32 holds, worked out from the scale's and the curve's primitives. It replaces
+    `_shares_its_display`, which on a monotone curve held wherever the display's preset showed
+    the display, and so let a wrong held preset through.
+    - Counted on every float32 normalized value of `volume` with the shipped methods
+      (`verification/floor-pass.txt`): 570,997,534 values ask it, every one below 2 ** -54 at a
+      held preset at or below 2 ** -43, and on each the display's preset is what a set holds. No
+      value at or above 2 ** -54 asks it.
+    - On none is it the float32 on the other side, which `to_preset` takes in its second branch,
+      so that is not excused: a record that needed it would fail the property. The hand-built
+      records are not counted.
+- The parameter map's property at or below `volume`'s floor, issue #13,
+  `agent-os/specs/2026-11-11-1449-volume-preset-through-the-set-path/`, revised after the two
+  reviews of PR 14, `agent-os/specs/2026-11-11-1555-revision-after-pr-14-review/` and
+  `agent-os/specs/2026-11-11-2044-revision-after-pr-14-second-review/`, and closed by issue #15's
+  fix above. At normalized `5.857149595214349e-20` the display maps to a float32 the scale does not
+  hold, so the second assertion of `_assert_comes_back`, the display's preset back through the
+  normalized path, failed whenever Hypothesis drew it: on 16,069,858 of `volume`'s values counted,
+  all at or below 2 ** -43. The map was wrong there, not the property.
+  - `_assert_comes_back` asserts on every value, exactly, the display back, the held preset back
+    through the normalized path and the display's preset back through it. The preset the display
+    maps to is the held one, but where the float32 next to the held one, toward the preset the
+    display maps to, shows its display (`_shares_its_display`, which issue #15's entry above says
+    the sixth review replaced by `_unnamed_by_its_display`).
+    - That is a value predicate, in place of `_ABSORBED`, which was keyed by a record's id.
+    - It is consulted only where the exact check fails: on 570,997,534 values, all of `volume`'s,
+      each excused.
+    - The issue's value is pinned, an `@example` until the sixth review moved it to
+      `tests/data/pinned-values.txt`.

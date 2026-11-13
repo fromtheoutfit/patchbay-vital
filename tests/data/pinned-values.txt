@@ -1,0 +1,30 @@
+# The parameter map's pinned normalized values, one per line: <set> <value> <name>. Both
+# tests/unit/test_parameters.py, against the map, and tests/integration/test_vital_plugin.py,
+# against Vital, read this file through pytestconfig.rootpath, so a value is written once. A value
+# is the float32 normalized value written as Python's repr, read back with float().
+#
+# volume_floor: volume's normalized values at or below its floor, preset 2 ** -43, where the
+# curve's own float32 for the display is one the scale does not hold. Issue #13's value was found
+# by Hypothesis, and issue #13's spec counted it and the smallest of the one-ulp landings
+# (agent-os/specs/2026-11-11-1449-volume-preset-through-the-set-path/verification/sweep.txt); the
+# landing below the display and the floor's own were pinned beside them by the revision after
+# PR 14's review (agent-os/specs/2026-11-11-1555-revision-after-pr-14-review/verification/,
+# sweep-first.txt and plugin-probe.txt). The floor itself is the host spec's
+# (agent-os/specs/2026-11-09-1907-the-host-and-the-parameter-map/shape.md, Decision 6).
+#
+# powers_of_two: normalized values of held powers of two on the 12 env_N_delay and env_N_hold
+# records, where the nearest quotient lands one float32 short, the map's value before issue #15.
+# 1.0 was measured on Vital by the revision after PR 14's review (its
+# verification/plugin-probe.txt), and 0.5 and 2 ** -20 by the revision after its second review
+# (agent-os/specs/2026-11-11-2044-revision-after-pr-14-second-review/verification/plugin-probe.txt).
+#
+# Vital 1.6.4 holds the map's preset at every one (the verification/plugin-probe.txt of issue
+# #15's spec, agent-os/specs/2026-11-12-0937-map-inverses-land-on-held-presets/, and of the
+# revisions after PR 14's fourth and fifth reviews).
+volume_floor 5.857149595214349e-20 issue #13's value
+volume_floor 3.4694490199051456e-18 the smallest of the former one-ulp landings
+volume_floor 1.439742266862027e-17 a former one-ulp landing below the display
+volume_floor 1.53642479121845e-17 the floor's own, preset 2 ** -43
+powers_of_two 0.7071068286895752 1.0 on the envelope records
+powers_of_two 0.3535534143447876 0.5 on the envelope records
+powers_of_two 6.74349621476722e-07 2 ** -20 on the envelope records

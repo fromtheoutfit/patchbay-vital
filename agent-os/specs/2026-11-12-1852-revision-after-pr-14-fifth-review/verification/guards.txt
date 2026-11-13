@@ -1,0 +1,152 @@
+The revision after PR 14's fifth review: what _resolve's two range checks could see, run 2026-11-12 19:04 EST on branch
+refactor/13-the-parameter-map-volumes-display-does-not-come-back-through-the-normalized-path-below-2--43-hypothesis-normalized-5857149595214349e-20, machine arm64, Python 3.12.16
+the tree before the run:
+  HEAD d21f1607e5f42c4c50bd59d76a72b6d899998782
+  git status --porcelain=v1, 3 lines:
+     M src/patchbay_vital/parameters.py
+     M tests/unit/test_parameters.py
+    ?? agent-os/specs/2026-11-12-1852-revision-after-pr-14-fifth-review/
+  git hash-object of each file the run reads, HEAD's blob beside it:
+    e49d5e9dd275ba8b592103621566206e9a654fa2  src/patchbay_vital/parameters.py  (HEAD 6cc729a8f442581d9d0e68afac929e3afd1a684a)
+    27a1e91bd4483e2fbdebf444799b51f78617ab0e  src/patchbay_vital/float32.py  (HEAD 27a1e91bd4483e2fbdebf444799b51f78617ab0e)
+    109ae1887be396e43ce7939b7115ec9745b6c6ca  src/patchbay_vital/data/parameters.json  (HEAD 109ae1887be396e43ce7939b7115ec9745b6c6ca)
+  git hash-object of the script: c4b4206ba03da666188e3100f5362ddd2794ef2b  <scratchpad>/r5/guards.py
+
+== the script, run from the repository root as: uv run --locked python <scratchpad>/r5/guards.py 
+```python
+"""The revision after PR 14's fifth review: what `_resolve`'s two range checks could and could not see.
+
+`MappedParameter._resolve` checked that the normalized value `_landing` gives the curve's float32,
+clamped to the scale, is in [0, 1] (`settable`), and that the one it gives the float32 on the other
+side is. The fifth review called both always true. This shows, by the shipped `_landing` itself:
+
+1. the first is always true on every scale tried: the 69 groups' scales of the committed map, each
+   at its ends, the float32 inside each end and 20,000 float32 presets drawn over its range, and
+   the constructed scales below, each at its ends and the float32 inside each;
+2. the second is not: on a constructed scale whose maximum the scale does not hold, the float32
+   past the maximum is one a normalized value above 1 lands on. So "both ends are always held" is
+   false, and `holds` refuses that float32.
+
+Run from the repository root: uv run --locked python <scratchpad>/r5/guards.py
+"""
+
+import math
+import random
+
+import numpy as np
+from patchbay_vital.float32 import next_float32
+from patchbay_vital.parameters import NormalizedScale, _landing, parameter_map
+
+
+def f32(x):
+    return float(np.float32(x))
+
+
+def committed():
+    scales = {}
+    for rec in parameter_map().parameters:
+        s = rec.scale
+        scales.setdefault((s.kind, s.minimum, s.maximum), s)
+    rng = np.random.default_rng(31)
+    checked = outside = 0
+    for s in scales.values():
+        drawn = rng.uniform(s.minimum, s.maximum, 20_000).astype(np.float32).astype(np.float64)
+        ends = (s.minimum, s.maximum, next_float32(s.minimum, math.inf),
+                next_float32(s.maximum, -math.inf))
+        for p in (*ends, *drawn.tolist()):
+            p = min(max(p, s.minimum), s.maximum)
+            checked += 1
+            outside += not 0.0 <= _landing(s, p)[0] <= 1.0
+    print(f"== 1a. the committed map: {len(scales)} distinct scales, {checked:,} presets inside"
+          f" them; _landing's normalized value outside [0, 1] on {outside}")
+
+
+def constructed():
+    rng = random.Random(1)  # noqa: S311 - a seeded search, not a secret
+    tried = presets = outside = unheld_end = other_out = other_lands = 0
+    examples = []
+    for _ in range(200_000):
+        e1, e2 = rng.randint(-30, 30), rng.randint(-30, 30)
+        if rng.random() < 0.8:  # noqa: PLR2004
+            mn = f32(rng.choice([-1, 1, 0]) * rng.random() * 2.0**e1)
+        else:
+            mn = float(-rng.randint(0, 300))
+        if rng.random() < 0.6:  # noqa: PLR2004
+            mx = f32(mn + rng.random() * 2.0**e2)
+        else:
+            mx = f32(2.0 ** rng.randint(0, 30))
+        if not mn < mx:
+            continue
+        s = NormalizedScale(kind="linear", minimum=mn, maximum=mx)
+        tried += 1
+        for p in (mn, mx, next_float32(mn, math.inf), next_float32(mx, -math.inf)):
+            normalized, landed = _landing(s, p)
+            presets += 1
+            outside += not 0.0 <= normalized <= 1.0
+            if landed == p:
+                continue
+            unheld_end += p in (mn, mx)
+            other = next_float32(p, math.copysign(math.inf, p - landed))
+            other_normalized, other_landed = _landing(s, other)
+            if not 0.0 <= other_normalized <= 1.0:
+                other_out += 1
+                if other_landed == other:
+                    other_lands += 1
+                    if len(examples) < 3:
+                        examples.append((mn, mx, p, landed, other, other_normalized))
+    print(f"== 1b. constructed scales: {tried:,} linear scales from 200,000 draws (seed 1),"
+          f" {presets:,} presets (each scale's ends and the float32 inside each); _landing's"
+          f" normalized value outside [0, 1] on {outside}")
+    print(f"== 2. of those presets, an end the scale does not hold: {unheld_end:,}; a preset the"
+          " scale does not hold whose float32 on the other side has a normalized value outside"
+          f" [0, 1]: {other_out:,}; of those, that normalized value lands on it: {other_lands:,}")
+    for mn, mx, p, landed, other, other_normalized in examples:
+        print(f"   scale [{mn!r}, {mx!r}]: preset {p!r} is not held, a set of it lands on"
+              f" {landed!r}; the other side {other!r} is landed on by {other_normalized!r}")
+
+
+def pinned():
+    s = NormalizedScale(kind="linear", minimum=-0.89999920129776, maximum=1.0)
+    normalized, landed = _landing(s, 1.0)
+    other = next_float32(1.0, math.inf)
+    print("== 3. the scale of test_the_float32_past_an_end_the_scale_does_not_hold_is_not_taken,"
+          f" [{s.minimum!r}, {s.maximum!r}], span {s.span!r}:")
+    print(f"   _landing(1.0) = {(normalized, landed)!r}, holds(1.0) = {s.holds(1.0)}")
+    print(f"   the other side {other!r}: _landing = {_landing(s, other)!r}, holds = {s.holds(other)}")
+    s = NormalizedScale(kind="linear", minimum=-1.0, maximum=2.0**24)
+    other = next_float32(s.maximum, math.inf)
+    print(f"   and on [-1.0, 2 ** 24], the fourth-review revision's guard test: _landing(maximum) ="
+          f" {_landing(s, s.maximum)!r}; the other side {other!r}: _landing ="
+          f" {_landing(s, other)!r}, holds = {s.holds(other)}")
+
+
+if __name__ == "__main__":
+    committed()
+    constructed()
+    pinned()
+```
+
+== its output
+== 1a. the committed map: 60 distinct scales, 1,200,240 presets inside them; _landing's normalized value outside [0, 1] on 0
+== 1b. constructed scales: 177,883 linear scales from 200,000 draws (seed 1), 711,532 presets (each scale's ends and the float32 inside each); _landing's normalized value outside [0, 1] on 0
+== 2. of those presets, an end the scale does not hold: 4,929; a preset the scale does not hold whose float32 on the other side has a normalized value outside [0, 1]: 3,799; of those, that normalized value lands on it: 3,387
+   scale [-108.0, 199.5476837158203]: preset 199.5476837158203 is not held, a set of it lands on 199.54766845703125; the other side 199.54769897460938 is landed on by 1.0000001192092896
+   scale [-19015.751953125, 134217728.0]: preset 134217728.0 is not held, a set of it lands on 134217720.0; the other side 134217744.0 is landed on by 1.0000001192092896
+   scale [-1.2684431076049805, 33554432.0]: preset 33554432.0 is not held, a set of it lands on 33554430.0; the other side 33554436.0 is landed on by 1.0000001192092896
+== 3. the scale of test_the_float32_past_an_end_the_scale_does_not_hold_is_not_taken, [-0.89999920129776, 1.0], span 1.8999991416931152:
+   _landing(1.0) = (1.0, 0.9999999403953552), holds(1.0) = False
+   the other side 1.0000001192092896: _landing = (1.0000001192092896, 1.0000001192092896), holds = False
+   and on [-1.0, 2 ** 24], the fourth-review revision's guard test: _landing(maximum) = (1.0, 16777215.0); the other side 16777218.0: _landing = (1.000000238418579, 16777220.0), holds = False
+exit=0
+
+the tree after the run:
+  HEAD d21f1607e5f42c4c50bd59d76a72b6d899998782
+  git status --porcelain=v1, 3 lines:
+     M src/patchbay_vital/parameters.py
+     M tests/unit/test_parameters.py
+    ?? agent-os/specs/2026-11-12-1852-revision-after-pr-14-fifth-review/
+  git hash-object of each file the run reads, HEAD's blob beside it:
+    e49d5e9dd275ba8b592103621566206e9a654fa2  src/patchbay_vital/parameters.py  (HEAD 6cc729a8f442581d9d0e68afac929e3afd1a684a)
+    27a1e91bd4483e2fbdebf444799b51f78617ab0e  src/patchbay_vital/float32.py  (HEAD 27a1e91bd4483e2fbdebf444799b51f78617ab0e)
+    109ae1887be396e43ce7939b7115ec9745b6c6ca  src/patchbay_vital/data/parameters.json  (HEAD 109ae1887be396e43ce7939b7115ec9745b6c6ca)
+cmp: the tree after the run is the tree before it, line for line

@@ -1,0 +1,236 @@
+Issue #15's spec: the mutations, run 2026-11-12 10:40 EST on branch refactor/13-the-parameter-map-volumes-display-does-not-come-back-through-the-normalized-path-below-2--43-hypothesis-normalized-5857149595214349e-20
+at 5e284ecbbad7b29f667eaec4f96a8f08793f2537, machine arm64; each on a scratch copy outside the tree, the tree untouched
+the tree (git status --short; sweep.py and sweep_exponential.py are the exponential count's, running beside it):
+   M README.md
+   M src/patchbay_vital/float32.py
+   M src/patchbay_vital/parameters.py
+   D tests/conftest.py
+   D tests/data/power-of-two-presets.txt
+   D tests/data/volume-floor.txt
+   M tests/integration/test_vital_plugin.py
+   M tests/unit/test_float32.py
+   M tests/unit/test_parameters.py
+  ?? agent-os/specs/2026-11-12-0937-map-inverses-land-on-held-presets/
+  ?? sweep.py
+  ?? sweep_exponential.py
+the blobs mutated or run (git hash-object):
+  f505cb0eaf073f9e1fb0477d24ad9372fd7a716a  src/patchbay_vital/parameters.py
+  c1c5c77d832c2039ba9c744f61cc77d3272d3f36  tests/unit/test_parameters.py
+  64b104335209f385c2284cebe4e04e3d1eb289cf  tests/unit/test_float32.py
+
+== the script, run from the repository root as: bash <scratchpad>/mutate.sh <scratchpad>
+   each case copies the tree as git lists it, applies one change, prints its diff, and runs
+   tests/unit/test_parameters.py and tests/unit/test_float32.py on the copy, its src/ first on
+   the import path (the 'imports' line shows the copy's module was the one imported); the
+   FAILED lines and pytest's count are kept, exit= is pytest's status
+```bash
+#!/usr/bin/env bash
+# Issue #15's spec: each fix and guard reverted on a scratch copy, the unit tests run on the copy.
+# Run from the repository root: bash <scratchpad>/mutate.sh <scratchpad>
+set -u
+repo=$(pwd)
+scratch=$1
+python="$repo/.venv/bin/python"
+
+copy() {  # copy the tree as git lists it (tracked or untracked, not ignored, present) to $1
+  rm -rf "$1" && mkdir -p "$1" || exit 2
+  git ls-files -z -co --exclude-standard --deduplicate |
+    while IFS= read -r -d '' f; do [ -f "$f" ] && printf '%s\0' "$f"; done |
+    rsync -a --from0 --files-from=- ./ "$1/" || exit 2
+}
+
+mutate() {  # $1 name, $2 file, $3 python snippet reading s and writing s
+  local dir="$scratch/mutation-$1"
+  copy "$dir"
+  if [ -n "$2" ]; then
+    MUT_FILE="$dir/$2" MUT_CODE="$3" "$python" -I - <<'PY' || exit 2
+import os
+from pathlib import Path
+p = Path(os.environ["MUT_FILE"])
+old = p.read_text()
+scope = {"s": old}
+exec(os.environ["MUT_CODE"], scope)
+assert scope["s"] != old, "the mutation changed nothing"
+p.write_text(scope["s"])
+PY
+    (cd "$dir" && diff -u "$repo/$2" "$2" | sed "s|$repo/||")
+  fi
+  (cd "$dir" && PYTHONPATH="$dir/src" "$python" -c \
+    'import patchbay_vital.parameters as m; print("imports", m.__file__.split("/mutation-")[1])')
+  local status
+  (cd "$dir" && PYTHONPATH="$dir/src" "$python" -m pytest -c pyproject.toml -p no:doctest \
+    -p no:cacheprovider tests/unit/test_parameters.py tests/unit/test_float32.py -rf \
+    > "$dir.out" 2>&1)
+  status=$?
+  grep -E '^(FAILED|[0-9]+ (passed|failed)|=+ .*(passed|failed))' "$dir.out" | sed 's/ - .*//'
+  echo "exit=$status"
+  rm -f "$dir.out"
+  rm -rf "$dir"
+}
+
+echo "== M0: the tree unmutated (the copy runs, and passes)"
+mutate M0 "" ""
+
+echo
+echo "== M1: to_normalized reverted to the nearest quotient, HEAD's (must fail at the powers of two)"
+mutate M1 src/patchbay_vital/parameters.py '
+start = s.index("        nearest = round_to_float32(")
+end = s.index("    def holds(")
+s = s[:start] + "        return round_to_float32((Fraction(preset) - Fraction(self.minimum)) / Fraction(self.span))\n\n" + s[end:]
+'
+
+echo
+echo "== M2: the snap removed, to_preset the curve's float32 again (must fail at the floor)"
+mutate M2 src/patchbay_vital/parameters.py '
+start = s.index("        if scale.holds(preset):\n            return preset\n")
+end = s.index("        return preset\n\n    def to_normalized(self, display: float)")
+s = s[:start] + s[end:]
+'
+
+echo
+echo "== M3: holds without its [0, 1] check (must fail where a value past the scale lands)"
+mutate M3 src/patchbay_vital/parameters.py '
+old = "        return 0.0 <= normalized <= 1.0 and self.to_preset(normalized) == preset\n"
+assert s.count(old) == 1
+s = s.replace(old, "        return self.to_preset(normalized) == preset\n")
+'
+
+echo
+echo "== M4: the step in to_normalized without its [0, 1] check: the one guard no test trips."
+echo "   On none of the committed map's 903 records, and on none of 200,000 constructed linear scales"
+echo "   (bounds float32, the lower in [-100, 100], widths to 1000), does the float32 next to an"
+echo "   in-range nearest quotient leave [0, 1] and land on the preset (searched while implementing);"
+echo "   kept so to_normalized never steps a value the host could set to one it refuses"
+mutate M4 src/patchbay_vital/parameters.py '
+old = "        return toward if 0.0 <= toward <= 1.0 and self.to_preset(toward) == preset else nearest\n"
+assert s.count(old) == 1
+s = s.replace(old, "        return toward if self.to_preset(toward) == preset else nearest\n")
+'
+
+echo
+echo "== M5: the snap without its display check (must fail where a held neighbour shows another display)"
+mutate M5 src/patchbay_vital/parameters.py '
+old = "            if scale.holds(neighbour) and curve.to_display(neighbour) == display:\n"
+assert s.count(old) == 1
+s = s.replace(old, "            if scale.holds(neighbour):\n")
+'
+```
+
+== its output
+== M0: the tree unmutated (the copy runs, and passes)
+imports M0/src/patchbay_vital/parameters.py
+89 passed in 1.03s
+exit=0
+
+== M1: to_normalized reverted to the nearest quotient, HEAD's (must fail at the powers of two)
+--- src/patchbay_vital/parameters.py	2026-11-12 09:43:31
++++ src/patchbay_vital/parameters.py	2026-11-12 10:40:54
+@@ -121,14 +121,7 @@
+         normalized value of every group issue #15's spec counts (`verification/sweep.txt`); a
+         value it does not hold keeps the nearest quotient.
+         """
+-        nearest = round_to_float32(
+-            (Fraction(preset) - Fraction(self.minimum)) / Fraction(self.span)
+-        )
+-        landed = self.to_preset(nearest)
+-        if landed == preset:
+-            return nearest
+-        toward = next_float32(nearest, math.copysign(math.inf, preset - landed))
+-        return toward if 0.0 <= toward <= 1.0 and self.to_preset(toward) == preset else nearest
++        return round_to_float32((Fraction(preset) - Fraction(self.minimum)) / Fraction(self.span))
+ 
+     def holds(self, preset: float) -> bool:
+         """Say whether the plugin can hold a preset value.
+imports M1/src/patchbay_vital/parameters.py
+FAILED tests/unit/test_parameters.py::test_a_held_power_of_two_comes_back_through_the_normalized_path[0.7071068286895752-env_1_delay]
+FAILED tests/unit/test_parameters.py::test_a_held_power_of_two_comes_back_through_the_normalized_path[0.7071068286895752-env_3_hold]
+FAILED tests/unit/test_parameters.py::test_a_held_power_of_two_comes_back_through_the_normalized_path[0.3535534143447876-env_1_delay]
+FAILED tests/unit/test_parameters.py::test_a_held_power_of_two_comes_back_through_the_normalized_path[0.3535534143447876-env_3_hold]
+FAILED tests/unit/test_parameters.py::test_a_held_power_of_two_comes_back_through_the_normalized_path[6.74349621476722e-07-env_1_delay]
+FAILED tests/unit/test_parameters.py::test_a_held_power_of_two_comes_back_through_the_normalized_path[6.74349621476722e-07-env_3_hold]
+6 failed, 83 passed in 0.91s
+exit=1
+
+== M2: the snap removed, to_preset the curve's float32 again (must fail at the floor)
+--- src/patchbay_vital/parameters.py	2026-11-12 09:43:31
++++ src/patchbay_vital/parameters.py	2026-11-12 10:40:56
+@@ -290,16 +290,6 @@
+         preset = min(max(curve.to_preset(display), scale.minimum), scale.maximum)
+         if scale.kind == "indexed":
+             return _round_half_away(preset)
+-        if scale.holds(preset):
+-            return preset
+-        inverse = _inverse(curve, display)
+-        neighbours = sorted(
+-            (next_float32(preset, -math.inf), next_float32(preset, math.inf)),
+-            key=lambda neighbour: abs(neighbour - inverse),
+-        )
+-        for neighbour in neighbours:
+-            if scale.holds(neighbour) and curve.to_display(neighbour) == display:
+-                return neighbour
+         return preset
+ 
+     def to_normalized(self, display: float) -> float:
+imports M2/src/patchbay_vital/parameters.py
+FAILED tests/unit/test_parameters.py::test_a_value_the_parameter_holds_comes_back_exactly[volume]
+FAILED tests/unit/test_parameters.py::test_where_volume_s_offset_absorbs_a_preset
+FAILED tests/unit/test_parameters.py::test_at_or_below_volume_s_floor_a_display_maps_to_a_held_preset[5.857149595214349e-20]
+FAILED tests/unit/test_parameters.py::test_at_or_below_volume_s_floor_a_display_maps_to_a_held_preset[3.4694490199051456e-18]
+FAILED tests/unit/test_parameters.py::test_at_or_below_volume_s_floor_a_display_maps_to_a_held_preset[1.439742266862027e-17]
+FAILED tests/unit/test_parameters.py::test_at_or_below_volume_s_floor_a_display_maps_to_a_held_preset[1.53642479121845e-17]
+6 failed, 83 passed in 0.94s
+exit=1
+
+== M3: holds without its [0, 1] check (must fail where a value past the scale lands)
+--- src/patchbay_vital/parameters.py	2026-11-12 09:43:31
++++ src/patchbay_vital/parameters.py	2026-11-12 10:40:58
+@@ -136,7 +136,7 @@
+         It can when a normalized value in `[0, 1]` lands on it; `to_normalized` finds one if any.
+         """
+         normalized = self.to_normalized(preset)
+-        return 0.0 <= normalized <= 1.0 and self.to_preset(normalized) == preset
++        return self.to_preset(normalized) == preset
+ 
+     @model_validator(mode="after")
+     def _bounds_are_float32_and_ordered(self) -> Self:
+imports M3/src/patchbay_vital/parameters.py
+FAILED tests/unit/test_parameters.py::test_a_scale_holds_its_values_and_none_past_its_ends
+1 failed, 88 passed in 0.96s
+exit=1
+
+== M4: the step in to_normalized without its [0, 1] check: the one guard no test trips.
+   On none of the committed map's 903 records, and on none of 200,000 constructed linear scales
+   (bounds float32, the lower in [-100, 100], widths to 1000), does the float32 next to an
+   in-range nearest quotient leave [0, 1] and land on the preset (searched while implementing);
+   kept so to_normalized never steps a value the host could set to one it refuses
+--- src/patchbay_vital/parameters.py	2026-11-12 09:43:31
++++ src/patchbay_vital/parameters.py	2026-11-12 10:41:00
+@@ -128,7 +128,7 @@
+         if landed == preset:
+             return nearest
+         toward = next_float32(nearest, math.copysign(math.inf, preset - landed))
+-        return toward if 0.0 <= toward <= 1.0 and self.to_preset(toward) == preset else nearest
++        return toward if self.to_preset(toward) == preset else nearest
+ 
+     def holds(self, preset: float) -> bool:
+         """Say whether the plugin can hold a preset value.
+imports M4/src/patchbay_vital/parameters.py
+89 passed in 1.10s
+exit=0
+
+== M5: the snap without its display check (must fail where a held neighbour shows another display)
+--- src/patchbay_vital/parameters.py	2026-11-12 09:43:31
++++ src/patchbay_vital/parameters.py	2026-11-12 10:41:02
+@@ -298,7 +298,7 @@
+             key=lambda neighbour: abs(neighbour - inverse),
+         )
+         for neighbour in neighbours:
+-            if scale.holds(neighbour) and curve.to_display(neighbour) == display:
++            if scale.holds(neighbour):
+                 return neighbour
+         return preset
+ 
+imports M5/src/patchbay_vital/parameters.py
+FAILED tests/unit/test_parameters.py::test_an_arbitrary_display_keeps_the_curve_s_float32
+1 failed, 88 passed in 0.94s
+exit=1

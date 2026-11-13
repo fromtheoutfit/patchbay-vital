@@ -1,0 +1,991 @@
+The revision after PR 14's sixth review: mutations of the map and its tests, run 2026-11-13 12:17 EST on branch
+refactor/13-the-parameter-map-volumes-display-does-not-come-back-through-the-normalized-path-below-2--43-hypothesis-normalized-5857149595214349e-20 at e852aacc59126d052d1ab21abda298538ff0575a, machine arm64, Python 3.12.16, on scratch copies; the working tree is not touched
+the tree copied (git status --porcelain=v1 --untracked-files=all):
+   M CHANGELOG.md
+   M README.md
+   M src/patchbay_vital/parameters.py
+   M tests/integration/test_vital_plugin.py
+   M tests/unit/test_parameters.py
+  ?? agent-os/specs/2026-11-13-0853-revision-after-pr-14-sixth-review/plan.md
+  ?? agent-os/specs/2026-11-13-0853-revision-after-pr-14-sixth-review/references.md
+  ?? agent-os/specs/2026-11-13-0853-revision-after-pr-14-sixth-review/shape.md
+  ?? agent-os/specs/2026-11-13-0853-revision-after-pr-14-sixth-review/standards.md
+  ?? agent-os/specs/2026-11-13-0853-revision-after-pr-14-sixth-review/verification/floor-pass.txt
+  ?? tests/data/pinned-values.txt
+git hash-object of the files mutated, in the tree copied:
+  25b1a378e0d633bf4deede60d3173e976059a2a7  src/patchbay_vital/parameters.py
+  5ba924207a40104c5a3e1ee79ea4cf81c171a813  tests/unit/test_parameters.py
+  40aff4ecfcdb10b848a7eb60879b7cf90d5fcacf  tests/data/pinned-values.txt
+git hash-object of the script: 310e2f1620dc6792b132d9bb2503083ca5fc0d3f  <scratchpad>/r6/mutate.sh
+
+== the script, run from the repository root as: bash <scratchpad>/r6/mutate.sh <scratchpad>/r6
+```bash
+#!/usr/bin/env bash
+# The revision after PR 14's sixth review: the map's two inverses, the property's excuse and the
+# pinned-values file changed on scratch copies, one change a copy, the unit tests run on each.
+# M1 to M7, M9, M15 and M16 are the fifth review's code mutants on the code as it now reads, M8b
+# its expected equivalent; MA to MF2 and MP1 to MP4 are new, MP1 an expected equivalent of the
+# excuse as it now reads. MA and MB also run on a copy of
+# e852aac, the tree before this revision, with the same change made to its code, to show what its
+# tests let through.
+# Run from the repository root: bash <scratchpad>/mutate.sh <scratchpad>
+set -u
+repo=$(pwd)
+scratch=$1
+python="$repo/.venv/bin/python"
+P=src/patchbay_vital/parameters.py
+T=tests/unit/test_parameters.py
+D=tests/data/pinned-values.txt
+UNIT="tests/unit/test_parameters.py tests/unit/test_float32.py"
+
+copy() {  # copy the tree as git lists it (tracked or untracked, not ignored, present) to $1
+  rm -rf "$1" && mkdir -p "$1" || exit 2
+  git ls-files -z -co --exclude-standard --deduplicate |
+    while IFS= read -r -d '' f; do [ -f "$f" ] && printf '%s\0' "$f"; done |
+    rsync -a --from0 --files-from=- ./ "$1/" || exit 2
+}
+
+old_copy() {  # copy the tree of e852aac to $1
+  rm -rf "$1" && mkdir -p "$1" || exit 2
+  git archive e852aac | tar -x -C "$1" || exit 2
+}
+
+edit() {  # $1 the copy, $2 file, $3 python snippet reading s and writing s
+  MUT_FILE="$1/$2" MUT_CODE="$3" "$python" -I - <<'PY' || exit 2
+import os
+from pathlib import Path
+p = Path(os.environ["MUT_FILE"])
+old = p.read_text() if p.exists() else None
+scope = {"s": old}
+exec(os.environ["MUT_CODE"], scope)
+assert scope["s"] != old, "the mutation changed nothing"
+if scope["s"] is None:
+    p.unlink()
+else:
+    p.write_text(scope["s"])
+PY
+}
+
+run() {  # $1 the copy, $2 the pristine tree it came from, $3 file, $4 test files, $5 extra pytest arguments
+  local dir=$1
+  if [ -n "$3" ]; then
+    if [ -f "$dir/$3" ]; then
+      (cd "$dir" && diff -u "$2/$3" "$3" | sed -e "s|$repo/||" -e "s|$scratch|<scratchpad>|")
+    else
+      echo "   $3 removed from the copy"
+    fi
+  fi
+  (cd "$dir" && PYTHONPATH="$dir/src" "$python" -c \
+    'import patchbay_vital.parameters as m; print("imports", m.__file__.split("/mutation-")[1])')
+  local status
+  # shellcheck disable=SC2086 # $4 and $5 are lists of pytest arguments, split on purpose
+  (cd "$dir" && PYTHONPATH="$dir/src" "$python" -m pytest -c pyproject.toml -p no:doctest \
+    -p no:cacheprovider $4 -rf ${5:-} > "$dir.out" 2>&1)
+  status=$?
+  grep -E '^(FAILED|ERROR|[0-9]+ (passed|failed|deselected)|=+ .*(passed|failed|error))' "$dir.out" |
+    sed 's/ - .*//'
+  grep -E "^E +(Failed|FileNotFoundError): " "$dir.out" | sed -e 's/^E *//' -e "s|$scratch|<scratchpad>|g" | sort -u
+  echo "exit=$status"
+  rm -f "$dir.out"
+  rm -rf "$dir"
+}
+
+mutate() {  # $1 name, $2 file, $3 python snippet, $4 extra pytest arguments
+  local dir="$scratch/mutation-$1"
+  copy "$dir"
+  [ -n "$2" ] && edit "$dir" "$2" "$3"
+  run "$dir" "$repo" "$2" "$UNIT" "${4:-}"
+}
+
+mutate_hosted() {  # the same on the integration module's three tests that read the pinned file
+  local dir="$scratch/mutation-$1"
+  copy "$dir"
+  edit "$dir" "$2" "$3"
+  local m=tests/integration/test_vital_plugin.py
+  run "$dir" "$repo" "$2" "$m::test_at_or_below_volume_s_floor_a_set_holds_the_map_s_preset \
+$m::test_a_held_power_of_two_set_through_the_host_is_held \
+$m::test_a_load_holds_volume_s_unheld_float32_as_its_neighbour_and_chorus_feedback_as_given" ""
+}
+
+mutate_old() {  # the same on a copy of e852aac: $1 name, $2 file, $3 python snippet, $4 pytest arguments
+  local dir="$scratch/mutation-$1" pristine="$scratch/mutation-$1-pristine"
+  old_copy "$dir"
+  old_copy "$pristine"
+  edit "$dir" "$2" "$3"
+  run "$dir" "$pristine" "$2" "$UNIT" "${4:-}"
+  rm -rf "$pristine"
+}
+
+ONE='"        if held == preset or curve.to_display(held) == display:\n            return held\n"'
+TWO='"        other = next_float32(preset, math.copysign(math.inf, preset - held))\n        if curve.to_display(other) == display and scale.holds(other):\n            return other\n"'
+
+echo "== M0: the tree unmutated (the copy runs, and passes)"
+mutate M0 "" ""
+
+echo
+echo "== M1: _landing reverted to the nearest quotient, main's (must fail at the powers of two)"
+mutate M1 $P '
+old = "    if landed == preset:\n        return nearest, landed\n"
+start = s.index(old)
+end = s.index("    return nearest, landed\n", start + len(old)) + len("    return nearest, landed\n")
+s = s[:start] + "    return nearest, landed\n" + s[end:]
+'
+
+echo
+echo "== M2: the snap removed, to_preset the curve's float32 wherever it is unheld (must fail at the floor)"
+mutate M2 $P "
+one, two = $ONE, $TWO
+assert s.count(one + two) == 1
+s = s.replace(one + two, '        if held == preset:\n            return held\n')
+"
+
+echo
+echo "== M3: holds without its [0, 1] check (must fail where a value past the scale lands)"
+mutate M3 $P '
+old = "        return 0.0 <= normalized <= 1.0 and landed == preset\n"
+assert s.count(old) == 1
+s = s.replace(old, "        return landed == preset\n")
+'
+
+echo
+echo "== M4: the step in _landing without its [0, 1] check (must fail on the span of 2 ** 24)"
+mutate M4 $P '
+old = "    if 0.0 <= toward <= 1.0:\n"
+assert s.count(old) == 1
+s = s.replace(old, "    if True:\n")
+'
+
+echo
+echo "== M5: branch 1 without its display check, what a set holds always taken (must fail at the"
+echo "   floor values of branch 2)"
+code5='
+old = "        if held == preset or curve.to_display(held) == display:\n"
+assert s.count(old) == 1
+s = s.replace(old, "        if True:\n")
+'
+mutate M5 $P "$code5"
+echo "-- M5 again, issue #16's characterization deselected: the floor values alone catch it"
+mutate M5-deselected $P "$code5" \
+  "--deselect tests/unit/test_parameters.py::test_an_arbitrary_display_keeps_the_curve_s_float32"
+
+echo
+echo "== M6: branch 2 without its display check (must fail issue #16's characterization)"
+mutate M6 $P '
+old = "        if curve.to_display(other) == display and scale.holds(other):\n"
+assert s.count(old) == 1
+s = s.replace(old, "        if scale.holds(other):\n")
+'
+
+echo
+echo "== M7: branches 1 and 2 swapped, the other side tried before what a set holds where the"
+echo "   curve's float32 is unheld (must fail at issue #13's value, where both qualify)"
+mutate M7 $P "
+one, two = $ONE, $TWO
+assert s.count(one + two) == 1
+s = s.replace(one + two, '        if held == preset:\n            return held\n' + two
+              + '        if curve.to_display(held) == display:\n            return held\n')
+"
+
+echo
+echo "== M8b: the held test after branch 2 (expected equivalent on every value a held preset shows:"
+echo "   branch 2 takes a held float32's neighbour only where the float32 does not show the display"
+echo "   and the neighbour does, and where the curve's float32 is held it shows the display, the"
+echo "   first assert of _assert_comes_back on every value)"
+mutate M8b $P "
+one, two = $ONE, $TWO
+assert s.count(one + two) == 1
+s = s.replace(one + two, '        if curve.to_display(held) == display:\n            return held\n' + two
+              + '        if held == preset:\n            return held\n')
+"
+
+echo
+echo "== M9: branch 2 removed, never reached (must fail at the floor values of branch 2)"
+mutate M9 $P "
+two = $TWO
+assert s.count(two) == 1
+s = s.replace(two, '')
+"
+
+echo
+echo "== M15: _landing without its first return, stepping though the nearest quotient lands (must fail"
+echo "   test_a_quotient_that_lands_is_the_normalized_value_whatever_lands_beside_it)"
+mutate M15 $P '
+old = "    if landed == preset:\n        return nearest, landed\n    toward"
+assert s.count(old) == 1
+s = s.replace(old, "    toward")
+'
+
+echo
+echo "== M16: branch 2 without its holds check (must fail"
+echo "   test_the_float32_past_an_end_the_scale_does_not_hold_is_not_taken)"
+mutate M16 $P '
+old = "        if curve.to_display(other) == display and scale.holds(other):\n"
+assert s.count(old) == 1
+s = s.replace(old, "        if curve.to_display(other) == display:\n")
+'
+
+MA_NEW='
+old = "        if held == preset or curve.to_display(held) == display:\n            return held\n"
+assert s.count(old) == 1
+s = s.replace(old, """        if held == preset:
+            beside = next_float32(preset, math.inf)  # MUTATION: a held neighbour, if it shows the display
+            if scale.holds(beside) and curve.to_display(beside) == display:
+                return beside
+            return held
+        if curve.to_display(held) == display:
+            return held
+""")
+'
+MA_OLD='
+old = "        if landed == preset:\n            return preset, normalized\n"
+assert s.count(old) == 1
+s = s.replace(old, """        if landed == preset:
+            beside = next_float32(preset, math.inf)  # MUTATION: a held neighbour, if it shows the display
+            if scale.holds(beside) and curve.to_display(beside) == display:
+                return beside, None
+            return preset, normalized
+""")
+'
+echo
+echo "== MA, the review's first scenario: where the curve's float32 is held, to_preset returns the"
+echo "   held float32 above it wherever that shows the display too (must fail by name)"
+mutate MA $P "$MA_NEW"
+echo "-- MA on e852aac, the same change at its held branch: what its tests let through"
+mutate_old MA-e852aac $P "$MA_OLD"
+
+MB_NEW='
+old = "        if held == preset or curve.to_display(held) == display:\n            return held\n"
+assert s.count(old) == 1
+s = s.replace(old, """        if held == preset or curve.to_display(held) == display:
+            far = next_float32(next_float32(next_float32(held, 0.0), 0.0), 0.0)  # MUTATION
+            return far if scale.holds(far) and curve.to_display(far) == display else held
+""")
+'
+MB_OLD='
+for old, new in (
+    ("            return preset, normalized\n        if curve.to_display(landed) == display:\n            return landed, None\n",
+     """            far = next_float32(next_float32(next_float32(preset, 0.0), 0.0), 0.0)  # MUTATION
+            if scale.holds(far) and curve.to_display(far) == display:
+                return far, None
+            return preset, normalized
+        if curve.to_display(landed) == display:
+            far = next_float32(next_float32(next_float32(landed, 0.0), 0.0), 0.0)  # MUTATION
+            if scale.holds(far) and curve.to_display(far) == display:
+                return far, None
+            return landed, None
+"""),
+):
+    assert s.count(old) == 1
+    s = s.replace(old, new)
+'
+echo
+echo "== MB, the review's second scenario: to_preset returns a held float32 three steps below what a"
+echo "   set holds, wherever that shows the display too, on a flat stretch (must fail by name)"
+mutate MB $P "$MB_NEW"
+echo "-- MB on e852aac, the same change at its held branch and its first branch: what its tests let"
+echo "   through"
+mutate_old MB-e852aac $P "$MB_OLD"
+
+MC='
+old = "    return nearest, landed\n\n\ndef _square"
+assert s.count(old) == 1
+s = s.replace(old, """    if 1e-13 < preset <= 2.0**-43:  # MUTATION: an unheld preset sent 8 float32 steps up
+        for _ in range(8):
+            nearest = next_float32(nearest, 1.0)
+        return nearest, scale.to_preset(nearest)
+    return nearest, landed
+
+
+def _square""")
+'
+echo
+echo "== MC, the seeded regression only the pinned rows caught in the revision after PR 14's review:"
+echo "   an unheld preset in (1e-13, 2 ** -43] sent 8 float32 steps up, in _landing, which computes"
+echo "   NormalizedScale.to_normalized's value now. With the property deselected, Hypothesis draws"
+echo "   nothing: the test over the pinned file must fail it by name"
+mutate MC-property-deselected $P "$MC" \
+  "--deselect tests/unit/test_parameters.py::test_a_value_the_parameter_holds_comes_back_exactly --deselect tests/unit/test_parameters.py::test_every_committed_record_comes_back_exactly"
+echo "-- MC again, every test run, Hypothesis derandomized"
+mutate MC-derandomized $P "$MC" "--hypothesis-seed=0"
+echo "-- MC again, only the property's two Hypothesis tests run, derandomized: what their draws catch"
+mutate MC-property-only $P "$MC" \
+  "-k comes_back_exactly --hypothesis-seed=0"
+
+echo
+echo "== MD: _landing's first step not the nearest quotient but the float32 below it (must fail"
+echo "   test_a_quotient_that_lands_is_the_normalized_value_whatever_lands_beside_it by name)"
+mutate MD $P '
+old = "    nearest = round_to_float32((Fraction(preset) - Fraction(scale.minimum)) / Fraction(scale.span))\n"
+assert s.count(old) == 1
+s = s.replace(old, old + "    nearest = next_float32(nearest, 0.0) if nearest > 0.0 else nearest  # MUTATION\n")
+'
+
+echo
+echo "== ME: tests/data/pinned-values.txt missing (every test reading it must fail by name)"
+mutate ME $D 's = None'
+
+echo "-- ME again, on the integration module's three tests that read the file, with Vital"
+mutate_hosted ME-hosted $D 's = None'
+
+echo
+echo "== MF: a malformed line in tests/data/pinned-values.txt, a value that is not a float32, 0.1"
+echo "   (every test reading it must fail by name, naming the file and the line)"
+mutate MF $D '
+old = "volume_floor 3.4694490199051456e-18 the smallest of the former one-ulp landings\n"
+assert s.count(old) == 1
+s = s.replace(old, "volume_floor 0.1 the smallest of the former one-ulp landings\n")
+'
+
+echo "-- MF again, on the integration module's three tests that read the file, with Vital"
+mutate_hosted MF-hosted $D '
+old = "volume_floor 3.4694490199051456e-18 the smallest of the former one-ulp landings\n"
+assert s.count(old) == 1
+s = s.replace(old, "volume_floor 0.1 the smallest of the former one-ulp landings\n")
+'
+
+echo
+echo "== MF2: a line of a set no reader knows in tests/data/pinned-values.txt (every test reading it"
+echo "   must fail by name, naming the file and the line)"
+mutate MF2 $D '
+old = "volume_floor 3.4694490199051456e-18 the smallest of the former one-ulp landings\n"
+assert s.count(old) == 1
+s = s.replace(old, "volume_flor 3.4694490199051456e-18 the smallest of the former one-ulp landings\n")
+'
+
+echo
+echo "== MP1: the excuse without its first condition (expected equivalent: where the curve's float32"
+echo "   is the preset, it is held, so a set of it holds it, and back == held is back == preset, which"
+echo "   _assert_comes_back never asks the excuse about; every direct call in the tests passes a"
+echo "   preset the curve's float32 is not, or a back that is not what a set holds)"
+mutate MP1 $T '
+old = "    return own != preset and back == held\n"
+assert s.count(old) == 1
+s = s.replace(old, "    return back == held\n")
+'
+
+echo
+echo "== MP2: the excuse taking any preset, not only what a set holds (must fail"
+echo "   test_a_display_excuses_only_what_a_set_of_its_own_float32_holds)"
+mutate MP2 $T '
+old = "    return own != preset and back == held\n"
+assert s.count(old) == 1
+s = s.replace(old, "    return own != preset\n")
+'
+
+echo
+echo "== MP3: the excuse put back to _shares_its_display, the float32 beside the preset toward back"
+echo "   showing its display (must fail test_a_display_excuses_only_what_a_set_of_its_own_float32_holds)"
+mutate MP3 $T '
+old = "    own, held, _ = _what_a_set_holds(record, display)\n    return own != preset and back == held\n"
+assert s.count(old) == 1
+s = s.replace(old, "    return record.to_display(next_float32(preset, back)) == record.to_display(preset)\n")
+'
+
+echo
+echo "== MP4: the second candidate put back, the float32 on the other side of the curve's float32"
+echo "   excused beside what a set holds, as the excuse first read in this revision (must fail"
+echo "   test_a_display_excuses_only_what_a_set_of_its_own_float32_holds)"
+mutate MP4 $T '
+old = "    own, held, _ = _what_a_set_holds(record, display)\n    return own != preset and back == held\n"
+assert s.count(old) == 1
+s = s.replace(old, "    own, held, other = _what_a_set_holds(record, display)\n    return own != preset and back in (held, other)\n")
+'
+```
+
+== M0: the tree unmutated (the copy runs, and passes)
+imports M0/src/patchbay_vital/parameters.py
+89 passed in 0.54s
+exit=0
+
+== M1: _landing reverted to the nearest quotient, main's (must fail at the powers of two)
+--- src/patchbay_vital/parameters.py	2026-11-13 09:05:55
++++ src/patchbay_vital/parameters.py	2026-11-13 12:17:22
+@@ -157,13 +157,6 @@
+     """
+     nearest = round_to_float32((Fraction(preset) - Fraction(scale.minimum)) / Fraction(scale.span))
+     landed = scale.to_preset(nearest)
+-    if landed == preset:
+-        return nearest, landed
+-    toward = next_float32(nearest, math.copysign(math.inf, preset - landed))
+-    if 0.0 <= toward <= 1.0:
+-        stepped = scale.to_preset(toward)
+-        if stepped == preset:
+-            return toward, stepped
+     return nearest, landed
+ 
+ 
+imports M1/src/patchbay_vital/parameters.py
+FAILED tests/unit/test_parameters.py::test_a_held_power_of_two_comes_back_through_the_normalized_path[env_1_delay]
+FAILED tests/unit/test_parameters.py::test_a_held_power_of_two_comes_back_through_the_normalized_path[env_3_hold]
+2 failed, 87 passed in 0.56s
+exit=1
+
+== M2: the snap removed, to_preset the curve's float32 wherever it is unheld (must fail at the floor)
+--- src/patchbay_vital/parameters.py	2026-11-13 09:05:55
++++ src/patchbay_vital/parameters.py	2026-11-13 12:17:23
+@@ -320,11 +320,8 @@
+         if scale.kind == "indexed":
+             return _round_half_away(preset)
+         held = _landing(scale, preset)[1]
+-        if held == preset or curve.to_display(held) == display:
++        if held == preset:
+             return held
+-        other = next_float32(preset, math.copysign(math.inf, preset - held))
+-        if curve.to_display(other) == display and scale.holds(other):
+-            return other
+         return preset
+ 
+     def to_normalized(self, display: float) -> float:
+imports M2/src/patchbay_vital/parameters.py
+FAILED tests/unit/test_parameters.py::test_a_display_excuses_only_what_a_set_of_its_own_float32_holds
+FAILED tests/unit/test_parameters.py::test_every_pinned_value_comes_back_on_every_record
+FAILED tests/unit/test_parameters.py::test_at_or_below_volume_s_floor_a_display_maps_to_a_held_preset
+FAILED tests/unit/test_parameters.py::test_a_display_takes_what_a_set_of_the_curve_s_float32_holds
+FAILED tests/unit/test_parameters.py::test_else_a_display_takes_the_float32_on_the_other_side
+5 failed, 84 passed in 0.58s
+exit=1
+
+== M3: holds without its [0, 1] check (must fail where a value past the scale lands)
+--- src/patchbay_vital/parameters.py	2026-11-13 09:05:55
++++ src/patchbay_vital/parameters.py	2026-11-13 12:17:24
+@@ -132,7 +132,7 @@
+         It can when a normalized value in `[0, 1]` lands on it; `to_normalized` finds one if any.
+         """
+         normalized, landed = _landing(self, preset)
+-        return 0.0 <= normalized <= 1.0 and landed == preset
++        return landed == preset
+ 
+     @model_validator(mode="after")
+     def _bounds_are_float32_and_ordered(self) -> Self:
+imports M3/src/patchbay_vital/parameters.py
+FAILED tests/unit/test_parameters.py::test_a_scale_holds_its_values_and_none_past_its_ends
+FAILED tests/unit/test_parameters.py::test_the_float32_past_an_end_the_scale_does_not_hold_is_not_taken
+2 failed, 87 passed in 0.57s
+exit=1
+
+== M4: the step in _landing without its [0, 1] check (must fail on the span of 2 ** 24)
+--- src/patchbay_vital/parameters.py	2026-11-13 09:05:55
++++ src/patchbay_vital/parameters.py	2026-11-13 12:17:25
+@@ -160,7 +160,7 @@
+     if landed == preset:
+         return nearest, landed
+     toward = next_float32(nearest, math.copysign(math.inf, preset - landed))
+-    if 0.0 <= toward <= 1.0:
++    if True:
+         stepped = scale.to_preset(toward)
+         if stepped == preset:
+             return toward, stepped
+imports M4/src/patchbay_vital/parameters.py
+FAILED tests/unit/test_parameters.py::test_the_step_toward_a_preset_stays_where_the_host_can_set_it
+1 failed, 88 passed in 0.57s
+exit=1
+
+== M5: branch 1 without its display check, what a set holds always taken (must fail at the
+   floor values of branch 2)
+--- src/patchbay_vital/parameters.py	2026-11-13 09:05:55
++++ src/patchbay_vital/parameters.py	2026-11-13 12:17:26
+@@ -320,7 +320,7 @@
+         if scale.kind == "indexed":
+             return _round_half_away(preset)
+         held = _landing(scale, preset)[1]
+-        if held == preset or curve.to_display(held) == display:
++        if True:
+             return held
+         other = next_float32(preset, math.copysign(math.inf, preset - held))
+         if curve.to_display(other) == display and scale.holds(other):
+imports M5/src/patchbay_vital/parameters.py
+FAILED tests/unit/test_parameters.py::test_a_display_excuses_only_what_a_set_of_its_own_float32_holds
+FAILED tests/unit/test_parameters.py::test_every_pinned_value_comes_back_on_every_record
+FAILED tests/unit/test_parameters.py::test_at_or_below_volume_s_floor_a_display_maps_to_a_held_preset
+FAILED tests/unit/test_parameters.py::test_else_a_display_takes_the_float32_on_the_other_side
+FAILED tests/unit/test_parameters.py::test_an_arbitrary_display_keeps_the_curve_s_float32
+FAILED tests/unit/test_parameters.py::test_the_float32_past_an_end_the_scale_does_not_hold_is_not_taken
+6 failed, 83 passed in 0.61s
+exit=1
+-- M5 again, issue #16's characterization deselected: the floor values alone catch it
+--- src/patchbay_vital/parameters.py	2026-11-13 09:05:55
++++ src/patchbay_vital/parameters.py	2026-11-13 12:17:27
+@@ -320,7 +320,7 @@
+         if scale.kind == "indexed":
+             return _round_half_away(preset)
+         held = _landing(scale, preset)[1]
+-        if held == preset or curve.to_display(held) == display:
++        if True:
+             return held
+         other = next_float32(preset, math.copysign(math.inf, preset - held))
+         if curve.to_display(other) == display and scale.holds(other):
+imports M5-deselected/src/patchbay_vital/parameters.py
+FAILED tests/unit/test_parameters.py::test_a_display_excuses_only_what_a_set_of_its_own_float32_holds
+FAILED tests/unit/test_parameters.py::test_every_pinned_value_comes_back_on_every_record
+FAILED tests/unit/test_parameters.py::test_at_or_below_volume_s_floor_a_display_maps_to_a_held_preset
+FAILED tests/unit/test_parameters.py::test_else_a_display_takes_the_float32_on_the_other_side
+FAILED tests/unit/test_parameters.py::test_the_float32_past_an_end_the_scale_does_not_hold_is_not_taken
+5 failed, 83 passed, 1 deselected in 0.59s
+exit=1
+
+== M6: branch 2 without its display check (must fail issue #16's characterization)
+--- src/patchbay_vital/parameters.py	2026-11-13 09:05:55
++++ src/patchbay_vital/parameters.py	2026-11-13 12:17:28
+@@ -323,7 +323,7 @@
+         if held == preset or curve.to_display(held) == display:
+             return held
+         other = next_float32(preset, math.copysign(math.inf, preset - held))
+-        if curve.to_display(other) == display and scale.holds(other):
++        if scale.holds(other):
+             return other
+         return preset
+ 
+imports M6/src/patchbay_vital/parameters.py
+FAILED tests/unit/test_parameters.py::test_an_arbitrary_display_keeps_the_curve_s_float32
+1 failed, 88 passed in 0.56s
+exit=1
+
+== M7: branches 1 and 2 swapped, the other side tried before what a set holds where the
+   curve's float32 is unheld (must fail at issue #13's value, where both qualify)
+--- src/patchbay_vital/parameters.py	2026-11-13 09:05:55
++++ src/patchbay_vital/parameters.py	2026-11-13 12:17:29
+@@ -320,11 +320,13 @@
+         if scale.kind == "indexed":
+             return _round_half_away(preset)
+         held = _landing(scale, preset)[1]
+-        if held == preset or curve.to_display(held) == display:
++        if held == preset:
+             return held
+         other = next_float32(preset, math.copysign(math.inf, preset - held))
+         if curve.to_display(other) == display and scale.holds(other):
+             return other
++        if curve.to_display(held) == display:
++            return held
+         return preset
+ 
+     def to_normalized(self, display: float) -> float:
+imports M7/src/patchbay_vital/parameters.py
+FAILED tests/unit/test_parameters.py::test_every_pinned_value_comes_back_on_every_record
+FAILED tests/unit/test_parameters.py::test_at_or_below_volume_s_floor_a_display_maps_to_a_held_preset
+FAILED tests/unit/test_parameters.py::test_a_display_takes_what_a_set_of_the_curve_s_float32_holds
+3 failed, 86 passed in 0.57s
+exit=1
+
+== M8b: the held test after branch 2 (expected equivalent on every value a held preset shows:
+   branch 2 takes a held float32's neighbour only where the float32 does not show the display
+   and the neighbour does, and where the curve's float32 is held it shows the display, the
+   first assert of _assert_comes_back on every value)
+--- src/patchbay_vital/parameters.py	2026-11-13 09:05:55
++++ src/patchbay_vital/parameters.py	2026-11-13 12:17:30
+@@ -320,11 +320,13 @@
+         if scale.kind == "indexed":
+             return _round_half_away(preset)
+         held = _landing(scale, preset)[1]
+-        if held == preset or curve.to_display(held) == display:
++        if curve.to_display(held) == display:
+             return held
+         other = next_float32(preset, math.copysign(math.inf, preset - held))
+         if curve.to_display(other) == display and scale.holds(other):
+             return other
++        if held == preset:
++            return held
+         return preset
+ 
+     def to_normalized(self, display: float) -> float:
+imports M8b/src/patchbay_vital/parameters.py
+89 passed in 0.56s
+exit=0
+
+== M9: branch 2 removed, never reached (must fail at the floor values of branch 2)
+--- src/patchbay_vital/parameters.py	2026-11-13 09:05:55
++++ src/patchbay_vital/parameters.py	2026-11-13 12:17:31
+@@ -322,9 +322,6 @@
+         held = _landing(scale, preset)[1]
+         if held == preset or curve.to_display(held) == display:
+             return held
+-        other = next_float32(preset, math.copysign(math.inf, preset - held))
+-        if curve.to_display(other) == display and scale.holds(other):
+-            return other
+         return preset
+ 
+     def to_normalized(self, display: float) -> float:
+imports M9/src/patchbay_vital/parameters.py
+FAILED tests/unit/test_parameters.py::test_a_display_excuses_only_what_a_set_of_its_own_float32_holds
+FAILED tests/unit/test_parameters.py::test_every_pinned_value_comes_back_on_every_record
+FAILED tests/unit/test_parameters.py::test_at_or_below_volume_s_floor_a_display_maps_to_a_held_preset
+FAILED tests/unit/test_parameters.py::test_else_a_display_takes_the_float32_on_the_other_side
+4 failed, 85 passed in 0.57s
+exit=1
+
+== M15: _landing without its first return, stepping though the nearest quotient lands (must fail
+   test_a_quotient_that_lands_is_the_normalized_value_whatever_lands_beside_it)
+--- src/patchbay_vital/parameters.py	2026-11-13 09:05:55
++++ src/patchbay_vital/parameters.py	2026-11-13 12:17:32
+@@ -157,8 +157,6 @@
+     """
+     nearest = round_to_float32((Fraction(preset) - Fraction(scale.minimum)) / Fraction(scale.span))
+     landed = scale.to_preset(nearest)
+-    if landed == preset:
+-        return nearest, landed
+     toward = next_float32(nearest, math.copysign(math.inf, preset - landed))
+     if 0.0 <= toward <= 1.0:
+         stepped = scale.to_preset(toward)
+imports M15/src/patchbay_vital/parameters.py
+FAILED tests/unit/test_parameters.py::test_a_quotient_that_lands_is_the_normalized_value_whatever_lands_beside_it
+1 failed, 88 passed in 0.61s
+exit=1
+
+== M16: branch 2 without its holds check (must fail
+   test_the_float32_past_an_end_the_scale_does_not_hold_is_not_taken)
+--- src/patchbay_vital/parameters.py	2026-11-13 09:05:55
++++ src/patchbay_vital/parameters.py	2026-11-13 12:17:33
+@@ -323,7 +323,7 @@
+         if held == preset or curve.to_display(held) == display:
+             return held
+         other = next_float32(preset, math.copysign(math.inf, preset - held))
+-        if curve.to_display(other) == display and scale.holds(other):
++        if curve.to_display(other) == display:
+             return other
+         return preset
+ 
+imports M16/src/patchbay_vital/parameters.py
+FAILED tests/unit/test_parameters.py::test_the_float32_past_an_end_the_scale_does_not_hold_is_not_taken
+1 failed, 88 passed in 0.57s
+exit=1
+
+== MA, the review's first scenario: where the curve's float32 is held, to_preset returns the
+   held float32 above it wherever that shows the display too (must fail by name)
+--- src/patchbay_vital/parameters.py	2026-11-13 09:05:55
++++ src/patchbay_vital/parameters.py	2026-11-13 12:17:34
+@@ -320,8 +320,13 @@
+         if scale.kind == "indexed":
+             return _round_half_away(preset)
+         held = _landing(scale, preset)[1]
+-        if held == preset or curve.to_display(held) == display:
++        if held == preset:
++            beside = next_float32(preset, math.inf)  # MUTATION: a held neighbour, if it shows the display
++            if scale.holds(beside) and curve.to_display(beside) == display:
++                return beside
+             return held
++        if curve.to_display(held) == display:
++            return held
+         other = next_float32(preset, math.copysign(math.inf, preset - held))
+         if curve.to_display(other) == display and scale.holds(other):
+             return other
+imports MA/src/patchbay_vital/parameters.py
+FAILED tests/unit/test_parameters.py::test_a_display_excuses_only_what_a_set_of_its_own_float32_holds
+1 failed, 88 passed in 0.60s
+exit=1
+-- MA on e852aac, the same change at its held branch: what its tests let through
+--- <scratchpad>/mutation-MA-e852aac-pristine/src/patchbay_vital/parameters.py	2026-11-13 07:47:42
++++ src/patchbay_vital/parameters.py	2026-11-13 12:17:35
+@@ -336,6 +336,9 @@
+             return _round_half_away(preset), None
+         normalized, landed = _landing(scale, preset)
+         if landed == preset:
++            beside = next_float32(preset, math.inf)  # MUTATION: a held neighbour, if it shows the display
++            if scale.holds(beside) and curve.to_display(beside) == display:
++                return beside, None
+             return preset, normalized
+         if curve.to_display(landed) == display:
+             return landed, None
+imports MA-e852aac/src/patchbay_vital/parameters.py
+102 passed in 0.58s
+exit=0
+
+== MB, the review's second scenario: to_preset returns a held float32 three steps below what a
+   set holds, wherever that shows the display too, on a flat stretch (must fail by name)
+--- src/patchbay_vital/parameters.py	2026-11-13 09:05:55
++++ src/patchbay_vital/parameters.py	2026-11-13 12:17:36
+@@ -321,7 +321,8 @@
+             return _round_half_away(preset)
+         held = _landing(scale, preset)[1]
+         if held == preset or curve.to_display(held) == display:
+-            return held
++            far = next_float32(next_float32(next_float32(held, 0.0), 0.0), 0.0)  # MUTATION
++            return far if scale.holds(far) and curve.to_display(far) == display else held
+         other = next_float32(preset, math.copysign(math.inf, preset - held))
+         if curve.to_display(other) == display and scale.holds(other):
+             return other
+imports MB/src/patchbay_vital/parameters.py
+FAILED tests/unit/test_parameters.py::test_a_display_excuses_only_what_a_set_of_its_own_float32_holds
+FAILED tests/unit/test_parameters.py::test_every_pinned_value_comes_back_on_every_record
+FAILED tests/unit/test_parameters.py::test_at_or_below_volume_s_floor_a_display_maps_to_a_held_preset
+FAILED tests/unit/test_parameters.py::test_a_display_takes_what_a_set_of_the_curve_s_float32_holds
+4 failed, 85 passed in 0.61s
+exit=1
+-- MB on e852aac, the same change at its held branch and its first branch: what its tests let
+   through
+--- <scratchpad>/mutation-MB-e852aac-pristine/src/patchbay_vital/parameters.py	2026-11-13 07:47:42
++++ src/patchbay_vital/parameters.py	2026-11-13 12:17:37
+@@ -336,8 +336,14 @@
+             return _round_half_away(preset), None
+         normalized, landed = _landing(scale, preset)
+         if landed == preset:
++            far = next_float32(next_float32(next_float32(preset, 0.0), 0.0), 0.0)  # MUTATION
++            if scale.holds(far) and curve.to_display(far) == display:
++                return far, None
+             return preset, normalized
+         if curve.to_display(landed) == display:
++            far = next_float32(next_float32(next_float32(landed, 0.0), 0.0), 0.0)  # MUTATION
++            if scale.holds(far) and curve.to_display(far) == display:
++                return far, None
+             return landed, None
+         other = next_float32(preset, math.copysign(math.inf, preset - landed))
+         if scale.holds(other) and curve.to_display(other) == display:
+imports MB-e852aac/src/patchbay_vital/parameters.py
+FAILED tests/unit/test_parameters.py::test_a_display_takes_what_a_set_of_the_curve_s_float32_holds[5.857149595214349e-20-4.3339647768216114e-16]
+1 failed, 101 passed in 0.60s
+exit=1
+
+== MC, the seeded regression only the pinned rows caught in the revision after PR 14's review:
+   an unheld preset in (1e-13, 2 ** -43] sent 8 float32 steps up, in _landing, which computes
+   NormalizedScale.to_normalized's value now. With the property deselected, Hypothesis draws
+   nothing: the test over the pinned file must fail it by name
+--- src/patchbay_vital/parameters.py	2026-11-13 09:05:55
++++ src/patchbay_vital/parameters.py	2026-11-13 12:17:38
+@@ -164,6 +164,10 @@
+         stepped = scale.to_preset(toward)
+         if stepped == preset:
+             return toward, stepped
++    if 1e-13 < preset <= 2.0**-43:  # MUTATION: an unheld preset sent 8 float32 steps up
++        for _ in range(8):
++            nearest = next_float32(nearest, 1.0)
++        return nearest, scale.to_preset(nearest)
+     return nearest, landed
+ 
+ 
+imports MC-property-deselected/src/patchbay_vital/parameters.py
+FAILED tests/unit/test_parameters.py::test_a_display_excuses_only_what_a_set_of_its_own_float32_holds
+FAILED tests/unit/test_parameters.py::test_every_pinned_value_comes_back_on_every_record
+FAILED tests/unit/test_parameters.py::test_at_or_below_volume_s_floor_a_display_maps_to_a_held_preset
+FAILED tests/unit/test_parameters.py::test_else_a_display_takes_the_float32_on_the_other_side
+4 failed, 75 passed, 10 deselected in 0.33s
+exit=1
+-- MC again, every test run, Hypothesis derandomized
+--- src/patchbay_vital/parameters.py	2026-11-13 09:05:55
++++ src/patchbay_vital/parameters.py	2026-11-13 12:17:39
+@@ -164,6 +164,10 @@
+         stepped = scale.to_preset(toward)
+         if stepped == preset:
+             return toward, stepped
++    if 1e-13 < preset <= 2.0**-43:  # MUTATION: an unheld preset sent 8 float32 steps up
++        for _ in range(8):
++            nearest = next_float32(nearest, 1.0)
++        return nearest, scale.to_preset(nearest)
+     return nearest, landed
+ 
+ 
+imports MC-derandomized/src/patchbay_vital/parameters.py
+FAILED tests/unit/test_parameters.py::test_a_display_excuses_only_what_a_set_of_its_own_float32_holds
+FAILED tests/unit/test_parameters.py::test_every_pinned_value_comes_back_on_every_record
+FAILED tests/unit/test_parameters.py::test_at_or_below_volume_s_floor_a_display_maps_to_a_held_preset
+FAILED tests/unit/test_parameters.py::test_else_a_display_takes_the_float32_on_the_other_side
+4 failed, 85 passed in 0.56s
+exit=1
+-- MC again, only the property's two Hypothesis tests run, derandomized: what their draws catch
+--- src/patchbay_vital/parameters.py	2026-11-13 09:05:55
++++ src/patchbay_vital/parameters.py	2026-11-13 12:17:40
+@@ -164,6 +164,10 @@
+         stepped = scale.to_preset(toward)
+         if stepped == preset:
+             return toward, stepped
++    if 1e-13 < preset <= 2.0**-43:  # MUTATION: an unheld preset sent 8 float32 steps up
++        for _ in range(8):
++            nearest = next_float32(nearest, 1.0)
++        return nearest, scale.to_preset(nearest)
+     return nearest, landed
+ 
+ 
+imports MC-property-only/src/patchbay_vital/parameters.py
+10 passed, 79 deselected in 0.40s
+exit=0
+
+== MD: _landing's first step not the nearest quotient but the float32 below it (must fail
+   test_a_quotient_that_lands_is_the_normalized_value_whatever_lands_beside_it by name)
+--- src/patchbay_vital/parameters.py	2026-11-13 09:05:55
++++ src/patchbay_vital/parameters.py	2026-11-13 12:17:41
+@@ -156,6 +156,7 @@
+     the maximum, which the nearest quotient, 1, misses.
+     """
+     nearest = round_to_float32((Fraction(preset) - Fraction(scale.minimum)) / Fraction(scale.span))
++    nearest = next_float32(nearest, 0.0) if nearest > 0.0 else nearest  # MUTATION
+     landed = scale.to_preset(nearest)
+     if landed == preset:
+         return nearest, landed
+imports MD/src/patchbay_vital/parameters.py
+FAILED tests/unit/test_parameters.py::test_a_display_takes_what_a_set_of_the_curve_s_float32_holds
+FAILED tests/unit/test_parameters.py::test_else_a_display_takes_the_float32_on_the_other_side
+FAILED tests/unit/test_parameters.py::test_a_held_power_of_two_comes_back_through_the_normalized_path[env_1_delay]
+FAILED tests/unit/test_parameters.py::test_a_held_power_of_two_comes_back_through_the_normalized_path[env_3_hold]
+FAILED tests/unit/test_parameters.py::test_a_scale_holds_its_values_and_none_past_its_ends
+FAILED tests/unit/test_parameters.py::test_the_step_toward_a_preset_stays_where_the_host_can_set_it
+FAILED tests/unit/test_parameters.py::test_a_quotient_that_lands_is_the_normalized_value_whatever_lands_beside_it
+FAILED tests/unit/test_parameters.py::test_the_float32_past_an_end_the_scale_does_not_hold_is_not_taken
+8 failed, 81 passed in 0.65s
+exit=1
+
+== ME: tests/data/pinned-values.txt missing (every test reading it must fail by name)
+   tests/data/pinned-values.txt removed from the copy
+imports ME/src/patchbay_vital/parameters.py
+FAILED tests/unit/test_parameters.py::test_the_pinned_values_file_holds_two_named_sets
+FAILED tests/unit/test_parameters.py::test_every_pinned_value_comes_back_on_every_record
+FAILED tests/unit/test_parameters.py::test_at_or_below_volume_s_floor_a_display_maps_to_a_held_preset
+FAILED tests/unit/test_parameters.py::test_a_display_takes_what_a_set_of_the_curve_s_float32_holds
+FAILED tests/unit/test_parameters.py::test_else_a_display_takes_the_float32_on_the_other_side
+FAILED tests/unit/test_parameters.py::test_a_held_power_of_two_comes_back_through_the_normalized_path[env_1_delay]
+FAILED tests/unit/test_parameters.py::test_a_held_power_of_two_comes_back_through_the_normalized_path[env_3_hold]
+7 failed, 82 passed in 0.64s
+FileNotFoundError: [Errno 2] No such file or directory: '<scratchpad>/mutation-ME/tests/data/pinned-values.txt'
+exit=1
+-- ME again, on the integration module's three tests that read the file, with Vital
+   tests/data/pinned-values.txt removed from the copy
+imports ME-hosted/src/patchbay_vital/parameters.py
+FAILED tests/integration/test_vital_plugin.py::test_at_or_below_volume_s_floor_a_set_holds_the_map_s_preset
+FAILED tests/integration/test_vital_plugin.py::test_a_held_power_of_two_set_through_the_host_is_held
+FAILED tests/integration/test_vital_plugin.py::test_a_load_holds_volume_s_unheld_float32_as_its_neighbour_and_chorus_feedback_as_given
+3 failed in 2.51s
+FileNotFoundError: [Errno 2] No such file or directory: '<scratchpad>/mutation-ME-hosted/tests/data/pinned-values.txt'
+exit=1
+
+== MF: a malformed line in tests/data/pinned-values.txt, a value that is not a float32, 0.1
+   (every test reading it must fail by name, naming the file and the line)
+--- tests/data/pinned-values.txt	2026-11-13 09:00:52
++++ tests/data/pinned-values.txt	2026-11-13 12:17:46
+@@ -22,7 +22,7 @@
+ # #15's spec, agent-os/specs/2026-11-12-0937-map-inverses-land-on-held-presets/, and of the
+ # revisions after PR 14's fourth and fifth reviews).
+ volume_floor 5.857149595214349e-20 issue #13's value
+-volume_floor 3.4694490199051456e-18 the smallest of the former one-ulp landings
++volume_floor 0.1 the smallest of the former one-ulp landings
+ volume_floor 1.439742266862027e-17 a former one-ulp landing below the display
+ volume_floor 1.53642479121845e-17 the floor's own, preset 2 ** -43
+ powers_of_two 0.7071068286895752 1.0 on the envelope records
+imports MF/src/patchbay_vital/parameters.py
+FAILED tests/unit/test_parameters.py::test_the_pinned_values_file_holds_two_named_sets
+FAILED tests/unit/test_parameters.py::test_every_pinned_value_comes_back_on_every_record
+FAILED tests/unit/test_parameters.py::test_at_or_below_volume_s_floor_a_display_maps_to_a_held_preset
+FAILED tests/unit/test_parameters.py::test_a_display_takes_what_a_set_of_the_curve_s_float32_holds
+FAILED tests/unit/test_parameters.py::test_else_a_display_takes_the_float32_on_the_other_side
+FAILED tests/unit/test_parameters.py::test_a_held_power_of_two_comes_back_through_the_normalized_path[env_1_delay]
+FAILED tests/unit/test_parameters.py::test_a_held_power_of_two_comes_back_through_the_normalized_path[env_3_hold]
+7 failed, 82 passed in 0.59s
+Failed: pinned-values.txt:25 is not '<set> <float32> <name>': 'volume_floor 0.1 the smallest of the former one-ulp landings'
+exit=1
+-- MF again, on the integration module's three tests that read the file, with Vital
+--- tests/data/pinned-values.txt	2026-11-13 09:00:52
++++ tests/data/pinned-values.txt	2026-11-13 12:17:47
+@@ -22,7 +22,7 @@
+ # #15's spec, agent-os/specs/2026-11-12-0937-map-inverses-land-on-held-presets/, and of the
+ # revisions after PR 14's fourth and fifth reviews).
+ volume_floor 5.857149595214349e-20 issue #13's value
+-volume_floor 3.4694490199051456e-18 the smallest of the former one-ulp landings
++volume_floor 0.1 the smallest of the former one-ulp landings
+ volume_floor 1.439742266862027e-17 a former one-ulp landing below the display
+ volume_floor 1.53642479121845e-17 the floor's own, preset 2 ** -43
+ powers_of_two 0.7071068286895752 1.0 on the envelope records
+imports MF-hosted/src/patchbay_vital/parameters.py
+FAILED tests/integration/test_vital_plugin.py::test_at_or_below_volume_s_floor_a_set_holds_the_map_s_preset
+FAILED tests/integration/test_vital_plugin.py::test_a_held_power_of_two_set_through_the_host_is_held
+FAILED tests/integration/test_vital_plugin.py::test_a_load_holds_volume_s_unheld_float32_as_its_neighbour_and_chorus_feedback_as_given
+3 failed in 2.41s
+Failed: pinned-values.txt:25 is not '<set> <float32> <name>': 'volume_floor 0.1 the smallest of the former one-ulp landings'
+exit=1
+
+== MF2: a line of a set no reader knows in tests/data/pinned-values.txt (every test reading it
+   must fail by name, naming the file and the line)
+--- tests/data/pinned-values.txt	2026-11-13 09:00:52
++++ tests/data/pinned-values.txt	2026-11-13 12:17:50
+@@ -22,7 +22,7 @@
+ # #15's spec, agent-os/specs/2026-11-12-0937-map-inverses-land-on-held-presets/, and of the
+ # revisions after PR 14's fourth and fifth reviews).
+ volume_floor 5.857149595214349e-20 issue #13's value
+-volume_floor 3.4694490199051456e-18 the smallest of the former one-ulp landings
++volume_flor 3.4694490199051456e-18 the smallest of the former one-ulp landings
+ volume_floor 1.439742266862027e-17 a former one-ulp landing below the display
+ volume_floor 1.53642479121845e-17 the floor's own, preset 2 ** -43
+ powers_of_two 0.7071068286895752 1.0 on the envelope records
+imports MF2/src/patchbay_vital/parameters.py
+FAILED tests/unit/test_parameters.py::test_the_pinned_values_file_holds_two_named_sets
+FAILED tests/unit/test_parameters.py::test_every_pinned_value_comes_back_on_every_record
+FAILED tests/unit/test_parameters.py::test_at_or_below_volume_s_floor_a_display_maps_to_a_held_preset
+FAILED tests/unit/test_parameters.py::test_a_display_takes_what_a_set_of_the_curve_s_float32_holds
+FAILED tests/unit/test_parameters.py::test_else_a_display_takes_the_float32_on_the_other_side
+FAILED tests/unit/test_parameters.py::test_a_held_power_of_two_comes_back_through_the_normalized_path[env_1_delay]
+FAILED tests/unit/test_parameters.py::test_a_held_power_of_two_comes_back_through_the_normalized_path[env_3_hold]
+7 failed, 82 passed in 0.59s
+Failed: pinned-values.txt:25 is not '<set> <float32> <name>': 'volume_flor 3.4694490199051456e-18 the smallest of the former one-ulp landings'
+exit=1
+
+== MP1: the excuse without its first condition (expected equivalent: where the curve's float32
+   is the preset, it is held, so a set of it holds it, and back == held is back == preset, which
+   _assert_comes_back never asks the excuse about; every direct call in the tests passes a
+   preset the curve's float32 is not, or a back that is not what a set holds)
+--- tests/unit/test_parameters.py	2026-11-13 12:16:37
++++ tests/unit/test_parameters.py	2026-11-13 12:17:51
+@@ -253,7 +253,7 @@
+     (the sixth review's finding 1).
+     """
+     own, held, _ = _what_a_set_holds(record, display)
+-    return own != preset and back == held
++    return back == held
+ 
+ 
+ _SHARED = 1.4252698059502449e-24
+imports MP1/src/patchbay_vital/parameters.py
+89 passed in 0.59s
+exit=0
+
+== MP2: the excuse taking any preset, not only what a set holds (must fail
+   test_a_display_excuses_only_what_a_set_of_its_own_float32_holds)
+--- tests/unit/test_parameters.py	2026-11-13 12:16:37
++++ tests/unit/test_parameters.py	2026-11-13 12:17:52
+@@ -253,7 +253,7 @@
+     (the sixth review's finding 1).
+     """
+     own, held, _ = _what_a_set_holds(record, display)
+-    return own != preset and back == held
++    return own != preset
+ 
+ 
+ _SHARED = 1.4252698059502449e-24
+imports MP2/src/patchbay_vital/parameters.py
+FAILED tests/unit/test_parameters.py::test_a_display_excuses_only_what_a_set_of_its_own_float32_holds
+1 failed, 88 passed in 0.58s
+exit=1
+
+== MP3: the excuse put back to _shares_its_display, the float32 beside the preset toward back
+   showing its display (must fail test_a_display_excuses_only_what_a_set_of_its_own_float32_holds)
+--- tests/unit/test_parameters.py	2026-11-13 12:16:37
++++ tests/unit/test_parameters.py	2026-11-13 12:17:53
+@@ -252,8 +252,7 @@
+     curve that holds wherever `back` shows it, so it excused any preset that showed the display
+     (the sixth review's finding 1).
+     """
+-    own, held, _ = _what_a_set_holds(record, display)
+-    return own != preset and back == held
++    return record.to_display(next_float32(preset, back)) == record.to_display(preset)
+ 
+ 
+ _SHARED = 1.4252698059502449e-24
+imports MP3/src/patchbay_vital/parameters.py
+FAILED tests/unit/test_parameters.py::test_a_display_excuses_only_what_a_set_of_its_own_float32_holds
+1 failed, 88 passed in 0.58s
+exit=1
+
+== MP4: the second candidate put back, the float32 on the other side of the curve's float32
+   excused beside what a set holds, as the excuse first read in this revision (must fail
+   test_a_display_excuses_only_what_a_set_of_its_own_float32_holds)
+--- tests/unit/test_parameters.py	2026-11-13 12:16:37
++++ tests/unit/test_parameters.py	2026-11-13 12:17:54
+@@ -252,8 +252,8 @@
+     curve that holds wherever `back` shows it, so it excused any preset that showed the display
+     (the sixth review's finding 1).
+     """
+-    own, held, _ = _what_a_set_holds(record, display)
+-    return own != preset and back == held
++    own, held, other = _what_a_set_holds(record, display)
++    return own != preset and back in (held, other)
+ 
+ 
+ _SHARED = 1.4252698059502449e-24
+imports MP4/src/patchbay_vital/parameters.py
+FAILED tests/unit/test_parameters.py::test_a_display_excuses_only_what_a_set_of_its_own_float32_holds
+1 failed, 88 passed in 0.58s
+exit=1
+run_mutation exit=0
