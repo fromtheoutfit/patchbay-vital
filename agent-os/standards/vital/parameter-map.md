@@ -309,8 +309,10 @@ PR 14's fourth, fifth and sixth reviews
   `verification/sweep-afterwards.txt` of the revision after PR 14's fourth review, the
   `verification/direct-count.txt`, `verification/duplicates.txt`,
   `verification/arbitrary-displays.txt` and `verification/mutation.txt` of the revision after its
-  fifth review, and the
-  `@example`s of `test_a_value_the_parameter_holds_comes_back_exactly`.
+  fifth review, `tests/data/pinned-values.txt`, every value of which
+  `test_every_pinned_value_comes_back_on_every_record` runs through the property's own assertions,
+  issue #13's among them, and the `@example`s
+  `test_a_value_the_parameter_holds_comes_back_exactly` keeps: 0.0, 1.0 and 5.2383727406426375e-33.
 
 ## Units and kinds
 

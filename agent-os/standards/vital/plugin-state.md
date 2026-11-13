@@ -53,8 +53,9 @@ does the same for its findings; of the revision after the third review
   float32 the scale does not hold, the curve's own for the display, moves that value to the
   normalized path's, while `chorus_feedback`'s off-grid 0.4000000059604645 in the same load is held
   as given: on Vital 1.6.4 through pedalboard 0.9.26 on arm64, at each of the four values of
-  `tests/data/pinned-values.txt`'s `volume_floor` set, then the integration module's
-  `_VOLUME_FLOOR`, after each of the four histories the probe tried before the first
+  `tests/data/pinned-values.txt`'s `volume_floor` set (issue #15's probe transcript prints them as
+  `_VOLUME_FLOOR`, the integration module's constant until the revision after PR 14's sixth review
+  moved the values to the file), after each of the four histories the probe tried before the first
   load (a fresh instance, the census's sets, a set of each of the two, the measure's own sets). The
   state is written with the package's `dumps`, which gives the starting state's own text back byte
   for byte, so it differs from text Vital wrote only in `volume`'s value, and read with the host's
