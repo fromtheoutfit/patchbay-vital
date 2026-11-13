@@ -1,0 +1,108 @@
+M1: step 2's sync loses --locked
+
+Made 2026-11-11 on branch feature/11-gate-move-the-patchbay-core-pin-to-the-head-carrying-patchbay18-and-say-what-the-integration-marker-needs, after the last edit to the gate's scripts. One run of the harness, its whole output below this heading; the last line is the run's own.
+
+Copy: the files git lists in the tree (tracked, and untracked not ignored), made from 8ebce15 and this revision's changes as handed over (the owner's commit of this revision holds them), copied to <scratch>/m1/patchbay-vital outside the repository and not a git repository, with <scratch>/m1/patchbay-standards beside it, a symlink to the sibling checkout ../patchbay-standards.
+
+Then, in <scratch>/m1/patchbay-vital, `git apply` of this diff:
+
+--- a/scripts/gate.sh
++++ b/scripts/gate.sh
+@@ -138,7 +138,7 @@
+ command -v uv >/dev/null 2>&1 || fail 2/6 "uv is not on PATH; steps 2-5 run the pinned tools through uv run --locked"
+ [ ! -e uv.toml ] && [ ! -L uv.toml ] ||
+   fail 2/6 "uv.toml is at the root, where uv reads it ahead of [tool.uv] in pyproject.toml; remove it, uv is configured in pyproject.toml alone"
+-uv sync --locked 2>&1 | tee "$tmp/sync" ||
++uv sync 2>&1 | tee "$tmp/sync" ||
+   fail 2/6 "uv could not sync the locked toolchain: uv.lock does not match pyproject.toml, uv could not read them, fetch a locked package (the network, git, a commit gone) or build the package, or this uv is not the version [tool.uv] requires (see above)"
+ if grep -Fq 'during settings discovery' "$tmp/sync"; then
+   fail 2/6 "uv could not use a setting in [tool.uv] of pyproject.toml, warned and went on without it; correct the key or value it names (see above)"
+
+Command, in <scratch>/m1/patchbay-vital: scripts/gate-negative-tests.sh n
+
+Must: UNEXPECTED (uv re-locks rather than refusing the stale lockfile); harness exit 1, its last line its count.
+
+
+### n (the ruff pin in [dependency-groups] dev changed to ruff==0.17.3 in the copy's pyproject.toml, whatever version it is now, uv.lock untouched: step 2's uv sync --locked must fail with uv naming the stale lockfile and the sync's reason, ruff never run, exit 1)
+89:    "ruff==0.17.3",          # published 2026-11-05; linter and formatter, gate steps 2-3
+exit=0
+
+== 1/6  bash -n on every shell script under scripts/ (tracked or untracked, not ignored), in a tree with no tracked file a .gitignore ignores
+ok   scripts/gate-negative-tests.sh
+ok   scripts/gate.sh
+ok   scripts/sync-standards.sh
+
+== 2/6  uv sync --locked, then uv run --locked ruff format --check over the .py and .pyi files git lists (the locked toolchain; the formatter)
+Using CPython 3.12.16
+Creating virtual environment at: .venv
+Resolved 33 packages in 68ms
+   Building patchbay-vital @ file://<copy n>/patchbay-vital
+      Built patchbay-vital @ file://<copy n>/patchbay-vital
+Prepared 1 package in 4ms
+Installed 32 packages in 62ms
+ + annotated-types==0.8.0
+ + ast-serialize==0.13.1
+ + cfgv==3.5.0
+ + distlib==0.4.4
+ + filelock==4.2.9
+ + hypothesis==6.170.14
+ + identify==2.6.20
+ + iniconfig==2.3.1
+ + librt==0.16.0
+ + mypy==2.4.1
+ + mypy-extensions==1.2.0
+ + nodeenv==1.12.0
+ + numpy==2.5.4
+ + packaging==26.3
+ + patchbay-core==0.0.1 (from git+https://github.com/fromtheoutfit/patchbay@eddba95404a9b633d358dc4d6b07b084a8f975ad)
+ + patchbay-vital==0.0.1 (from file://<copy n>/patchbay-vital)
+ + pathspec==1.1.1
+ + pedalboard==0.9.26
+ + platformdirs==4.14.5
+ + pluggy==1.7.0
+ + pre-commit==4.7.0
+ + pydantic==2.14.3
+ + pydantic-core==2.50.4
+ + pygments==2.21.0
+ + pytest==9.2.0
+ + python-discovery==1.9.5
+ + pyyaml==6.0.3
+ + ruff==0.17.3
+ + sortedcontainers==2.4.0
+ + typing-extensions==4.16.0
+ + typing-inspection==0.4.5
+ + virtualenv==21.15.6
+ok   the locked toolchain synced
+26 files already formatted
+ok   26 file(s) formatted
+
+== 3/6  uv run --locked ruff check over the same files (the linter: [tool.ruff.lint] of pyproject.toml)
+All checks passed!
+ok   no violation
+
+== 4/6  uv run --locked mypy over the .py and .pyi files git lists under src/ and tests/ ([tool.mypy] of pyproject.toml: strict)
+Success: no issues found in 26 source files
+ok   no type error
+
+== 5/6  uv run --locked pytest -c pyproject.toml -p no:doctest ([tool.pytest.ini_options] of pyproject.toml, over tests/, once nothing pytest would read is one git ignores)
+........................................................................ [ 14%]
+........................................................................ [ 29%]
+........................................................................ [ 44%]
+........................................................................ [ 58%]
+........................................................................ [ 73%]
+........................................................................ [ 88%]
+..........................................................               [100%]
+490 passed in 37.66s
+ok   every test passed
+
+== 6/6  scripts/sync-standards.sh --check: agent-os/standards/base/, the base: section and the script match patchbay-standards at the commit in .version (../patchbay-standards)
+check base standards against e31f7dbfb474752339a43fe08a37ab26c7956f5c  (<copy patchbay-standards>)
+  index    base: section identical
+  script   scripts/sync-standards.sh matches
+{"mode":"check","upstream":"<copy patchbay-standards>","commit":"e31f7dbfb474752339a43fe08a37ab26c7956f5c","missing":[],"extra":[],"changed":[],"index":"identical","script":"matches","ok":true}
+ok   agent-os/standards/base and the base: section of agent-os/standards/index.yml match patchbay-standards at e31f7dbfb474752339a43fe08a37ab26c7956f5c
+
+Gate steps 1-6 passed. Steps 7-9 are judgment, recorded in shape.md: Docs, Version, the standards retrospective.
+exit=0  UNEXPECTED (expected 1)
+
+2 runs, 1 unexpected

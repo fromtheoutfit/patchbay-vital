@@ -14,6 +14,45 @@ writes the entry, in that commit
 
 ### Changed
 
+- Revision after the review of PR 12, `agent-os/specs/2026-11-11-1321-revision-after-pr-12-review/`:
+  all 15 findings of the review at `8ebce15` addressed, a gate spec. The version stays 0.0.1.
+  - Cases n and o, and case t's two edits of patchbay-core's rev in `[tool.uv.sources]` (through
+    `setrev`), edit their pins through one helper, `setline`. Each such edit is held to its pin's
+    table, and a case stops by name when the table already holds the value it sets, or does not
+    hold it after the edit. So n refuses `ruff===…` and a pin with an environment marker rather
+    than rewriting it. Case t's third edit, of patchbay-core's range, does not go through `setline`:
+    it is a `sed` over the whole of the copy's `pyproject.toml`, checked only by a `grep` that the
+    new range is there.
+  - Case o requires `==0.0.0`, a uv no release carries. It reads the version word of
+    `uv --version`, the word after `uv `, and stops by name unless that word is a plain X.Y.Z; what
+    follows the word is not checked. It prints `uv --version`'s whole output in a note, not a second
+    run, so the harness has 140 runs.
+  - `test_the_manifest_holds_the_expected_count` is unmarked: it reads only the committed manifest.
+    The `integration` marker reads "needs Vital's plugin or its presets installed", and the comment
+    over it names the parameter map's machine as the plugin's tests' second skip.
+  - The pin's entry below names core's merge #16 beside #19. Each guard is shown to fire, and its
+    absence not to, by a pair of runs kept one run to a file, as is the rest of the revision's
+    evidence (`verification/`).
+  - The harness's rerun drew a Hypothesis failure that was already on `main`: volume's round trip
+    below 2 ** -43, at normalized 5.857149595214349e-20, filed as #13. Its fix, PR 14, is merged
+    into this branch (`main` at `9474506`), and the revision's harness and gate transcripts are
+    runs of that merge.
+- The `patchbay-core` pin and the `integration` marker, a gate spec, issue #11,
+  `agent-os/specs/2026-11-11-1011-gate-core-pin-and-marker-needs/`. Landed before #8 resumes on top
+  of it. The version stays 0.0.1.
+  - `[tool.uv.sources]` takes `patchbay-core` at `eddba95`, the head of core's `main`, where it took
+    `dd2bcad`. That brings in core's two merges since: fromtheoutfit/patchbay#19, for issue
+    fromtheoutfit/patchbay#18 (`Instrument.get` says what an adapter relies on), and
+    fromtheoutfit/patchbay#16 (core's gate and `Event.at` revised after the review of its PR 15).
+    Core is still 0.0.1, so the range is unchanged. `uv.lock` re-locked: patchbay-core's source
+    moved and nothing else. The gate passes against it with no other change: nothing here builds an
+    event or implements `Instrument` yet, so `Event.at`'s wider refusal reaches nothing.
+  - The `integration` marker says what its tests need: "needs Vital's plugin or its presets
+    installed", where it named the presets alone and the plugin's tests carry it too.
+  - Negative tests n and o match their pins whatever the value, as t already did, and o names the
+    running uv as `uv --version` prints it. The work fromtheoutfit/patchbay-standards#31 left to
+    this repository's next gate spec; `verification/guard-mutations.txt` shows both discriminate,
+    and `verification/pin-moves.txt` shows both follow a moved pin.
 - Revision after the third review of PR 9,
   `agent-os/specs/2026-11-10-1438-revision-after-pr-9-third-review/`: 12 findings at `d4fe077`,
   nine addressed, two declined with their reasons (the state's JSON decoded more than once, a third

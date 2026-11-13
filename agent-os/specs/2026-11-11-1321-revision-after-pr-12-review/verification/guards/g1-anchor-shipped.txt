@@ -1,0 +1,22 @@
+g1 (o's version anchor), as shipped: a uv --version giving more than a plain X.Y.Z stops the harness by name
+
+Made 2026-11-11 on branch feature/11-gate-move-the-patchbay-core-pin-to-the-head-carrying-patchbay18-and-say-what-the-integration-marker-needs, after the last edit to the gate's scripts. One run of the harness, its whole output below this heading; the last line is the run's own.
+
+Copy: the files git lists in the tree (tracked, and untracked not ignored), made from 8ebce15 and this revision's changes as handed over (the owner's commit of this revision holds them), copied to <scratch>/g1/patchbay-vital outside the repository and not a git repository, with <scratch>/g1/patchbay-standards beside it, a symlink to the sibling checkout ../patchbay-standards.
+
+Nothing applied to the copy.
+
+With a uv shim first on PATH for this run only, <scratch>/shim/uv:
+
+#!/usr/bin/env bash
+# uv, but for uv --version, which prints a suffixed version as a build between releases does
+if [ "$*" = --version ]; then echo "uv 0.13.7+5 (shim, not a release)"; exit 0; fi
+exec /opt/homebrew/bin/uv "$@"
+
+Command, in <scratch>/g1/patchbay-vital: PATH=<scratch>/shim:$PATH scripts/gate-negative-tests.sh o
+
+Must: harness exit 2, its last line o's named stop, that uv --version gave no plain X.Y.Z, quoting the line.
+
+
+### o ([tool.uv] required-version changed to ==0.0.0 in the copy's pyproject.toml, whatever it is now, a uv no release carries: step 2's uv sync must fail with uv naming both versions, the running one as uv --version prints it, and the sync's reason, ruff never run, exit 1, and never print 3/6)
+harness: o: uv --version gave no plain X.Y.Z, so this case cannot name the version uv's refusal prints: uv 0.13.7+5 (shim, not a release)

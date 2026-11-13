@@ -1,0 +1,66 @@
+Cases n and o follow a moved pin, run 2026-11-11 on branch feature/11-gate-move-the-patchbay-core-pin-to-the-head-carrying-patchbay18-and-say-what-the-integration-marker-needs, after the last edit to the gate's scripts.
+Each move is a fresh copy of the tree as git lists it, outside the repository and not a git repository, with one pin moved as a later gate spec would move it. From that copy the shipped harness's case must behave (exit 0, every run as expected); main's harness, whose case spells the old pin, must stop at its setup guard by name (exit 2). Nothing here is a gate step or part of the harness.
+
+### P1: ruff moved from 0.17.4 to 0.17.2 and re-locked
+--- pyproject.toml (as shipped)
++++ pyproject.toml (mutated)
+@@ -88,3 +88,3 @@
+ dev = [
+-    "ruff==0.17.4",          # published 2026-11-05; linter and formatter, gate steps 2-3
++    "ruff==0.17.2",          # published 2026-11-05; linter and formatter, gate steps 2-3
+     "mypy==2.4.1",           # published 2026-10-28; type checker, gate step 4
+$ uv lock   (in the copy)
+Using CPython 3.12.16
+Resolved 33 packages in 264ms
+Updated ruff v0.17.4 -> v0.17.2
+[exit 0]
+$ scripts/gate-negative-tests.sh n   (shipped's harness, in the copy)
+### n (the ruff pin changed to ruff==0.17.3 in the copy's pyproject.toml, whatever it is now, uv.lock untouched: step 2's uv sync --locked must fail with uv naming the stale lockfile and the sync's reason, ruff never run, exit 1)
+89:    "ruff==0.17.3",          # published 2026-11-05; linter and formatter, gate steps 2-3
+exit=0
+error: The lockfile at `uv.lock` needs to be updated, but `--locked` was provided.
+FAIL  step 2/6: uv could not sync the locked toolchain: uv.lock does not match pyproject.toml, uv could not read them, fetch a locked package (the network, git, a commit gone) or build the package, or this uv is not the version [tool.uv] requires (see above)
+exit=1
+2 runs, 0 unexpected
+harness exit=0
+must: harness exit 0
+result: as required
+$ scripts/gate-negative-tests.sh n   (main's harness, in the copy)
+### n (ruff==0.17.4 changed to ruff==0.17.3 in the copy's pyproject.toml, uv.lock untouched: step 2's uv sync --locked must fail with uv naming the stale lockfile and the sync's reason, ruff never run, exit 1)
+harness: n: pin not rewritten
+harness exit=2
+must: harness exit 2
+result: as required
+
+### P2: [tool.uv] required-version moved from ==0.13.7 to ==0.13.8, the uv running still 0.13.7
+Not re-locked: uv.lock holds no required-version. The shipped o names the running uv (0.13.7) where the copy's pin says 0.13.8, so its expected line is the running version's, not the pin's.
+--- pyproject.toml (as shipped)
++++ pyproject.toml (mutated)
+@@ -64,3 +64,3 @@
+ [tool.uv]
+-required-version = "==0.13.7"
++required-version = "==0.13.8"
+ # uv's own builds only, so a local run and CI's resolve .python-version alike. By default uv takes a
+$ uv --version
+uv 0.13.7 (Homebrew 2026-11-03 aarch64-apple-darwin)
+$ scripts/gate-negative-tests.sh o   (shipped's harness, in the copy)
+### o ([tool.uv] required-version changed to ==0.13.6 in the copy's pyproject.toml, whatever it is now, a uv that is not the one running: step 2's uv sync must fail with uv naming both versions, the running one as uv --version prints it, and the sync's reason, ruff never run, exit 1, and never print 3/6)
+65:required-version = "==0.13.6"
+exit=0
+-- the uv running here:
+exit=0
+error: Required uv version `==0.13.6` does not match the running version `0.13.7`
+FAIL  step 2/6: uv could not sync the locked toolchain: uv.lock does not match pyproject.toml, uv could not read them, fetch a locked package (the network, git, a commit gone) or build the package, or this uv is not the version [tool.uv] requires (see above)
+exit=1
+3 runs, 0 unexpected
+harness exit=0
+must: harness exit 0
+result: as required
+$ scripts/gate-negative-tests.sh o   (main's harness, in the copy)
+### o ([tool.uv] required-version changed to ==0.13.6 in the copy's pyproject.toml, a uv that is not the one running: step 2's uv sync must fail with uv naming both versions and the sync's reason, ruff never run, exit 1, and never print 3/6)
+harness: o: required-version not rewritten
+harness exit=2
+must: harness exit 2
+result: as required
+
+4 runs, 4 as required

@@ -1,0 +1,86 @@
+2026-11-13 14:54 EST on branch feature/11-gate-move-the-patchbay-core-pin-to-the-head-carrying-patchbay18-and-say-what-the-integration-marker-needs
+The revision after the review of PR 12, finished after the fix of #13: scripts/gate.sh, at 331197c9466ea2444c09494d4d494e4cc1a4ac56,
+machine arm64, uv 0.13.7 (Homebrew 2026-11-03 aarch64-apple-darwin), Vital installed at /Library/Audio/Plug-Ins/VST3/Vital.vst3.
+One run of the gate, its whole output between the two trees. This transcript is written outside the
+tree and copied in afterwards.
+
+Gate: scripts/gate.sh 66cc5e6dec3ebe44b39e23753ef183ff69843a10 (HEAD's 66cc5e6dec3ebe44b39e23753ef183ff69843a10).
+Command, in the repository root: scripts/gate.sh
+Must: every step passes; exit 0.
+
+the tree before the run:
+  HEAD 331197c9466ea2444c09494d4d494e4cc1a4ac56
+  git status --porcelain=v1 --untracked-files=all, 4 lines:
+     M CHANGELOG.md
+     M agent-os/specs/2026-11-11-1321-revision-after-pr-12-review/shape.md
+     M agent-os/specs/2026-11-11-1321-revision-after-pr-12-review/verification/ci-negative-test.txt
+    ?? agent-os/specs/2026-11-11-1321-revision-after-pr-12-review/verification/gate-negative-tests.txt
+  git hash-object of each of those 4 paths (a deleted one marked so):
+    334469d75217446c32a576720c8272fb80f5d24f  CHANGELOG.md
+    e4c31c79d5ead791e6ce816ce38d664cdf52b9ca  agent-os/specs/2026-11-11-1321-revision-after-pr-12-review/shape.md
+    d687707d260ee7d0e853aef90b2fbf7cf378e560  agent-os/specs/2026-11-11-1321-revision-after-pr-12-review/verification/ci-negative-test.txt
+    f7e48ae213d53fa06ccbace07d42c63d20d668c3  agent-os/specs/2026-11-11-1321-revision-after-pr-12-review/verification/gate-negative-tests.txt
+
+
+== 1/6  bash -n on every shell script under scripts/ (tracked or untracked, not ignored), in a tree with no tracked file a .gitignore ignores
+ok   scripts/gate-negative-tests.sh
+ok   scripts/gate.sh
+ok   scripts/sync-standards.sh
+
+== 2/6  uv sync --locked, then uv run --locked ruff format --check over the .py and .pyi files git lists (the locked toolchain; the formatter)
+Resolved 33 packages in 2ms
+   Building patchbay-vital @ file:///Users/michaelwitwicki/Code/Audio/patchbay-vital
+      Built patchbay-vital @ file:///Users/michaelwitwicki/Code/Audio/patchbay-vital
+Prepared 1 package in 4ms
+Uninstalled 2 packages in 3ms
+Installed 2 packages in 1ms
+ - patchbay-core==0.0.1 (from git+https://github.com/fromtheoutfit/patchbay@dd2bcad69dadeb38c6e1e660b2e0ddced13861eb)
+ + patchbay-core==0.0.1 (from git+https://github.com/fromtheoutfit/patchbay@eddba95404a9b633d358dc4d6b07b084a8f975ad)
+ ~ patchbay-vital==0.0.1 (from file:///Users/michaelwitwicki/Code/Audio/patchbay-vital)
+ok   the locked toolchain synced
+26 files already formatted
+ok   26 file(s) formatted
+
+== 3/6  uv run --locked ruff check over the same files (the linter: [tool.ruff.lint] of pyproject.toml)
+All checks passed!
+ok   no violation
+
+== 4/6  uv run --locked mypy over the .py and .pyi files git lists under src/ and tests/ ([tool.mypy] of pyproject.toml: strict)
+Success: no issues found in 26 source files
+ok   no type error
+
+== 5/6  uv run --locked pytest -c pyproject.toml -p no:doctest ([tool.pytest.ini_options] of pyproject.toml, over tests/, once nothing pytest would read is one git ignores)
+........................................................................ [ 14%]
+........................................................................ [ 28%]
+........................................................................ [ 42%]
+........................................................................ [ 56%]
+........................................................................ [ 71%]
+........................................................................ [ 85%]
+........................................................................ [ 99%]
+...                                                                      [100%]
+507 passed in 31.02s
+ok   every test passed
+
+== 6/6  scripts/sync-standards.sh --check: agent-os/standards/base/, the base: section and the script match patchbay-standards at the commit in .version (../patchbay-standards)
+check base standards against e31f7dbfb474752339a43fe08a37ab26c7956f5c  (/Users/michaelwitwicki/Code/Audio/patchbay-standards)
+  index    base: section identical
+  script   scripts/sync-standards.sh matches
+{"mode":"check","upstream":"/Users/michaelwitwicki/Code/Audio/patchbay-standards","commit":"e31f7dbfb474752339a43fe08a37ab26c7956f5c","missing":[],"extra":[],"changed":[],"index":"identical","script":"matches","ok":true}
+ok   agent-os/standards/base and the base: section of agent-os/standards/index.yml match patchbay-standards at e31f7dbfb474752339a43fe08a37ab26c7956f5c
+
+Gate steps 1-6 passed. Steps 7-9 are judgment, recorded in shape.md: Docs, Version, the standards retrospective.
+exit=0
+
+the tree after the run (2026-11-13 14:55 EST):
+  HEAD 331197c9466ea2444c09494d4d494e4cc1a4ac56
+  git status --porcelain=v1 --untracked-files=all, 4 lines:
+     M CHANGELOG.md
+     M agent-os/specs/2026-11-11-1321-revision-after-pr-12-review/shape.md
+     M agent-os/specs/2026-11-11-1321-revision-after-pr-12-review/verification/ci-negative-test.txt
+    ?? agent-os/specs/2026-11-11-1321-revision-after-pr-12-review/verification/gate-negative-tests.txt
+  git hash-object of each of those 4 paths (a deleted one marked so):
+    334469d75217446c32a576720c8272fb80f5d24f  CHANGELOG.md
+    e4c31c79d5ead791e6ce816ce38d664cdf52b9ca  agent-os/specs/2026-11-11-1321-revision-after-pr-12-review/shape.md
+    d687707d260ee7d0e853aef90b2fbf7cf378e560  agent-os/specs/2026-11-11-1321-revision-after-pr-12-review/verification/ci-negative-test.txt
+    f7e48ae213d53fa06ccbace07d42c63d20d668c3  agent-os/specs/2026-11-11-1321-revision-after-pr-12-review/verification/gate-negative-tests.txt
+cmp of the two printed trees: exit 0, the tree after the run is the tree before it

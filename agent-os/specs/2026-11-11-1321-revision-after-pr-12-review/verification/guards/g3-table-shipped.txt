@@ -1,0 +1,46 @@
+g3 (setline's table limit), as shipped: a table outside [dependency-groups] holding a line in the dev pin's form, at the value n sets
+
+Made 2026-11-11 on branch feature/11-gate-move-the-patchbay-core-pin-to-the-head-carrying-patchbay18-and-say-what-the-integration-marker-needs, after the last edit to the gate's scripts. One run of the harness, its whole output below this heading; the last line is the run's own.
+
+Copy: the files git lists in the tree (tracked, and untracked not ignored), made from 8ebce15 and this revision's changes as handed over (the owner's commit of this revision holds them), copied to <scratch>/g3/patchbay-vital outside the repository and not a git repository, with <scratch>/g3/patchbay-standards beside it, a symlink to the sibling checkout ../patchbay-standards.
+
+Then, in <scratch>/g3/patchbay-vital, `git apply` of this diff:
+
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -168,3 +168,8 @@
+ markers = [
+     "integration: needs Vital's plugin or its presets installed; skipped with its reason where they are absent",
+ ]
++
++[tool.fixture]
++pins = [
++    "ruff==0.17.3",
++]
+
+Command, in <scratch>/g3/patchbay-vital: scripts/gate-negative-tests.sh n
+
+Must: n edits the dev pin alone and runs as it says: its grep lists the fixture's line unchanged beside the dev pin; harness exit 0, its last line 2 runs, 0 unexpected.
+
+
+### n (the ruff pin in [dependency-groups] dev changed to ruff==0.17.3 in the copy's pyproject.toml, whatever version it is now, uv.lock untouched: step 2's uv sync --locked must fail with uv naming the stale lockfile and the sync's reason, ruff never run, exit 1)
+89:    "ruff==0.17.3",          # published 2026-11-05; linter and formatter, gate steps 2-3
+174:    "ruff==0.17.3",
+exit=0
+
+== 1/6  bash -n on every shell script under scripts/ (tracked or untracked, not ignored), in a tree with no tracked file a .gitignore ignores
+ok   scripts/gate-negative-tests.sh
+ok   scripts/gate.sh
+ok   scripts/sync-standards.sh
+
+== 2/6  uv sync --locked, then uv run --locked ruff format --check over the .py and .pyi files git lists (the locked toolchain; the formatter)
+Using CPython 3.12.16
+Creating virtual environment at: .venv
+Resolved 33 packages in 83ms
+error: The lockfile at `uv.lock` needs to be updated, but `--locked` was provided.
+
+hint: To update the lockfile, run `uv lock`.
+FAIL  step 2/6: uv could not sync the locked toolchain: uv.lock does not match pyproject.toml, uv could not read them, fetch a locked package (the network, git, a commit gone) or build the package, or this uv is not the version [tool.uv] requires (see above)
+exit=1
+
+2 runs, 0 unexpected

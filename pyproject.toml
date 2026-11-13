@@ -73,7 +73,7 @@ python-preference = "only-managed"
 # A rev edited without re-locking fails step 2's sync by name (negative test t). Moved deliberately,
 # in the gate's own spec, and the gate rerun. The wheel carries the range and not this source.
 [tool.uv.sources]
-patchbay-core = { git = "https://github.com/fromtheoutfit/patchbay", rev = "dd2bcad69dadeb38c6e1e660b2e0ddced13861eb" }
+patchbay-core = { git = "https://github.com/fromtheoutfit/patchbay", rev = "eddba95404a9b633d358dc4d6b07b084a8f975ad" }
 
 # Every entry pinned exactly, each with the date it was published, and resolved in uv.lock; each is
 # a Decision in the spec that added it. ruff, mypy and pytest are the tools the gate runs, under
@@ -161,8 +161,10 @@ testpaths = ["tests"]
 # and hypothesis"). The gate adds -c pyproject.toml and -p no:doctest on its own command line, so
 # pytest reads this file alone and no .txt under tests/; this line stays as that standard fixes it.
 addopts = "-q --strict-markers --strict-config"
-# Every marker, with its meaning (that standard). The gate deselects nothing, so an integration test
-# runs at step 5 wherever what it needs is present (negative test y).
+# Every marker, with its meaning (that standard). The gate deselects nothing, so every integration
+# test runs at step 5 or skips with its reason (negative test y): where what it needs is absent, and
+# for the plugin's, where the parameter map was measured on another machine
+# (agent-os/standards/vital/parameter-map.md).
 markers = [
-    "integration: needs an installed Vital's presets; skipped with its reason where they are absent",
+    "integration: needs Vital's plugin or its presets installed; skipped with its reason where they are absent",
 ]

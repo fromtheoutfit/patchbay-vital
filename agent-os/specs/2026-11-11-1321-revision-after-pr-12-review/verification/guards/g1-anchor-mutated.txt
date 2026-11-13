@@ -1,0 +1,49 @@
+g1 (o's version anchor), mutated: the end anchor removed, as it was at 8ebce15
+
+Made 2026-11-11 on branch feature/11-gate-move-the-patchbay-core-pin-to-the-head-carrying-patchbay18-and-say-what-the-integration-marker-needs, after the last edit to the gate's scripts. One run of the harness, its whole output below this heading; the last line is the run's own.
+
+Copy: the files git lists in the tree (tracked, and untracked not ignored), made from 8ebce15 and this revision's changes as handed over (the owner's commit of this revision holds them), copied to <scratch>/g1m/patchbay-vital outside the repository and not a git repository, with <scratch>/g1m/patchbay-standards beside it, a symlink to the sibling checkout ../patchbay-standards.
+
+Then, in <scratch>/g1m/patchbay-vital, `git apply` of this diff:
+
+--- a/scripts/gate-negative-tests.sh
++++ b/scripts/gate-negative-tests.sh
+@@ -421,7 +421,7 @@
+    mk o
+    version=$(uv --version) || die "o: uv --version"
+    running=${version#uv }; running=${running%% *}
+-   [[ $running =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] ||
++   [[ $running =~ ^[0-9]+\.[0-9]+\.[0-9]+ ]] ||
+      die "o: uv --version gave no plain X.Y.Z, so this case cannot name the version uv's refusal prints: $version"
+    setline o "required-version in [tool.uv]" '/^\[tool\.uv\]$/,/^\[/' \
+      's/^(required-version = ")[^"]*"$/\1==0.0.0"/' '^required-version = "==0\.0\.0"$'
+
+With a uv shim first on PATH for this run only, <scratch>/shim/uv:
+
+#!/usr/bin/env bash
+# uv, but for uv --version, which prints a suffixed version as a build between releases does
+if [ "$*" = --version ]; then echo "uv 0.13.7+5 (shim, not a release)"; exit 0; fi
+exec /opt/homebrew/bin/uv "$@"
+
+Command, in <scratch>/g1m/patchbay-vital: PATH=<scratch>/shim:$PATH scripts/gate-negative-tests.sh o
+
+Must: the case runs on the suffixed version and ends UNEXPECTED: uv's refusal names 0.13.7, not 0.13.7+5; harness exit 1, its last line its count.
+
+
+### o ([tool.uv] required-version changed to ==0.0.0 in the copy's pyproject.toml, whatever it is now, a uv no release carries: step 2's uv sync must fail with uv naming both versions, the running one as uv --version prints it, and the sync's reason, ruff never run, exit 1, and never print 3/6)
+65:required-version = "==0.0.0"
+exit=0
+-- the uv running here: uv 0.13.7+5 (shim, not a release)
+
+== 1/6  bash -n on every shell script under scripts/ (tracked or untracked, not ignored), in a tree with no tracked file a .gitignore ignores
+ok   scripts/gate-negative-tests.sh
+ok   scripts/gate.sh
+ok   scripts/sync-standards.sh
+
+== 2/6  uv sync --locked, then uv run --locked ruff format --check over the .py and .pyi files git lists (the locked toolchain; the formatter)
+error: Required uv version `==0.0.0` does not match the running version `0.13.7`
+FAIL  step 2/6: uv could not sync the locked toolchain: uv.lock does not match pyproject.toml, uv could not read them, fetch a locked package (the network, git, a commit gone) or build the package, or this uv is not the version [tool.uv] requires (see above)
+exit=1  UNEXPECTED (the output does not say: error: Required uv version `==0.0.0` does not match the running version `0.13.7+5`
+FAIL  step 2/6: uv could not sync the locked toolchain: uv.lock does not match pyproject.toml, uv could not read them, fetch a locked package (the network, git, a commit gone) or build the package, or this uv is not the version [tool.uv] requires (see above))
+
+2 runs, 1 unexpected

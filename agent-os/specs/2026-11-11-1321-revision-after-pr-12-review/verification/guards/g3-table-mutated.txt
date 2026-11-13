@@ -1,0 +1,43 @@
+g3 (setline's table limit), mutated: the edit and both checks over the whole file, as n's were at 8ebce15
+
+Made 2026-11-11 on branch feature/11-gate-move-the-patchbay-core-pin-to-the-head-carrying-patchbay18-and-say-what-the-integration-marker-needs, after the last edit to the gate's scripts. One run of the harness, its whole output below this heading; the last line is the run's own.
+
+Copy: the files git lists in the tree (tracked, and untracked not ignored), made from 8ebce15 and this revision's changes as handed over (the owner's commit of this revision holds them), copied to <scratch>/g3m/patchbay-vital outside the repository and not a git repository, with <scratch>/g3m/patchbay-standards beside it, a symlink to the sibling checkout ../patchbay-standards.
+
+Then, in <scratch>/g3m/patchbay-vital, `git apply` of this diff:
+
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -168,3 +168,8 @@
+ markers = [
+     "integration: needs Vital's plugin or its presets installed; skipped with its reason where they are absent",
+ ]
++
++[tool.fixture]
++pins = [
++    "ruff==0.17.3",
++]
+--- a/scripts/gate-negative-tests.sh
++++ b/scripts/gate-negative-tests.sh
+@@ -248,10 +248,10 @@
+ broken() { printf '#!/usr/bin/env bash\nif true; then\n' > "$NEG/$1/patchbay-vital/scripts/broken.sh" || die "broken $1"; }   # broken <case>: an unparsable script in the copy
+ setline() {  # setline <case> <what> <table> <edit> <written>: in the copy's pyproject.toml, inside <table> (a sed address range, its header or opening line to the next), the sed -E s command <edit> rewrites <what>, whatever value it holds, so a move of the pin leaves the case working; the harness stops by name when <table> already holds a line matching the ERE <written>, the value the case sets, or holds none after the edit: a value in a form <edit> does not take, and the same line in another table, are refused, never edited
+   local pp="$NEG/$1/patchbay-vital/pyproject.toml"
+-  ! sed -E -n "$3p" "$pp" | grep -qE -- "$5" || die "$1: $2 is the value this case sets already"
+-  sed -E -i.bak "$3$4" "$pp" || die "$1: sed $2"
++  ! sed -E -n "p" "$pp" | grep -qE -- "$5" || die "$1: $2 is the value this case sets already"
++  sed -E -i.bak "$4" "$pp" || die "$1: sed $2"
+   rm "$pp.bak" || die "$1: rm .bak"
+-  sed -E -n "$3p" "$pp" | grep -qE -- "$5" || die "$1: $2 not rewritten: not in its table, or not in the form this case edits"
++  sed -E -n "p" "$pp" | grep -qE -- "$5" || die "$1: $2 not rewritten: not in its table, or not in the form this case edits"
+ }
+ setrev() {  # setrev <case> <commit>: the copy's [tool.uv.sources] rev of patchbay-core becomes <commit>, whatever it is now
+   setline "$1" "the patchbay-core rev in [tool.uv.sources]" '/^\[tool\.uv\.sources\]$/,/^\[/' \
+
+Command, in <scratch>/g3m/patchbay-vital: scripts/gate-negative-tests.sh n
+
+Must: the line outside the table stops the harness as though the dev pin held the value: harness exit 2, its last line n's already-set stop, where as shipped the case runs.
+
+
+### n (the ruff pin in [dependency-groups] dev changed to ruff==0.17.3 in the copy's pyproject.toml, whatever version it is now, uv.lock untouched: step 2's uv sync --locked must fail with uv naming the stale lockfile and the sync's reason, ruff never run, exit 1)
+harness: n: the ruff pin in [dependency-groups] dev is the value this case sets already

@@ -1,0 +1,41 @@
+P2, the harness as shipped: [tool.uv] required-version moved from ==0.13.7 to ==0.13.8, the uv running still 0.13.7 (uv.lock holds no required-version, so nothing is re-locked)
+
+Made 2026-11-11 on branch feature/11-gate-move-the-patchbay-core-pin-to-the-head-carrying-patchbay18-and-say-what-the-integration-marker-needs, after the last edit to the gate's scripts. One run of the harness, its whole output below this heading; the last line is the run's own.
+
+Copy: the files git lists in the tree (tracked, and untracked not ignored), made from 8ebce15 and this revision's changes as handed over (the owner's commit of this revision holds them), copied to <scratch>/p2/patchbay-vital outside the repository and not a git repository, with <scratch>/p2/patchbay-standards beside it, a symlink to the sibling checkout ../patchbay-standards.
+
+Then, in <scratch>/p2/patchbay-vital, `git apply` of this diff:
+
+--- a/pyproject.toml
++++ b/pyproject.toml
+@@ -62,7 +62,7 @@
+ # version is written once. Bumped deliberately, in the gate's own spec, and the gate rerun.
+ # uv_build needs no module-name here: the distribution name gives the import name, patchbay_vital.
+ [tool.uv]
+-required-version = "==0.13.7"
++required-version = "==0.13.8"
+ # uv's own builds only, so a local run and CI's resolve .python-version alike. By default uv takes a
+ # system Python where one exists, as ubuntu-24.04's 3.12.3 is (the review of PR 3, finding 3). The
+ # patch is the newest 3.12 the uv pinned above ships, and moves only when that pin does.
+
+Command, in <scratch>/p2/patchbay-vital: scripts/gate-negative-tests.sh o
+
+Must: o follows the moved pin and names the uv running, 0.13.7, not the pin's 0.13.8: harness exit 0, its last line 2 runs, 0 unexpected.
+
+
+### o ([tool.uv] required-version changed to ==0.0.0 in the copy's pyproject.toml, whatever it is now, a uv no release carries: step 2's uv sync must fail with uv naming both versions, the running one as uv --version prints it, and the sync's reason, ruff never run, exit 1, and never print 3/6)
+65:required-version = "==0.0.0"
+exit=0
+-- the uv running here: uv 0.13.7 (Homebrew 2026-11-03 aarch64-apple-darwin)
+
+== 1/6  bash -n on every shell script under scripts/ (tracked or untracked, not ignored), in a tree with no tracked file a .gitignore ignores
+ok   scripts/gate-negative-tests.sh
+ok   scripts/gate.sh
+ok   scripts/sync-standards.sh
+
+== 2/6  uv sync --locked, then uv run --locked ruff format --check over the .py and .pyi files git lists (the locked toolchain; the formatter)
+error: Required uv version `==0.0.0` does not match the running version `0.13.7`
+FAIL  step 2/6: uv could not sync the locked toolchain: uv.lock does not match pyproject.toml, uv could not read them, fetch a locked package (the network, git, a commit gone) or build the package, or this uv is not the version [tool.uv] requires (see above)
+exit=1
+
+2 runs, 0 unexpected

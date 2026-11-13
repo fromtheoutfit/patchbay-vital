@@ -1,0 +1,142 @@
+Case t with the harness as shipped, whose setrev is a call to setline
+
+Made 2026-11-11 on branch feature/11-gate-move-the-patchbay-core-pin-to-the-head-carrying-patchbay18-and-say-what-the-integration-marker-needs, after the last edit to the gate's scripts. One run of the harness, its whole output below this heading; the last line is the run's own.
+
+Copy: the files git lists in the tree (tracked, and untracked not ignored), made from 8ebce15 and this revision's changes as handed over (the owner's commit of this revision holds them), copied to <scratch>/t-after/patchbay-vital outside the repository and not a git repository, with <scratch>/t-after/patchbay-standards beside it, a symlink to the sibling checkout ../patchbay-standards.
+
+Nothing applied to the copy.
+
+Command, in <scratch>/t-after/patchbay-vital: scripts/gate-negative-tests.sh t
+
+Must: harness exit 0, its last line 4 runs, 0 unexpected, and the same output as t-before.txt's apart from uv's and pytest's timings and the memory addresses in pytest's assertion message (t-diff.txt).
+
+
+### t (patchbay-core's source and range are held: its rev in the copy's [tool.uv.sources] changed to an earlier commit of patchbay's main, and then to a commit that does not exist, uv.lock untouched, must each fail step 2's uv sync --locked with uv's reason and the sync's, ruff never run; its range changed to one the pinned commit cannot meet must pass steps 2-4 and fail step 5 naming the test that holds it, exit 1)
+-- the rev changed to an earlier commit, uv.lock untouched (step 2 must name the stale lockfile, exit 1):
+76:patchbay-core = { git = "https://github.com/fromtheoutfit/patchbay", rev = "912987a" }
+exit=0
+
+== 1/6  bash -n on every shell script under scripts/ (tracked or untracked, not ignored), in a tree with no tracked file a .gitignore ignores
+ok   scripts/gate-negative-tests.sh
+ok   scripts/gate.sh
+ok   scripts/sync-standards.sh
+
+== 2/6  uv sync --locked, then uv run --locked ruff format --check over the .py and .pyi files git lists (the locked toolchain; the formatter)
+Using CPython 3.12.16
+Creating virtual environment at: .venv
+Resolved 33 packages in 520ms
+error: The lockfile at `uv.lock` needs to be updated, but `--locked` was provided.
+
+hint: To update the lockfile, run `uv lock`.
+FAIL  step 2/6: uv could not sync the locked toolchain: uv.lock does not match pyproject.toml, uv could not read them, fetch a locked package (the network, git, a commit gone) or build the package, or this uv is not the version [tool.uv] requires (see above)
+exit=1
+-- the rev changed to a commit that does not exist (step 2 must name the failed fetch, exit 1):
+
+== 1/6  bash -n on every shell script under scripts/ (tracked or untracked, not ignored), in a tree with no tracked file a .gitignore ignores
+ok   scripts/gate-negative-tests.sh
+ok   scripts/gate.sh
+ok   scripts/sync-standards.sh
+
+== 2/6  uv sync --locked, then uv run --locked ruff format --check over the .py and .pyi files git lists (the locked toolchain; the formatter)
+   Updating https://github.com/fromtheoutfit/patchbay (0000000000000000000000000000000000000000)
+error: Failed to download and build `patchbay-core @ git+https://github.com/fromtheoutfit/patchbay@0000000000000000000000000000000000000000`
+  cause: Git operation failed
+  cause: failed to fetch into: /Users/michaelwitwicki/.cache/uv/git-v1/db/2e615473b4eea25b
+  cause: failed to fetch commit `0000000000000000000000000000000000000000`
+  cause: process didn't exit successfully: `/usr/bin/git fetch --force --update-head-ok 'https://github.com/fromtheoutfit/patchbay' '+0000000000000000000000000000000000000000:refs/commit/0000000000000000000000000000000000000000'` (exit status: 128)
+         --- stderr
+         fatal: remote error: upload-pack: not our ref 0000000000000000000000000000000000000000
+FAIL  step 2/6: uv could not sync the locked toolchain: uv.lock does not match pyproject.toml, uv could not read them, fetch a locked package (the network, git, a commit gone) or build the package, or this uv is not the version [tool.uv] requires (see above)
+exit=1
+-- the range changed to one the pinned commit cannot meet, which uv does not check (steps 2-4 pass, step 5 must name the test, exit 1):
+
+== 1/6  bash -n on every shell script under scripts/ (tracked or untracked, not ignored), in a tree with no tracked file a .gitignore ignores
+ok   scripts/gate-negative-tests.sh
+ok   scripts/gate.sh
+ok   scripts/sync-standards.sh
+
+== 2/6  uv sync --locked, then uv run --locked ruff format --check over the .py and .pyi files git lists (the locked toolchain; the formatter)
+Resolved 33 packages in 2ms
+   Building patchbay-vital @ file://<copy t>/patchbay-vital
+      Built patchbay-vital @ file://<copy t>/patchbay-vital
+Prepared 1 package in 3ms
+Installed 32 packages in 66ms
+ + annotated-types==0.8.0
+ + ast-serialize==0.13.1
+ + cfgv==3.5.0
+ + distlib==0.4.4
+ + filelock==4.2.9
+ + hypothesis==6.170.14
+ + identify==2.6.20
+ + iniconfig==2.3.1
+ + librt==0.16.0
+ + mypy==2.4.1
+ + mypy-extensions==1.2.0
+ + nodeenv==1.12.0
+ + numpy==2.5.4
+ + packaging==26.3
+ + patchbay-core==0.0.1 (from git+https://github.com/fromtheoutfit/patchbay@eddba95404a9b633d358dc4d6b07b084a8f975ad)
+ + patchbay-vital==0.0.1 (from file://<copy t>/patchbay-vital)
+ + pathspec==1.1.1
+ + pedalboard==0.9.26
+ + platformdirs==4.14.5
+ + pluggy==1.7.0
+ + pre-commit==4.7.0
+ + pydantic==2.14.3
+ + pydantic-core==2.50.4
+ + pygments==2.21.0
+ + pytest==9.2.0
+ + python-discovery==1.9.5
+ + pyyaml==6.0.3
+ + ruff==0.17.4
+ + sortedcontainers==2.4.0
+ + typing-extensions==4.16.0
+ + typing-inspection==0.4.5
+ + virtualenv==21.15.6
+ok   the locked toolchain synced
+26 files already formatted
+ok   26 file(s) formatted
+
+== 3/6  uv run --locked ruff check over the same files (the linter: [tool.ruff.lint] of pyproject.toml)
+All checks passed!
+ok   no violation
+
+== 4/6  uv run --locked mypy over the .py and .pyi files git lists under src/ and tests/ ([tool.mypy] of pyproject.toml: strict)
+Success: no issues found in 26 source files
+ok   no type error
+
+== 5/6  uv run --locked pytest -c pyproject.toml -p no:doctest ([tool.pytest.ini_options] of pyproject.toml, over tests/, once nothing pytest would read is one git ignores)
+........................................................................ [ 14%]
+........................................................................ [ 29%]
+........................................................................ [ 44%]
+........................................................................ [ 58%]
+...........................F............................................ [ 73%]
+........................................................................ [ 88%]
+..........................................................               [100%]
+=================================== FAILURES ===================================
+____________ test_the_pinned_patchbay_core_is_in_the_declared_range ____________
+
+    def test_the_pinned_patchbay_core_is_in_the_declared_range() -> None:
+        """The commit [tool.uv.sources] pins is a version the range the wheel declares admits.
+    
+        uv does not check the range against a git source, so nothing else holds the two together.
+        """
+        declared = [Requirement(line) for line in importlib.metadata.requires("patchbay-vital") or ()]
+        core = next(requirement for requirement in declared if requirement.name == "patchbay-core")
+>       assert core.specifier.contains(importlib.metadata.version("patchbay-core"))
+E       AssertionError: assert False
+E        +  where False = contains('0.0.1')
+E        +    where contains = <SpecifierSet('<10,>=9')>.contains
+E        +      where <SpecifierSet('<10,>=9')> = <Requirement('patchbay-core<10,>=9')>.specifier
+E        +    and   '0.0.1' = <function version at 0x108f57880>('patchbay-core')
+E        +      where <function version at 0x108f57880> = <module 'importlib.metadata' from '/Users/michaelwitwicki/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/importlib/metadata/__init__.py'>.version
+E        +        where <module 'importlib.metadata' from '/Users/michaelwitwicki/.local/share/uv/python/cpython-3.12.16-macos-aarch64-none/lib/python3.12/importlib/metadata/__init__.py'> = importlib.metadata
+
+tests/unit/test_package.py:58: AssertionError
+=========================== short test summary info ============================
+FAILED tests/unit/test_package.py::test_the_pinned_patchbay_core_is_in_the_declared_range
+1 failed, 489 passed in 37.57s
+FAIL  step 5/6: a test failed, or pytest could not read its configuration (see above)
+exit=1
+
+4 runs, 0 unexpected

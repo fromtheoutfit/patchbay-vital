@@ -1,10 +1,11 @@
 """Every preset Vital installed comes back byte for byte, and the set of them is the one expected.
 
 The presets are Vital's and may not be redistributed, so they are read where an installed Vital
-keeps them and the tests skip, saying so, where they are absent. The manifest is committed: its
-length is the count, so a missing directory cannot pass on zero cases, and a pack removed or newly
-installed fails by name until the manifest is changed deliberately. `User/` is where Vital keeps a
-person's own saves, so the walk leaves it out.
+keeps them and the tests that read them skip, saying so, where they are absent; those carry the
+`integration` marker, and the manifest's own count, which reads nothing installed, does not. The
+manifest is committed: its length is the count, so a missing directory cannot pass on zero cases,
+and a pack removed or newly installed fails by name until the manifest is changed deliberately.
+`User/` is where Vital keeps a person's own saves, so the walk leaves it out.
 """
 
 from pathlib import Path
@@ -12,8 +13,6 @@ from pathlib import Path
 import pytest
 
 from patchbay_vital import dumps, loads
-
-pytestmark = pytest.mark.integration
 
 _ROOT = Path.home() / "Music" / "Vital"
 _USER = "User"
@@ -76,6 +75,7 @@ def test_the_manifest_holds_the_expected_count(pytestconfig: pytest.Config) -> N
     assert len(set(paths)) == len(paths)
 
 
+@pytest.mark.integration
 def test_the_installed_presets_are_the_manifest_s(
     presets_root: Path, pytestconfig: pytest.Config
 ) -> None:
@@ -90,11 +90,13 @@ def test_the_installed_presets_are_the_manifest_s(
     assert sorted(found - listed) == [], "installed and not listed in the manifest"
 
 
+@pytest.mark.integration
 def test_a_factory_preset_round_trips(presets_root: Path, factory_preset: str) -> None:
     """`dumps(loads(text)) == text` for one of Vital's own presets."""
     _assert_round_trip(presets_root, factory_preset)
 
 
+@pytest.mark.integration
 def test_a_pack_preset_round_trips(presets_root: Path, pack_preset: str) -> None:
     """`dumps(loads(text)) == text` for one preset of an artist pack."""
     _assert_round_trip(presets_root, pack_preset)
