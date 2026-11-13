@@ -38,7 +38,11 @@ after PR 14's fourth review (`agent-os/specs/2026-11-12-1319-revision-after-pr-1
   the same values, each with a comment naming it. `test_the_integration_module_pins_the_same_values`
   holds the two copies equal. It reads the integration module's source, and it fails by name if
   either tuple is missing, renamed, not a plain literal or different (M11 to M14 in the
-  `verification/mutation.txt` of the revision after PR 14's fourth review).
+  `verification/mutation.txt` of the revision after PR 14's fourth review). It also fails by name
+  unless the name is bound exactly once in the module, by one assignment at the top level, to a
+  tuple of floats: an augmented assignment, a second assignment inside an `if` and a literal
+  `ast.literal_eval` refuses each fail it (M19 to M21 in the fifth review's
+  `verification/mutation.txt`).
 
   The test and the probe run one sequence, `initial` loaded before each set. `_held_after_a_set` is
   written once in the test module, and the probe imports it and the pinned values and prints them

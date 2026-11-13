@@ -132,10 +132,28 @@ PR 14's fourth review (`agent-os/specs/2026-11-12-1319-revision-after-pr-14-four
     the float32 on the other side is taken;
   - no value takes the third branch (`UNHELD` 0).
 
-  These are counted in the revision after PR 14's fourth review, `verification/sweep.txt`. That
-  spec's `verification/plugin-probe.txt` shows a load of the curve's float32 held by Vital at that
-  same value. The rule has no tie to break. It replaced the neighbour nearer the curve's inverse,
-  whose exact ties only a sort's order decided.
+  These are counted from `to_preset`'s own results in the revision after PR 14's fifth review,
+  `agent-os/specs/2026-11-12-1852-revision-after-pr-14-fifth-review/verification/direct-count.txt`,
+  run on arm64, macOS 26.6.2 (25G83), with `main` at commit `558b85b` and this branch's work tree
+  on `d21f160`, each file read printed by blob. The shipped method is called on every float32
+  normalized value of `volume`, the branch read from what it returns, and every count split value
+  by value at a held preset of 2 ** -43. No value above 2 ** -43 leaves the curve's float32. The fourth review's
+  `verification/sweep.txt` gave the same three counts, but as a numpy reproduction's.
+
+  The branches are tried in that order, so where both the first and the second show the display,
+  the first is taken (`test_a_display_takes_what_a_set_of_the_curve_s_float32_holds`, at issue
+  #13's value). The second asks `NormalizedScale.holds` of the float32 on the other side. A float32
+  past an end the scale does not hold can show the display and still be one no normalized value in
+  [0, 1] lands on, so it is refused:
+  `test_the_float32_past_an_end_the_scale_does_not_hold_is_not_taken`, on a constructed scale whose
+  maximum is unheld. An end is not always held.
+
+  `to_normalized` of a display is the scale's own normalized value for the preset `to_preset`
+  gives (`test_a_display_s_normalized_value_is_its_preset_s_own`).
+
+  The fourth review's `verification/plugin-probe.txt` shows a load of the curve's float32 held by
+  Vital at that same value. The rule has no tie to break. It replaced the neighbour nearer the
+  curve's inverse, whose exact ties only a sort's order decided.
 
   **The third branch.** It is kept, not removed, though no counted value reaches it. The sweep
   counts only displays some held preset shows, and an arbitrary display, one no preset shows
@@ -144,7 +162,8 @@ PR 14's fourth review (`agent-os/specs/2026-11-12-1319-revision-after-pr-14-four
   built in the test module as `_TEMPO`, at 216.85141355537831. The test is issue #8's
   characterization: whether such a display should take the nearer held neighbour is #8's finding
   1, and a decision there reverses the test on purpose. Of 20,000 displays drawn uniformly over
-  `volume`'s range (seed 8), 5.4% take the third branch. An indexed scale takes no branch: its
+  `volume`'s range (seed 8), 1,108 take the third branch, 5.54% (the fifth review's
+  `verification/arbitrary-displays.txt`). An indexed scale takes no branch: its
   display goes to the nearest whole number, a half away from zero, as the plugin rounds.
 
   **The exception, in plain words.** `_assert_comes_back` runs every check exactly first, on every
@@ -193,8 +212,8 @@ PR 14's fourth review (`agent-os/specs/2026-11-12-1319-revision-after-pr-14-four
   bounds, and the curve's kind, multiply and offset. So a record's count is its group's. The
   revision after PR 14's fourth review also counted 14 records beside their groups: the three
   records with a curve offset and the 11 envelope delay and hold records that are not their group's
-  first. All 14 matched their groups line for line (`verification/sweep-afterwards.txt`), so a
-  later count leaves them out.
+  first. All 14 matched their groups, each table whole with its closing line, the run time
+  stripped (the fifth review's `verification/duplicates.txt`), so a later count leaves them out.
 
   **The 69 groups.** The count covers all 69 of the map's groups, 1,065,353,217 values each. For
   the `linear`, `quadratic`, `quartic` and `square_root` curves, 60 groups, it reproduces the map's
@@ -206,7 +225,10 @@ PR 14's fourth review (`agent-os/specs/2026-11-12-1319-revision-after-pr-14-four
   **The check before counting.** Each group's reproduction is first checked against the shipped
   scalar methods on 200,010 values. The check covers every value it counts, the branch each value
   takes, and the tests' own `_shares_its_display`. A value it cannot certify exact goes to an
-  exact scalar computation instead.
+  exact scalar computation instead. The check is a sample: of `volume`'s 200,010 values, 2,989
+  take the first branch and 69 the second (the fifth review's
+  `verification/arbitrary-displays.txt`). So a count the reproduction gives is called the
+  reproduction's, with this size beside it.
 
   **An exception** consulted only where its claim fails is counted by the failures it leaves
   (`A3x` 0). The count also says where its predicate holds but it is never asked.
@@ -215,22 +237,37 @@ PR 14's fourth review (`agent-os/specs/2026-11-12-1319-revision-after-pr-14-four
   held by a unit test, and the standard says which; the third branch of `to_preset`, above, is
   held by a test.
 
-  **A fix is counted against the old code's results, by a reproduction that shares none of the new
-  code's guards.** A count the reproduction makes 0 by copying a guard is not evidence. Issue
-  #15's spec counted `CHANGEDx` and `NCHANGEDx` that way, and both were 0 by construction. The
-  revision after PR 14's fourth review instead reproduces each method another way:
-  - `to_normalized` as the landing float32 nearest the exact quotient;
-  - `to_preset` as its rule evaluated on every value.
+  **A fix is counted against the old code itself: the old tree's shipped methods and the new
+  tree's, each imported from its own tree and called value by value.** A count a reproduction's
+  own definition forces to 0 is not evidence, in any form: by a copied guard, as issue #15's spec
+  counted `CHANGEDx` and `NCHANGEDx`, or by building the new result from the old one wherever the
+  old one lands, as the fourth review's sweep did. Both pairs were 0 by construction and are
+  retired.
 
-  It compares both with `main`'s results, outside `main`'s unheld values:
-  - nothing changed where a set of `main`'s value held it (`CHANGEDx` 0);
-  - nothing changed where `main`'s normalized value landed (`NCHANGEDx` 0);
-  - the display's preset changed on `volume`'s 16,069,858 values (`CHANGED`);
-  - the normalized value changed at the 1,512 envelope powers of two, 126 on each of the 12
-    records (`NCHANGED`).
+  The revision after PR 14's fifth review counted directly (`verification/direct-count.txt`),
+  over every float32 normalized value of `volume` and of `env_1_delay`, which stands for the 12
+  envelope records by their one group key:
+  - on `volume` the display's preset differs from `main`'s on 16,069,858 values, all at or below
+    2 ** -43, and the normalized value a set sends on 308,386 of them;
+  - on `env_1_delay` the normalized value differs at 126 held powers of two, and no display's
+    preset differs;
+  - nothing else differs on either record;
+  - a control with two branches swapped moves the counts, so they are read from the result.
+
+  **The other 67 groups were not counted directly,** by the owner's decision at about 2.5 hours
+  wall a group. Two things hold the claim there, that a quotient which lands is returned
+  unchanged:
+  - the unit test `test_a_quotient_that_lands_is_the_normalized_value_whatever_lands_beside_it`,
+    which fails when the step is preferred (M15 in the fifth review's
+    `verification/mutation.txt`);
+  - the fourth review's sweep, a reproduction's, with its check against the shipped methods on
+    200,010 values a group.
 
   Verified against the `verification/sweep.txt`, both its sections, and the
-  `verification/sweep-afterwards.txt` of the revision after PR 14's fourth review, and the
+  `verification/sweep-afterwards.txt` of the revision after PR 14's fourth review, the
+  `verification/direct-count.txt`, `verification/duplicates.txt`,
+  `verification/arbitrary-displays.txt` and `verification/mutation.txt` of the revision after its
+  fifth review, and the
   `@example`s of `test_a_value_the_parameter_holds_comes_back_exactly`.
 
 ## Units and kinds
