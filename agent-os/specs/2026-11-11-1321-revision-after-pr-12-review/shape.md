@@ -15,8 +15,9 @@ The review of PR 12 at `8ebce15`, the gate spec of issue #11: 15 findings, four 
 in the evidence and the record, three in the docs, two simplifications and one of process. All are
 addressed. A gate spec: the harness, the `markers` entry of `pyproject.toml` and its comment change.
 On the same branch, so PR 12 carries it. CHANGELOG entry, gate green, `verification/gate-run.txt`,
-the harness rerun: these last three wait on #13 (Decision 9). No stage, commit, push or PR by an
-agent; the PR's body and any reply to the review are the owner's.
+the harness rerun: these last three waited on #13 (Decision 9), and what became of them is under
+"Resumed after #13" and Results. No stage, commit, push or PR by an agent; the PR's body and any
+reply to the review are the owner's.
 
 ## Shaping answers
 
@@ -147,6 +148,85 @@ agent; the PR's body and any reply to the review are the owner's.
    - Once #13's fix is on `main` and merged into this branch, the harness is rerun once for
      `verification/gate-negative-tests.txt` and the gate for `verification/gate-run.txt`. Only then
      is this revision done.
+   - Resumed on 2026-11-13, once PR 14 had closed #13: "Resumed after #13", below. Of the five,
+     three were bare `pytest` runs and two the gate's, so "under a bare `pytest`" above says less
+     than the transcript does.
+
+## Resumed after #13 (2026-11-13)
+
+PR 14 closed #13, and #15 with it: `main` at `9474506b1e984494c414aa1d22903f88bf1991e0`, merged
+into this branch as `331197c`. The owner's word for the resumption: say what the merge changed that
+this revision's work touches before anything runs; then one run of the harness and one of the gate,
+each transcript printing its tree before and after; stop and present if either is not clean, with
+no rerun to green.
+
+**What the merge changed** (`24b2b5d` to `331197c`, outside `agent-os/specs/`):
+- under `tests/`: `tests/data/pinned-values.txt`, new, and `tests/unit/test_parameters.py`,
+  `tests/unit/test_float32.py` and `tests/integration/test_vital_plugin.py`;
+- `src/patchbay_vital/parameters.py` and `float32.py`;
+- `README.md`, `CHANGELOG.md`, and `measures.md`, `parameter-map.md` and `plugin-state.md` under
+  `agent-os/standards/vital/` with their entries in `index.yml`.
+
+It brought no `tests/conftest.py`: PR 14 carried one for a time and removed it before it merged
+(`2d2f7dc`). It left as they were at `24b2b5d` every file this revision edited but `CHANGELOG.md`,
+and every file its evidence rests on: `scripts/`, `pyproject.toml`, `uv.lock`, `.github/`,
+`.gitignore`, `agent-os/standards/base/`, `tests/integration/test_factory_round_trip.py`,
+`tests/unit/test_package.py` and `tests/data/factory-manifest.txt`.
+
+**No harness case's setup or expectation is affected**, said to the owner before the runs:
+- No expectation names a count of tests. The suite is 507 tests where it was 490, and that shows
+  only in pytest's output.
+- Nothing a case writes into its copy has a name the tree holds, and git lists no `conftest.py`.
+- `tests/data/pinned-values.txt` is tracked and not ignored, so `mk` copies it and each copy's
+  `git add` takes it. Its name is not `test*.txt`, so a bare pytest takes it for no doctest. Both
+  test modules read it through `pytestconfig.rootpath`.
+- The lines a case rests on are in place: c's description in the `base:` section of `index.yml`,
+  m's `line-length = 100`, p's `local_settings.py` in `.gitignore`, and t's
+  `test_the_pinned_patchbay_core_is_in_the_declared_range`.
+- n, o and t edit `pyproject.toml` through `setline`, and the merge did not change that file.
+- `main`'s harness (`578dd16`) had run on these blobs of `tests/` and `src/`, all but this
+  branch's `test_factory_round_trip.py`, in the revision after PR 14's sixth review:
+  `141 runs, 0 unexpected`. This branch's harness differs from it in the header, `setline` and
+  `setrev`, n and o.
+
+**Case q**, whose block is `main`'s byte for byte:
+- Setup: git lists no `tests/conftest.py` and no `tests/unit/conftest.py`, so q's ignored
+  `tests/unit/conftest.py` is the only conftest pytest loads there, as at `24b2b5d`. PR 14's
+  `tests/conftest.py` would not have been at q's path either.
+- Expectations: 16 of q's runs run the suite, and 7 of them expect exit 0: one bare
+  `pytest --ignore=…`, four bare `pytest -p no:doctest` under a pytest configuration file at the
+  root, and the last two runs of the gate. In all three configurations pytest's root is the
+  copy's root, so the new readers find the file. The merge adds no marker and no Hypothesis
+  profile.
+- #13's value is a pinned value now, run on every record in every run
+  (`test_every_pinned_value_comes_back_on_every_record`), so it no longer rests on a draw.
+- q's runs of the suite share one example database, the copy's `.hypothesis/`. The five of
+  2026-11-11 were one draw, made in a run of the gate that expected exit 1 ("the same pytest.toml
+  tracked") and replayed in three bare runs and two of the gate's. Decision 9's "under a bare
+  `pytest`" is true of three of the five.
+
+**The plugin's tests against core at `eddba95`.** The harness's copies were the first to run them,
+PR 14's three new ones among them, against this branch's pin: `main` ran them against `dd2bcad`,
+and CI has no Vital and skips them.
+
+**What was not rerun.** `verification/guards/`, `mutations/`, `pin-moves/`, `t/`, `manifest/` and
+`new-pin-gate.txt` stand as recorded on 2026-11-11: each rests only on files the merge left as they
+were.
+
+**Case j** (owner, asked before the runs). `verification/ci-negative-test.txt` was recorded on
+2026-11-11, before the merge, and the harness reruns its tests when a spec adds a file under a
+directory `mk` copies. Owner: rerun j as its own invocation, under the same stop rule, its
+transcript printing its tree before and after. The run here replaces the earlier one, which stays
+in history at `24b2b5d`.
+
+**The transcripts' form.** Each is one run, written outside the tree and copied in afterwards by a
+generator in the session's scratch directory, not committed (Decision 7). Each prints the tree
+before the run and after it as fromtheoutfit/patchbay-standards#38's proposal 2 has read since the
+revision after PR 14's fourth review refined it: HEAD, `git status --porcelain=v1` in full with its
+line count, the blob of every path it lists, and `cmp` of the two. In the harness's two the tree
+after the run is written in the heading, above the run, so that the file ends on the run's count
+(`base/process/verification-gate.md`, "A kept transcript holds one run of the harness and ends on
+that run's count"). `gate-run.txt`'s form puts it after the run.
 
 ## Context
 
@@ -181,17 +261,40 @@ set and `uv.lock`'s pins; and `scripts/sync-standards.sh --check` against `../pa
 the commit in `agent-os/standards/base/.version` — and the three judgment steps are recorded, in this
 order: Docs, Version, then the standards retrospective below.
 
-**Results (2026-11-11): not green; waiting on
-https://github.com/fromtheoutfit/patchbay-vital/issues/13 (Decision 9).** Branch
+**Results (2026-11-13): green, and the revision is done.** It is finished against `main` at
+`9474506b1e984494c414aa1d22903f88bf1991e0`, merged into this branch as `331197c`. Branch
 `feature/11-gate-move-the-patchbay-core-pin-to-the-head-carrying-patchbay18-and-say-what-the-integration-marker-needs`.
 
-- **The harness:** `verification/gate-negative-tests-first.txt`, one whole run after the last edit to
-  the gate's scripts, ends `140 runs, 5 unexpected`. All five are case q's one Hypothesis failure,
-  #13. `verification/gate-negative-tests.txt` and `verification/gate-run.txt` are not recorded: by
-  the owner's word they are made once #13's fix is merged into this branch. No `gate-run.txt` is
-  claimed. `scripts/gate.sh` exited 0, 490 passed, on the tree after the harness, marker and test
-  edits, but before the module docstring was reworded; that run is no record.
-- **The CI replay:** `verification/ci-negative-test.txt` (j) ends `3 runs, 0 unexpected`.
+`scripts/gate.sh` exits 0 on the working tree at `331197c` with Vital installed
+(`verification/gate-run.txt`, 14:54 EST). All six steps pass, and step 5 reports 507 passed, none
+skipped. Step 2's sync moved the tree's `.venv` from core at `dd2bcad`, `main`'s pin, to this
+branch's `eddba95`, so step 5 ran against the locked core. The tree before and after the run is the
+same by `cmp`, every listed path's blob printed: HEAD and four paths, this file, `CHANGELOG.md` and
+the two harness transcripts. The transcript is written outside the tree and copied in afterwards.
+
+The gate was the last run. Written after it: this paragraph; and, the gate being clean,
+fromtheoutfit/patchbay-standards#43, with its number in `Proposals sent upstream:` and beside the
+retrospective's last two proposals, the first of which gained `verification/gate-run.txt` in what
+it is verified against.
+
+On 2026-11-11 the revision stopped not green, waiting on
+https://github.com/fromtheoutfit/patchbay-vital/issues/13 (Decision 9). The bullets below are that
+day's but where they give a later date.
+
+- **The harness:** `verification/gate-negative-tests.txt`, one whole run on 2026-11-13, 14:22 to
+  14:41 EST, on `331197c` with nothing uncommitted, ends `140 runs, 0 unexpected`, exit 0. The tree
+  after it is the tree before it by `cmp`. Case q's 16 runs of the suite ended as the case says.
+  Every run of the suite passes all 507 of the tree's tests, none skipped, but t's third, where
+  the range test fails as the case says.
+  - Kept whole beside it, `verification/gate-negative-tests-first.txt` is the run of 2026-11-11,
+    after the last edit to the gate's scripts: `140 runs, 5 unexpected`, all five case q's one
+    Hypothesis failure, #13.
+  - On 2026-11-11 `scripts/gate.sh` exited 0, 490 passed, on the tree after the harness, marker
+    and test edits, but before the module docstring was reworded; that run is no record.
+- **The CI replay:** `verification/ci-negative-test.txt` (j), one whole run on 2026-11-13, 14:41 to
+  14:42 EST, its own invocation on the same tree, ends `3 runs, 0 unexpected`, exit 0, the tree
+  unchanged by `cmp`. It replaces the run of 2026-11-11, which ended the same and stays in history
+  at `24b2b5d`.
 - **The lockfile:** `git diff 8ebce15 -- uv.lock` is empty.
 - **The new pin** (finding 5): `verification/new-pin-gate.txt`, a clone at `558b85b` whose
   `git status --short` and `git diff --stat` show `pyproject.toml` and `uv.lock` alone changed,
@@ -224,8 +327,15 @@ https://github.com/fromtheoutfit/patchbay-vital/issues/13 (Decision 9).** Branch
   module's 77 tests as shipped, the manifest's count not among them, and all 77 at `8ebce15`. With
   `HOME` an empty directory, so no preset is installed, it PASSED and the 76 SKIPPED naming the
   absent presets, as shipped and at `8ebce15` alike: the marker never skipped it.
-- **The hosted run:** CI's log cannot be read from here (HTTP 403, the organization's two-factor
-  rule). The run of this revision exists only after the owner's push.
+- **The hosted runs:** on 2026-11-11 CI's log could not be read from here (HTTP 403, the
+  organization's two-factor rule), and the run of this revision existed only after the owner's
+  push. On 2026-11-13 `gh run view --log` reads them:
+  - run 43088824755 at `24b2b5d`, this revision's commit: `success`, 402 passed, 88 skipped;
+  - run 43486961962 at `331197c`, the merge: `success`, 416 passed, 91 skipped.
+
+  CI has no Vital. By count, 91 is the 76 tests that read the presets and the plugin module's 15;
+  `-q` names none of them. The commit that holds this resumption's files has no run until it is
+  pushed.
 
 **Docs (step 7):** checked and reads true against the shipped files:
 - `pyproject.toml`: the comment over `markers` names both reasons a marked test skips, what it
@@ -248,12 +358,37 @@ https://github.com/fromtheoutfit/patchbay-vital/issues/13 (Decision 9).** Branch
   is the one the comment names. Unchanged, so no retrospective edit.
 - `CHANGELOG.md`: the pin's entry names core's #16 beside #19 (finding 11).
 - The reviewed spec's folder: unchanged, its sentences corrected by Decision 2 here.
+- Re-checked on 2026-11-13 against the merged tree:
+  - `pyproject.toml`: the marker's text is true of `tests/integration/test_vital_plugin.py` as
+    merged. Its module-wide `pytestmark` marks 14 tests, PR 14's three new ones among them, and
+    each takes `host`, so needs the plugin. The comment's
+    `agent-os/standards/vital/parameter-map.md` still holds the rule of the map's machine.
+  - `README.md`: the merge added `pinned-values.txt` to the `tests/` bullet. "its transcripts live
+    in the spec that last changed a gate file" is still this one: the merge changed no gate file,
+    and this folder holds the current transcripts, j's included.
+  - `scripts/gate-negative-tests.sh`: the header's "whenever a spec adds, removes or renames a
+    file under a directory mk copies" is the rule j's rerun follows. The script is unchanged.
+  - `tests/unit/builders.py`: "the gate's negative test q writes a conftest of its own at
+    tests/unit/conftest.py" reads true, git listing no conftest.
+  - `measures.md`, `parameter-map.md` and `plugin-state.md` under `agent-os/standards/vital/`, as
+    merged, name the plugin's test module and its fixtures, and no marker text, `pytestmark`,
+    count of tests or harness case. `preset-tests.md`, `CLAUDE.md` and
+    `agent-os/product/tech-stack.md` are not changed by the merge.
+  - `CHANGELOG.md`: this revision's entry said its transcripts wait on #13's fix; corrected
+    (Version).
+  - This file: Decision 9's "under a bare `pytest`" is said exactly under "Resumed after #13".
+    `plan.md`'s Decision 6 names `parameter-map.md:33`, a line the merge moved to 42; `plan.md` is
+    the plan as shaped, and no shipped file names the line.
 
 **Version (step 8):** this spec's entry, first under `### Changed` in `[Unreleased]`,
 `CHANGELOG.md`; and the reviewed spec's entry corrected in place to name both of core's merges that
 `eddba95` brings in, fromtheoutfit/patchbay#19 (issue fromtheoutfit/patchbay#18) and
 fromtheoutfit/patchbay#16 (core's gate and `Event.at`, after the review of its PR 15), which the
 reviewed spec's Version record left out. The version stays 0.0.1, no release being cut.
+
+On 2026-11-13 the entry's last sentence, "The revision's harness and gate transcripts wait on its
+fix", was corrected: the fix, PR 14, is merged into this branch, and the transcripts are runs of
+that merge. The merge left the entry first under `### Changed`; PR 14's are under `### Fixed`.
 
 ## Standards Retrospective
 
@@ -282,10 +417,28 @@ read true of the unmarked test and of the comment that names the map's machine.
     excerpted, tallied form as recorded; this spec's `verification/` holds the whole runs.
   - #13, the volume round trip below 2 ** -43 (Decision 9), for its own spec.
 
-Proposals sent upstream: fromtheoutfit/patchbay-standards#38; fromtheoutfit/patchbay-standards#31, revised in place
+**On resuming, 2026-11-13.** The four questions again, for what the resumption added: three
+transcripts, this record and one sentence of `CHANGELOG.md`, and no code, script, test or standard.
+
+1. **A pattern no standard covers:** two. A step that fails on a defect outside what the spec may
+   change, filed, waited for and finished against (Decision 9). And the rerun a branch that changed
+   the harness owes when a merge brings in a file under a directory the tests copy (case j, under
+   "Resumed after #13"). Both below, the last two of the proposals.
+2. **A standard wrong or stale:** none. `#38`'s proposal 2, as this file records it below, asks
+   for `git log -1`, `git status --short` and `git diff --stat` before the run. The revision after
+   PR 14's fourth review refined it in place, and the transcripts here follow the refined form.
+3. **A deliberate deviation:** on 2026-11-11 the revision was handed over without a green run,
+   committed as `24b2b5d` and pushed, where `base/process/verification-gate.md` has the run "the
+   last thing done before the work is handed over". The owner's, by Decision 9. The first of the
+   two proposals is the exception it asks the standard to grow.
+4. **A pointer moved:** none in a standard.
+
+Proposals sent upstream: fromtheoutfit/patchbay-standards#38 and fromtheoutfit/patchbay-standards#43; fromtheoutfit/patchbay-standards#31, revised in place
 
 The second half of that line is in none of the standard's four forms. It is the form the
-`#38` proposal asks for, used here at the owner's word (Decision 8).
+`#38` proposal asks for, used here at the owner's word (Decision 8). The first half names two
+issues where the forms have one: `#38` carries the proposals of 2026-11-11 and `#43` the two of the
+resumption, a new issue at the owner's word on 2026-11-13.
 
 ### Standards retrospective (proposed, base)
 
@@ -313,3 +466,35 @@ The second half of that line is in none of the standard's four forms. It is the 
   the revision after the review of PR 5's and the reviewed spec's `shape.md`. It changes the gate
   task of patchbay-standards' `shape-spec.md`, so `#38` is a gate spec. Proposed, not applied;
   filed as fromtheoutfit/patchbay-standards#38.
+
+The two of the resumption, each presented to the owner on 2026-11-13 with AskUserQuestion. The
+owner's answer: "1 and 2, filed as one new issue. Word 1 so it does not contradict
+patchbay-standards#39's rule: it applies where the defect is outside what the spec may change (a
+gate spec meeting a defect in package code, or a fix that decides another open issue's question);
+a defect inside the spec's own files whose fix is known and checked is fixed there. Cite #39 in
+the proposal. The gate has not run yet: if it is not clean, stop and present before filing
+anything."
+
+- `base/process/verification-gate.md`, "A failing step is fixed at its cause": where a step fails
+  on a defect outside what the spec may change, the spec does not fix it. That is a gate spec
+  meeting a defect in package code, or a fix that decides another open issue's question. The defect
+  is filed as an issue of its own, and the spec stops, not green, at the owner's word. The failing
+  run is kept whole in a file of its own, not rerun for a passing transcript, and no saved example
+  is cleared. Once the fix is merged into the branch, the tests and the gate are each run once, and
+  `shape.md` names the commit of main the spec was finished against. A defect inside the spec's own
+  files whose fix is known and checked is fixed there, which is the limit
+  fromtheoutfit/patchbay-standards#39 gives, and this proposal leaves it as it is. Verified against
+  Decision 9, `verification/gate-negative-tests-first.txt`, `verification/gate-negative-tests.txt`
+  and `verification/gate-run.txt`. Proposed, not applied; filed as
+  fromtheoutfit/patchbay-standards#43.
+- `base/process/verification-gate.md`, "The spec that adds or changes a step ships its negative
+  test": the rule reruns the tests "whenever a spec adds, removes or renames a file under a
+  directory the tests copy", and the spec that adds the file reruns the tests its own branch holds.
+  It does not say what a branch that changed the tests owes when a merge brings such a file into
+  it. That branch reruns them, the CI replay among them, and a transcript recorded before the merge
+  is replaced by the rerun's and stays in history. Verified against
+  `verification/ci-negative-test.txt`, replaced on 2026-11-13 with the earlier run in history at
+  `24b2b5d`, `verification/gate-negative-tests.txt`, and `tests/data/pinned-values.txt`, which PR
+  14 added and whose own spec reran `main`'s harness. It changes a sentence the header of
+  patchbay-standards' `scripts/gate-negative-tests.sh` carries, a gate file, so `#43` is a gate
+  spec. Proposed, not applied; filed as fromtheoutfit/patchbay-standards#43.

@@ -1,3 +1,27 @@
+2026-11-13 14:41 EST on branch feature/11-gate-move-the-patchbay-core-pin-to-the-head-carrying-patchbay18-and-say-what-the-integration-marker-needs
+The revision after the review of PR 12, finished after the fix of #13: scripts/gate-negative-tests.sh j (the CI replay), at 331197c9466ea2444c09494d4d494e4cc1a4ac56,
+machine arm64, uv 0.13.7 (Homebrew 2026-11-03 aarch64-apple-darwin), Vital installed at /Library/Audio/Plug-Ins/VST3/Vital.vst3.
+One run of the harness, its whole output below this heading; the last line of this file is the run's own.
+This transcript is written outside the tree and copied in afterwards.
+
+Harness: scripts/gate-negative-tests.sh 4ec89ba9d63ef17d1da0d3545a410d0eba4fa851 (HEAD's 4ec89ba9d63ef17d1da0d3545a410d0eba4fa851).
+Gate: scripts/gate.sh 66cc5e6dec3ebe44b39e23753ef183ff69843a10 (HEAD's 66cc5e6dec3ebe44b39e23753ef183ff69843a10).
+Command, in the repository root: scripts/gate-negative-tests.sh j
+Must: 3 runs, 0 unexpected, the run's last line; exit 0.
+
+the tree before the run:
+  HEAD 331197c9466ea2444c09494d4d494e4cc1a4ac56
+  git status --porcelain=v1 --untracked-files=all, 0 lines:
+  git hash-object of each of those 0 paths (a deleted one marked so):
+
+the tree after the run, taken when it ended (2026-11-13 14:42 EST) and written here, above the run, so that this file
+ends on the run's own last line:
+  HEAD 331197c9466ea2444c09494d4d494e4cc1a4ac56
+  git status --porcelain=v1 --untracked-files=all, 0 lines:
+  git hash-object of each of those 0 paths (a deleted one marked so):
+  the run's exit status: 0
+cmp of the two printed trees: exit 0, the tree after the run is the tree before it
+
 
 ### j (CI replay: the run steps of .github/workflows/gate.yml, in order, on a clean copy and on a copy with a broken script)
 The workflow is not run on a hosting service here. The job's steps are read from the workflow file
@@ -31,8 +55,8 @@ Creating virtual environment at: .venv
 Resolved 33 packages in 3ms
    Building patchbay-vital @ file://<copy j1>/patchbay-vital
       Built patchbay-vital @ file://<copy j1>/patchbay-vital
-Prepared 1 package in 2ms
-Installed 32 packages in 41ms
+Prepared 1 package in 3ms
+Installed 32 packages in 52ms
  + annotated-types==0.8.0
  + ast-serialize==0.13.1
  + cfgv==3.5.0
@@ -75,8 +99,8 @@ ok   scripts/sync-standards.sh
 
 == 2/6  uv sync --locked, then uv run --locked ruff format --check over the .py and .pyi files git lists (the locked toolchain; the formatter)
 warning: `VIRTUAL_ENV=/Users/michaelwitwicki/Code/Audio/patchbay-vital/.venv` does not match the project environment path `.venv` and will be ignored; use `--active` to target the active environment instead
-Resolved 33 packages in 4ms
-Checked 32 packages in 4ms
+Resolved 33 packages in 3ms
+Checked 32 packages in 3ms
 ok   the locked toolchain synced
 warning: `VIRTUAL_ENV=/Users/michaelwitwicki/Code/Audio/patchbay-vital/.venv` does not match the project environment path `.venv` and will be ignored; use `--active` to target the active environment instead
 26 files already formatted
@@ -95,13 +119,14 @@ ok   no type error
 == 5/6  uv run --locked pytest -c pyproject.toml -p no:doctest ([tool.pytest.ini_options] of pyproject.toml, over tests/, once nothing pytest would read is one git ignores)
 warning: `VIRTUAL_ENV=/Users/michaelwitwicki/Code/Audio/patchbay-vital/.venv` does not match the project environment path `.venv` and will be ignored; use `--active` to target the active environment instead
 ........................................................................ [ 14%]
-........................................................................ [ 29%]
-........................................................................ [ 44%]
-........................................................................ [ 58%]
-........................................................................ [ 73%]
-........................................................................ [ 88%]
-..........................................................               [100%]
-490 passed in 35.20s
+........................................................................ [ 28%]
+........................................................................ [ 42%]
+........................................................................ [ 56%]
+........................................................................ [ 71%]
+........................................................................ [ 85%]
+........................................................................ [ 99%]
+...                                                                      [100%]
+507 passed in 34.77s
 ok   every test passed
 
 == 6/6  scripts/sync-standards.sh --check: agent-os/standards/base/, the base: section and the script match patchbay-standards at the commit in .version (../patchbay-standards)
@@ -127,11 +152,11 @@ step 5: run uv sync --locked  (working-directory: patchbay-vital)
 warning: `VIRTUAL_ENV=/Users/michaelwitwicki/Code/Audio/patchbay-vital/.venv` does not match the project environment path `.venv` and will be ignored; use `--active` to target the active environment instead
 Using CPython 3.12.16
 Creating virtual environment at: .venv
-Resolved 33 packages in 4ms
+Resolved 33 packages in 3ms
    Building patchbay-vital @ file://<copy j2>/patchbay-vital
       Built patchbay-vital @ file://<copy j2>/patchbay-vital
 Prepared 1 package in 3ms
-Installed 32 packages in 42ms
+Installed 32 packages in 49ms
  + annotated-types==0.8.0
  + ast-serialize==0.13.1
  + cfgv==3.5.0

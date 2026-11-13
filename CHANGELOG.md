@@ -30,8 +30,9 @@ writes the entry, in that commit
     absence not to, by a pair of runs kept one run to a file, as is the rest of the revision's
     evidence (`verification/`).
   - The harness's rerun drew a Hypothesis failure that was already on `main`: volume's round trip
-    below 2 ** -43, at normalized 5.857149595214349e-20, filed as #13. The revision's harness and
-    gate transcripts wait on its fix.
+    below 2 ** -43, at normalized 5.857149595214349e-20, filed as #13. Its fix, PR 14, is merged
+    into this branch (`main` at `9474506`), and the revision's harness and gate transcripts are
+    runs of that merge.
 - The `patchbay-core` pin and the `integration` marker, a gate spec, issue #11,
   `agent-os/specs/2026-11-11-1011-gate-core-pin-and-marker-needs/`. Landed before #8 resumes on top
   of it. The version stays 0.0.1.
