@@ -217,7 +217,8 @@ def _assert_comes_back(record: MappedParameter, normalized: float) -> None:
     Every check is exact on every value. The one excuse, `_shares_its_display`, is consulted only
     where the preset the display maps to is not the held one, so it excuses nothing that holds;
     the revision after PR 14's fourth review counts every value it excuses over every float32
-    normalized value of all 69 of the map's scale and curve groups (`verification/sweep.txt`).
+    normalized value of all 69 of the map's scale and curve groups (`verification/sweep.txt`), by
+    a reproduction of these methods checked against them on 200,010 values a group.
     """
     preset = record.scale.to_preset(normalized)
     display = record.from_normalized(normalized)
@@ -243,7 +244,9 @@ def _shares_its_display(record: MappedParameter, preset: float, back: float) -> 
     above it to 2 ** -43 + 2,000,000 steps, the host spec's shape.md, Decision 6). The neighbour is
     a float32, not a preset: it need not be one the scale holds. A value of the record's own scale
     and curve, never its name. Counted over every float32 normalized value of every group by the
-    revision after PR 14's fourth review (`verification/sweep.txt`): it is asked on 570,997,534
+    revision after PR 14's fourth review (`verification/sweep.txt`), in a reproduction of the
+    map's arithmetic checked against the shipped methods on 200,010 values a group, this
+    predicate among what it compares: it is asked on 570,997,534
     values, all of `volume`, and holds on each; a float32 next to the preset, either side, shows
     its display on 1,061,211,035 more, where the exact check passes and it is never asked:
     18,227,438 of `volume`'s and 1,042,983,597 of the exponential groups', `oversampling`'s whole
@@ -429,7 +432,90 @@ def test_the_step_toward_a_preset_stays_where_the_host_can_set_it() -> None:
     assert not scale.holds(top)
 
 
+def test_a_quotient_that_lands_is_the_normalized_value_whatever_lands_beside_it() -> None:
+    """Where the nearest quotient lands on a preset, `to_normalized` gives it and steps nowhere.
+
+    Near the top of `beats_per_minute`'s scale two float32 normalized values land on one preset.
+    At the first preset here the float32 above the nearest quotient lands on it too, and at the
+    second the one below does: the nearest is the value either way, as before issue #15, so the
+    fix changes no normalized value that already landed.
+    """
+    scale = _TEMPO.scale
+    for preset, beside in ((4.999998569488525, math.inf), (4.999999523162842, -math.inf)):
+        nearest = round_to_float32(
+            (Fraction(preset) - Fraction(scale.minimum)) / Fraction(scale.span)
+        )
+        assert scale.to_preset(nearest) == preset
+        assert scale.to_preset(next_float32(nearest, beside)) == preset
+        assert scale.to_normalized(preset) == nearest
+
+
+def test_the_float32_past_an_end_the_scale_does_not_hold_is_not_taken() -> None:
+    """A float32 only a normalized value above 1 lands on is no preset, though it shows the display.
+
+    A record made up to reach `to_preset`'s second branch past the scale: its maximum, 1, is not
+    held, a set of it landing one float32 below, which shows another display; the float32 above
+    1 shows the maximum's display, and the normalized value above 1 lands on it, which the host
+    cannot set. So the scale does not hold it and the display keeps the curve's float32, the
+    maximum (the third branch), never a preset past the scale.
+    """
+    top, display = 1.0, 2.0**30
+    record = _record(
+        "made_up",
+        "made_up",
+        scale=NormalizedScale(kind="linear", minimum=-0.89999920129776, maximum=top),
+        curve=DisplayCurve(kind="linear", multiply=0.9999999478459358, offset=1073741823.0),
+        preset_default=top,
+        unit=Unit.none,
+    )
+    scale = record.scale
+    own, held, other = _what_a_set_holds(record, display)
+    assert (own, held, other) == (top, next_float32(top, 0.0), next_float32(top, 2.0))
+    assert record.to_display(held) != display
+    assert record.to_display(other) == display
+    past = next_float32(1.0, 2.0)
+    assert (scale.to_normalized(other), scale.to_preset(past)) == (past, other)
+    assert not scale.holds(other)
+    assert record.to_preset(display) == top
+    assert record.to_normalized(display) == 1.0
+
+
+@pytest.mark.parametrize("normalized", _VOLUME_FLOOR)
+def test_a_display_s_normalized_value_is_its_preset_s_own(normalized: float) -> None:
+    """`to_normalized` of a display is the scale's normalized value for `to_preset` of it.
+
+    At the pinned floor values `to_preset` takes its first or second branch, where the normalized
+    value computed on the way belongs to the curve's float32 and not to the preset returned; the
+    value given is the scale's own for the preset returned.
+    """
+    record = parameter_map().find(ParameterId("volume"))
+    display = record.from_normalized(normalized)
+    preset = record.to_preset(display)
+    assert preset != record.curve.to_preset(display)
+    assert record.to_normalized(display) == record.scale.to_normalized(preset)
+
+
 _INTEGRATION_MODULE = ("tests", "integration", "test_vital_plugin.py")
+
+
+def _bindings(tree: ast.Module, name: str) -> list[ast.AST]:
+    """Return every node of a module that binds or unbinds a name, at any depth."""
+    found: list[ast.AST] = []
+    for node in ast.walk(tree):
+        match node:
+            case ast.Name(id=bound, ctx=ast.Store() | ast.Del()) if bound == name:
+                found.append(node)
+            case ast.alias() if (node.asname or node.name.split(".")[0]) == name:
+                found.append(node)
+            case ast.FunctionDef() | ast.AsyncFunctionDef() | ast.ClassDef() if node.name == name:
+                found.append(node)
+            case ast.Global() | ast.Nonlocal() if name in node.names:
+                found.append(node)
+            case ast.arg(arg=bound) if bound == name:
+                found.append(node)
+            case _:
+                pass
+    return found
 
 
 @pytest.mark.parametrize(
@@ -444,22 +530,33 @@ def test_the_integration_module_pins_the_same_values(
 
     The sweep imports this module's tuples and the probe the integration module's, so the two must
     not drift. A single definition would need a module both test directories import, which
-    pytest's import path does not give them; so the integration module's source is read, and the
-    tuple must be assigned there by name to a literal equal to this one.
+    pytest's import path does not give them; so the integration module's source is read. The name
+    must be bound there once in the whole module, by one assignment at the top level, to a plain
+    literal: a tuple of floats equal to this one. An augmented assignment, a second binding, or
+    one inside an `if`, a `try` or a function is a binding this test does not read, and fails it
+    by name.
     """
     path = pytestconfig.rootpath.joinpath(*_INTEGRATION_MODULE)
-    assigned: dict[str, ast.expr] = {}
-    for node in ast.parse(path.read_text(encoding="utf-8")).body:
-        if isinstance(node, ast.Assign):
-            names = [target.id for target in node.targets if isinstance(target, ast.Name)]
-            assigned.update(dict.fromkeys(names, node.value))
-        elif isinstance(node, ast.AnnAssign) and node.value and isinstance(node.target, ast.Name):
-            assigned[node.target.id] = node.value
-    assert name in assigned, f"{name} is not assigned in {path.name}"
+    tree = ast.parse(path.read_text(encoding="utf-8"))
+    bound = _bindings(tree, name)
+    assert bound, f"{name} is not assigned in {path.name}"
+    values = [
+        node.value
+        for node in tree.body
+        if isinstance(node, ast.Assign | ast.AnnAssign)
+        and (node.targets if isinstance(node, ast.Assign) else [node.target]) == bound
+    ]
+    value = values[0] if values else None
+    assert value is not None, (
+        f"{name} in {path.name} is bound {len(bound)} times, or not by one assignment at the top"
+        " level"
+    )
     try:
-        theirs = ast.literal_eval(assigned[name])
-    except ValueError:
+        theirs = ast.literal_eval(value)
+    except (ValueError, TypeError, SyntaxError, MemoryError, RecursionError):
         pytest.fail(f"{name} in {path.name} is not a plain literal")
+    floats = isinstance(theirs, tuple) and all(type(value) is float for value in theirs)
+    assert floats, f"{name} in {path.name} is {theirs!r}, not a tuple of floats"
     assert theirs == ours, f"{name} in {path.name} is {theirs!r}, here {ours!r}"
 
 

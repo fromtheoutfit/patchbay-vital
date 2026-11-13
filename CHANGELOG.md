@@ -183,8 +183,10 @@ writes the entry, in that commit
 
 - The parameter map's two inverses, issue #15,
   `agent-os/specs/2026-11-12-0937-map-inverses-land-on-held-presets/`, revised after the fourth
-  review of PR 14, `agent-os/specs/2026-11-12-1319-revision-after-pr-14-fourth-review/`. Each
-  missed a preset a set should hold, and Vital held what the map gave. The version stays 0.0.1.
+  and fifth reviews of PR 14,
+  `agent-os/specs/2026-11-12-1319-revision-after-pr-14-fourth-review/` and
+  `agent-os/specs/2026-11-12-1852-revision-after-pr-14-fifth-review/`. Each missed a preset a set
+  should hold, and Vital held what the map gave. The version stays 0.0.1.
   - **`NormalizedScale.to_normalized` takes the float32 one step toward the preset** where the
     nearest quotient misses it and that step, inside [0, 1], lands on it.
     - On the 12 `env_N_delay` and `env_N_hold` records, at 126 powers of two each from 2 ** -125
@@ -202,6 +204,9 @@ writes the entry, in that commit
       `to_preset` gives.
     - On the 308,386 where that showed a display one double off, a set holds the float32 on the
       other side.
+    - The two are tried in that order: where both show the display, the first is taken.
+    - The float32 on the other side is asked of `NormalizedScale.holds`, so one past an end the
+      scale does not hold is never taken.
     - A display no preset shows exactly keeps the curve's float32 (issue #8's finding 1). Whether
       a set keeps a stored value is left to issue #8 (finding 3).
   - **New:** `NormalizedScale.holds` says whether the plugin can hold a preset value.
@@ -213,8 +218,30 @@ writes the entry, in that commit
     (`verification/sweep.txt`):
     - the display, the held preset and the display's preset come back exactly, and a set shows
       the display again, on every value;
-    - no value reaches the rule's third branch;
-    - against `main`'s results, nothing changed where a set of `main`'s value held it.
+    - no value reaches the rule's third branch.
+
+    That count is a reproduction's, of the fourth review's revision: numpy for 60 groups, checked
+    against the shipped methods on 200,010 values a group, of which 2,989 take `volume`'s first
+    branch and 69 its second. Its two columns for what changed against `main` where `main`'s
+    value was held were 0 by how the reproduction was built, and are evidence of nothing.
+  - **Counted directly against `main`**
+    (the fifth review's revision, `verification/direct-count.txt`): `main`'s shipped methods and
+    this branch's, each imported from its own tree and called on every float32 normalized value,
+    1,065,353,217 a record, nothing reproduced.
+    - On `volume` the display's preset differs from `main`'s on 16,069,858 values, every one at
+      a held preset at or below 2 ** -43, split value by value. The branch each takes is read
+      from the shipped result: 15,761,472 the first, 308,386 the second, none the third. The
+      normalized value a set sends differs on the 308,386 alone. No value above 2 ** -43 differs
+      or leaves the curve's float32.
+    - On `env_1_delay`, counted for the 12 envelope records, which share every field the methods
+      read, the normalized value differs from `main`'s at 126 held powers of two and nowhere
+      else, and no display's preset differs.
+    - The other 67 groups are not counted directly, by the owner's decision at about 2.5 hours
+      wall a group. What holds there that a value `main`'s
+      quotient lands on is returned unchanged is a unit test,
+      `test_a_quotient_that_lands_is_the_normalized_value_whatever_lands_beside_it`, which fails
+      when `to_normalized` prefers the step (M15 in the fifth review's
+      `verification/mutation.txt`), and the reproduction's count above.
   - **Vital and the tests.** Vital 1.6.4 holds the map's value at each pinned value after a set
     (`verification/plugin-probe.txt`). `verification/mutation.txt` shows the tests fail with each
     branch, guard and order changed, but for two orders shown equivalent.

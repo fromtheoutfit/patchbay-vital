@@ -1,0 +1,352 @@
+The revision after PR 14's fifth review: the plugin probe, run 2026-11-12 19:05 EST on branch
+refactor/13-the-parameter-map-volumes-display-does-not-come-back-through-the-normalized-path-below-2--43-hypothesis-normalized-5857149595214349e-20, machine arm64, Vital at /Library/Audio/Plug-Ins/VST3/Vital.vst3
+the tree before the run:
+  HEAD d21f1607e5f42c4c50bd59d76a72b6d899998782
+  git status --porcelain=v1, 3 lines:
+     M src/patchbay_vital/parameters.py
+     M tests/unit/test_parameters.py
+    ?? agent-os/specs/2026-11-12-1852-revision-after-pr-14-fifth-review/
+  git hash-object of each file the run reads, HEAD's blob beside it:
+    344dca006ecf4d5d740073c1ee0f7e95a8e0f5e0  tests/integration/test_vital_plugin.py  (HEAD 344dca006ecf4d5d740073c1ee0f7e95a8e0f5e0)
+    e49d5e9dd275ba8b592103621566206e9a654fa2  src/patchbay_vital/parameters.py  (HEAD 6cc729a8f442581d9d0e68afac929e3afd1a684a)
+    27a1e91bd4483e2fbdebf444799b51f78617ab0e  src/patchbay_vital/float32.py  (HEAD 27a1e91bd4483e2fbdebf444799b51f78617ab0e)
+    109ae1887be396e43ce7939b7115ec9745b6c6ca  src/patchbay_vital/data/parameters.json  (HEAD 109ae1887be396e43ce7939b7115ec9745b6c6ca)
+  git hash-object of the script, the fourth-review revision's, unchanged: f8c831cf75ce2578788a8a9c2b24df2efb28c0c3  <scratchpad>/r5/plugin_probe.py
+
+== the script, run from the repository root as: uv run --locked python <scratchpad>/r5/plugin_probe.py
+   (blank lines the plugin prints are dropped)
+```python
+"""The revision after PR 14's fourth review: what Vital holds at the pinned values after a set and a load.
+
+Run from the repository root. The values are `_VOLUME_FLOOR` and `_POWERS_OF_TWO` of
+`tests/integration/test_vital_plugin.py`, and the set is its `_held_after_a_set`, imported from it,
+so the probe measures what the tests do, in the order they do it; the load writes its state with
+the package's `dumps`, as the load test does. Each imported file is printed by its blob, and each
+helper by its source, so the transcript pins what ran.
+P0 = scale.to_preset(r), D0 = to_display(P0), C1 = curve.to_preset(D0) (the curve's own float32,
+which the map gave on `main`), L = scale.to_preset(scale.to_normalized(C1)) (what a set of C1
+holds), P1 = to_preset(D0) (the map's: L where L shows D0, else the float32 on C1's other side, the
+branch printed), P2 = scale.to_preset(to_normalized(D0)), N = the nearest float32 quotient (the
+map's normalized value on `main`).
+"""
+
+import importlib.metadata
+import inspect
+import platform
+import subprocess
+import sys
+from fractions import Fraction
+
+sys.path.insert(0, "tests/integration")
+
+import test_vital_plugin as t  # noqa: E402
+from patchbay import ParameterId  # noqa: E402
+
+from patchbay_vital import VitalSettings, dumps, loads  # noqa: E402
+from patchbay_vital.census import build_map  # noqa: E402
+from patchbay_vital.float32 import next_float32, round_to_float32  # noqa: E402
+from patchbay_vital.host import VitalHost, _floats  # noqa: E402
+from patchbay_vital.parameters import (  # noqa: E402
+    MappedParameter,
+    NormalizedScale,
+    _landing,
+    parameter_map,
+)
+
+FILES = (
+    "tests/integration/test_vital_plugin.py",
+    "src/patchbay_vital/parameters.py",
+    "src/patchbay_vital/float32.py",
+)
+
+
+def git(*args):
+    done = subprocess.run(["git", *args], capture_output=True, text=True, check=False)
+    return done.stdout.strip() if done.returncode == 0 else ""
+
+
+print("== what the probe imports and reads, by blob (git hash-object; HEAD's blob beside it)")
+for name in FILES:
+    head = git("rev-parse", f"HEAD:{name}") or "not in HEAD"
+    print(f"  {name}: {git('hash-object', name)} (HEAD: {head})")
+print("\n== the helpers it calls, as imported")
+for function in (
+    t._held_after_a_set,
+    MappedParameter.to_preset,
+    MappedParameter._resolve,
+    NormalizedScale.to_normalized,
+    NormalizedScale.holds,
+    _landing,
+    next_float32,
+):
+    print(inspect.getsource(function).rstrip())
+    print()
+
+committed = parameter_map()
+volume = committed.find(ParameterId("volume"))
+chorus = committed.find(ParameterId("chorus_feedback"))
+scale = volume.scale
+host = VitalHost()
+initial = host.state()
+print(f"machine {platform.machine()}, the map's {committed.machine}; {host.name} {host.version},"
+      f" the map's {committed.instrument} {committed.vital_version};"
+      f" pedalboard {importlib.metadata.version('pedalboard')}")
+print(f"the pinned values: _VOLUME_FLOOR {t._VOLUME_FLOOR}; _POWERS_OF_TWO {t._POWERS_OF_TWO}")
+
+print("\n== 1. a set, the floor test's own sequence: load initial, set D0 normalized as the map")
+print("   gives it (test_at_or_below_volume_s_floor_a_set_holds_the_map_s_preset)")
+for r in t._VOLUME_FLOOR:
+    host.load_state(initial)
+    p0 = scale.to_preset(r)
+    d0 = volume.from_normalized(r)
+    c1 = volume.curve.to_preset(d0)
+    landed = scale.to_preset(scale.to_normalized(c1))
+    p1 = volume.to_preset(d0)
+    branch = "C1 held" if p1 == c1 else ("L, what a set of C1 holds" if p1 == landed
+                                          else "the float32 on C1's other side")
+    p2 = scale.to_preset(volume.to_normalized(d0))
+    held = t._held_after_a_set(host, volume, d0)
+    print(f"r={r!r}: P0 {p0!r}, D0 {d0!r}, C1 {c1!r} (held by the scale {scale.holds(c1)}),"
+          f" L {landed!r} (shows D0 {volume.to_display(landed) == d0}), P1 {p1!r} ({branch};"
+          f" held by the scale {scale.holds(p1)}, == P0 {p1 == p0}), P2 {p2!r};"
+          f" Vital holds {held!r}: == P1 {held == p1}, == C1 {held == c1};"
+          f" its display the one set {volume.to_display(held) == d0}")
+
+text = initial.decode("utf-8")
+preset = loads(text)
+print(f"\n   dumps(loads(initial)) is initial's text: {dumps(preset) == text}")
+
+
+def load_values(instance, label):
+    """The load test's own sequence: per value, load initial, then initial with the curve's C1."""
+    given = _floats(initial)["chorus_feedback"]
+    print(f"-- {label}; chorus_feedback given {given!r} (held by its scale:"
+          f" {chorus.scale.holds(given)})")
+    for r in t._VOLUME_FLOOR:
+        d0 = volume.from_normalized(r)
+        c1 = volume.curve.to_preset(d0)
+        p2 = scale.to_preset(scale.to_normalized(c1))
+        values = {**preset.settings.values, volume.preset_key: c1}
+        state = dumps(preset.model_copy(update={"settings": VitalSettings(values=values)}))
+        instance.load_state(initial)
+        instance.load_state(state.encode("utf-8"))
+        floats = _floats(instance.state())
+        print(f"  r={r!r}: volume given C1 {c1!r}, Vital holds {floats['volume']!r}:"
+              f" == S(N'(C1)) {floats['volume'] == p2}, == C1 {floats['volume'] == c1};"
+              f" chorus_feedback held {floats['chorus_feedback']!r}, == given"
+              f" {floats['chorus_feedback'] == given}")
+
+
+print("\n== 2. a load, the load test's own sequence, after each of four histories before its first")
+print("   load, the state written with the package's dumps")
+print("   (test_a_load_holds_volume_s_unheld_float32_as_its_neighbour_and_chorus_feedback_as_given)")
+load_values(VitalHost(), "a fresh instance, nothing set before")
+census = VitalHost()
+build_map(census)
+census.load_state(initial)
+load_values(census, "after the census's measure, which sets every parameter, and a load of initial")
+both = VitalHost()
+both.set(volume.id, 0.5)
+both.set(chorus.id, 0.5)
+both.load_state(initial)
+load_values(both, "after a set of volume and of chorus_feedback, and a load of initial")
+load_values(host, "the instance of section 1, after its sets")
+
+print("\n== 3. a held power of two, the power-of-two test's own sequence: load initial, set the")
+print("   preset's display through the map (_held_after_a_set), read; then, for the record, load")
+print("   initial, set the nearest float32 quotient, the map's normalized value before the fix")
+print("   (test_a_held_power_of_two_set_through_the_host_is_held)")
+for name in ("env_1_delay", "env_3_hold"):
+    record = committed.find(ParameterId(name))
+    for r in t._POWERS_OF_TWO:
+        p0 = record.scale.to_preset(r)
+        mapped = record.scale.to_normalized(p0)
+        nearest = round_to_float32(
+            (Fraction(p0) - Fraction(record.scale.minimum)) / Fraction(record.scale.span)
+        )
+        host.load_state(initial)
+        held = t._held_after_a_set(host, record, record.to_display(p0))
+        host.load_state(initial)
+        host.set(record.id, nearest)
+        held_nearest = _floats(host.state())[record.preset_key]
+        print(f"{name} r={r!r}: preset {p0!r}, display {record.to_display(p0)!r}; through the map,"
+              f" normalized {mapped!r} (== r {mapped == r}): Vital holds {held!r}, == the preset"
+              f" {held == p0}; the nearest quotient {nearest!r}: Vital holds {held_nearest!r},"
+              f" the float32 below the preset {held_nearest == next_float32(p0, 0.0)}")
+```
+
+== its output
+== what the probe imports and reads, by blob (git hash-object; HEAD's blob beside it)
+  tests/integration/test_vital_plugin.py: 344dca006ecf4d5d740073c1ee0f7e95a8e0f5e0 (HEAD: 344dca006ecf4d5d740073c1ee0f7e95a8e0f5e0)
+  src/patchbay_vital/parameters.py: e49d5e9dd275ba8b592103621566206e9a654fa2 (HEAD: 6cc729a8f442581d9d0e68afac929e3afd1a684a)
+  src/patchbay_vital/float32.py: 27a1e91bd4483e2fbdebf444799b51f78617ab0e (HEAD: 27a1e91bd4483e2fbdebf444799b51f78617ab0e)
+== the helpers it calls, as imported
+def _held_after_a_set(host: VitalHost, record: MappedParameter, display: float) -> float:
+    """Set a display through the host, normalized as the map gives it; return the state's value."""
+    host.set(record.id, record.to_normalized(display))
+    return _floats(host.state())[record.preset_key]
+    def to_preset(self, display: float) -> float:
+        """Return the preset value a display comes from: what a set of it holds where that shows it.
+        The float32 nearest the curve's inverse, within the scale, where the scale holds it; on an
+        indexed scale the nearest whole number, as the plugin holds it. Where a linear scale does
+        not hold that float32, in this order:
+        1. what a set of the float32 holds, the scale's value at `to_normalized`'s result, Vital's
+           own rounding of it, where that shows the display exactly;
+        2. else the float32 on its other side, away from that value, where the scale holds it and
+           it shows the display exactly;
+        3. else the float32 itself, which the scale does not hold.
+        The first two are at or below `volume`'s 2 ** -43, where neighbouring presets share a
+        display: a set of the display holds a preset that shows it, on Vital as in the map, so the
+        display comes back through the normalized path exactly (issue #15). No value `volume`
+        holds above 2 ** -43 takes either, by this method's own results on every float32
+        normalized value, each held preset compared with 2 ** -43 (the revision after PR 14's
+        fifth review, `verification/direct-count.txt`). The third is a display
+        no preset shows exactly, an arbitrary one, which keeps the float32 as before; a set then
+        holds the scale's value at `to_normalized`'s result, as Vital does. So this decides what
+        the model stores for a display, neither whether a set keeps a stored value given the
+        display it already shows nor the held neighbour an arbitrary display should take (issue
+        #8, findings 3 and 1). ParameterRangeError when the value is outside the parameter's
+        bounds, or is not a whole index where the parameter is a choice or a boolean. The bounds
+        are the parameter's own and the scale's ends displayed through this platform's libm, the
+        same on the machine the map was measured on and a double ulp apart on another.
+        """
+        return self._resolve(display)[0]
+    def _resolve(self, display: float) -> tuple[float, float | None]:
+        """Return `to_preset`'s value and, where it has been computed on the way, its normalized.
+        The normalized value is given only where it is the scale's own for the preset returned, so
+        `to_normalized(display)` is `scale.to_normalized(to_preset(display))` on every branch. On
+        the first branch it is `None`: the value computed on the way is the curve's float32's,
+        which lands on the preset returned but need not be the one the scale gives that preset.
+        The curve's float32, clamped to the scale, has a normalized value in `[0, 1]` always, the
+        nearest float32 to a quotient no more than half a float32 step past 1 and a step
+        `_landing` keeps only inside. The float32 on its other side may lie past an end the scale
+        does not hold, where only a normalized value outside `[0, 1]` lands on it: `holds` refuses
+        that.
+        """
+        parameter, scale, curve = self.parameter, self.scale, self.curve
+        low, high = displayed_ends(curve, scale)
+        low, high = min(low, parameter.minimum), max(high, parameter.maximum)
+        whole = parameter.kind == "continuous" or display.is_integer()
+        if not (low <= display <= high and whole):
+            raise ParameterRangeError(self.id, parameter.minimum, parameter.maximum, display)
+        preset = min(max(curve.to_preset(display), scale.minimum), scale.maximum)
+        if scale.kind == "indexed":
+            return _round_half_away(preset), None
+        normalized, landed = _landing(scale, preset)
+        if landed == preset:
+            return preset, normalized
+        if curve.to_display(landed) == display:
+            return landed, None
+        other = next_float32(preset, math.copysign(math.inf, preset - landed))
+        if scale.holds(other) and curve.to_display(other) == display:
+            return other, None
+        return preset, normalized
+    def to_normalized(self, preset: float) -> float:
+        """Return the normalized value the host sets for a preset, one that lands on it if any does.
+        The float32 nearest `(preset - minimum) / span`, unless `to_preset` of it misses the preset:
+        then the float32 next to it toward the preset, where that is in `[0, 1]` and lands on it.
+        The scale rises with `r`, so only that side can. On the 12 `env_N_delay` and `env_N_hold`
+        records, at 126 powers of two each from 2 ** -125 to 1, the nearest multiplies back short
+        of the power, where the float32 spacing halves, and its neighbour lands on it (issue #15).
+        So a value the scale holds comes back through `to_preset` exactly, on every float32
+        normalized value of every group issue #15's spec counts (`verification/sweep.txt`); a
+        value it does not hold keeps the nearest quotient.
+        """
+        return _landing(self, preset)[0]
+    def holds(self, preset: float) -> bool:
+        """Say whether the plugin can hold a preset value.
+        It can when a normalized value in `[0, 1]` lands on it; `to_normalized` finds one if any.
+        """
+        normalized, landed = _landing(self, preset)
+        return 0.0 <= normalized <= 1.0 and landed == preset
+def _landing(scale: NormalizedScale, preset: float) -> tuple[float, float]:
+    """Return `to_normalized`'s value for a preset and the preset value it lands on, each once.
+    The step toward the preset is kept only inside `[0, 1]`, where the host can set it: on
+    `NormalizedScale(kind="linear", minimum=-1.0, maximum=16777216.0)` the float32 above 1 lands on
+    the maximum, which the nearest quotient, 1, misses.
+    """
+    nearest = round_to_float32((Fraction(preset) - Fraction(scale.minimum)) / Fraction(scale.span))
+    landed = scale.to_preset(nearest)
+    if landed == preset:
+        return nearest, landed
+    toward = next_float32(nearest, math.copysign(math.inf, preset - landed))
+    if 0.0 <= toward <= 1.0:
+        stepped = scale.to_preset(toward)
+        if stepped == preset:
+            return toward, stepped
+    return nearest, landed
+def next_float32(value: float, toward: float) -> float:
+    """Return the float32 next to `value` in the direction of `toward`, as C's `nextafterf` does.
+    Both are float32s to `nextafterf`, so a double that is not one is first rounded to the nearest,
+    `toward` as well as `value`: `toward` 1.0 + 1e-12 is 1.0, and from 1.0 there is no step. A
+    `toward` equal to the value is returned; from a zero the step is the smallest subnormal of
+    `toward`'s sign, and from an infinity the largest float32; a NaN gives a NaN. The step is made
+    on the float32's bits, so it is exact.
+    """
+    start, toward = to_float32(value), to_float32(toward)
+    if math.isnan(start) or math.isnan(toward):
+        return math.nan
+    if start == toward:
+        return toward
+    if start == 0:
+        return math.copysign(math.ldexp(1.0, _SUBNORMAL_QUANTUM), toward)
+    bits: int = _BITS.unpack(_FLOAT32.pack(start))[0]
+    bits += 1 if (start < toward) == (start > 0) else -1
+    stepped: float = _FLOAT32.unpack(_BITS.pack(bits))[0]
+    return stepped
+machine arm64, the map's arm64; Vital 1.6.4, the map's Vital 1.6.4; pedalboard 0.9.26
+the pinned values: _VOLUME_FLOOR (5.857149595214349e-20, 3.4694490199051456e-18, 1.439742266862027e-17, 1.53642479121845e-17); _POWERS_OF_TWO (0.7071068286895752, 0.3535534143447876, 6.74349621476722e-07)
+== 1. a set, the floor test's own sequence: load initial, set D0 normalized as the map
+   gives it (test_at_or_below_volume_s_floor_a_set_holds_the_map_s_preset)
+r=5.857149595214349e-20: P0 4.3339629239370393e-16, D0 -79.99999997918182, C1 4.3339650415194074e-16 (held by the scale False), L 4.3339647768216114e-16 (shows D0 True), P1 4.3339647768216114e-16 (L, what a set of C1 holds; held by the scale True, == P0 False), P2 4.3339647768216114e-16; Vital holds 4.3339647768216114e-16: == P1 True, == C1 False; its display the one set True
+r=3.4694490199051456e-18: P0 2.567198129153469e-14, D0 -79.99999983977521, C1 2.5671982985600583e-14 (held by the scale False), L 2.5671984679666478e-14 (shows D0 False), P1 2.567198129153469e-14 (the float32 on C1's other side; held by the scale True, == P0 True), P2 2.567198129153469e-14; Vital holds 2.567198129153469e-14: == P1 True, == C1 False; its display the one set True
+r=1.439742266862027e-17: P0 1.0653287198800557e-13, D0 -79.99999967360627, C1 1.0653286521174199e-13 (held by the scale False), L 1.0653285843547841e-13 (shows D0 False), P1 1.0653287198800557e-13 (the float32 on C1's other side; held by the scale True, == P0 True), P2 1.0653287198800557e-13; Vital holds 1.0653287198800557e-13: == P1 True, == C1 False; its display the one set True
+r=1.53642479121845e-17: P0 1.1368683772161603e-13, D0 -79.99999966282522, C1 1.1368683094535245e-13 (held by the scale False), L 1.1368682416908887e-13 (shows D0 False), P1 1.1368683772161603e-13 (the float32 on C1's other side; held by the scale True, == P0 True), P2 1.1368683772161603e-13; Vital holds 1.1368683772161603e-13: == P1 True, == C1 False; its display the one set True
+   dumps(loads(initial)) is initial's text: True
+== 2. a load, the load test's own sequence, after each of four histories before its first
+   load, the state written with the package's dumps
+   (test_a_load_holds_volume_s_unheld_float32_as_its_neighbour_and_chorus_feedback_as_given)
+-- a fresh instance, nothing set before; chorus_feedback given 0.4000000059604645 (held by its scale: False)
+  r=5.857149595214349e-20: volume given C1 4.3339650415194074e-16, Vital holds 4.3339647768216114e-16: == S(N'(C1)) True, == C1 False; chorus_feedback held 0.4000000059604645, == given True
+  r=3.4694490199051456e-18: volume given C1 2.5671982985600583e-14, Vital holds 2.5671984679666478e-14: == S(N'(C1)) True, == C1 False; chorus_feedback held 0.4000000059604645, == given True
+  r=1.439742266862027e-17: volume given C1 1.0653286521174199e-13, Vital holds 1.0653285843547841e-13: == S(N'(C1)) True, == C1 False; chorus_feedback held 0.4000000059604645, == given True
+  r=1.53642479121845e-17: volume given C1 1.1368683094535245e-13, Vital holds 1.1368682416908887e-13: == S(N'(C1)) True, == C1 False; chorus_feedback held 0.4000000059604645, == given True
+-- after the census's measure, which sets every parameter, and a load of initial; chorus_feedback given 0.4000000059604645 (held by its scale: False)
+  r=5.857149595214349e-20: volume given C1 4.3339650415194074e-16, Vital holds 4.3339647768216114e-16: == S(N'(C1)) True, == C1 False; chorus_feedback held 0.4000000059604645, == given True
+  r=3.4694490199051456e-18: volume given C1 2.5671982985600583e-14, Vital holds 2.5671984679666478e-14: == S(N'(C1)) True, == C1 False; chorus_feedback held 0.4000000059604645, == given True
+  r=1.439742266862027e-17: volume given C1 1.0653286521174199e-13, Vital holds 1.0653285843547841e-13: == S(N'(C1)) True, == C1 False; chorus_feedback held 0.4000000059604645, == given True
+  r=1.53642479121845e-17: volume given C1 1.1368683094535245e-13, Vital holds 1.1368682416908887e-13: == S(N'(C1)) True, == C1 False; chorus_feedback held 0.4000000059604645, == given True
+-- after a set of volume and of chorus_feedback, and a load of initial; chorus_feedback given 0.4000000059604645 (held by its scale: False)
+  r=5.857149595214349e-20: volume given C1 4.3339650415194074e-16, Vital holds 4.3339647768216114e-16: == S(N'(C1)) True, == C1 False; chorus_feedback held 0.4000000059604645, == given True
+  r=3.4694490199051456e-18: volume given C1 2.5671982985600583e-14, Vital holds 2.5671984679666478e-14: == S(N'(C1)) True, == C1 False; chorus_feedback held 0.4000000059604645, == given True
+  r=1.439742266862027e-17: volume given C1 1.0653286521174199e-13, Vital holds 1.0653285843547841e-13: == S(N'(C1)) True, == C1 False; chorus_feedback held 0.4000000059604645, == given True
+  r=1.53642479121845e-17: volume given C1 1.1368683094535245e-13, Vital holds 1.1368682416908887e-13: == S(N'(C1)) True, == C1 False; chorus_feedback held 0.4000000059604645, == given True
+-- the instance of section 1, after its sets; chorus_feedback given 0.4000000059604645 (held by its scale: False)
+  r=5.857149595214349e-20: volume given C1 4.3339650415194074e-16, Vital holds 4.3339647768216114e-16: == S(N'(C1)) True, == C1 False; chorus_feedback held 0.4000000059604645, == given True
+  r=3.4694490199051456e-18: volume given C1 2.5671982985600583e-14, Vital holds 2.5671984679666478e-14: == S(N'(C1)) True, == C1 False; chorus_feedback held 0.4000000059604645, == given True
+  r=1.439742266862027e-17: volume given C1 1.0653286521174199e-13, Vital holds 1.0653285843547841e-13: == S(N'(C1)) True, == C1 False; chorus_feedback held 0.4000000059604645, == given True
+  r=1.53642479121845e-17: volume given C1 1.1368683094535245e-13, Vital holds 1.1368682416908887e-13: == S(N'(C1)) True, == C1 False; chorus_feedback held 0.4000000059604645, == given True
+== 3. a held power of two, the power-of-two test's own sequence: load initial, set the
+   preset's display through the map (_held_after_a_set), read; then, for the record, load
+   initial, set the nearest float32 quotient, the map's normalized value before the fix
+   (test_a_held_power_of_two_set_through_the_host_is_held)
+env_1_delay r=0.7071068286895752: preset 1.0, display 1.0; through the map, normalized 0.7071068286895752 (== r True): Vital holds 1.0, == the preset True; the nearest quotient 0.7071067690849304: Vital holds 0.9999999403953552, the float32 below the preset True
+env_1_delay r=0.3535534143447876: preset 0.5, display 0.0625; through the map, normalized 0.3535534143447876 (== r True): Vital holds 0.5, == the preset True; the nearest quotient 0.3535533845424652: Vital holds 0.4999999701976776, the float32 below the preset True
+env_1_delay r=6.74349621476722e-07: preset 9.5367431640625e-07, display 8.271806125530277e-25; through the map, normalized 6.74349621476722e-07 (== r True): Vital holds 9.5367431640625e-07, == the preset True; the nearest quotient 6.743495646333031e-07: Vital holds 9.536742595628311e-07, the float32 below the preset True
+env_3_hold r=0.7071068286895752: preset 1.0, display 1.0; through the map, normalized 0.7071068286895752 (== r True): Vital holds 1.0, == the preset True; the nearest quotient 0.7071067690849304: Vital holds 0.9999999403953552, the float32 below the preset True
+env_3_hold r=0.3535534143447876: preset 0.5, display 0.0625; through the map, normalized 0.3535534143447876 (== r True): Vital holds 0.5, == the preset True; the nearest quotient 0.3535533845424652: Vital holds 0.4999999701976776, the float32 below the preset True
+env_3_hold r=6.74349621476722e-07: preset 9.5367431640625e-07, display 8.271806125530277e-25; through the map, normalized 6.74349621476722e-07 (== r True): Vital holds 9.5367431640625e-07, == the preset True; the nearest quotient 6.743495646333031e-07: Vital holds 9.536742595628311e-07, the float32 below the preset True
+exit=0
+
+the tree after the run:
+  HEAD d21f1607e5f42c4c50bd59d76a72b6d899998782
+  git status --porcelain=v1, 3 lines:
+     M src/patchbay_vital/parameters.py
+     M tests/unit/test_parameters.py
+    ?? agent-os/specs/2026-11-12-1852-revision-after-pr-14-fifth-review/
+  git hash-object of each file the run reads, HEAD's blob beside it:
+    344dca006ecf4d5d740073c1ee0f7e95a8e0f5e0  tests/integration/test_vital_plugin.py  (HEAD 344dca006ecf4d5d740073c1ee0f7e95a8e0f5e0)
+    e49d5e9dd275ba8b592103621566206e9a654fa2  src/patchbay_vital/parameters.py  (HEAD 6cc729a8f442581d9d0e68afac929e3afd1a684a)
+    27a1e91bd4483e2fbdebf444799b51f78617ab0e  src/patchbay_vital/float32.py  (HEAD 27a1e91bd4483e2fbdebf444799b51f78617ab0e)
+    109ae1887be396e43ce7939b7115ec9745b6c6ca  src/patchbay_vital/data/parameters.json  (HEAD 109ae1887be396e43ce7939b7115ec9745b6c6ca)
+cmp: the tree after the run is the tree before it, line for line
