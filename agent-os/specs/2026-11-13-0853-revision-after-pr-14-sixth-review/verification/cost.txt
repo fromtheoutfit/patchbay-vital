@@ -1,0 +1,103 @@
+The revision after PR 14's sixth review: what a call costs, run 2026-11-13 12:19 EST on branch
+refactor/13-the-parameter-map-volumes-display-does-not-come-back-through-the-normalized-path-below-2--43-hypothesis-normalized-5857149595214349e-20 at e852aacc59126d052d1ab21abda298538ff0575a
+machine arm64, macOS 26.6.2 (25G83), 14 cores, Apple M4 Pro, Python 3.12.16
+load before: 4.92 7.23 12.01
+the three trees, each its src, git hash-object of its parameters.py:
+  main     558b85b56d1f69eaa71dbf0598ce3e65bf391356, extracted with git archive: da6e92b2edd68863505aea08963d9a759477d787 (main da6e92b2edd68863505aea08963d9a759477d787)
+  e852aac  e852aacc59126d052d1ab21abda298538ff0575a, extracted with git archive: e49d5e9dd275ba8b592103621566206e9a654fa2 (e852aac e49d5e9dd275ba8b592103621566206e9a654fa2)
+  new      the working tree: 25b1a378e0d633bf4deede60d3173e976059a2a7
+git hash-object of the script: b3398fb8c5b8ee63a6cfc17e08dcb6906cbe0612  <scratchpad>/r6/cost.py
+
+```python
+"""The revision after PR 14's sixth review: what a call of the map costs, in one tree.
+
+Imports `patchbay_vital` from the tree given, first on sys.path, and prints its file to show it.
+Times, the minimum of 7 repeats, each a loop over a fixed set of values after one warm-up loop:
+- `volume`'s `to_preset` and `to_normalized` on 1,000 displays, those of the normalized values
+  i / 999 for i in 0..999, through `from_normalized`;
+- the same two on 1,000 displays at or below the floor, those of the normalized values
+  i / 999 * 1.53642479121845e-17 (the floor's own normalized value, preset 2 ** -43), the
+  region where the rule's branches are asked;
+- `to_normalized` of every record of the map at its own default display, the whole map once.
+Run from the repository root: uv run --locked python <scratchpad>/r6/cost.py <src> <label>
+"""
+
+import sys
+import timeit
+
+src, label = sys.argv[1], sys.argv[2]
+sys.path.insert(0, src)
+
+from patchbay import ParameterId  # noqa: E402
+
+import patchbay_vital.parameters as p  # noqa: E402
+
+the_map = p.parameter_map()
+volume = the_map.find(ParameterId("volume"))
+floor = 1.53642479121845e-17
+sets = {
+    "uniform": [volume.from_normalized(i / 999) for i in range(1000)],
+    "floor": [volume.from_normalized(i / 999 * floor) for i in range(1000)],
+}
+defaults = [(r, r.parameter.default.value) for r in the_map.parameters]
+
+
+def per_call(function, values):
+    def loop():
+        for value in values:
+            function(value)
+
+    loop()
+    return min(timeit.repeat(loop, number=1, repeat=7)) / len(values) * 1e6
+
+
+def whole_map():
+    for record, display in defaults:
+        record.to_normalized(display)
+
+
+whole_map()
+whole = min(timeit.repeat(whole_map, number=1, repeat=7)) * 1e3
+print(f"{label}: imports {p.__file__.split('/src/')[-1]} from {src.rsplit('/', 2)[-2]}/src")
+for name, values in sets.items():
+    print(
+        f"  volume, {name:7} 1,000 displays: to_preset {per_call(volume.to_preset, values):6.1f} µs,"
+        f" to_normalized {per_call(volume.to_normalized, values):6.1f} µs a call"
+    )
+print(f"  the whole map, {len(defaults)} records at their defaults: to_normalized {whole:5.1f} ms")
+```
+
+== pass 1
+main: imports patchbay_vital/parameters.py from main/src
+  volume, uniform 1,000 displays: to_preset    3.4 µs, to_normalized    7.9 µs a call
+  volume, floor   1,000 displays: to_preset    3.9 µs, to_normalized    8.7 µs a call
+  the whole map, 903 records at their defaults: to_normalized   4.2 ms
+exit=0
+e852aac: imports patchbay_vital/parameters.py from old/src
+  volume, uniform 1,000 displays: to_preset   15.2 µs, to_normalized   15.0 µs a call
+  volume, floor   1,000 displays: to_preset   17.9 µs, to_normalized   18.6 µs a call
+  the whole map, 903 records at their defaults: to_normalized   8.8 ms
+exit=0
+new: imports patchbay_vital/parameters.py from patchbay-vital/src
+  volume, uniform 1,000 displays: to_preset   14.7 µs, to_normalized   26.8 µs a call
+  volume, floor   1,000 displays: to_preset   17.8 µs, to_normalized   30.7 µs a call
+  the whole map, 903 records at their defaults: to_normalized  13.0 ms
+exit=0
+== pass 2
+main: imports patchbay_vital/parameters.py from main/src
+  volume, uniform 1,000 displays: to_preset    3.6 µs, to_normalized    7.9 µs a call
+  volume, floor   1,000 displays: to_preset    4.0 µs, to_normalized    8.9 µs a call
+  the whole map, 903 records at their defaults: to_normalized   4.2 ms
+exit=0
+e852aac: imports patchbay_vital/parameters.py from old/src
+  volume, uniform 1,000 displays: to_preset   15.6 µs, to_normalized   15.6 µs a call
+  volume, floor   1,000 displays: to_preset   18.2 µs, to_normalized   19.3 µs a call
+  the whole map, 903 records at their defaults: to_normalized   9.0 ms
+exit=0
+new: imports patchbay_vital/parameters.py from patchbay-vital/src
+  volume, uniform 1,000 displays: to_preset   15.3 µs, to_normalized   27.1 µs a call
+  volume, floor   1,000 displays: to_preset   17.9 µs, to_normalized   31.2 µs a call
+  the whole map, 903 records at their defaults: to_normalized  13.1 ms
+exit=0
+
+load after: 4.77 7.16 11.96

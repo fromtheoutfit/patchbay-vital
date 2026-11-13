@@ -11,6 +11,7 @@ package's `dumps`, Vital's own float writer, so the plugin is given text it coul
 
 import base64
 import json
+import math
 import platform
 import sys
 from pathlib import Path
@@ -22,6 +23,7 @@ from patchbay import ParameterId
 from patchbay_vital import VitalSettings, dumps, loads
 from patchbay_vital.census import build_map
 from patchbay_vital.errors import ParameterRangeError, PluginRenderError, UnknownParameterError
+from patchbay_vital.float32 import to_float32
 from patchbay_vital.host import DEFAULT_PATH, VitalHost, _floats
 from patchbay_vital.parameters import PRESET_ONLY_KEYS, MappedParameter, parameter_map
 from patchbay_vital.state import unwrap, wrap
@@ -120,40 +122,51 @@ def test_a_value_set_through_the_host_is_the_one_the_state_holds(host: VitalHost
             assert record.from_normalized(host.get(record.id)) == record.to_display(held)
 
 
-_VOLUME_FLOOR = (
-    5.857149595214349e-20,  # issue #13's value
-    3.4694490199051456e-18,  # the smallest of the former one-ulp landings
-    1.439742266862027e-17,  # a former one-ulp landing below the display
-    1.53642479121845e-17,  # the floor's own, preset 2 ** -43
-)
-"""`volume`'s normalized values at or below its floor, pinned; `test_parameters.py` holds the map
-at the same ones."""
+_PINNED = Path("tests") / "data" / "pinned-values.txt"
+_PINNED_SETS = ("volume_floor", "powers_of_two")
 
-_POWERS_OF_TWO = (
-    0.7071068286895752,  # 1.0 on the envelope records
-    0.3535534143447876,  # 0.5 on the envelope records
-    6.74349621476722e-07,  # 2 ** -20 on the envelope records
-)
-"""Normalized values of held powers of two on the envelope records, pinned; `test_parameters.py`
-holds the map at the same ones."""
+
+def _pinned(pytestconfig: pytest.Config) -> dict[str, tuple[float, ...]]:
+    """Read `tests/data/pinned-values.txt`, each set's values in the file's order.
+
+    The values `test_parameters.py` holds the map at, written once in that file and read from
+    pytest's root; this module reads them with a reader of its own, since the two test directories
+    import nothing from each other. A line that is not `<set> <float32> <name>`, of a set named
+    here, fails the test reading it, naming the file and the line.
+    """
+    path = pytestconfig.rootpath / _PINNED
+    found: dict[str, list[float]] = {name: [] for name in _PINNED_SETS}
+    for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+        if line.startswith("#"):
+            continue
+        name, _, rest = line.partition(" ")
+        text, _, label = rest.partition(" ")
+        try:
+            value = float(text)
+        except ValueError:
+            value = math.nan
+        if name not in found or not label or to_float32(value) != value:
+            pytest.fail(f"{path.name}:{number} is not '<set> <float32> <name>': {line!r}")
+        found[name].append(value)
+    return {name: tuple(values) for name, values in found.items()}
 
 
 def test_at_or_below_volume_s_floor_a_set_holds_the_map_s_preset(
-    host: VitalHost, initial: bytes
+    host: VitalHost, initial: bytes, pytestconfig: pytest.Config
 ) -> None:
     """At or below the floor, a set of a display holds the map's preset, which shows the display.
 
-    At each of `_VOLUME_FLOOR`, a display at or below `volume`'s 2 ** -43 whose curve float32
-    (`record.curve.to_preset`) is not one the scale holds. Set from `initial`, as the probe set it,
-    Vital holds `to_preset`'s value exactly: what a set of the curve's float32 holds, where that
-    shows the display, at issue #13's value, and the float32 on its other side at the other three.
-    That is a preset the scale holds, never the curve's float32, and its display is the one set
-    (the `verification/plugin-probe.txt` of issue #15's spec and of the revision after PR 14's
-    fourth review). Before issue #15 the map gave the curve's float32 and Vital held a neighbour,
-    shown a double off at those three.
+    At each pinned `volume_floor` value of `tests/data/pinned-values.txt`, a display at or below
+    `volume`'s 2 ** -43 whose curve float32 (`record.curve.to_preset`) is not one the scale holds.
+    Set from `initial`, as the probe set it, Vital holds `to_preset`'s value exactly: what a set of
+    the curve's float32 holds, where that shows the display, at issue #13's value, and the float32
+    on its other side at the other three. That is a preset the scale holds, never the curve's
+    float32, and its display is the one set (the `verification/plugin-probe.txt` of issue #15's
+    spec and of the revision after PR 14's fourth review). Before issue #15 the map gave the
+    curve's float32 and Vital held a neighbour, shown a double off at those three.
     """
     record = parameter_map().find(ParameterId("volume"))
-    for normalized in _VOLUME_FLOOR:
+    for normalized in _pinned(pytestconfig)["volume_floor"]:
         host.load_state(initial)
         display = record.from_normalized(normalized)
         held = _held_after_a_set(host, record, display)
@@ -163,20 +176,22 @@ def test_at_or_below_volume_s_floor_a_set_holds_the_map_s_preset(
         assert record.to_display(held) == display, normalized
 
 
-def test_a_held_power_of_two_set_through_the_host_is_held(host: VitalHost, initial: bytes) -> None:
+def test_a_held_power_of_two_set_through_the_host_is_held(
+    host: VitalHost, initial: bytes, pytestconfig: pytest.Config
+) -> None:
     """A held power of two set through the host is held: a set of 1.0 s holds 1.0.
 
-    At each of `_POWERS_OF_TWO`, on `env_1_delay` and on `env_3_hold`, which shares its scale and
-    curve: set from `initial` through the map's normalized path, Vital holds the power itself
-    (the `verification/plugin-probe.txt` of issue #15's spec and of the revision after PR 14's
-    fourth review). Before issue #15 the map's normalized value was the float32 below, and Vital
-    held the float32 below the power.
+    At each pinned `powers_of_two` value of `tests/data/pinned-values.txt`, on `env_1_delay` and on
+    `env_3_hold`, which shares its scale and curve: set from `initial` through the map's normalized
+    path, Vital holds the power itself (the `verification/plugin-probe.txt` of issue #15's spec and
+    of the revision after PR 14's fourth review). Before issue #15 the map's normalized value was
+    the float32 below, and Vital held the float32 below the power.
     """
     first = parameter_map().find(ParameterId("env_1_delay"))
     for name in ("env_1_delay", "env_3_hold"):
         record = parameter_map().find(ParameterId(name))
         assert (record.scale, record.curve) == (first.scale, first.curve), name
-        for normalized in _POWERS_OF_TWO:
+        for normalized in _pinned(pytestconfig)["powers_of_two"]:
             host.load_state(initial)
             preset = record.scale.to_preset(normalized)
             held = _held_after_a_set(host, record, record.to_display(preset))
@@ -184,13 +199,13 @@ def test_a_held_power_of_two_set_through_the_host_is_held(host: VitalHost, initi
 
 
 def test_a_load_holds_volume_s_unheld_float32_as_its_neighbour_and_chorus_feedback_as_given(
-    host: VitalHost, initial: bytes
+    host: VitalHost, initial: bytes, pytestconfig: pytest.Config
 ) -> None:
     """A load of volume at a float32 its scale does not hold is held as the normalized path's.
 
     An observation no one has explained, held so that a Vital which changes it fails here by name.
-    For each of `_VOLUME_FLOOR`, a load of `initial` and then, with no set between them, of
-    `initial` holding `volume` at the curve's own float32 for the value's display
+    For each pinned `volume_floor` value, a load of `initial` and then, with no set between them,
+    of `initial` holding `volume` at the curve's own float32 for the value's display
     (`curve.to_preset`), which the scale does not hold, is held at the normalized path's value for
     that float32; `chorus_feedback`'s off-grid initial value in the same load is held as given. The
     state is written with the package's `dumps`, which gives the plugin's own text back byte for
@@ -210,7 +225,7 @@ def test_a_load_holds_volume_s_unheld_float32_as_its_neighbour_and_chorus_feedba
     assert dumps(preset) == text
     given = _floats(initial)[chorus.preset_key]
     assert not chorus.scale.holds(given)  # off the grid
-    for normalized in _VOLUME_FLOOR:
+    for normalized in _pinned(pytestconfig)["volume_floor"]:
         own = volume.curve.to_preset(volume.from_normalized(normalized))
         values = {**preset.settings.values, volume.preset_key: own}
         state = dumps(preset.model_copy(update={"settings": VitalSettings(values=values)}))

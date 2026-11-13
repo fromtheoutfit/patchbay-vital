@@ -1,0 +1,929 @@
+The revision after PR 14's sixth review: the floor pass, run 2026-11-13 09:08 EST on branch
+refactor/13-the-parameter-map-volumes-display-does-not-come-back-through-the-normalized-path-below-2--43-hypothesis-normalized-5857149595214349e-20, machine arm64, macOS 26.6.2 (25G83), 14 cores, Python 3.12.16, under caffeinate -i
+the trees before the run:
+  HEAD e852aacc59126d052d1ab21abda298538ff0575a
+  git status --porcelain=v1 --untracked-files=all, 8 lines:
+     M src/patchbay_vital/parameters.py
+     M tests/integration/test_vital_plugin.py
+     M tests/unit/test_parameters.py
+    ?? agent-os/specs/2026-11-13-0853-revision-after-pr-14-sixth-review/plan.md
+    ?? agent-os/specs/2026-11-13-0853-revision-after-pr-14-sixth-review/references.md
+    ?? agent-os/specs/2026-11-13-0853-revision-after-pr-14-sixth-review/shape.md
+    ?? agent-os/specs/2026-11-13-0853-revision-after-pr-14-sixth-review/standards.md
+    ?? tests/data/pinned-values.txt
+  the new tree, the working tree: git hash-object of each file the run reads, HEAD's blob beside it:
+    25b1a378e0d633bf4deede60d3173e976059a2a7  src/patchbay_vital/parameters.py  (HEAD e49d5e9dd275ba8b592103621566206e9a654fa2)
+    27a1e91bd4483e2fbdebf444799b51f78617ab0e  src/patchbay_vital/float32.py  (HEAD 27a1e91bd4483e2fbdebf444799b51f78617ab0e)
+    d8265cd5668a70b1802e3d7b1917104935e292ff  src/patchbay_vital/errors.py  (HEAD d8265cd5668a70b1802e3d7b1917104935e292ff)
+    f75e2e85d570f3db4bf5ec206bf9143f1ca4922f  src/patchbay_vital/preset.py  (HEAD f75e2e85d570f3db4bf5ec206bf9143f1ca4922f)
+    50fe09b3c3b285b3d569a8b7eb2f76981c7d6164  src/patchbay_vital/__init__.py  (HEAD 50fe09b3c3b285b3d569a8b7eb2f76981c7d6164)
+    109ae1887be396e43ce7939b7115ec9745b6c6ca  src/patchbay_vital/data/parameters.json  (HEAD 109ae1887be396e43ce7939b7115ec9745b6c6ca)
+    816935cc8b6ae5b8eb418838536c417b5ade2857  tests/unit/test_parameters.py  (HEAD 7e3954614f68900df38bcc8ca1db76a5072d08d9)
+  the old tree, commit e852aacc59126d052d1ab21abda298538ff0575a, its src extracted with git archive: git hash-object
+  of each extracted file the old pool reads, the blob of the commit beside it:
+    e49d5e9dd275ba8b592103621566206e9a654fa2  <scratchpad>/r6/old/src/patchbay_vital/parameters.py  (e852aac e49d5e9dd275ba8b592103621566206e9a654fa2)
+    27a1e91bd4483e2fbdebf444799b51f78617ab0e  <scratchpad>/r6/old/src/patchbay_vital/float32.py  (e852aac 27a1e91bd4483e2fbdebf444799b51f78617ab0e)
+    d8265cd5668a70b1802e3d7b1917104935e292ff  <scratchpad>/r6/old/src/patchbay_vital/errors.py  (e852aac d8265cd5668a70b1802e3d7b1917104935e292ff)
+    f75e2e85d570f3db4bf5ec206bf9143f1ca4922f  <scratchpad>/r6/old/src/patchbay_vital/preset.py  (e852aac f75e2e85d570f3db4bf5ec206bf9143f1ca4922f)
+    50fe09b3c3b285b3d569a8b7eb2f76981c7d6164  <scratchpad>/r6/old/src/patchbay_vital/__init__.py  (e852aac 50fe09b3c3b285b3d569a8b7eb2f76981c7d6164)
+    109ae1887be396e43ce7939b7115ec9745b6c6ca  <scratchpad>/r6/old/src/patchbay_vital/data/parameters.json  (e852aac 109ae1887be396e43ce7939b7115ec9745b6c6ca)
+  git hash-object of each script the run runs:
+    b421b0a4fd247aedf13a8ed67f798774ef8176d3  <scratchpad>/r6/floor_pass.py
+    d72bc6f2d764e1fbf51f1863704a7e6d11facd7b  <scratchpad>/r6/group_key.py
+    7bea3be118c3030e952d544f7ff43576674e0dee  <scratchpad>/r6/tree.sh
+    30ed61a7907c8376b42ea8b21da612b7d9092b1d  <scratchpad>/r6/run_floor.sh
+
+== the scripts, run from the repository root as: bash <scratchpad>/r6/run_floor.sh <scratchpad>/r6
+```bash
+#!/bin/bash
+# The floor pass. Run from the repository root: bash run_floor.sh <scratch>
+# Each step's exit status is printed; a step that does not exit 0 ends the run.
+set -u
+R=$1
+FILES="src/patchbay_vital/parameters.py src/patchbay_vital/float32.py src/patchbay_vital/errors.py src/patchbay_vital/preset.py src/patchbay_vital/__init__.py src/patchbay_vital/data/parameters.json tests/unit/test_parameters.py"
+pass() { caffeinate -i uv run --locked python "$R/floor_pass.py" --old "$R/old/src" --new "$PWD/src" --tests "$PWD/tests/unit" --old-processes 4 --new-processes 8 "$@"; status=$?; echo "exit=$status"; return $status; }
+scrub() { sed -l -e "s#$R#<scratchpad>/r6#g" -e "s#$PWD/##g"; }
+after() {
+  echo
+  echo "the trees after the run:"
+  bash "$R/tree.sh" "$R/old/src" $FILES | tee "$R/tree-after.txt"
+  cmp "$R/tree-before.txt" "$R/tree-after.txt" && echo "cmp: the trees before and after are the same"
+}
+{
+echo "The revision after PR 14's sixth review: the floor pass, run $(date '+%Y-%m-%d %H:%M %Z') on branch"
+echo "$(git branch --show-current), machine $(uname -m), $(sw_vers -productName) $(sw_vers -productVersion) ($(sw_vers -buildVersion)), $(sysctl -n hw.ncpu) cores, $(uv run --locked python -V), under caffeinate -i"
+echo "the trees before the run:"
+bash "$R/tree.sh" "$R/old/src" $FILES | tee "$R/tree-before.txt"
+echo "  git hash-object of each script the run runs:"
+for s in floor_pass.py group_key.py tree.sh run_floor.sh; do echo "    $(git hash-object "$R/$s")  <scratchpad>/r6/$s"; done
+echo
+echo "== the scripts, run from the repository root as: bash <scratchpad>/r6/run_floor.sh <scratchpad>/r6"
+echo '```bash'; cat "$R/run_floor.sh"; echo '```'
+echo '```python'; cat "$R/floor_pass.py"; echo '```'
+echo '```bash'; cat "$R/tree.sh"; echo '```'
+echo
+echo "== the test module's predicate and helper the new pool asks, as the run reads them:"
+echo '```python'
+uv run --locked python - <<'PY'
+import inspect, sys
+sys.path.insert(0, "tests/unit")
+import test_parameters as t
+for f in (t._what_a_set_holds, t._unnamed_by_its_display):
+    print(inspect.getsource(f))
+PY
+echo '```'
+echo
+echo "== 1. the cost, before anything is counted (stop past 4 hours wall)"
+pass --record volume --time || { after; exit 1; }
+echo
+echo "== 2. section A: volume, every binade below -54, through both trees"
+pass --record volume --to -55 || { after; exit 1; }
+echo
+echo "== 3. section B: volume, every binade from -54 up, through the new tree: where back differs from"
+echo "   the held preset at or above 2 ** -54, if anywhere, and the excuse on each such value"
+pass --record volume --from -54 --new-only || { after; exit 1; }
+echo
+echo "== 4. the 12 envelope records are one group: uv run --locked python <scratchpad>/r6/group_key.py"
+echo '```python'; cat "$R/group_key.py"; echo '```'
+uv run --locked python "$R/group_key.py"; echo "exit=$?"
+echo
+echo "== 5. section C: env_1_delay, standing for the 12, at every held power of two, through both trees"
+pass --record env_1_delay --powers || { after; exit 1; }
+after
+} 2>&1 | scrub
+```
+```python
+"""The revision after PR 14's sixth review: the floor pass, `e852aac`'s shipped methods against the new tree's.
+
+Nothing is reproduced. Pools of processes each import `patchbay_vital` from one tree, `e852aac`'s
+(an extract of that commit's `src`) or the new one (the working tree), by putting that tree's `src`
+first on `sys.path` before the first import, and call that tree's own scalar methods on every
+float32 normalized value r of a record, as a caller would:
+
+  P0 = scale.to_preset(r)            the preset the parameter holds
+  D0 = record.from_normalized(r)     its display
+  TP = record.to_preset(D0)          the display's preset
+  TN = record.to_normalized(D0)      the normalized value a set of the display sends
+
+The new pool also imports `tests/unit/test_parameters.py` from the working tree and asks its own
+excuse, `_unnamed_by_its_display(record, D0, P0, TP)`, wherever TP differs from P0, with the two
+candidates from its own `_what_a_set_holds(record, D0)`: what a set of the curve's float32 holds
+(HELD) and the float32 on that float32's other side (OTHER). The test's helper is called once a
+value: a one-entry cache in front of it hands the predicate the triple already worked out.
+
+Counted by binade of r, each count also split at `volume`'s floor exactly, by P0 <= 2 ** -43 and
+P0 > 2 ** -43, value by value:
+
+  DIFF       TP != P0, the values `_assert_comes_back` asks the excuse of
+  BY_HELD    of those, excused with TP the HELD candidate
+  BY_OTHER   of those, excused with TP the OTHER candidate
+  NEITHER    of those, not excused: a stop
+and, where both trees run (section A and the envelope powers):
+  P0!=, D0!= P0 or D0 differs between the trees (the scale and curve forward, which this revision
+             leaves alone)
+  TP!=       the new `to_preset` differs from `e852aac`'s: a stop
+  TN!=       the new, derived `to_normalized` differs from `e852aac`'s: a stop
+
+Run from the repository root:
+  uv run --locked python floor_pass.py --old <e852aac's src> --new <the working tree's src>
+      --tests <the working tree's tests/unit> --record <id> [--from <binade> --to <binade>]
+      [--new-only] [--time] [--powers] [--old-processes <n>] [--new-processes <n>]
+"""
+
+import argparse
+import math
+import multiprocessing
+import sys
+import time
+
+import numpy as np
+
+FLOOR = 2.0**-43
+CHUNK = 1 << 16
+SPANS = [("zero", 0, 1), ("sub", 1, 1 << 23)]
+SPANS += [(str(e - 127), e << 23, (e + 1) << 23) for e in range(1, 127)]
+SPANS += [("one", 0x3F800000, 0x3F800001)]
+COMPARED = ("P0!=", "D0!=", "TP!=", "TN!=")
+CLASSES = ("DIFF", "BY_HELD", "BY_OTHER", "NEITHER")
+STOPS = ("TP!=", "TN!=", "NEITHER")
+
+_TREE = {}
+
+
+def use(src, tests):
+    """A worker's initializer: import `patchbay_vital` from one tree, before anything else does."""
+    sys.path.insert(0, src)
+    import patchbay  # noqa: PLC0415
+    import patchbay_vital.parameters  # noqa: PLC0415
+
+    _TREE["parameters"] = patchbay_vital.parameters
+    _TREE["id"] = patchbay.ParameterId
+    if tests:
+        sys.path.insert(1, tests)
+        import test_parameters  # noqa: PLC0415
+
+        real = test_parameters._what_a_set_holds
+        last = {}
+
+        def once(record, display):
+            if last.get("key") != (record.id, display):
+                last["key"], last["value"] = (record.id, display), real(record, display)
+            return last["value"]
+
+        test_parameters._what_a_set_holds = once
+        _TREE["tests"] = test_parameters
+
+
+def where():
+    """Return the files this worker's tree and tests were imported from."""
+    files = [_TREE["parameters"].__file__]
+    if "tests" in _TREE:
+        files.append(_TREE["tests"].__file__)
+    return files
+
+
+def work(job):
+    """Call one tree's methods on every float32 normalized value of a bit-pattern range."""
+    name, lo, hi, normalized_too = job
+    record = _TREE["parameters"].parameter_map().find(_TREE["id"](name))
+    scale = record.scale
+    tests = _TREE.get("tests")
+    values = np.arange(lo, hi, dtype=np.uint32).view(np.float32).astype(np.float64).tolist()
+    out = np.full((4, len(values)), np.nan)
+    kind = np.zeros(len(values), np.int8)  # 0 same, 1 held, 2 other, 3 neither
+    for i, r in enumerate(values):
+        p0 = scale.to_preset(r)
+        d0 = record.from_normalized(r)
+        tp = record.to_preset(d0)
+        out[0, i], out[1, i], out[2, i] = p0, d0, tp
+        if normalized_too:
+            out[3, i] = record.to_normalized(d0)
+        if tests is None or tp == p0:
+            continue
+        _, held, _ = tests._what_a_set_holds(record, d0)
+        if not tests._unnamed_by_its_display(record, d0, p0, tp):
+            kind[i] = 3
+        else:
+            kind[i] = 1 if tp == held else 2
+    return lo, out, kind
+
+
+def tally(new, old, kind):
+    """Return the counts at or below the floor and above it, and where the run stops."""
+    p0 = new[0]
+    if old is None:
+        differs = [np.zeros(p0.shape, bool)] * 4
+    else:
+        differs = [new[k] != old[k] for k in range(4)]
+    classes = [kind != 0, kind == 1, kind == 2, kind == 3]  # noqa: PLR2004
+    flags = (*differs, *classes)
+    below = p0 <= FLOOR
+    rows = []
+    for side in (below, ~below):
+        rows.append([int(np.count_nonzero(side)), *(int(np.count_nonzero(f & side)) for f in flags)])
+    stop = differs[2] | differs[3] | classes[3]
+    return np.array(rows, dtype=np.int64), np.flatnonzero(stop)
+
+
+def spans(first, last):
+    labels = [label for label, _, _ in SPANS]
+    lo = 0 if first is None else labels.index(first)
+    hi = len(SPANS) - 1 if last is None else labels.index(last)
+    return SPANS[lo : hi + 1]
+
+
+def line(label, row):
+    return f"{label:>12} " + " ".join(f"{int(v):>11}" for v in row)
+
+
+def pools_for(args, new_only):
+    context = multiprocessing.get_context("spawn")
+    if new_only:
+        sizes = {"new": args.old_processes + args.new_processes}
+    else:
+        sizes = {"old": args.old_processes, "new": args.new_processes}
+    sources = {"old": (args.old, None), "new": (args.new, args.tests)}
+    pools = {s: context.Pool(n, initializer=use, initargs=sources[s]) for s, n in sizes.items()}
+    for side, pool in pools.items():
+        files = pool.apply(where)
+        print(f"== the {side} pool, {sizes[side]} processes, imports {files[0]}")
+        for f in files[1:]:
+            print(f"   and {f}")
+        if not files[0].startswith(sources[side][0]):
+            print("   NOT the tree asked for: stopping")
+            sys.exit(2)
+    return pools, sizes
+
+
+def timing(args):
+    """Time both sections on 200,000 values, and estimate the whole pass."""
+    rng = np.random.default_rng(13)
+    below = (127 - 54) << 23
+    estimate = 0.0
+    for section, new_only, lo, hi, count in (
+        ("A", False, 0, below, below),
+        ("B", True, below, 0x3F800001, 0x3F800001 - below),
+    ):
+        pools, sizes = pools_for(args, new_only)
+        took = {}
+        for side, pool in pools.items():
+            started = time.time()
+            jobs = []
+            for start in rng.integers(lo, hi - 50_000, 4, dtype=np.uint32).tolist():
+                job = (args.record, start, start + 50_000, not new_only)
+                jobs.append(pool.apply_async(work, (job,)))
+            for job in jobs:
+                job.get()
+            took[side] = (time.time() - started) / 50_000 * 1e6
+            print(f"  section {section}, {side}: {took[side]:.1f} us a value, 4 ranges of 50,000"
+                  " values in 4 processes at once")
+        wall = max(took[s] / sizes[s] for s in took) * count / 3.6e9
+        cpu = sum(took.values()) * count / 3.6e9
+        print(f"  section {section}, {count:,} values: about {cpu:.1f} CPU-hours, {wall:.2f} hours"
+              " wall on these pools")
+        estimate += wall
+        for pool in pools.values():
+            pool.terminate()
+    print(f"== the whole pass, sections A and B: about {estimate:.2f} hours wall")
+    if estimate > args.budget:
+        print(f"   more than the {args.budget} hours the owner allowed: stopping")
+        return 3
+    return 0
+
+
+def powers(name):
+    """Return, from one tree, each held power of two of a record's scale and its display's methods."""
+    parameters = _TREE["parameters"]
+    record = parameters.parameter_map().find(_TREE["id"](name))
+    scale = record.scale
+    found = []
+    for exponent in range(-149, 2):
+        preset = math.ldexp(1.0, exponent)
+        if scale.minimum <= preset <= scale.maximum and scale.holds(preset):
+            display = record.to_display(preset)
+            found.append((exponent, preset, scale.to_normalized(preset), display,
+                          record.to_preset(display), record.to_normalized(display)))
+    return found
+
+
+def held_powers(args):
+    pools, _ = pools_for(args, False)
+    old = pools["old"].apply(powers, (args.record,))
+    new = pools["new"].apply(powers, (args.record,))
+    print(f"== {args.record}: every power of two from 2 ** -149 to 2 the scale holds, through both trees")
+    print("   exponent  preset  normalized  display | to_preset(display), to_normalized(display):"
+          " new, then e852aac's")
+    if [row[:4] for row in old] != [row[:4] for row in new]:
+        print("   the two trees hold different powers, or give them other values: stopping")
+        return 1
+    differ = 0
+    for a, b in zip(new, old, strict=True):
+        same = a[4:] == b[4:]
+        differ += not same
+        print(f"   {a[0]:>4} {a[1]!r} {a[2]!r} {a[3]!r} | {a[4]!r} {a[5]!r}; {b[4]!r} {b[5]!r}"
+              f"{'' if same else '  DIFFERS'}")
+    print(f"   {len(new)} held powers of two; to_preset or to_normalized differs on {differ}")
+    for pool in pools.values():
+        pool.terminate()
+    return 1 if differ else 0
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--old", required=True)
+    parser.add_argument("--new", required=True)
+    parser.add_argument("--tests", required=True)
+    parser.add_argument("--record", required=True)
+    parser.add_argument("--from", dest="first")
+    parser.add_argument("--to", dest="last")
+    parser.add_argument("--new-only", action="store_true")
+    parser.add_argument("--old-processes", type=int, default=4)
+    parser.add_argument("--new-processes", type=int, default=8)
+    parser.add_argument("--time", action="store_true")
+    parser.add_argument("--powers", action="store_true")
+    parser.add_argument("--budget", type=float, default=4.0)
+    args = parser.parse_args()
+    if args.time:
+        return timing(args)
+    if args.powers:
+        return held_powers(args)
+    pools, _ = pools_for(args, args.new_only)
+    columns = ("n", *([] if args.new_only else COMPARED), *CLASSES)
+    keep = slice(None) if not args.new_only else [0, 5, 6, 7, 8]
+    chosen = spans(args.first, args.last)
+    trees = "the new tree" if args.new_only else "both trees"
+    print(f"== {args.record}: binades {chosen[0][0]} to {chosen[-1][0]},"
+          f" {sum(hi - lo for _, lo, hi in chosen):,} float32 normalized values, each through"
+          f" {trees}")
+    print(line("binade", ()) + " ".join(f"{c:>11}" for c in columns))
+    started = time.time()
+    total = np.zeros((2, 9), dtype=np.int64)
+    for label, lo, hi in chosen:
+        row = np.zeros((2, 9), dtype=np.int64)
+        jobs = []
+        for start in range(lo, hi, CHUNK):
+            end = min(hi, start + CHUNK)
+            job = (args.record, start, end, not args.new_only)
+            jobs.append((
+                None if args.new_only else pools["old"].apply_async(work, (job,)),
+                pools["new"].apply_async(work, (job,)),
+            ))
+        for old_job, new_job in jobs:
+            start, new, kind = new_job.get()
+            old = None if old_job is None else old_job.get()[1]
+            counted, stops = tally(new, old, kind)
+            row += counted
+            if stops.size:
+                print(line(label, row.sum(axis=0)[keep]))
+                print(f"== STOP: {stops.size} values in the range from bit pattern {start}; the first:")
+                for i in stops[:5].tolist():
+                    bits = np.array([start + i], dtype=np.uint32).view(np.float32)[0]
+                    print(f"   r {float(bits)!r}: the new tree's P0, D0, TP, TN"
+                          f" {[float(v) for v in new[:, i]]!r}, e852aac's"
+                          f" {None if old is None else [float(v) for v in old[:, i]]!r},"
+                          f" class {kind[i]}")
+                print("== stopped at once, as the owner asked")
+                for pool in pools.values():
+                    pool.terminate()
+                return 1
+        total += row
+        whole = row.sum(axis=0)
+        print(line(label, whole[keep]))
+        if row[0, 0] and row[1, 0]:
+            print(line("<= 2**-43", row[0][keep]))
+            print(line("> 2**-43", row[1][keep]))
+        sys.stdout.flush()
+    print(line("total", total.sum(axis=0)[keep]))
+    print(line("P0 <= 2**-43", total[0][keep]))
+    print(line("P0 > 2**-43", total[1][keep]))
+    print(f"  {time.time() - started:.0f} s")
+    for pool in pools.values():
+        pool.close()
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
+```
+```bash
+#!/bin/bash
+# Print the trees a run reads: HEAD, git status in full, and the blob of each file read in each tree.
+# usage: tree.sh <e852aac's extracted src> <file>...   (run from the repository root)
+old_src=$1; shift
+echo "  HEAD $(git rev-parse HEAD)"
+echo "  git status --porcelain=v1 --untracked-files=all, $(git status --porcelain=v1 --untracked-files=all | wc -l | tr -d ' ') lines:"
+git status --porcelain=v1 --untracked-files=all | sed 's/^/    /'
+echo "  the new tree, the working tree: git hash-object of each file the run reads, HEAD's blob beside it:"
+for f in "$@"; do
+  head_blob=$(git rev-parse --verify --quiet "HEAD:$f" || echo "not in HEAD")
+  echo "    $(git hash-object "$f")  $f  (HEAD $head_blob)"
+done
+echo "  the old tree, commit $(git rev-parse e852aac), its src extracted with git archive: git hash-object"
+echo "  of each extracted file the old pool reads, the blob of the commit beside it:"
+for f in "$@"; do
+  case $f in src/*)
+    echo "    $(git hash-object "$old_src/../$f")  <scratchpad>/r6/old/$f  (e852aac $(git rev-parse "e852aac:$f"))";;
+  esac
+done
+```
+
+== the test module's predicate and helper the new pool asks, as the run reads them:
+```python
+def _what_a_set_holds(record: MappedParameter, display: float) -> tuple[float, float, float]:
+    """Return the curve's float32 for a display, what a set of it holds, and its other side."""
+    own = record.curve.to_preset(display)
+    held = record.scale.to_preset(record.scale.to_normalized(own))
+    return own, held, next_float32(own, math.copysign(math.inf, own - held))
+
+def _unnamed_by_its_display(
+    record: MappedParameter, display: float, preset: float, back: float
+) -> bool:
+    """Say whether a display does not name its held preset, and `back` is what a set of it holds.
+
+    The display names a preset where the curve's own float32 for it, `curve.to_preset`, is that
+    preset: then nothing else is excused. Where it is not, `back` must be one of two candidates
+    worked out here from the scale's and the curve's primitives, never from `to_preset`, so a wrong
+    rule in the map cannot agree with itself: what a set of the curve's float32 holds, the scale's
+    value at its normalized value, or the float32 on that float32's other side
+    (`_what_a_set_holds`). The display, shown by `back` as well, is checked beside it in
+    `_assert_comes_back`. A value of the record's own scale and curve, never its name. It
+    replaces `_shares_its_display`, which asked only whether the float32 beside the preset toward
+    `back` shows its display: on a monotone curve that holds wherever `back` shows it, so it
+    excused any preset that showed the display (the sixth review's finding 1).
+    """
+    own, held, other = _what_a_set_holds(record, display)
+    return own != preset and back in (held, other)
+
+```
+
+== 1. the cost, before anything is counted (stop past 4 hours wall)
+== the old pool, 4 processes, imports <scratchpad>/r6/old/src/patchbay_vital/parameters.py
+== the new pool, 8 processes, imports src/patchbay_vital/parameters.py
+   and tests/unit/test_parameters.py
+  section A, old: 54.8 us a value, 4 ranges of 50,000 values in 4 processes at once
+  section A, new: 79.6 us a value, 4 ranges of 50,000 values in 4 processes at once
+  section A, 612,368,384 values: about 22.9 CPU-hours, 2.33 hours wall on these pools
+== the new pool, 12 processes, imports src/patchbay_vital/parameters.py
+   and tests/unit/test_parameters.py
+  section B, new: 35.9 us a value, 4 ranges of 50,000 values in 4 processes at once
+  section B, 452,984,833 values: about 4.5 CPU-hours, 0.38 hours wall on these pools
+== the whole pass, sections A and B: about 2.71 hours wall
+exit=0
+
+== 2. section A: volume, every binade below -54, through both trees
+== the old pool, 4 processes, imports <scratchpad>/r6/old/src/patchbay_vital/parameters.py
+== the new pool, 8 processes, imports src/patchbay_vital/parameters.py
+   and tests/unit/test_parameters.py
+== volume: binades zero to -55, 612,368,384 float32 normalized values, each through both trees
+      binade           n        P0!=        D0!=        TP!=        TN!=        DIFF     BY_HELD    BY_OTHER     NEITHER
+        zero           1           0           0           0           0           0           0           0           0
+         sub     8388607           0           0           0           0     8388607     8388607           0           0
+        -126     8388608           0           0           0           0     8388608     8388608           0           0
+        -125     8388608           0           0           0           0     8388608     8388608           0           0
+        -124     8388608           0           0           0           0     8388608     8388608           0           0
+        -123     8388608           0           0           0           0     8388608     8388608           0           0
+        -122     8388608           0           0           0           0     8388608     8388608           0           0
+        -121     8388608           0           0           0           0     8388608     8388608           0           0
+        -120     8388608           0           0           0           0     8388608     8388608           0           0
+        -119     8388608           0           0           0           0     8388608     8388608           0           0
+        -118     8388608           0           0           0           0     8388608     8388608           0           0
+        -117     8388608           0           0           0           0     8388608     8388608           0           0
+        -116     8388608           0           0           0           0     8388608     8388608           0           0
+        -115     8388608           0           0           0           0     8388608     8388608           0           0
+        -114     8388608           0           0           0           0     8388608     8388608           0           0
+        -113     8388608           0           0           0           0     8388608     8388608           0           0
+        -112     8388608           0           0           0           0     8388608     8388608           0           0
+        -111     8388608           0           0           0           0     8388608     8388608           0           0
+        -110     8388608           0           0           0           0     8388608     8388608           0           0
+        -109     8388608           0           0           0           0     8388608     8388608           0           0
+        -108     8388608           0           0           0           0     8388608     8388608           0           0
+        -107     8388608           0           0           0           0     8388608     8388608           0           0
+        -106     8388608           0           0           0           0     8388608     8388608           0           0
+        -105     8388608           0           0           0           0     8388607     8388607           0           0
+        -104     8388608           0           0           0           0     8388608     8388608           0           0
+        -103     8388608           0           0           0           0     8388607     8388607           0           0
+        -102     8388608           0           0           0           0     8388607     8388607           0           0
+        -101     8388608           0           0           0           0     8388606     8388606           0           0
+        -100     8388608           0           0           0           0     8388605     8388605           0           0
+         -99     8388608           0           0           0           0     8388605     8388605           0           0
+         -98     8388608           0           0           0           0     8388602     8388602           0           0
+         -97     8388608           0           0           0           0     8388602     8388602           0           0
+         -96     8388608           0           0           0           0     8388598     8388598           0           0
+         -95     8388608           0           0           0           0     8388594     8388594           0           0
+         -94     8388608           0           0           0           0     8388589     8388589           0           0
+         -93     8388608           0           0           0           0     8388581     8388581           0           0
+         -92     8388608           0           0           0           0     8388568     8388568           0           0
+         -91     8388608           0           0           0           0     8388555     8388555           0           0
+         -90     8388608           0           0           0           0     8388531     8388531           0           0
+         -89     8388608           0           0           0           0     8388502     8388502           0           0
+         -88     8388608           0           0           0           0     8388452     8388452           0           0
+         -87     8388608           0           0           0           0     8388394     8388394           0           0
+         -86     8388608           0           0           0           0     8388300     8388300           0           0
+         -85     8388608           0           0           0           0     8388176     8388176           0           0
+         -84     8388608           0           0           0           0     8387985     8387985           0           0
+         -83     8388608           0           0           0           0     8387729     8387729           0           0
+         -82     8388608           0           0           0           0     8387371     8387371           0           0
+         -81     8388608           0           0           0           0     8386848     8386848           0           0
+         -80     8388608           0           0           0           0     8386126     8386126           0           0
+         -79     8388608           0           0           0           0     8385076     8385076           0           0
+         -78     8388608           0           0           0           0     8383621     8383621           0           0
+         -77     8388608           0           0           0           0     8381518     8381518           0           0
+         -76     8388608           0           0           0           0     8378660     8378660           0           0
+         -75     8388608           0           0           0           0     8374516     8374516           0           0
+         -74     8388608           0           0           0           0     8368708     8368708           0           0
+         -73     8388608           0           0           0           0     8360399     8360399           0           0
+         -72     8388608           0           0           0           0     8348756     8348756           0           0
+         -71     8388608           0           0           0           0     8332183     8332183           0           0
+         -70     8388608           0           0           0           0     8308772     8308772           0           0
+         -69     8388608           0           0           0           0     8275875     8275875           0           0
+         -68     8388608           0           0           0           0     8228846     8228846           0           0
+         -67     8388608           0           0           0           0     8162965     8162965           0           0
+         -66     8388608           0           0           0           0     8069230     8069230           0           0
+         -65     8388608           0           0           0           0     7937425     7937425           0           0
+         -64     8388608           0           0           0           0     7749877     7749877           0           0
+         -63     8388608           0           0           0           0     7485854     7485854           0           0
+         -62     8388608           0           0           0           0     7111466     7111466           0           0
+         -61     8388608           0           0           0           0     6583196     6583196           0           0
+         -60     8388608           0           0           0           0     5834420     5834420           0           0
+         -59     8388608           0           0           0           0     4778146     4778146           0           0
+         -58     8388608           0           0           0           0     3280933     3280933           0           0
+         -57     8388608           0           0           0           0     1184639     1184639           0           0
+         -56     8388608           0           0           0           0       47730       47730           0           0
+   <= 2**-43      898511           0           0           0           0       47730       47730           0           0
+    > 2**-43     7490097           0           0           0           0           0           0           0           0
+         -55     8388608           0           0           0           0           0           0           0           0
+       total   612368384           0           0           0           0   570997534   570997534           0           0
+P0 <= 2**-43   596489679           0           0           0           0   570997534   570997534           0           0
+ P0 > 2**-43    15878705           0           0           0           0           0           0           0           0
+  9070 s
+exit=0
+
+== 3. section B: volume, every binade from -54 up, through the new tree: where back differs from
+   the held preset at or above 2 ** -54, if anywhere, and the excuse on each such value
+== the new pool, 12 processes, imports src/patchbay_vital/parameters.py
+   and tests/unit/test_parameters.py
+== volume: binades -54 to one, 452,984,833 float32 normalized values, each through the new tree
+      binade           n        DIFF     BY_HELD    BY_OTHER     NEITHER
+         -54     8388608           0           0           0           0
+         -53     8388608           0           0           0           0
+         -52     8388608           0           0           0           0
+         -51     8388608           0           0           0           0
+         -50     8388608           0           0           0           0
+         -49     8388608           0           0           0           0
+         -48     8388608           0           0           0           0
+         -47     8388608           0           0           0           0
+         -46     8388608           0           0           0           0
+         -45     8388608           0           0           0           0
+         -44     8388608           0           0           0           0
+         -43     8388608           0           0           0           0
+         -42     8388608           0           0           0           0
+         -41     8388608           0           0           0           0
+         -40     8388608           0           0           0           0
+         -39     8388608           0           0           0           0
+         -38     8388608           0           0           0           0
+         -37     8388608           0           0           0           0
+         -36     8388608           0           0           0           0
+         -35     8388608           0           0           0           0
+         -34     8388608           0           0           0           0
+         -33     8388608           0           0           0           0
+         -32     8388608           0           0           0           0
+         -31     8388608           0           0           0           0
+         -30     8388608           0           0           0           0
+         -29     8388608           0           0           0           0
+         -28     8388608           0           0           0           0
+         -27     8388608           0           0           0           0
+         -26     8388608           0           0           0           0
+         -25     8388608           0           0           0           0
+         -24     8388608           0           0           0           0
+         -23     8388608           0           0           0           0
+         -22     8388608           0           0           0           0
+         -21     8388608           0           0           0           0
+         -20     8388608           0           0           0           0
+         -19     8388608           0           0           0           0
+         -18     8388608           0           0           0           0
+         -17     8388608           0           0           0           0
+         -16     8388608           0           0           0           0
+         -15     8388608           0           0           0           0
+         -14     8388608           0           0           0           0
+         -13     8388608           0           0           0           0
+         -12     8388608           0           0           0           0
+         -11     8388608           0           0           0           0
+         -10     8388608           0           0           0           0
+          -9     8388608           0           0           0           0
+          -8     8388608           0           0           0           0
+          -7     8388608           0           0           0           0
+          -6     8388608           0           0           0           0
+          -5     8388608           0           0           0           0
+          -4     8388608           0           0           0           0
+          -3     8388608           0           0           0           0
+          -2     8388608           0           0           0           0
+          -1     8388608           0           0           0           0
+         one           1           0           0           0           0
+       total   452984833           0           0           0           0
+P0 <= 2**-43           0           0           0           0           0
+ P0 > 2**-43   452984833           0           0           0           0
+  1850 s
+exit=0
+
+== 4. the 12 envelope records are one group: uv run --locked python <scratchpad>/r6/group_key.py
+```python
+"""The revision after PR 14's sixth review: the 12 envelope records are one group, shown.
+
+Prints, for each `env_N_delay` and `env_N_hold` record of the committed map, every field the
+floor pass's calls read, and then, from the shipped source itself, which attributes of a record,
+its parameter, its scale and its curve each method called reads: the syntax tree of each function
+is walked for attribute reads, and a call to another function or method is followed by name. So
+two records equal in those fields give every call the same inputs. Run from the repository root:
+uv run --locked python <scratchpad>/r6/group_key.py
+"""
+
+import ast
+import inspect
+import textwrap
+
+from patchbay_vital import parameters
+from patchbay_vital.parameters import DisplayCurve, MappedParameter, NormalizedScale, parameter_map
+
+CALLED = [
+    (NormalizedScale, "to_preset"), (NormalizedScale, "to_normalized"), (NormalizedScale, "holds"),
+    (NormalizedScale, "span"), (parameters, "_landing"), (parameters, "_span"),
+    (DisplayCurve, "to_display"), (DisplayCurve, "to_preset"), (parameters, "displayed_ends"),
+    (parameters, "_displayed_ends"), (MappedParameter, "from_normalized"),
+    (MappedParameter, "to_display"), (MappedParameter, "to_preset"),
+    (MappedParameter, "to_normalized"), (MappedParameter, "id"),
+]
+
+
+def source(owner, name):
+    member = inspect.getattr_static(owner, name)
+    member = member.fget if isinstance(member, property) else member
+    member = getattr(member, "__wrapped__", member)
+    lines, first = inspect.getsourcelines(member)
+    return ast.parse(textwrap.dedent("".join(lines))), first
+
+
+def reads(tree):
+    """Return every `<name>.<attribute>` read in a function, as written."""
+    found = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name):
+            found.add(f"{node.value.id}.{node.attr}")
+        elif isinstance(node, ast.Attribute) and isinstance(node.value, ast.Attribute):
+            inner = node.value
+            if isinstance(inner.value, ast.Name):
+                found.add(f"{inner.value.id}.{inner.attr}.{node.attr}")
+    return sorted(found)
+
+
+def main():
+    m = parameter_map()
+    records = [r for r in m.parameters
+               if r.id.startswith("env_") and r.id.rsplit("_", 1)[1] in ("delay", "hold")]
+    print(f"== the {len(records)} envelope delay and hold records, every field the calls read:")
+    print("   id: parameter.kind parameter.minimum parameter.maximum | scale.kind scale.minimum"
+          " scale.maximum | curve.kind curve.multiply curve.offset")
+    keys = set()
+    for r in records:
+        p, s, c = r.parameter, r.scale, r.curve
+        key = (p.kind, p.minimum, p.maximum, s.kind, s.minimum, s.maximum, c.kind, c.multiply,
+               c.offset)
+        keys.add(key)
+        print(f"   {r.id}: {p.kind} {p.minimum!r} {p.maximum!r} | {s.kind} {s.minimum!r}"
+              f" {s.maximum!r} | {c.kind} {c.multiply!r} {c.offset!r}")
+    print(f"== distinct keys among them: {len(keys)}")
+    print("== what each method the pass calls, and each it calls in turn, reads, from")
+    print(f"   {inspect.getsourcefile(parameters)}:")
+    for owner, name in CALLED:
+        tree, first = source(owner, name)
+        print(f"   {getattr(owner, '__name__', 'parameters').replace('patchbay_vital.', '')}.{name}"
+              f" (line {first}): {', '.join(reads(tree)) or 'no attribute'}")
+    print("== of a record these read only: parameter.kind, parameter.minimum, parameter.maximum,")
+    print("   scale (kind, minimum, maximum, and span, computed from the two bounds) and curve")
+    print("   (kind, multiply, offset); `self.id`, which is parameter.id, is read only to raise")
+    print("   ParameterRangeError, which no call of the pass raised (a raise ends the run).")
+
+
+if __name__ == "__main__":
+    main()
+```
+== the 12 envelope delay and hold records, every field the calls read:
+   id: parameter.kind parameter.minimum parameter.maximum | scale.kind scale.minimum scale.maximum | curve.kind curve.multiply curve.offset
+   env_1_delay: continuous 0.0 3.9999997261716707 | linear 0.0 1.4142135381698608 | quartic 1.0 0.0
+   env_1_hold: continuous 0.0 3.9999997261716707 | linear 0.0 1.4142135381698608 | quartic 1.0 0.0
+   env_2_delay: continuous 0.0 3.9999997261716707 | linear 0.0 1.4142135381698608 | quartic 1.0 0.0
+   env_2_hold: continuous 0.0 3.9999997261716707 | linear 0.0 1.4142135381698608 | quartic 1.0 0.0
+   env_3_delay: continuous 0.0 3.9999997261716707 | linear 0.0 1.4142135381698608 | quartic 1.0 0.0
+   env_3_hold: continuous 0.0 3.9999997261716707 | linear 0.0 1.4142135381698608 | quartic 1.0 0.0
+   env_4_delay: continuous 0.0 3.9999997261716707 | linear 0.0 1.4142135381698608 | quartic 1.0 0.0
+   env_4_hold: continuous 0.0 3.9999997261716707 | linear 0.0 1.4142135381698608 | quartic 1.0 0.0
+   env_5_delay: continuous 0.0 3.9999997261716707 | linear 0.0 1.4142135381698608 | quartic 1.0 0.0
+   env_5_hold: continuous 0.0 3.9999997261716707 | linear 0.0 1.4142135381698608 | quartic 1.0 0.0
+   env_6_delay: continuous 0.0 3.9999997261716707 | linear 0.0 1.4142135381698608 | quartic 1.0 0.0
+   env_6_hold: continuous 0.0 3.9999997261716707 | linear 0.0 1.4142135381698608 | quartic 1.0 0.0
+== distinct keys among them: 1
+== what each method the pass calls, and each it calls in turn, reads, from
+   src/patchbay_vital/parameters.py:
+   NormalizedScale.to_preset (line 110): self.kind, self.minimum, self.span
+   NormalizedScale.to_normalized (line 115): no attribute
+   NormalizedScale.holds (line 129): no attribute
+   NormalizedScale.span (line 101): self.maximum, self.minimum
+   parameters._landing (line 151): math.copysign, math.inf, scale.minimum, scale.span, scale.to_preset
+   parameters._span (line 83): functools.lru_cache
+   DisplayCurve.to_display (line 208): self.kind, self.multiply, self.offset
+   DisplayCurve.to_preset (line 212): self.kind, self.multiply, self.offset
+   parameters.displayed_ends (line 234): curve.kind, curve.multiply, curve.offset, scale.maximum, scale.minimum
+   parameters._displayed_ends (line 225): curve.to_display, functools.lru_cache
+   MappedParameter.from_normalized (line 338): self.id, self.scale, self.scale.to_preset, self.to_display
+   MappedParameter.to_display (line 273): self.curve, self.curve.to_display
+   MappedParameter.to_preset (line 277): curve.to_display, curve.to_preset, display.is_integer, math.copysign, math.inf, parameter.kind, parameter.maximum, parameter.minimum, scale.holds, scale.kind, scale.maximum, scale.minimum, self.curve, self.id, self.parameter, self.scale
+   MappedParameter.to_normalized (line 330): self.scale, self.scale.to_normalized, self.to_preset
+   MappedParameter.id (line 263): self.parameter, self.parameter.id
+== of a record these read only: parameter.kind, parameter.minimum, parameter.maximum,
+   scale (kind, minimum, maximum, and span, computed from the two bounds) and curve
+   (kind, multiply, offset); `self.id`, which is parameter.id, is read only to raise
+   ParameterRangeError, which no call of the pass raised (a raise ends the run).
+exit=0
+
+== 5. section C: env_1_delay, standing for the 12, at every held power of two, through both trees
+== the old pool, 4 processes, imports <scratchpad>/r6/old/src/patchbay_vital/parameters.py
+== the new pool, 8 processes, imports src/patchbay_vital/parameters.py
+   and tests/unit/test_parameters.py
+== env_1_delay: every power of two from 2 ** -149 to 2 the scale holds, through both trees
+   exponent  preset  normalized  display | to_preset(display), to_normalized(display): new, then e852aac's
+   -149 1.401298464324817e-45 1.401298464324817e-45 3.855871784164615e-180 | 1.401298464324817e-45 1.401298464324817e-45; 1.401298464324817e-45 1.401298464324817e-45
+   -147 5.605193857299268e-45 4.203895392974451e-45 9.871031767461413e-178 | 5.605193857299268e-45 4.203895392974451e-45; 5.605193857299268e-45 4.203895392974451e-45
+   -146 1.1210387714598537e-44 8.407790785948902e-45 1.5793650827938261e-176 | 1.1210387714598537e-44 8.407790785948902e-45; 1.1210387714598537e-44 8.407790785948902e-45
+   -145 2.2420775429197073e-44 1.5414283107572988e-44 2.526984132470122e-175 | 2.2420775429197073e-44 1.5414283107572988e-44; 2.2420775429197073e-44 1.5414283107572988e-44
+   -143 8.96831017167883e-44 6.305843089461677e-44 6.469079379123512e-173 | 8.96831017167883e-44 6.305843089461677e-44; 8.96831017167883e-44 6.305843089461677e-44
+   -141 3.587324068671532e-43 2.536350220427919e-43 1.656084321055619e-170 | 3.587324068671532e-43 2.536350220427919e-43; 3.587324068671532e-43 2.536350220427919e-43
+   -140 7.174648137343064e-43 5.072700440855838e-43 2.6497349136889905e-169 | 7.174648137343064e-43 5.072700440855838e-43; 7.174648137343064e-43 5.072700440855838e-43
+   -139 1.4349296274686127e-42 1.0145400881711676e-42 4.239575861902385e-168 | 1.4349296274686127e-42 1.0145400881711676e-42; 1.4349296274686127e-42 1.0145400881711676e-42
+   -138 2.8698592549372254e-42 2.029080176342335e-42 6.783321379043816e-167 | 2.8698592549372254e-42 2.029080176342335e-42; 2.8698592549372254e-42 2.029080176342335e-42
+   -137 5.739718509874451e-42 4.05816035268467e-42 1.0853314206470105e-165 | 5.739718509874451e-42 4.05816035268467e-42; 5.739718509874451e-42 4.05816035268467e-42
+   -135 2.2958874039497803e-41 1.6234042709203006e-41 2.778448436856347e-163 | 2.2958874039497803e-41 1.6234042709203006e-41; 2.2958874039497803e-41 1.6234042709203006e-41
+   -133 9.183549615799121e-41 6.493757213527635e-41 7.112827998352248e-161 | 9.183549615799121e-41 6.493757213527635e-41; 9.183549615799121e-41 6.493757213527635e-41
+   -132 1.8367099231598242e-40 1.298751442705527e-40 1.1380524797363597e-159 | 1.8367099231598242e-40 1.298751442705527e-40; 1.8367099231598242e-40 1.298751442705527e-40
+   -131 3.6734198463196485e-40 2.597502885411054e-40 1.8208839675781755e-158 | 3.6734198463196485e-40 2.597502885411054e-40; 3.6734198463196485e-40 2.597502885411054e-40
+   -129 1.4693679385278594e-39 1.0389997528659572e-39 4.661462957000129e-156 | 1.4693679385278594e-39 1.0389997528659572e-39; 1.4693679385278594e-39 1.0389997528659572e-39
+   -127 5.877471754111438e-39 4.156000412762293e-39 1.1933345169920331e-153 | 5.877471754111438e-39 4.156000412762293e-39; 5.877471754111438e-39 4.156000412762293e-39
+   -126 1.1754943508222875e-38 8.312000825524587e-39 1.909335227187253e-152 | 1.1754943508222875e-38 8.312000825524587e-39; 1.1754943508222875e-38 8.312000825524587e-39
+   -125 2.350988701644575e-38 1.6624001651049173e-38 3.054936363499605e-151 | 2.350988701644575e-38 1.6624001651049173e-38; 2.350988701644575e-38 1.6624001651049173e-38
+   -124 4.70197740328915e-38 3.3248003302098346e-38 4.887898181599368e-150 | 4.70197740328915e-38 3.3248003302098346e-38; 4.70197740328915e-38 3.3248003302098346e-38
+   -123 9.4039548065783e-38 6.649600660419669e-38 7.820637090558988e-149 | 9.4039548065783e-38 6.649600660419669e-38; 9.4039548065783e-38 6.649600660419669e-38
+   -122 1.88079096131566e-37 1.3299201320839339e-37 1.2513019344894381e-147 | 1.88079096131566e-37 1.3299201320839339e-37; 1.88079096131566e-37 1.3299201320839339e-37
+   -121 3.76158192263132e-37 2.6598402641678677e-37 2.002083095183101e-146 | 3.76158192263132e-37 2.6598402641678677e-37; 3.76158192263132e-37 2.6598402641678677e-37
+   -120 7.52316384526264e-37 5.319680528335735e-37 3.2033329522929615e-145 | 7.52316384526264e-37 5.319680528335735e-37; 7.52316384526264e-37 5.319680528335735e-37
+   -119 1.504632769052528e-36 1.063936105667147e-36 5.1253327236687384e-144 | 1.504632769052528e-36 1.063936105667147e-36; 1.504632769052528e-36 1.063936105667147e-36
+   -118 3.009265538105056e-36 2.127872211334294e-36 8.200532357869981e-143 | 3.009265538105056e-36 2.127872211334294e-36; 3.009265538105056e-36 2.127872211334294e-36
+   -117 6.018531076210112e-36 4.255744422668588e-36 1.312085177259197e-141 | 6.018531076210112e-36 4.255744422668588e-36; 6.018531076210112e-36 4.255744422668588e-36
+   -116 1.2037062152420224e-35 8.511488845337177e-36 2.0993362836147152e-140 | 1.2037062152420224e-35 8.511488845337177e-36; 1.2037062152420224e-35 8.511488845337177e-36
+   -115 2.407412430484045e-35 1.7022977690674353e-35 3.3589380537835444e-139 | 2.407412430484045e-35 1.7022977690674353e-35; 2.407412430484045e-35 1.7022977690674353e-35
+   -114 4.81482486096809e-35 3.4045955381348707e-35 5.374300886053671e-138 | 4.81482486096809e-35 3.4045955381348707e-35; 4.81482486096809e-35 3.4045955381348707e-35
+   -113 9.62964972193618e-35 6.809191076269741e-35 8.598881417685874e-137 | 9.62964972193618e-35 6.809191076269741e-35; 9.62964972193618e-35 6.809191076269741e-35
+   -112 1.925929944387236e-34 1.3618382152539483e-34 1.3758210268297398e-135 | 1.925929944387236e-34 1.3618382152539483e-34; 1.925929944387236e-34 1.3618382152539483e-34
+   -111 3.851859888774472e-34 2.7236764305078965e-34 2.2013136429275836e-134 | 3.851859888774472e-34 2.7236764305078965e-34; 3.851859888774472e-34 2.7236764305078965e-34
+   -110 7.703719777548943e-34 5.447352861015793e-34 3.522101828684134e-133 | 7.703719777548943e-34 5.447352861015793e-34; 7.703719777548943e-34 5.447352861015793e-34
+   -109 1.5407439555097887e-33 1.0894705722031586e-33 5.635362925894614e-132 | 1.5407439555097887e-33 1.0894705722031586e-33; 1.5407439555097887e-33 1.0894705722031586e-33
+   -108 3.0814879110195774e-33 2.1789411444063172e-33 9.016580681431383e-131 | 3.0814879110195774e-33 2.1789411444063172e-33; 3.0814879110195774e-33 2.1789411444063172e-33
+   -107 6.162975822039155e-33 4.3578822888126344e-33 1.4426529090290212e-129 | 6.162975822039155e-33 4.3578822888126344e-33; 6.162975822039155e-33 4.3578822888126344e-33
+   -106 1.232595164407831e-32 8.715764577625269e-33 2.308244654446434e-128 | 1.232595164407831e-32 8.715764577625269e-33; 1.232595164407831e-32 8.715764577625269e-33
+   -105 2.465190328815662e-32 1.7431529155250538e-32 3.6931914471142943e-127 | 2.465190328815662e-32 1.7431529155250538e-32; 2.465190328815662e-32 1.7431529155250538e-32
+   -104 4.930380657631324e-32 3.4863058310501076e-32 5.909106315382871e-126 | 4.930380657631324e-32 3.4863058310501076e-32; 4.930380657631324e-32 3.4863058310501076e-32
+   -103 9.860761315262648e-32 6.972611662100215e-32 9.454570104612593e-125 | 9.860761315262648e-32 6.972611662100215e-32; 9.860761315262648e-32 6.972611662100215e-32
+   -102 1.9721522630525295e-31 1.394522332420043e-31 1.512731216738015e-123 | 1.9721522630525295e-31 1.394522332420043e-31; 1.9721522630525295e-31 1.394522332420043e-31
+   -101 3.944304526105059e-31 2.789044664840086e-31 2.420369946780824e-122 | 3.944304526105059e-31 2.789044664840086e-31; 3.944304526105059e-31 2.789044664840086e-31
+   -100 7.888609052210118e-31 5.578089329680172e-31 3.8725919148493183e-121 | 7.888609052210118e-31 5.578089329680172e-31; 7.888609052210118e-31 5.578089329680172e-31
+    -99 1.5777218104420236e-30 1.1156178659360344e-30 6.196147063758909e-120 | 1.5777218104420236e-30 1.1156178659360344e-30; 1.5777218104420236e-30 1.1156178659360344e-30
+    -98 3.1554436208840472e-30 2.231235731872069e-30 9.913835302014255e-119 | 3.1554436208840472e-30 2.231235731872069e-30; 3.1554436208840472e-30 2.231235731872069e-30
+    -97 6.310887241768095e-30 4.462471463744138e-30 1.5862136483222808e-117 | 6.310887241768095e-30 4.462471463744138e-30; 6.310887241768095e-30 4.462471463744138e-30
+    -96 1.262177448353619e-29 8.924942927488275e-30 2.5379418373156492e-116 | 1.262177448353619e-29 8.924942927488275e-30; 1.262177448353619e-29 8.924942927488275e-30
+    -95 2.524354896707238e-29 1.784988585497655e-29 4.060706939705039e-115 | 2.524354896707238e-29 1.784988585497655e-29; 2.524354896707238e-29 1.784988585497655e-29
+    -94 5.048709793414476e-29 3.56997717099531e-29 6.497131103528062e-114 | 5.048709793414476e-29 3.56997717099531e-29; 5.048709793414476e-29 3.56997717099531e-29
+    -93 1.0097419586828951e-28 7.13995434199062e-29 1.03954097656449e-112 | 1.0097419586828951e-28 7.13995434199062e-29; 1.0097419586828951e-28 7.13995434199062e-29
+    -92 2.0194839173657902e-28 1.427990868398124e-28 1.663265562503184e-111 | 2.0194839173657902e-28 1.427990868398124e-28; 2.0194839173657902e-28 1.427990868398124e-28
+    -91 4.0389678347315804e-28 2.855981736796248e-28 2.6612249000050942e-110 | 4.0389678347315804e-28 2.855981736796248e-28; 4.0389678347315804e-28 2.855981736796248e-28
+    -90 8.077935669463161e-28 5.711963473592496e-28 4.257959840008151e-109 | 8.077935669463161e-28 5.711963473592496e-28; 8.077935669463161e-28 5.711963473592496e-28
+    -89 1.6155871338926322e-27 1.1423926947184992e-27 6.812735744013041e-108 | 1.6155871338926322e-27 1.1423926947184992e-27; 1.6155871338926322e-27 1.1423926947184992e-27
+    -88 3.2311742677852644e-27 2.2847853894369985e-27 1.0900377190420866e-106 | 3.2311742677852644e-27 2.2847853894369985e-27; 3.2311742677852644e-27 2.2847853894369985e-27
+    -87 6.462348535570529e-27 4.569570778873997e-27 1.7440603504673385e-105 | 6.462348535570529e-27 4.569570778873997e-27; 6.462348535570529e-27 4.569570778873997e-27
+    -86 1.2924697071141057e-26 9.139141557747994e-27 2.7904965607477417e-104 | 1.2924697071141057e-26 9.139141557747994e-27; 1.2924697071141057e-26 9.139141557747994e-27
+    -85 2.5849394142282115e-26 1.8278283115495988e-26 4.464794497196387e-103 | 2.5849394142282115e-26 1.8278283115495988e-26; 2.5849394142282115e-26 1.8278283115495988e-26
+    -84 5.169878828456423e-26 3.6556566230991976e-26 7.143671195514219e-102 | 5.169878828456423e-26 3.6556566230991976e-26; 5.169878828456423e-26 3.6556566230991976e-26
+    -83 1.0339757656912846e-25 7.311313246198395e-26 1.142987391282275e-100 | 1.0339757656912846e-25 7.311313246198395e-26; 1.0339757656912846e-25 7.311313246198395e-26
+    -82 2.0679515313825692e-25 1.462262649239679e-25 1.82877982605164e-99 | 2.0679515313825692e-25 1.462262649239679e-25; 2.0679515313825692e-25 1.462262649239679e-25
+    -81 4.1359030627651384e-25 2.924525298479358e-25 2.926047721682624e-98 | 4.1359030627651384e-25 2.924525298479358e-25; 4.1359030627651384e-25 2.924525298479358e-25
+    -80 8.271806125530277e-25 5.849050596958716e-25 4.6816763546921983e-97 | 8.271806125530277e-25 5.849050596958716e-25; 8.271806125530277e-25 5.849050596958716e-25
+    -79 1.6543612251060553e-24 1.1698101193917432e-24 7.490682167507517e-96 | 1.6543612251060553e-24 1.1698101193917432e-24; 1.6543612251060553e-24 1.1698101193917432e-24
+    -78 3.308722450212111e-24 2.3396202387834865e-24 1.1985091468012028e-94 | 3.308722450212111e-24 2.3396202387834865e-24; 3.308722450212111e-24 2.3396202387834865e-24
+    -77 6.617444900424222e-24 4.679240477566973e-24 1.9176146348819244e-93 | 6.617444900424222e-24 4.679240477566973e-24; 6.617444900424222e-24 4.679240477566973e-24
+    -76 1.3234889800848443e-23 9.358480955133946e-24 3.068183415811079e-92 | 1.3234889800848443e-23 9.358480955133946e-24; 1.3234889800848443e-23 9.358480955133946e-24
+    -75 2.6469779601696886e-23 1.8716961910267892e-23 4.909093465297727e-91 | 2.6469779601696886e-23 1.8716961910267892e-23; 2.6469779601696886e-23 1.8716961910267892e-23
+    -74 5.293955920339377e-23 3.7433923820535783e-23 7.854549544476363e-90 | 5.293955920339377e-23 3.7433923820535783e-23; 5.293955920339377e-23 3.7433923820535783e-23
+    -73 1.0587911840678754e-22 7.486784764107157e-23 1.256727927116218e-88 | 1.0587911840678754e-22 7.486784764107157e-23; 1.0587911840678754e-22 7.486784764107157e-23
+    -72 2.117582368135751e-22 1.4973569528214313e-22 2.010764683385949e-87 | 2.117582368135751e-22 1.4973569528214313e-22; 2.117582368135751e-22 1.4973569528214313e-22
+    -71 4.235164736271502e-22 2.9947139056428627e-22 3.217223493417518e-86 | 4.235164736271502e-22 2.9947139056428627e-22; 4.235164736271502e-22 2.9947139056428627e-22
+    -70 8.470329472543003e-22 5.989427811285725e-22 5.147557589468029e-85 | 8.470329472543003e-22 5.989427811285725e-22; 8.470329472543003e-22 5.989427811285725e-22
+    -69 1.6940658945086007e-21 1.197885562257145e-21 8.236092143148846e-84 | 1.6940658945086007e-21 1.197885562257145e-21; 1.6940658945086007e-21 1.197885562257145e-21
+    -68 3.3881317890172014e-21 2.39577112451429e-21 1.3177747429038154e-82 | 3.3881317890172014e-21 2.39577112451429e-21; 3.3881317890172014e-21 2.39577112451429e-21
+    -67 6.776263578034403e-21 4.79154224902858e-21 2.1084395886461046e-81 | 6.776263578034403e-21 4.79154224902858e-21; 6.776263578034403e-21 4.79154224902858e-21
+    -66 1.3552527156068805e-20 9.58308449805716e-21 3.3735033418337674e-80 | 1.3552527156068805e-20 9.58308449805716e-21; 1.3552527156068805e-20 9.58308449805716e-21
+    -65 2.710505431213761e-20 1.916616899611432e-20 5.397605346934028e-79 | 2.710505431213761e-20 1.916616899611432e-20; 2.710505431213761e-20 1.916616899611432e-20
+    -64 5.421010862427522e-20 3.833233799222864e-20 8.636168555094445e-78 | 5.421010862427522e-20 3.833233799222864e-20; 5.421010862427522e-20 3.833233799222864e-20
+    -63 1.0842021724855044e-19 7.666467598445728e-20 1.3817869688151111e-76 | 1.0842021724855044e-19 7.666467598445728e-20; 1.0842021724855044e-19 7.666467598445728e-20
+    -62 2.168404344971009e-19 1.5332935196891457e-19 2.210859150104178e-75 | 2.168404344971009e-19 1.5332935196891457e-19; 2.168404344971009e-19 1.5332935196891457e-19
+    -61 4.336808689942018e-19 3.0665870393782914e-19 3.5373746401666845e-74 | 4.336808689942018e-19 3.0665870393782914e-19; 4.336808689942018e-19 3.0665870393782914e-19
+    -60 8.673617379884035e-19 6.133174078756583e-19 5.659799424266695e-73 | 8.673617379884035e-19 6.133174078756583e-19; 8.673617379884035e-19 6.133174078756583e-19
+    -59 1.734723475976807e-18 1.2266348157513165e-18 9.055679078826712e-72 | 1.734723475976807e-18 1.2266348157513165e-18; 1.734723475976807e-18 1.2266348157513165e-18
+    -58 3.469446951953614e-18 2.453269631502633e-18 1.448908652612274e-70 | 3.469446951953614e-18 2.453269631502633e-18; 3.469446951953614e-18 2.453269631502633e-18
+    -57 6.938893903907228e-18 4.906539263005266e-18 2.3182538441796384e-69 | 6.938893903907228e-18 4.906539263005266e-18; 6.938893903907228e-18 4.906539263005266e-18
+    -56 1.3877787807814457e-17 9.813078526010532e-18 3.7092061506874214e-68 | 1.3877787807814457e-17 9.813078526010532e-18; 1.3877787807814457e-17 9.813078526010532e-18
+    -55 2.7755575615628914e-17 1.9626157052021065e-17 5.934729841099874e-67 | 2.7755575615628914e-17 1.9626157052021065e-17; 2.7755575615628914e-17 1.9626157052021065e-17
+    -54 5.551115123125783e-17 3.925231410404213e-17 9.495567745759799e-66 | 5.551115123125783e-17 3.925231410404213e-17; 5.551115123125783e-17 3.925231410404213e-17
+    -53 1.1102230246251565e-16 7.850462820808426e-17 1.5192908393215678e-64 | 1.1102230246251565e-16 7.850462820808426e-17; 1.1102230246251565e-16 7.850462820808426e-17
+    -52 2.220446049250313e-16 1.5700925641616852e-16 2.4308653429145085e-63 | 2.220446049250313e-16 1.5700925641616852e-16; 2.220446049250313e-16 1.5700925641616852e-16
+    -51 4.440892098500626e-16 3.1401851283233704e-16 3.8893845486632136e-62 | 4.440892098500626e-16 3.1401851283233704e-16; 4.440892098500626e-16 3.1401851283233704e-16
+    -50 8.881784197001252e-16 6.280370256646741e-16 6.223015277861142e-61 | 8.881784197001252e-16 6.280370256646741e-16; 8.881784197001252e-16 6.280370256646741e-16
+    -49 1.7763568394002505e-15 1.2560740513293481e-15 9.956824444577827e-60 | 1.7763568394002505e-15 1.2560740513293481e-15; 1.7763568394002505e-15 1.2560740513293481e-15
+    -48 3.552713678800501e-15 2.5121481026586963e-15 1.5930919111324523e-58 | 3.552713678800501e-15 2.5121481026586963e-15; 3.552713678800501e-15 2.5121481026586963e-15
+    -47 7.105427357601002e-15 5.0242962053173926e-15 2.5489470578119236e-57 | 7.105427357601002e-15 5.0242962053173926e-15; 7.105427357601002e-15 5.0242962053173926e-15
+    -46 1.4210854715202004e-14 1.0048592410634785e-14 4.078315292499078e-56 | 1.4210854715202004e-14 1.0048592410634785e-14; 1.4210854715202004e-14 1.0048592410634785e-14
+    -45 2.842170943040401e-14 2.009718482126957e-14 6.525304467998525e-55 | 2.842170943040401e-14 2.009718482126957e-14; 2.842170943040401e-14 2.009718482126957e-14
+    -44 5.684341886080802e-14 4.019436964253914e-14 1.044048714879764e-53 | 5.684341886080802e-14 4.019436964253914e-14; 5.684341886080802e-14 4.019436964253914e-14
+    -43 1.1368683772161603e-13 8.038873928507828e-14 1.6704779438076223e-52 | 1.1368683772161603e-13 8.038873928507828e-14; 1.1368683772161603e-13 8.038873928507828e-14
+    -42 2.2737367544323206e-13 1.6077747857015656e-13 2.6727647100921956e-51 | 2.2737367544323206e-13 1.6077747857015656e-13; 2.2737367544323206e-13 1.6077747857015656e-13
+    -41 4.547473508864641e-13 3.215549571403131e-13 4.276423536147513e-50 | 4.547473508864641e-13 3.215549571403131e-13; 4.547473508864641e-13 3.215549571403131e-13
+    -40 9.094947017729282e-13 6.431099142806262e-13 6.842277657836021e-49 | 9.094947017729282e-13 6.431099142806262e-13; 9.094947017729282e-13 6.431099142806262e-13
+    -39 1.8189894035458565e-12 1.2862198285612525e-12 1.0947644252537633e-47 | 1.8189894035458565e-12 1.2862198285612525e-12; 1.8189894035458565e-12 1.2862198285612525e-12
+    -38 3.637978807091713e-12 2.572439657122505e-12 1.7516230804060213e-46 | 3.637978807091713e-12 2.572439657122505e-12; 3.637978807091713e-12 2.572439657122505e-12
+    -37 7.275957614183426e-12 5.14487931424501e-12 2.802596928649634e-45 | 7.275957614183426e-12 5.14487931424501e-12; 7.275957614183426e-12 5.14487931424501e-12
+    -36 1.4551915228366852e-11 1.028975862849002e-11 4.484155085839415e-44 | 1.4551915228366852e-11 1.028975862849002e-11; 1.4551915228366852e-11 1.028975862849002e-11
+    -35 2.9103830456733704e-11 2.057951725698004e-11 7.174648137343064e-43 | 2.9103830456733704e-11 2.057951725698004e-11; 2.9103830456733704e-11 2.057951725698004e-11
+    -34 5.820766091346741e-11 4.115903451396008e-11 1.1479437019748901e-41 | 5.820766091346741e-11 4.115903451396008e-11; 5.820766091346741e-11 4.115903451396008e-11
+    -33 1.1641532182693481e-10 8.231806902792016e-11 1.8367099231598242e-40 | 1.1641532182693481e-10 8.231806902792016e-11; 1.1641532182693481e-10 8.231806902792016e-11
+    -32 2.3283064365386963e-10 1.6463613805584032e-10 2.938735877055719e-39 | 2.3283064365386963e-10 1.6463613805584032e-10; 2.3283064365386963e-10 1.6463613805584032e-10
+    -31 4.656612873077393e-10 3.2927227611168064e-10 4.70197740328915e-38 | 4.656612873077393e-10 3.2927227611168064e-10; 4.656612873077393e-10 3.2927227611168064e-10
+    -30 9.313225746154785e-10 6.585445522233613e-10 7.52316384526264e-37 | 9.313225746154785e-10 6.585445522233613e-10; 9.313225746154785e-10 6.585445522233613e-10
+    -29 1.862645149230957e-09 1.3170891044467226e-09 1.2037062152420224e-35 | 1.862645149230957e-09 1.3170891044467226e-09; 1.862645149230957e-09 1.3170891044467226e-09
+    -28 3.725290298461914e-09 2.634178208893445e-09 1.925929944387236e-34 | 3.725290298461914e-09 2.634178208893445e-09; 3.725290298461914e-09 2.634178208893445e-09
+    -27 7.450580596923828e-09 5.26835641778689e-09 3.0814879110195774e-33 | 7.450580596923828e-09 5.26835641778689e-09; 7.450580596923828e-09 5.26835641778689e-09
+    -26 1.4901161193847656e-08 1.053671283557378e-08 4.930380657631324e-32 | 1.4901161193847656e-08 1.053671283557378e-08; 1.4901161193847656e-08 1.053671283557378e-08
+    -25 2.9802322387695312e-08 2.107342567114756e-08 7.888609052210118e-31 | 2.9802322387695312e-08 2.107342567114756e-08; 2.9802322387695312e-08 2.107342567114756e-08
+    -24 5.960464477539063e-08 4.214685134229512e-08 1.262177448353619e-29 | 5.960464477539063e-08 4.214685134229512e-08; 5.960464477539063e-08 4.214685134229512e-08
+    -23 1.1920928955078125e-07 8.429370268459024e-08 2.0194839173657902e-28 | 1.1920928955078125e-07 8.429370268459024e-08; 1.1920928955078125e-07 8.429370268459024e-08
+    -22 2.384185791015625e-07 1.685874053691805e-07 3.2311742677852644e-27 | 2.384185791015625e-07 1.685874053691805e-07; 2.384185791015625e-07 1.685874053691805e-07
+    -21 4.76837158203125e-07 3.37174810738361e-07 5.169878828456423e-26 | 4.76837158203125e-07 3.37174810738361e-07; 4.76837158203125e-07 3.37174810738361e-07
+    -20 9.5367431640625e-07 6.74349621476722e-07 8.271806125530277e-25 | 9.5367431640625e-07 6.74349621476722e-07; 9.5367431640625e-07 6.74349621476722e-07
+    -19 1.9073486328125e-06 1.348699242953444e-06 1.3234889800848443e-23 | 1.9073486328125e-06 1.348699242953444e-06; 1.9073486328125e-06 1.348699242953444e-06
+    -18 3.814697265625e-06 2.697398485906888e-06 2.117582368135751e-22 | 3.814697265625e-06 2.697398485906888e-06; 3.814697265625e-06 2.697398485906888e-06
+    -17 7.62939453125e-06 5.394796971813776e-06 3.3881317890172014e-21 | 7.62939453125e-06 5.394796971813776e-06; 7.62939453125e-06 5.394796971813776e-06
+    -16 1.52587890625e-05 1.0789593943627551e-05 5.421010862427522e-20 | 1.52587890625e-05 1.0789593943627551e-05; 1.52587890625e-05 1.0789593943627551e-05
+    -15 3.0517578125e-05 2.1579187887255102e-05 8.673617379884035e-19 | 3.0517578125e-05 2.1579187887255102e-05; 3.0517578125e-05 2.1579187887255102e-05
+    -14 6.103515625e-05 4.3158375774510205e-05 1.3877787807814457e-17 | 6.103515625e-05 4.3158375774510205e-05; 6.103515625e-05 4.3158375774510205e-05
+    -13 0.0001220703125 8.631675154902041e-05 2.220446049250313e-16 | 0.0001220703125 8.631675154902041e-05; 0.0001220703125 8.631675154902041e-05
+    -12 0.000244140625 0.00017263350309804082 3.552713678800501e-15 | 0.000244140625 0.00017263350309804082; 0.000244140625 0.00017263350309804082
+    -11 0.00048828125 0.00034526700619608164 5.684341886080802e-14 | 0.00048828125 0.00034526700619608164; 0.00048828125 0.00034526700619608164
+    -10 0.0009765625 0.0006905340123921633 9.094947017729282e-13 | 0.0009765625 0.0006905340123921633; 0.0009765625 0.0006905340123921633
+     -9 0.001953125 0.0013810680247843266 1.4551915228366852e-11 | 0.001953125 0.0013810680247843266; 0.001953125 0.0013810680247843266
+     -8 0.00390625 0.002762136049568653 2.3283064365386963e-10 | 0.00390625 0.002762136049568653; 0.00390625 0.002762136049568653
+     -7 0.0078125 0.005524272099137306 3.725290298461914e-09 | 0.0078125 0.005524272099137306; 0.0078125 0.005524272099137306
+     -6 0.015625 0.011048544198274612 5.960464477539063e-08 | 0.015625 0.011048544198274612; 0.015625 0.011048544198274612
+     -5 0.03125 0.022097088396549225 9.5367431640625e-07 | 0.03125 0.022097088396549225; 0.03125 0.022097088396549225
+     -4 0.0625 0.04419417679309845 1.52587890625e-05 | 0.0625 0.04419417679309845; 0.0625 0.04419417679309845
+     -3 0.125 0.0883883535861969 0.000244140625 | 0.125 0.0883883535861969; 0.125 0.0883883535861969
+     -2 0.25 0.1767767071723938 0.00390625 | 0.25 0.1767767071723938; 0.25 0.1767767071723938
+     -1 0.5 0.3535534143447876 0.0625 | 0.5 0.3535534143447876; 0.5 0.3535534143447876
+      0 1.0 0.7071068286895752 1.0 | 1.0 0.7071068286895752; 1.0 0.7071068286895752
+   143 held powers of two; to_preset or to_normalized differs on 0
+exit=0
+
+the trees after the run:
+  HEAD e852aacc59126d052d1ab21abda298538ff0575a
+  git status --porcelain=v1 --untracked-files=all, 10 lines:
+     M CHANGELOG.md
+     M README.md
+     M src/patchbay_vital/parameters.py
+     M tests/integration/test_vital_plugin.py
+     M tests/unit/test_parameters.py
+    ?? agent-os/specs/2026-11-13-0853-revision-after-pr-14-sixth-review/plan.md
+    ?? agent-os/specs/2026-11-13-0853-revision-after-pr-14-sixth-review/references.md
+    ?? agent-os/specs/2026-11-13-0853-revision-after-pr-14-sixth-review/shape.md
+    ?? agent-os/specs/2026-11-13-0853-revision-after-pr-14-sixth-review/standards.md
+    ?? tests/data/pinned-values.txt
+  the new tree, the working tree: git hash-object of each file the run reads, HEAD's blob beside it:
+    25b1a378e0d633bf4deede60d3173e976059a2a7  src/patchbay_vital/parameters.py  (HEAD e49d5e9dd275ba8b592103621566206e9a654fa2)
+    27a1e91bd4483e2fbdebf444799b51f78617ab0e  src/patchbay_vital/float32.py  (HEAD 27a1e91bd4483e2fbdebf444799b51f78617ab0e)
+    d8265cd5668a70b1802e3d7b1917104935e292ff  src/patchbay_vital/errors.py  (HEAD d8265cd5668a70b1802e3d7b1917104935e292ff)
+    f75e2e85d570f3db4bf5ec206bf9143f1ca4922f  src/patchbay_vital/preset.py  (HEAD f75e2e85d570f3db4bf5ec206bf9143f1ca4922f)
+    50fe09b3c3b285b3d569a8b7eb2f76981c7d6164  src/patchbay_vital/__init__.py  (HEAD 50fe09b3c3b285b3d569a8b7eb2f76981c7d6164)
+    109ae1887be396e43ce7939b7115ec9745b6c6ca  src/patchbay_vital/data/parameters.json  (HEAD 109ae1887be396e43ce7939b7115ec9745b6c6ca)
+    816935cc8b6ae5b8eb418838536c417b5ade2857  tests/unit/test_parameters.py  (HEAD 7e3954614f68900df38bcc8ca1db76a5072d08d9)
+  the old tree, commit e852aacc59126d052d1ab21abda298538ff0575a, its src extracted with git archive: git hash-object
+  of each extracted file the old pool reads, the blob of the commit beside it:
+    e49d5e9dd275ba8b592103621566206e9a654fa2  <scratchpad>/r6/old/src/patchbay_vital/parameters.py  (e852aac e49d5e9dd275ba8b592103621566206e9a654fa2)
+    27a1e91bd4483e2fbdebf444799b51f78617ab0e  <scratchpad>/r6/old/src/patchbay_vital/float32.py  (e852aac 27a1e91bd4483e2fbdebf444799b51f78617ab0e)
+    d8265cd5668a70b1802e3d7b1917104935e292ff  <scratchpad>/r6/old/src/patchbay_vital/errors.py  (e852aac d8265cd5668a70b1802e3d7b1917104935e292ff)
+    f75e2e85d570f3db4bf5ec206bf9143f1ca4922f  <scratchpad>/r6/old/src/patchbay_vital/preset.py  (e852aac f75e2e85d570f3db4bf5ec206bf9143f1ca4922f)
+    50fe09b3c3b285b3d569a8b7eb2f76981c7d6164  <scratchpad>/r6/old/src/patchbay_vital/__init__.py  (e852aac 50fe09b3c3b285b3d569a8b7eb2f76981c7d6164)
+    109ae1887be396e43ce7939b7115ec9745b6c6ca  <scratchpad>/r6/old/src/patchbay_vital/data/parameters.json  (e852aac 109ae1887be396e43ce7939b7115ec9745b6c6ca)
+<scratchpad>/r6/tree-before.txt <scratchpad>/r6/tree-after.txt differ: char 100, line 2
+run_floor exit=0

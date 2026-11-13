@@ -52,7 +52,9 @@ audio = host.render([(bytes([0x90, 60, 100]), 0.0)], 48000, 48000)   # (2, 48000
   census regenerates the committed map, the presets load as its state, and its renders are measured;
   each skips, saying so, where what it needs is absent, CI among them. `data/` holds no preset of
   Vital's, whose license forbids that: its one `.vital` is a 1.6.4 save with the media replaced;
-  `fma-vectors.txt` holds the plugin's own values that `float32.py` is held to.
+  `fma-vectors.txt` holds the plugin's own values that `float32.py` is held to, and
+  `pinned-values.txt` the normalized values both test modules hold the map and Vital at, written
+  once.
 - `pyproject.toml`: the one configuration file. Every tool the gate runs is configured under
   `[tool.*]` there and nowhere else, with no `setup.py`, `setup.cfg`, `requirements*.txt`,
   `tox.ini`, `.flake8`, `mypy.ini`, `pytest.ini`, `.ruff.toml` or `uv.toml`. The `[tool.*]` sections

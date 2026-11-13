@@ -1,0 +1,131 @@
+The revision after PR 14's sixth review: scripts/gate.sh, run 2026-11-13 12:53 EST on branch
+refactor/13-the-parameter-map-volumes-display-does-not-come-back-through-the-normalized-path-below-2--43-hypothesis-normalized-5857149595214349e-20, machine arm64, Vital installed at /Library/Audio/Plug-Ins/VST3/Vital.vst3
+the tree before the run (this transcript is written outside the tree and copied in afterwards):
+  HEAD e852aacc59126d052d1ab21abda298538ff0575a
+  git status --porcelain=v1 --untracked-files=all, 19 lines:
+     M CHANGELOG.md
+     M README.md
+     M agent-os/standards/index.yml
+     M agent-os/standards/vital/measures.md
+     M agent-os/standards/vital/parameter-map.md
+     M agent-os/standards/vital/plugin-state.md
+     M src/patchbay_vital/parameters.py
+     M tests/integration/test_vital_plugin.py
+     M tests/unit/test_parameters.py
+    ?? agent-os/specs/2026-11-13-0853-revision-after-pr-14-sixth-review/plan.md
+    ?? agent-os/specs/2026-11-13-0853-revision-after-pr-14-sixth-review/references.md
+    ?? agent-os/specs/2026-11-13-0853-revision-after-pr-14-sixth-review/shape.md
+    ?? agent-os/specs/2026-11-13-0853-revision-after-pr-14-sixth-review/standards.md
+    ?? agent-os/specs/2026-11-13-0853-revision-after-pr-14-sixth-review/verification/ci-negative-test.txt
+    ?? agent-os/specs/2026-11-13-0853-revision-after-pr-14-sixth-review/verification/cost.txt
+    ?? agent-os/specs/2026-11-13-0853-revision-after-pr-14-sixth-review/verification/floor-pass.txt
+    ?? agent-os/specs/2026-11-13-0853-revision-after-pr-14-sixth-review/verification/gate-negative-tests.txt
+    ?? agent-os/specs/2026-11-13-0853-revision-after-pr-14-sixth-review/verification/mutation.txt
+    ?? tests/data/pinned-values.txt
+  git hash-object of each of those 19 paths (a deleted one marked so):
+    266a0ca3a85bbf4c5e2d0a766c3fda8e0d4c69c8  agent-os/specs/2026-11-13-0853-revision-after-pr-14-sixth-review/plan.md
+    64c76c81a67c22c66615816559db33d3de579a64  agent-os/specs/2026-11-13-0853-revision-after-pr-14-sixth-review/references.md
+    56a47a201a347fef0698959e8630b94c2b962936  agent-os/specs/2026-11-13-0853-revision-after-pr-14-sixth-review/shape.md
+    b0e66bfc907f7b6eb902c736f91c77e9096360d4  agent-os/specs/2026-11-13-0853-revision-after-pr-14-sixth-review/standards.md
+    8b2c1981a330f840b4a4bec431271e56b96489d2  agent-os/specs/2026-11-13-0853-revision-after-pr-14-sixth-review/verification/ci-negative-test.txt
+    3d4b03af6c691f2f30d67aaf42734966cbc33a0f  agent-os/specs/2026-11-13-0853-revision-after-pr-14-sixth-review/verification/cost.txt
+    8a36dc564b03d0aa16399feae9c1be9d2e747150  agent-os/specs/2026-11-13-0853-revision-after-pr-14-sixth-review/verification/floor-pass.txt
+    5183f364bfe3c7dd41f560acf0eea49a284dc54d  agent-os/specs/2026-11-13-0853-revision-after-pr-14-sixth-review/verification/gate-negative-tests.txt
+    ceefb0ff7a1773d4bfed9b02e40c37d78c4ee712  agent-os/specs/2026-11-13-0853-revision-after-pr-14-sixth-review/verification/mutation.txt
+    de54acb9257ed5990829a60e3e28a0ad756afe7d  agent-os/standards/index.yml
+    0dc113e52862bd8bc9946a93e84bdb4a92bcb87c  agent-os/standards/vital/measures.md
+    4a12d8d5089cb04ec3d8c1b2653a31b16a9e753c  agent-os/standards/vital/parameter-map.md
+    c6c684adf2aee271c171b71af503dc149967c64e  agent-os/standards/vital/plugin-state.md
+    be3c8210861f272c0e37c58fd16487285dd87cc6  CHANGELOG.md
+    d569fe0bdc35432b4c4fc2a4ad07b2d24f70d423  README.md
+    25b1a378e0d633bf4deede60d3173e976059a2a7  src/patchbay_vital/parameters.py
+    40aff4ecfcdb10b848a7eb60879b7cf90d5fcacf  tests/data/pinned-values.txt
+    f85e667fa1bdb48fc1f75cfc3f0b9c4c5b9f3f6d  tests/integration/test_vital_plugin.py
+    5ba924207a40104c5a3e1ee79ea4cf81c171a813  tests/unit/test_parameters.py
+
+
+== 1/6  bash -n on every shell script under scripts/ (tracked or untracked, not ignored), in a tree with no tracked file a .gitignore ignores
+ok   scripts/gate-negative-tests.sh
+ok   scripts/gate.sh
+ok   scripts/sync-standards.sh
+
+== 2/6  uv sync --locked, then uv run --locked ruff format --check over the .py and .pyi files git lists (the locked toolchain; the formatter)
+Resolved 33 packages in 2ms
+Checked 32 packages in 3ms
+ok   the locked toolchain synced
+26 files already formatted
+ok   26 file(s) formatted
+
+== 3/6  uv run --locked ruff check over the same files (the linter: [tool.ruff.lint] of pyproject.toml)
+All checks passed!
+ok   no violation
+
+== 4/6  uv run --locked mypy over the .py and .pyi files git lists under src/ and tests/ ([tool.mypy] of pyproject.toml: strict)
+Success: no issues found in 26 source files
+ok   no type error
+
+== 5/6  uv run --locked pytest -c pyproject.toml -p no:doctest ([tool.pytest.ini_options] of pyproject.toml, over tests/, once nothing pytest would read is one git ignores)
+........................................................................ [ 14%]
+........................................................................ [ 28%]
+........................................................................ [ 42%]
+........................................................................ [ 56%]
+........................................................................ [ 71%]
+........................................................................ [ 85%]
+........................................................................ [ 99%]
+...                                                                      [100%]
+507 passed in 31.96s
+ok   every test passed
+
+== 6/6  scripts/sync-standards.sh --check: agent-os/standards/base/, the base: section and the script match patchbay-standards at the commit in .version (../patchbay-standards)
+check base standards against e31f7dbfb474752339a43fe08a37ab26c7956f5c  (/Users/michaelwitwicki/Code/Audio/patchbay-standards)
+  index    base: section identical
+  script   scripts/sync-standards.sh matches
+{"mode":"check","upstream":"/Users/michaelwitwicki/Code/Audio/patchbay-standards","commit":"e31f7dbfb474752339a43fe08a37ab26c7956f5c","missing":[],"extra":[],"changed":[],"index":"identical","script":"matches","ok":true}
+ok   agent-os/standards/base and the base: section of agent-os/standards/index.yml match patchbay-standards at e31f7dbfb474752339a43fe08a37ab26c7956f5c
+
+Gate steps 1-6 passed. Steps 7-9 are judgment, recorded in shape.md: Docs, Version, the standards retrospective.
+exit=0
+
+the tree after the run:
+  HEAD e852aacc59126d052d1ab21abda298538ff0575a
+  git status --porcelain=v1 --untracked-files=all, 19 lines:
+     M CHANGELOG.md
+     M README.md
+     M agent-os/standards/index.yml
+     M agent-os/standards/vital/measures.md
+     M agent-os/standards/vital/parameter-map.md
+     M agent-os/standards/vital/plugin-state.md
+     M src/patchbay_vital/parameters.py
+     M tests/integration/test_vital_plugin.py
+     M tests/unit/test_parameters.py
+    ?? agent-os/specs/2026-11-13-0853-revision-after-pr-14-sixth-review/plan.md
+    ?? agent-os/specs/2026-11-13-0853-revision-after-pr-14-sixth-review/references.md
+    ?? agent-os/specs/2026-11-13-0853-revision-after-pr-14-sixth-review/shape.md
+    ?? agent-os/specs/2026-11-13-0853-revision-after-pr-14-sixth-review/standards.md
+    ?? agent-os/specs/2026-11-13-0853-revision-after-pr-14-sixth-review/verification/ci-negative-test.txt
+    ?? agent-os/specs/2026-11-13-0853-revision-after-pr-14-sixth-review/verification/cost.txt
+    ?? agent-os/specs/2026-11-13-0853-revision-after-pr-14-sixth-review/verification/floor-pass.txt
+    ?? agent-os/specs/2026-11-13-0853-revision-after-pr-14-sixth-review/verification/gate-negative-tests.txt
+    ?? agent-os/specs/2026-11-13-0853-revision-after-pr-14-sixth-review/verification/mutation.txt
+    ?? tests/data/pinned-values.txt
+  git hash-object of each of those 19 paths (a deleted one marked so):
+    266a0ca3a85bbf4c5e2d0a766c3fda8e0d4c69c8  agent-os/specs/2026-11-13-0853-revision-after-pr-14-sixth-review/plan.md
+    64c76c81a67c22c66615816559db33d3de579a64  agent-os/specs/2026-11-13-0853-revision-after-pr-14-sixth-review/references.md
+    56a47a201a347fef0698959e8630b94c2b962936  agent-os/specs/2026-11-13-0853-revision-after-pr-14-sixth-review/shape.md
+    b0e66bfc907f7b6eb902c736f91c77e9096360d4  agent-os/specs/2026-11-13-0853-revision-after-pr-14-sixth-review/standards.md
+    8b2c1981a330f840b4a4bec431271e56b96489d2  agent-os/specs/2026-11-13-0853-revision-after-pr-14-sixth-review/verification/ci-negative-test.txt
+    3d4b03af6c691f2f30d67aaf42734966cbc33a0f  agent-os/specs/2026-11-13-0853-revision-after-pr-14-sixth-review/verification/cost.txt
+    8a36dc564b03d0aa16399feae9c1be9d2e747150  agent-os/specs/2026-11-13-0853-revision-after-pr-14-sixth-review/verification/floor-pass.txt
+    5183f364bfe3c7dd41f560acf0eea49a284dc54d  agent-os/specs/2026-11-13-0853-revision-after-pr-14-sixth-review/verification/gate-negative-tests.txt
+    ceefb0ff7a1773d4bfed9b02e40c37d78c4ee712  agent-os/specs/2026-11-13-0853-revision-after-pr-14-sixth-review/verification/mutation.txt
+    de54acb9257ed5990829a60e3e28a0ad756afe7d  agent-os/standards/index.yml
+    0dc113e52862bd8bc9946a93e84bdb4a92bcb87c  agent-os/standards/vital/measures.md
+    4a12d8d5089cb04ec3d8c1b2653a31b16a9e753c  agent-os/standards/vital/parameter-map.md
+    c6c684adf2aee271c171b71af503dc149967c64e  agent-os/standards/vital/plugin-state.md
+    be3c8210861f272c0e37c58fd16487285dd87cc6  CHANGELOG.md
+    d569fe0bdc35432b4c4fc2a4ad07b2d24f70d423  README.md
+    25b1a378e0d633bf4deede60d3173e976059a2a7  src/patchbay_vital/parameters.py
+    40aff4ecfcdb10b848a7eb60879b7cf90d5fcacf  tests/data/pinned-values.txt
+    f85e667fa1bdb48fc1f75cfc3f0b9c4c5b9f3f6d  tests/integration/test_vital_plugin.py
+    5ba924207a40104c5a3e1ee79ea4cf81c171a813  tests/unit/test_parameters.py
+cmp: the tree after the run is the tree before it
