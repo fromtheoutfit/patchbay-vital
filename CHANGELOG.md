@@ -16,13 +16,17 @@ writes the entry, in that commit
 
 - Revision after the review of PR 12, `agent-os/specs/2026-11-11-1321-revision-after-pr-12-review/`:
   all 15 findings of the review at `8ebce15` addressed, a gate spec. The version stays 0.0.1.
-  - The harness's pin edits go through one helper, `setline`, for cases t, n and o. Each edit is
-    held to its pin's table, and a case stops by name when the table already holds the value it
-    sets, or does not hold it after the edit. So n refuses `ruff===…` and a pin with an
-    environment marker rather than rewriting it.
-  - Case o requires `==0.0.0`, a uv no release carries, and stops by name when `uv --version` gives
-    more than a plain version. It prints that version in a note, not a second run, so the harness
-    has 140 runs.
+  - Cases n and o, and case t's two edits of patchbay-core's rev in `[tool.uv.sources]` (through
+    `setrev`), edit their pins through one helper, `setline`. Each such edit is held to its pin's
+    table, and a case stops by name when the table already holds the value it sets, or does not
+    hold it after the edit. So n refuses `ruff===…` and a pin with an environment marker rather
+    than rewriting it. Case t's third edit, of patchbay-core's range, does not go through `setline`:
+    it is a `sed` over the whole of the copy's `pyproject.toml`, checked only by a `grep` that the
+    new range is there.
+  - Case o requires `==0.0.0`, a uv no release carries. It reads the version word of
+    `uv --version`, the word after `uv `, and stops by name unless that word is a plain X.Y.Z; what
+    follows the word is not checked. It prints `uv --version`'s whole output in a note, not a second
+    run, so the harness has 140 runs.
   - `test_the_manifest_holds_the_expected_count` is unmarked: it reads only the committed manifest.
     The `integration` marker reads "needs Vital's plugin or its presets installed", and the comment
     over it names the parameter map's machine as the plugin's tests' second skip.
@@ -43,8 +47,8 @@ writes the entry, in that commit
     Core is still 0.0.1, so the range is unchanged. `uv.lock` re-locked: patchbay-core's source
     moved and nothing else. The gate passes against it with no other change: nothing here builds an
     event or implements `Instrument` yet, so `Event.at`'s wider refusal reaches nothing.
-  - The `integration` marker says what its tests need: "an installed Vital, its plugin or its
-    presets", where it named the presets alone and the plugin's tests carry it too.
+  - The `integration` marker says what its tests need: "needs Vital's plugin or its presets
+    installed", where it named the presets alone and the plugin's tests carry it too.
   - Negative tests n and o match their pins whatever the value, as t already did, and o names the
     running uv as `uv --version` prints it. The work fromtheoutfit/patchbay-standards#31 left to
     this repository's next gate spec; `verification/guard-mutations.txt` shows both discriminate,

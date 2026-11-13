@@ -228,6 +228,56 @@ after the run is written in the heading, above the run, so that the file ends on
 (`base/process/verification-gate.md`, "A kept transcript holds one run of the harness and ends on
 that run's count"). `gate-run.txt`'s form puts it after the run.
 
+## After the final review
+
+The final review of PR 12, of `0cb83f8` on 2026-11-13, has eight findings, posted to the pull
+request as one comment (https://github.com/fromtheoutfit/patchbay-vital/pull/12#issuecomment-6863925750).
+Its reviewer verified none of them. By the owner's instruction, the `CHANGELOG.md` ones are fixed
+here once checked against the tree, five are carried to issue #17 unverified, and the last is
+covered upstream. `CHANGELOG.md` is the only file changed besides this one: no gate file, so no
+harness rerun, and no change to `src/` or `tests/`.
+
+Checked on `0cb83f8`, read only:
+
+- **Finding 1 is true.** The reviewed spec's entry quoted the marker as "an installed Vital, its
+  plugin or its presets". That is the text of `8ebce15`, which `24b2b5d` replaced and no release
+  carried. `pyproject.toml`'s marker reads "needs Vital's plugin or its presets installed". The
+  entry is corrected in place to that text.
+- **Finding 3 is true.** Case o takes `uv --version` whole, strips `uv `, keeps the word up to
+  the first space, and stops by name unless that word is a plain X.Y.Z. What follows the word is
+  not checked. The entry said the case stops "when `uv --version` gives more than a plain
+  version", and now says what the guard does.
+- **The `setline` sentence is true of n, o and two of t's three edits.** Case t's two rev edits go
+  through `setrev`, which calls `setline` on `[tool.uv.sources]`. Its range edit is a `sed` over
+  the whole copy's `pyproject.toml`, checked only by a `grep`. The entry said all of t's edits go
+  through `setline`, and now names which do. This is the documentation half of finding 4. The
+  guard itself goes to #17.
+
+| # | Finding | Where it went |
+|---|---|---|
+| 1 | The older `[Unreleased]` entry quotes marker text that never shipped | True; corrected in place in `CHANGELOG.md` |
+| 2 | The marker's description is incomplete | Carried to #17, unverified |
+| 3 | Case o's guard checks only the version word, the CHANGELOG says more | True; `CHANGELOG.md` says what the guard does |
+| 4 | Case t's range edit bypasses `setline` | `CHANGELOG.md` names which of t's edits use `setline`; the guard carried to #17, unverified |
+| 5 | Case n's table range matches any `dev = [` array | Carried to #17, unverified |
+| 6 | `setline`'s checks can race on SIGPIPE under `pipefail` | Carried to #17, unverified |
+| 7 | Per-test markers replace the module-wide `pytestmark` | Carried to #17, unverified |
+| 8 | Three near-identical whole transcripts committed | Covered by fromtheoutfit/patchbay-standards#41 (a transcript kept as a mechanical extract) |
+
+- **Issue #17 is a gate spec that blocks nothing.** It holds findings 2, 4, 5, 6 and 7 as the
+  reviewer stated them, each marked unverified. It also holds the note for the next gate spec from
+  the revision after PR 14's fourth review (Decision 3): a single definition of shared test values
+  would need a `tests/support` module on pytest's `pythonpath`, a `[tool.pytest.ini_options]`
+  change. The issue adds the narrowing from the sixth review's errata, that a data file read
+  through `pytestconfig.rootpath` serves for values and the module only for shared code. It says
+  how the note bears on finding 7, through `_groups`.
+- **Not touched:** the harness, `pyproject.toml`, `verification/`, and the retrospective's account
+  of `setline` and #31's proposal 2. Findings 4 and 5 bear on that account's "held to the pin's
+  table", and #17's spec checks it against its own tree.
+- **`scripts/gate.sh` was not rerun** for this section. The change is to `CHANGELOG.md` and this
+  file, which no gate step reads, and `verification/gate-run.txt` stays as recorded.
+  `Proposals sent upstream:` stands as written below.
+
 ## Context
 
 - **Visuals:** None.
