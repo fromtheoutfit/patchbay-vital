@@ -13,8 +13,11 @@ of issue #13 (`agent-os/specs/2026-11-11-1449-volume-preset-through-the-set-path
 revision after PR 14's review (`agent-os/specs/2026-11-11-1555-revision-after-pr-14-review/`), of
 the revision after its second review
 (`agent-os/specs/2026-11-11-2044-revision-after-pr-14-second-review/`), of the spec of issue #15
-(`agent-os/specs/2026-11-12-0937-map-inverses-land-on-held-presets/`) and of the revision after
-PR 14's fourth review (`agent-os/specs/2026-11-12-1319-revision-after-pr-14-fourth-review/`).
+(`agent-os/specs/2026-11-12-0937-map-inverses-land-on-held-presets/`) and of the revisions after
+PR 14's fourth, fifth and sixth reviews
+(`agent-os/specs/2026-11-12-1319-revision-after-pr-14-fourth-review/`,
+`agent-os/specs/2026-11-12-1852-revision-after-pr-14-fifth-review/` and
+`agent-os/specs/2026-11-13-0853-revision-after-pr-14-sixth-review/`).
 
 ## Where it comes from
 
@@ -140,6 +143,14 @@ PR 14's fourth review (`agent-os/specs/2026-11-12-1319-revision-after-pr-14-four
   by value at a held preset of 2 ** -43. No value above 2 ** -43 leaves the curve's float32. The fourth review's
   `verification/sweep.txt` gave the same three counts, but as a numpy reproduction's.
 
+  The code holds the rule in `to_preset` itself, its first branch taking what a set of the
+  curve's float32 holds where that is the float32 or shows the display. The sixth review's
+  `agent-os/specs/2026-11-13-0853-revision-after-pr-14-sixth-review/verification/floor-pass.txt`
+  calls `e852aac`'s shipped methods, which these counts describe, and the restructured ones,
+  each imported from its own tree, on every float32 normalized
+  value of `volume` below 2 ** -54 and at the envelope group's 143 held powers of two, and
+  finds no `to_preset` or `to_normalized` changed; no other value can differ, by reading.
+
   The branches are tried in that order, so where both the first and the second show the display,
   the first is taken (`test_a_display_takes_what_a_set_of_the_curve_s_float32_holds`, at issue
   #13's value). The second asks `NormalizedScale.holds` of the float32 on the other side. A float32
@@ -148,8 +159,12 @@ PR 14's fourth review (`agent-os/specs/2026-11-12-1319-revision-after-pr-14-four
   `test_the_float32_past_an_end_the_scale_does_not_hold_is_not_taken`, on a constructed scale whose
   maximum is unheld. An end is not always held.
 
-  `to_normalized` of a display is the scale's own normalized value for the preset `to_preset`
-  gives (`test_a_display_s_normalized_value_is_its_preset_s_own`).
+  `to_normalized` of a display is `scale.to_normalized(to_preset(display))`, the scale's own
+  normalized value for the preset `to_preset` gives, by definition. It lands that preset a
+  second time, so it costs about 27 µs a call on `volume` against `main`'s 8, measured on an
+  Apple M4 Pro, arm64, 14 cores, under macOS 26.6.2 (25G83) with Python 3.12.16
+  (`agent-os/specs/2026-11-13-0853-revision-after-pr-14-sixth-review/verification/cost.txt`);
+  no fast path is kept for it.
 
   The fourth review's `verification/plugin-probe.txt` shows a load of the curve's float32 held by
   Vital at that same value. The rule has no tie to break. It replaced the neighbour nearer the
@@ -159,37 +174,58 @@ PR 14's fourth review (`agent-os/specs/2026-11-12-1319-revision-after-pr-14-four
   counts only displays some held preset shows, and an arbitrary display, one no preset shows
   exactly, reaches the third branch. A unit test holds it:
   `test_an_arbitrary_display_keeps_the_curve_s_float32`, on `beats_per_minute`'s scale and curve,
-  built in the test module as `_TEMPO`, at 216.85141355537831. The test is issue #8's
-  characterization: whether such a display should take the nearer held neighbour is #8's finding
-  1, and a decision there reverses the test on purpose. Of 20,000 displays drawn uniformly over
+  built in the test module as `_TEMPO`, at 216.85141355537831. The test is issue #16's
+  characterization: #16 makes `to_preset` return what a set of the display's float32 holds, so
+  always a held preset, and reverses the test on purpose. It runs before #8, whose finding 1
+  narrows to Vital's rounding or the nearer held neighbour. Of 20,000 displays drawn uniformly over
   `volume`'s range (seed 8), 1,108 take the third branch, 5.54% (the fifth review's
   `verification/arbitrary-displays.txt`). An indexed scale takes no branch: its
   display goes to the nearest whole number, a half away from zero, as the plugin rounds.
 
   **The exception, in plain words.** `_assert_comes_back` runs every check exactly first, on every
   value. Only where the check that the display's preset is the held one fails does it ask
-  `_shares_its_display`, and the value then passes only if that holds. The predicate asks one
-  float32, the one next to the held preset on the side of the preset the display maps to: does it
-  show the held preset's display? A float32 on the far side sharing the display excuses nothing,
-  and at 2 ** -43 the float32 below shows its display where the one above does not
-  (`test_where_volume_s_offset_absorbs_a_preset`). So the exception excuses a failure where its
-  predicate holds, and never a value whose exact check passed.
-  - It is asked on 570,997,534 values, all of `volume`'s, and holds on each (`A3x` 0). There the
-    display's preset is another held one that shows the display, and the display cannot say which
-    of them was held.
-  - A float32 next to the preset, on either side, shows its display on 1,061,211,035 more values,
-    where the exact check passes and the predicate is never asked. These are 18,227,438 of
-    `volume`'s and 1,042,983,597 of the 9 exponential groups', `oversampling`'s whole numbers
-    among them, whose neighbours the scale does not hold.
-  - Both counts are in the same `verification/sweep.txt`.
+  `_unnamed_by_its_display`, and the value then passes only if that holds: the curve's own
+  float32 for the display is not the held preset, so the display does not name it, and the
+  display's preset is what a set of that float32 holds. The test works that value out from the
+  scale's and the curve's primitives (`_what_a_set_holds`: `curve.to_preset`, the scale's
+  `to_normalized` and `to_preset`), never from `to_preset`, so a wrong rule in the map cannot
+  agree with itself.
+  - It is asked on 570,997,534 values, all of `volume`'s, every one below 2 ** -54 at a held
+    preset at or below 2 ** -43, and holds on each. There the display's preset is another held
+    one that shows the display, and the display cannot say which of them was held. Counted with
+    the shipped methods and the test module's own predicate, value by value, in
+    `agent-os/specs/2026-11-13-0853-revision-after-pr-14-sixth-review/verification/floor-pass.txt`,
+    which also finds no value at or above 2 ** -54 asking it. The fourth review's reproduction,
+    `agent-os/specs/2026-11-12-1319-revision-after-pr-14-fourth-review/verification/sweep.txt`,
+    gave the same total and no value of the other 68 groups asking it.
+  - The float32 on the other side, which `to_preset` takes in its second branch, is not
+    excused: that count finds it on no value, so a record that needed it would fail the
+    property. The test module's hand-built records are not counted.
+  - `test_a_display_excuses_only_what_a_set_of_its_own_float32_holds` offers it what it must
+    refuse: at `_SHARED`, a `volume` value in binade -80, a held float32 three steps away that
+    shows the display, the held float32 on the other side, and, at that float32's own display,
+    which names it, the preset `_SHARED` held. Each refusal is held by a mutant (MA, MB and MP2
+    to MP4 in the sixth review's `verification/mutation.txt`).
+  - It replaced `_shares_its_display`, which asked whether the float32 next to the held preset
+    toward the display's preset shows the display. On a monotone curve that holds wherever the
+    display's preset shows it, the property's first assertion, so it bounded nothing (the sixth
+    review's finding 1).
 
-  **The pinned values.** The values that found each defect are pinned as constants, written the
-  same way in the unit and the integration modules, each with a comment naming it.
+  **The pinned values.** The values that found each defect are written once, in
+  `tests/data/pinned-values.txt`, each with its set and its name, and both test modules read it
+  through `pytestconfig.rootpath` (`vital/measures.md`). They were the property's `@example`s;
+  a decorator runs at import, before pytest's root is known, so
+  `test_every_pinned_value_comes_back_on_every_record` runs them through `_assert_comes_back` on
+  every hand-built record instead, and fails the regression only they reach whatever Hypothesis
+  draws (MC in the sixth review's `verification/mutation.txt`).
 
-  Verified against `MappedParameter.to_preset` and `_resolve`, `NormalizedScale.to_normalized`,
-  `NormalizedScale.holds`, `_assert_comes_back`, `_shares_its_display` and
+  Verified against `MappedParameter.to_preset` and `to_normalized`,
+  `NormalizedScale.to_normalized`, `NormalizedScale.holds`, `_assert_comes_back`,
+  `_unnamed_by_its_display`, `_what_a_set_holds` and
   `test_a_value_the_parameter_holds_comes_back_exactly`,
-  `test_every_committed_record_comes_back_exactly`, `test_where_volume_s_offset_absorbs_a_preset`,
+  `test_every_committed_record_comes_back_exactly`,
+  `test_a_display_excuses_only_what_a_set_of_its_own_float32_holds`,
+  `test_every_pinned_value_comes_back_on_every_record`, `tests/data/pinned-values.txt`,
   `test_at_or_below_volume_s_floor_a_display_maps_to_a_held_preset`,
   `test_a_display_takes_what_a_set_of_the_curve_s_float32_holds`,
   `test_else_a_display_takes_the_float32_on_the_other_side`,
@@ -199,7 +235,9 @@ PR 14's fourth review (`agent-os/specs/2026-11-12-1319-revision-after-pr-14-four
   (`test_at_or_below_volume_s_floor_a_set_holds_the_map_s_preset`,
   `test_a_held_power_of_two_set_through_the_host_is_held`), `verification/census-run.txt`, and the
   `verification/sweep.txt`, `verification/plugin-probe.txt` and `verification/mutation.txt` of the
-  revision after PR 14's fourth review. The defects were first found by the
+  revision after PR 14's fourth review, and the `verification/floor-pass.txt`,
+  `verification/mutation.txt` and `verification/cost.txt` of the sixth. The defects were first
+  found by the
   `verification/sweep.txt` of issue #13's spec and the `verification/sweep-first.txt` of the
   revision after PR 14's review.
 - **A claim about every value a scale holds is counted over every float32 normalized value,
@@ -224,14 +262,18 @@ PR 14's fourth review (`agent-os/specs/2026-11-12-1319-revision-after-pr-14-four
 
   **The check before counting.** Each group's reproduction is first checked against the shipped
   scalar methods on 200,010 values. The check covers every value it counts, the branch each value
-  takes, and the tests' own `_shares_its_display`. A value it cannot certify exact goes to an
+  takes, and the tests' own excuse as it then read, `_shares_its_display`. A value it cannot
+  certify exact goes to an
   exact scalar computation instead. The check is a sample: of `volume`'s 200,010 values, 2,989
   take the first branch and 69 the second (the fifth review's
   `verification/arbitrary-displays.txt`). So a count the reproduction gives is called the
   reproduction's, with this size beside it.
 
-  **An exception** consulted only where its claim fails is counted by the failures it leaves
-  (`A3x` 0). The count also says where its predicate holds but it is never asked.
+  **An exception** consulted only where its claim fails is counted by the failures it leaves,
+  each split by the value it allowed. A value it allows that the count never finds is not
+  allowed (the sixth review's second candidate). It is tested by what it refuses, never by
+  what it passes: a predicate the property's own assertions imply, as `_shares_its_display`'s
+  was, bounds nothing, however its count reads.
 
   **A rule's branches are each counted.** A branch no counted value reaches is either removed or
   held by a unit test, and the standard says which; the third branch of `to_preset`, above, is
