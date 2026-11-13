@@ -309,6 +309,62 @@ In the owner's words:
 | 8 | The quotient formula in two tests | A test-module helper (Decision 7) |
 | 9 | The fix sits one level too shallow | The result-preserving part here; the rule to the new issue (Decision 1) |
 
+## After the final review
+
+The final review of PR 14, of `4095409` on 2026-11-13, has 13 findings and was not posted to the
+pull request. Its reviewer verified none of them. By the owner's instruction, 12 and 13 are fixed
+here once checked against the tree, six are carried to issue #16 unverified, and the rest are
+already this revision's. No change to `src/` or `tests/`, and no new spec folder.
+
+Checked on `4095409`, read only:
+
+- **Finding 12 is true.** `git grep _VOLUME_FLOOR` outside `agent-os/specs/` found one line,
+  `vital/plugin-state.md`'s "then the integration module's `_VOLUME_FLOOR`", meant as history and
+  reading as a second, current source. `tests/integration/test_vital_plugin.py` has no such name:
+  its load test loops the file's `volume_floor` set. Issue #15's probe transcript, which the
+  standard cites, prints the same four values under that name.
+- **Finding 13 is true.** `vital/parameter-map.md`'s counting rule cited "the `@example`s of
+  `test_a_value_the_parameter_holds_comes_back_exactly`". That property keeps 0.0, 1.0 and
+  5.2383727406426375e-33. Issue #13's value, an `@example` there at `e852aac`, is a line of
+  `tests/data/pinned-values.txt`, run by `test_every_pinned_value_comes_back_on_every_record`.
+
+| # | Finding | Where it went |
+|---|---|---|
+| 1 | The third branch returns a preset the scale does not hold | Issue #16's own subject (Decision 1) |
+| 2 | `_what_a_set_holds` calls the shipped `NormalizedScale.to_normalized` | Carried to #16, unverified |
+| 3 | The load test's expected value comes from `volume.scale.to_normalized` | Carried to #16, unverified |
+| 4 | Without `_ABSORBED` the excuse applies to any record at any value | Already decided: Decision 2, as superseded. The excuse names what a set holds, counted on every float32 normalized value of `volume`; the hand-built records are recorded as not counted |
+| 5 | An empty pinned set passes the integration loops | Carried to #16, unverified |
+| 6 | `NormalizedScale.holds` raises a built-in on a non-finite value | Carried to #16, unverified |
+| 7 | `to_normalized` lands the preset `to_preset` landed a second time | Already decided: Decision 5. Derived, the cost measured and recorded, no fast path |
+| 8 | `_landing` runs `to_float32` on values already float32 | Carried to #16, unverified |
+| 9 | `_pinned` is re-read inside the per-record loops | Carried to #16, unverified |
+| 10 | Three ordered branches where one general rule would do | Issue #16's own subject (Decision 1) |
+| 11 | `_pinned` is written in both test modules | Already decided: Decision 3. A reader of a few lines in each module; the values, not the parsing, are written once |
+| 12 | `vital/plugin-state.md` names `_VOLUME_FLOOR` | True; corrected, standards change set |
+| 13 | `vital/parameter-map.md` cites the moved `@example`s | True; corrected, standards change set |
+
+- **The two standards edits** were approved by the owner on 2026-11-13, each wording shown before
+  it was made, and are verified against `tests/unit/test_parameters.py`,
+  `tests/integration/test_vital_plugin.py` and `tests/data/pinned-values.txt` as shipped:
+  - `agent-os/standards/vital/plugin-state.md` names `_VOLUME_FLOOR` as what issue #15's probe
+    transcript prints, the integration module's constant until this revision moved the values to
+    the file;
+  - `agent-os/standards/vital/parameter-map.md` cites the file, every value of which
+    `test_every_pinned_value_comes_back_on_every_record` runs, and the three `@example`s the
+    property keeps.
+- **`agent-os/standards/index.yml` is unchanged:** neither description names what was corrected,
+  and neither edit changes what its standard decides.
+- **Issue #16 is revised in place,** "Revised 2026-11-13", with a section "Carried from PR 14's
+  final review" holding findings 2, 3, 5, 6, 8 and 9 as the reviewer stated them, each marked
+  unverified. Read back as posted.
+- No gate file and no CHANGELOG entry changes, and there is no new base proposal: `Proposals sent
+  upstream:` stands as written below.
+- **`scripts/gate.sh` exits 0** on the working tree with both standards edits, on `4095409`, with
+  Vital installed (2026-11-13, 13:43 EST): all six steps pass, step 5 with 507 passed. No
+  transcript is kept, and `verification/gate-run.txt` stays as recorded; only this line is written
+  after the run.
+
 ## Errata in the earlier spec folders, which stay as recorded
 
 - **The fourth review's Decision 3**
