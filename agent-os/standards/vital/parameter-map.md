@@ -17,8 +17,9 @@ the revision after its second review
 PR 14's fourth, fifth and sixth reviews
 (`agent-os/specs/2026-11-12-1319-revision-after-pr-14-fourth-review/`,
 `agent-os/specs/2026-11-12-1852-revision-after-pr-14-fifth-review/` and
-`agent-os/specs/2026-11-13-0853-revision-after-pr-14-sixth-review/`) and of the spec of issue #16
-(`agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/`).
+`agent-os/specs/2026-11-13-0853-revision-after-pr-14-sixth-review/`), of the spec of issue #16
+(`agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/`) and of the revision after the
+review of patchbay-vital's PR 19 (`agent-os/specs/2026-11-15-0811-revision-after-pr-19-review/`).
 
 ## Where it comes from
 
@@ -160,9 +161,31 @@ PR 14's fourth, fifth and sixth reviews
   float32 past an end the scale does not hold can show the display and still be one no normalized
   value in [0, 1] lands on, so it is refused and the display takes what a set holds, the float32
   below the end: `test_the_float32_past_an_end_the_scale_does_not_hold_is_not_taken`, on a
-  constructed scale whose maximum is unheld. An end is not always held. `holds` answers False for
-  a value that is not finite, which no scale holds, so the exception never raises on a float32
-  that steps to infinity (`test_a_scale_holds_no_value_that_is_not_finite`).
+  constructed scale whose maximum is unheld. An end is not always held.
+
+  **`holds` answers False for a value outside what the scale's ends land on,** `to_preset(0.0)`
+  and `to_preset(1.0)`, before it lands the value. That covers an infinity, a NaN and a finite
+  value too large for its quotient to be a float32, each of which raised a built-in
+  (`test_a_scale_holds_no_value_that_is_not_finite`,
+  `test_a_scale_holds_nothing_outside_what_its_ends_land_on`), so the exception never raises.
+  - The check is against what the ends land on, never the bounds. From -16777216 to
+    1.0000001192092896 the span rounds up and 1 lands on 2, past the maximum, which the scale
+    holds (`test_a_scale_holds_what_its_top_lands_on_though_that_is_past_its_maximum`). On all
+    903 committed records 0 lands on the minimum and 1 on the maximum.
+  - It rests on the scale's value rising with the normalized value
+    (`test_a_scale_s_value_rises_with_the_normalized_value`). No committed scale runs the other
+    way, and `holds` answers as it did before the check on every committed record: 13,397
+    presets at the pinned values and 798,179 at the indexed whole numbers, their halves and
+    past each end (`agent-os/specs/2026-11-15-0811-revision-after-pr-19-review/verification/holds-check.txt`).
+  - `holds` does not test the landing's normalized value again, as it did before the check.
+    Within what the ends land on, a preset the landing reaches is reached from [0, 1]:
+    `_landing` keeps its step there, and the float32 nearest the quotient is there by
+    rounding, since what 1 lands on is at most `span * 2 ** -24` past `minimum + span`
+    (`test_the_quotient_of_what_an_end_lands_on_is_in_the_unit_interval`; the argument is
+    Decision 10 of that revision's `shape.md`, and the test put back is M3, an equivalent, in
+    its `verification/mutation.txt`).
+  - The scale's own `to_normalized` and `to_preset` still raise a built-in on a value outside
+    what the scale can take, finite or not: issue #18.
 
   `to_normalized` of a display is `scale.to_normalized(to_preset(display))`, the scale's own
   normalized value for the preset `to_preset` gives, by definition. It lands that preset a
@@ -189,7 +212,13 @@ PR 14's fourth, fifth and sixth reviews
     and `test_every_committed_record_maps_any_display_to_a_preset_a_set_of_it_holds`: the
     normalized value is in [0, 1], the forward scale lands it on `to_preset`'s value, and that
     value is what the test works out a set holds, or the float32 on the other side where that
-    shows the display and what the set holds does not.
+    shows the display and what the set holds does not. The helper checks the exception both
+    ways: where the map takes what a set holds and that does not show the display, the other
+    side must not be one the rule would take. A draw over a parameter's bounds does not reach
+    a display a held preset shows, so the two properties pass a `to_preset` without its
+    exception; the pinned displays hold it, through the same helper, in
+    `test_the_doubles_beside_a_pinned_display_map_to_a_preset_a_set_of_them_holds` (M5 in the
+    `verification/mutation.txt` of the revision after the review of patchbay-vital's PR 19).
   - A sample, never a count, since a group's displays are doubles and cannot be enumerated:
     200,000 displays a continuous group, uniform over its bounds (`numpy.random.default_rng(16)`),
     11,000,000 over 55 groups, each through `main`'s shipped methods and the spec's. 2,041,885
@@ -215,6 +244,15 @@ PR 14's fourth, fifth and sixth reviews
   than its float32s, which the map has none of, it is the nearest whole number the scale holds,
   not always the one asked for: on a constructed scale from -1 to 2 ** 24 the bound's display
   takes 16777215 (`test_an_indexed_scale_wider_than_its_float32s_takes_what_a_set_holds`).
+
+  An indexed scale takes the exception too, but only where the float32 on the other side is
+  itself a whole number: from 2 ** 23 up, where float32s are 1 apart. The map's widest indexed
+  scale ends at 362,879, so no value of the map does. The branch is held by a test on a made-up
+  record, an indexed scale from -2 ** 24 to 2 ** 24 under a linear curve of multiply 3 and
+  offset 2 ** 54, where the held 8388610 comes back only through it
+  (`test_an_indexed_scale_takes_its_other_side_where_that_alone_shows_the_display`; limited to
+  linear scales, `to_preset` gives 8388612 there, MI1 in that revision's
+  `verification/mutation.txt`).
 
   **The exception, in plain words.** `_assert_comes_back` runs every check exactly first, on every
   value. Only where the check that the display's preset is the held one fails does it ask
@@ -273,6 +311,11 @@ PR 14's fourth, fifth and sixth reviews
   `test_the_doubles_beside_a_pinned_display_map_to_a_preset_a_set_of_them_holds`,
   `test_an_indexed_scale_wider_than_its_float32s_takes_what_a_set_holds`,
   `test_a_scale_holds_no_value_that_is_not_finite`,
+  `test_a_scale_holds_nothing_outside_what_its_ends_land_on`,
+  `test_a_scale_holds_what_its_top_lands_on_though_that_is_past_its_maximum`,
+  `test_a_scale_s_value_rises_with_the_normalized_value`,
+  `test_the_quotient_of_what_an_end_lands_on_is_in_the_unit_interval`,
+  `test_an_indexed_scale_takes_its_other_side_where_that_alone_shows_the_display`,
   `test_a_value_between_an_indexed_scale_s_steps_goes_to_the_nearest_step`,
   `tests/integration/test_vital_plugin.py`
   (`test_at_or_below_volume_s_floor_a_set_holds_the_map_s_preset`,
@@ -370,6 +413,19 @@ PR 14's fourth, fifth and sixth reviews
   count 46 of 48 functions and module values were `main`'s, and only `to_preset` and
   `to_normalized` of a display reached the other two, so the envelope record was counted on
   those. A method is never ruled out by an earlier count of another tree.
+
+  **A change inside one branch is recounted where that branch runs.** The revision after the
+  review of patchbay-vital's PR 19 changed `NormalizedScale.holds` alone, which `to_preset`
+  calls only from its exception.
+  - Parsing both trees showed every other function's statements the same as in the tree issue
+    #16's count ran on, 47 of 48.
+  - That count's classes then say where the exception is taken: the 308,386 OTHER values of
+    `volume`, in binades -58 to -56, with none entering it and falling through.
+  - Those three binades were recounted against `main`, 25,165,824 values, with no difference and
+    the same 308,386 (`agent-os/specs/2026-11-15-0811-revision-after-pr-19-review/verification/direct-count.txt`).
+
+  An earlier count's classes say where a branch runs only for a tree whose statements up to
+  that branch are shown to be the ones it counted.
 
   **A count's cost is timed as the count will run,** every pool at its full size at once. Issue
   #16's timing ran 4 processes and estimated 4.25 hours for `volume`; the count ran 13, on 10

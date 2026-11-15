@@ -54,10 +54,11 @@ the spec of issue #16's (`agent-os/specs/2026-11-14-1509-to-preset-returns-a-hel
   it is the values, not the parsing, that must not be written twice. A missing file fails each
   test that reads it with the path, and a line that is not a value of a known set with the file
   and the line (ME, MF and MF2 in the sixth review's `verification/mutation.txt`, in both
-  modules, the integration module's with Vital). The integration module's reader also fails by
-  name on a set that holds no value and on a normalized value outside [0, 1], so a test over an
-  emptied set cannot pass by running nothing (MG1 and MG2 in issue #16's
-  `verification/mutation.txt`). That replaced two copies of the values
+  modules, the integration module's with Vital). Each reader also fails by name on a set that
+  holds no value and on a normalized value outside [0, 1], so a test over an emptied set cannot
+  pass by running nothing: the integration module's since issue #16 (MG1 and MG2 in its
+  `verification/mutation.txt`), the unit module's since the revision after the review of
+  patchbay-vital's PR 19 (MU1 and MU2 in its). That replaced two copies of the values
   held equal by a test reading the integration module's source, whose syntax-tree checks the
   fifth and sixth reviews each found gaps in.
 
