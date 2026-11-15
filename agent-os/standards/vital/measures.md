@@ -11,7 +11,8 @@ and `agent-os/specs/2026-11-11-2044-revision-after-pr-14-second-review/`), of th
 #15 (`agent-os/specs/2026-11-12-0937-map-inverses-land-on-held-presets/`) and of the revision
 after PR 14's fourth review (`agent-os/specs/2026-11-12-1319-revision-after-pr-14-fourth-review/`);
 the pinned values' file is the revision after its sixth review's
-(`agent-os/specs/2026-11-13-0853-revision-after-pr-14-sixth-review/`).
+(`agent-os/specs/2026-11-13-0853-revision-after-pr-14-sixth-review/`), and its set of displays
+the spec of issue #16's (`agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/`).
 
 - **Vital's audio is not sample-reproducible**, so no test compares samples: two renders in a row
   differ, and so do two instances in one state (spectral centroids 4657 and 4610 Hz). Verified
@@ -35,14 +36,28 @@ the pinned values' file is the revision after its sixth review's
     display set. At issue #13's value that is what a set of the curve's float32 holds, and at the
     other three the float32 on its other side.
   - At the envelope records' pinned powers of two it is the power, a set of 1.0 s holding 1.0.
+  - At an arbitrary display, one no held preset shows, it is `to_preset`'s value too, what a set
+    of the display's float32 holds and never the curve's own float32, and its display is not the
+    display set: `beats_per_minute`'s two pinned displays, and a display 37% of the way between
+    the bounds on one record of each kind, scale and curve, a whole number where the record is
+    not continuous.
+
+  The expected value never comes from the method a test holds. Where a test needs what a set
+  holds without asking the map, it works it out from primitives: the float32 nearest the exact
+  quotient, with `Fraction`, and the forward `scale.to_preset` at it (`_nearest_quotient`). The
+  load test's expected value followed a wrong `_landing` until issue #16 worked it out so.
 
   The pinned values are written once, in `tests/data/pinned-values.txt`: a `#` header saying
-  what each set is and which spec measured it, then one `<set> <float32> <name>` line a value.
-  Each test module reads it through `pytestconfig.rootpath` with a reader of a few lines of its
-  own, since it is the values, not the parsing, that must not be written twice. A missing file
-  fails each test that reads it with the path, and a line that is not a float32 of a known set
-  with the file and the line (ME, MF and MF2 in the sixth review's `verification/mutation.txt`,
-  in both modules, the integration module's with Vital). That replaced two copies of the values
+  what each set is and which spec measured it, then one `<set> <value> <name>` line a value. A
+  value is a float32 normalized value, or, in a set of displays, a finite double. Each test
+  module reads it through `pytestconfig.rootpath` with a reader of a few lines of its own, since
+  it is the values, not the parsing, that must not be written twice. A missing file fails each
+  test that reads it with the path, and a line that is not a value of a known set with the file
+  and the line (ME, MF and MF2 in the sixth review's `verification/mutation.txt`, in both
+  modules, the integration module's with Vital). The integration module's reader also fails by
+  name on a set that holds no value and on a normalized value outside [0, 1], so a test over an
+  emptied set cannot pass by running nothing (MG1 and MG2 in issue #16's
+  `verification/mutation.txt`). That replaced two copies of the values
   held equal by a test reading the integration module's source, whose syntax-tree checks the
   fifth and sixth reviews each found gaps in.
 
@@ -53,9 +68,13 @@ the pinned values' file is the revision after its sixth review's
 
   Verified against `tests/integration/test_vital_plugin.py`
   (`test_at_or_below_volume_s_floor_a_set_holds_the_map_s_preset`,
-  `test_a_held_power_of_two_set_through_the_host_is_held`, `_held_after_a_set`, `_pinned`),
-  `tests/unit/test_parameters.py` (`_pinned`,
-  `test_the_pinned_values_file_holds_two_named_sets`), `tests/data/pinned-values.txt`, the
+  `test_a_held_power_of_two_set_through_the_host_is_held`,
+  `test_an_arbitrary_display_set_through_the_host_holds_the_map_s_preset`,
+  `test_a_value_set_through_the_host_is_the_one_the_state_holds`,
+  `test_a_load_holds_volume_s_unheld_float32_as_its_neighbour_and_chorus_feedback_as_given`,
+  `_held_after_a_set`, `_nearest_quotient`, `_pinned`), `tests/unit/test_parameters.py` (`_pinned`,
+  `test_the_pinned_values_file_holds_three_named_sets`), `tests/data/pinned-values.txt`, the
   `verification/plugin-probe.txt` of the revision after PR 14's fourth review
-  (`agent-os/specs/2026-11-12-1319-revision-after-pr-14-fourth-review/`) and the
-  `verification/mutation.txt` of the sixth.
+  (`agent-os/specs/2026-11-12-1319-revision-after-pr-14-fourth-review/`), the
+  `verification/mutation.txt` of the sixth, and the `verification/plugin-probe.txt` and
+  `verification/mutation.txt` of issue #16's spec.
