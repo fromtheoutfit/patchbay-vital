@@ -1,0 +1,883 @@
+The revision after the review of patchbay-vital's PR 19: the direct count of volume's binades -58 to -56, main's shipped methods against this tree's, run 2026-11-15 09:00 EST on branch
+refactor/16-the-parameter-map-to_preset-returns-a-preset-the-plugin-never-holds-for-a-display-no-held-preset-shows, unattended, under caffeinate -i
+the machine before the run: arm64, Apple M4 Pro, 14 cores, macOS 26.6.2 (25G83), Python 3.12.16, load 6.46 15.48 24.47, at 2026-11-15 09:00 EST
+the trees before the run:
+  HEAD f26e6bc5dc947eb63358d12bb7d898d70101a3a5
+  git status --porcelain=v1 --untracked-files=all, 14 lines:
+     M CHANGELOG.md
+     M src/patchbay_vital/parameters.py
+     M tests/unit/test_parameters.py
+    ?? agent-os/specs/2026-11-15-0811-revision-after-pr-19-review/plan.md
+    ?? agent-os/specs/2026-11-15-0811-revision-after-pr-19-review/references.md
+    ?? agent-os/specs/2026-11-15-0811-revision-after-pr-19-review/shape.md
+    ?? agent-os/specs/2026-11-15-0811-revision-after-pr-19-review/standards.md
+    ?? agent-os/specs/2026-11-15-0811-revision-after-pr-19-review/verification/arbitrary-displays.txt
+    ?? agent-os/specs/2026-11-15-0811-revision-after-pr-19-review/verification/cost.txt
+    ?? agent-os/specs/2026-11-15-0811-revision-after-pr-19-review/verification/direct-count.txt
+    ?? agent-os/specs/2026-11-15-0811-revision-after-pr-19-review/verification/holds-check.txt
+    ?? agent-os/specs/2026-11-15-0811-revision-after-pr-19-review/verification/indexed-count.txt
+    ?? agent-os/specs/2026-11-15-0811-revision-after-pr-19-review/verification/mutation.txt
+    ?? agent-os/specs/2026-11-15-0811-revision-after-pr-19-review/verification/plugin-probe.txt
+  this revision's tree, the working tree: git hash-object of each file the run reads, HEAD's blob beside it:
+    50fe09b3c3b285b3d569a8b7eb2f76981c7d6164  src/patchbay_vital/__init__.py  (HEAD 50fe09b3c3b285b3d569a8b7eb2f76981c7d6164)
+    5bf2ff80237d4dde75a3fa3b5e45728daf2dbb46  src/patchbay_vital/census.py  (HEAD 5bf2ff80237d4dde75a3fa3b5e45728daf2dbb46)
+    109ae1887be396e43ce7939b7115ec9745b6c6ca  src/patchbay_vital/data/parameters.json  (HEAD 109ae1887be396e43ce7939b7115ec9745b6c6ca)
+    d8265cd5668a70b1802e3d7b1917104935e292ff  src/patchbay_vital/errors.py  (HEAD d8265cd5668a70b1802e3d7b1917104935e292ff)
+    ddf88f5cf88bc3bfd23301f0968ca3bcd65533ac  src/patchbay_vital/files.py  (HEAD ddf88f5cf88bc3bfd23301f0968ca3bcd65533ac)
+    27a1e91bd4483e2fbdebf444799b51f78617ab0e  src/patchbay_vital/float32.py  (HEAD 27a1e91bd4483e2fbdebf444799b51f78617ab0e)
+    4296bf4d4d4ef0280ae6ae4d16810a8bce8c9b75  src/patchbay_vital/format.py  (HEAD 4296bf4d4d4ef0280ae6ae4d16810a8bce8c9b75)
+    e72737ee0f4a1d68ae1d8374390c2fa9b0d02692  src/patchbay_vital/grisu2.py  (HEAD e72737ee0f4a1d68ae1d8374390c2fa9b0d02692)
+    b8f0e11938028b0f7ddb9b079cb36b421026fd9c  src/patchbay_vital/host.py  (HEAD b8f0e11938028b0f7ddb9b079cb36b421026fd9c)
+    1c17c898edb13ecc0df8877f078028aedc876bf8  src/patchbay_vital/parameters.py  (HEAD 51ac5eef0a8cf43c38d972323fb508db3a2a4456)
+    f75e2e85d570f3db4bf5ec206bf9143f1ca4922f  src/patchbay_vital/preset.py  (HEAD f75e2e85d570f3db4bf5ec206bf9143f1ca4922f)
+    e69de29bb2d1d6434b8b29ae775ad8c2e48c5391  src/patchbay_vital/py.typed  (HEAD e69de29bb2d1d6434b8b29ae775ad8c2e48c5391)
+    f3dc277612d28632cba39cf37fa7cd42cdaa4ef6  src/patchbay_vital/settings_keys.txt  (HEAD f3dc277612d28632cba39cf37fa7cd42cdaa4ef6)
+    4ea00da21a7666f2867cf8aba41593f928755b3e  src/patchbay_vital/state.py  (HEAD 4ea00da21a7666f2867cf8aba41593f928755b3e)
+    5b97a376e899357417f1aa559d259bcadce67d8c  agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/verification/direct-count.txt  (HEAD 5b97a376e899357417f1aa559d259bcadce67d8c)
+  the tree before this revision, commit f26e6bc5dc947eb63358d12bb7d898d70101a3a5, extracted with git archive: git
+  hash-object of each extracted file, the blob of that commit beside it:
+    50fe09b3c3b285b3d569a8b7eb2f76981c7d6164  <scratchpad>/r19/before/src/patchbay_vital/__init__.py  (f26e6bc 50fe09b3c3b285b3d569a8b7eb2f76981c7d6164)
+    5bf2ff80237d4dde75a3fa3b5e45728daf2dbb46  <scratchpad>/r19/before/src/patchbay_vital/census.py  (f26e6bc 5bf2ff80237d4dde75a3fa3b5e45728daf2dbb46)
+    109ae1887be396e43ce7939b7115ec9745b6c6ca  <scratchpad>/r19/before/src/patchbay_vital/data/parameters.json  (f26e6bc 109ae1887be396e43ce7939b7115ec9745b6c6ca)
+    d8265cd5668a70b1802e3d7b1917104935e292ff  <scratchpad>/r19/before/src/patchbay_vital/errors.py  (f26e6bc d8265cd5668a70b1802e3d7b1917104935e292ff)
+    ddf88f5cf88bc3bfd23301f0968ca3bcd65533ac  <scratchpad>/r19/before/src/patchbay_vital/files.py  (f26e6bc ddf88f5cf88bc3bfd23301f0968ca3bcd65533ac)
+    27a1e91bd4483e2fbdebf444799b51f78617ab0e  <scratchpad>/r19/before/src/patchbay_vital/float32.py  (f26e6bc 27a1e91bd4483e2fbdebf444799b51f78617ab0e)
+    4296bf4d4d4ef0280ae6ae4d16810a8bce8c9b75  <scratchpad>/r19/before/src/patchbay_vital/format.py  (f26e6bc 4296bf4d4d4ef0280ae6ae4d16810a8bce8c9b75)
+    e72737ee0f4a1d68ae1d8374390c2fa9b0d02692  <scratchpad>/r19/before/src/patchbay_vital/grisu2.py  (f26e6bc e72737ee0f4a1d68ae1d8374390c2fa9b0d02692)
+    b8f0e11938028b0f7ddb9b079cb36b421026fd9c  <scratchpad>/r19/before/src/patchbay_vital/host.py  (f26e6bc b8f0e11938028b0f7ddb9b079cb36b421026fd9c)
+    51ac5eef0a8cf43c38d972323fb508db3a2a4456  <scratchpad>/r19/before/src/patchbay_vital/parameters.py  (f26e6bc 51ac5eef0a8cf43c38d972323fb508db3a2a4456)
+    f75e2e85d570f3db4bf5ec206bf9143f1ca4922f  <scratchpad>/r19/before/src/patchbay_vital/preset.py  (f26e6bc f75e2e85d570f3db4bf5ec206bf9143f1ca4922f)
+    e69de29bb2d1d6434b8b29ae775ad8c2e48c5391  <scratchpad>/r19/before/src/patchbay_vital/py.typed  (f26e6bc e69de29bb2d1d6434b8b29ae775ad8c2e48c5391)
+    f3dc277612d28632cba39cf37fa7cd42cdaa4ef6  <scratchpad>/r19/before/src/patchbay_vital/settings_keys.txt  (f26e6bc f3dc277612d28632cba39cf37fa7cd42cdaa4ef6)
+    4ea00da21a7666f2867cf8aba41593f928755b3e  <scratchpad>/r19/before/src/patchbay_vital/state.py  (f26e6bc 4ea00da21a7666f2867cf8aba41593f928755b3e)
+    5b97a376e899357417f1aa559d259bcadce67d8c  <scratchpad>/r19/before/agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/verification/direct-count.txt  (f26e6bc 5b97a376e899357417f1aa559d259bcadce67d8c)
+  main's tree, commit f533b1b0a362373613471993c86f2df8ab0ed111, extracted with git archive: git hash-object of
+  each extracted file, the blob of main's commit beside it:
+    50fe09b3c3b285b3d569a8b7eb2f76981c7d6164  <scratchpad>/r19/main/src/patchbay_vital/__init__.py  (main 50fe09b3c3b285b3d569a8b7eb2f76981c7d6164)
+    5bf2ff80237d4dde75a3fa3b5e45728daf2dbb46  <scratchpad>/r19/main/src/patchbay_vital/census.py  (main 5bf2ff80237d4dde75a3fa3b5e45728daf2dbb46)
+    109ae1887be396e43ce7939b7115ec9745b6c6ca  <scratchpad>/r19/main/src/patchbay_vital/data/parameters.json  (main 109ae1887be396e43ce7939b7115ec9745b6c6ca)
+    d8265cd5668a70b1802e3d7b1917104935e292ff  <scratchpad>/r19/main/src/patchbay_vital/errors.py  (main d8265cd5668a70b1802e3d7b1917104935e292ff)
+    ddf88f5cf88bc3bfd23301f0968ca3bcd65533ac  <scratchpad>/r19/main/src/patchbay_vital/files.py  (main ddf88f5cf88bc3bfd23301f0968ca3bcd65533ac)
+    27a1e91bd4483e2fbdebf444799b51f78617ab0e  <scratchpad>/r19/main/src/patchbay_vital/float32.py  (main 27a1e91bd4483e2fbdebf444799b51f78617ab0e)
+    4296bf4d4d4ef0280ae6ae4d16810a8bce8c9b75  <scratchpad>/r19/main/src/patchbay_vital/format.py  (main 4296bf4d4d4ef0280ae6ae4d16810a8bce8c9b75)
+    e72737ee0f4a1d68ae1d8374390c2fa9b0d02692  <scratchpad>/r19/main/src/patchbay_vital/grisu2.py  (main e72737ee0f4a1d68ae1d8374390c2fa9b0d02692)
+    b8f0e11938028b0f7ddb9b079cb36b421026fd9c  <scratchpad>/r19/main/src/patchbay_vital/host.py  (main b8f0e11938028b0f7ddb9b079cb36b421026fd9c)
+    25b1a378e0d633bf4deede60d3173e976059a2a7  <scratchpad>/r19/main/src/patchbay_vital/parameters.py  (main 25b1a378e0d633bf4deede60d3173e976059a2a7)
+    f75e2e85d570f3db4bf5ec206bf9143f1ca4922f  <scratchpad>/r19/main/src/patchbay_vital/preset.py  (main f75e2e85d570f3db4bf5ec206bf9143f1ca4922f)
+    e69de29bb2d1d6434b8b29ae775ad8c2e48c5391  <scratchpad>/r19/main/src/patchbay_vital/py.typed  (main e69de29bb2d1d6434b8b29ae775ad8c2e48c5391)
+    f3dc277612d28632cba39cf37fa7cd42cdaa4ef6  <scratchpad>/r19/main/src/patchbay_vital/settings_keys.txt  (main f3dc277612d28632cba39cf37fa7cd42cdaa4ef6)
+    4ea00da21a7666f2867cf8aba41593f928755b3e  <scratchpad>/r19/main/src/patchbay_vital/state.py  (main 4ea00da21a7666f2867cf8aba41593f928755b3e)
+fatal: could not open '<scratchpad>/r19/main/agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/verification/direct-count.txt' for reading: No such file or directory
+fatal: path 'agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/verification/direct-count.txt' exists on disk, but not in 'f533b1b'
+      <scratchpad>/r19/main/agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/verification/direct-count.txt  (main f533b1b:agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/verification/direct-count.txt)
+  git hash-object of each script the run runs:
+    af3ec33f7f1bb30b4198fb673fd0dc297ca9291c  <scratchpad>/r19/direct_count.py
+    b8b3ccc35adea3e788bbedabdde75269cf15aaa1  <scratchpad>/r19/statements.py
+    f4bae9411cf3681741902f51be744cf5790e9e6a  <scratchpad>/r19/envelope_group.py
+    6720ff497d484566f4a142848e9e6575b23e622f  <scratchpad>/r19/pools.py
+    f97e7da2890e424f67127651eb72cc74d74436d5  <scratchpad>/r19/tree.sh
+    113c5f050ae4d58f9f8ed8b34222fe63cf83286d  <scratchpad>/r19/run_direct3.sh
+
+== 1. why these three binades.
+   What the revision changes in src, the working tree against HEAD (f26e6bc), whole:
+     diff --git a/src/patchbay_vital/parameters.py b/src/patchbay_vital/parameters.py
+     index 51ac5ee..1c17c89 100644
+     --- a/src/patchbay_vital/parameters.py
+     +++ b/src/patchbay_vital/parameters.py
+     @@ -131,13 +131,22 @@ class NormalizedScale(PatchbayModel, frozen=True):
+              """Say whether the plugin can hold a preset value.
+      
+              It can when a normalized value in `[0, 1]` lands on it; `to_normalized` finds one if any.
+     -        No scale holds an infinity or a NaN: for either the answer is False, never a built-in's
+     -        error (issue #16, the final review's finding 6).
+     +        The scale's value rises with the normalized value, so it holds nothing outside what its
+     +        ends land on, `to_preset(0.0)` and `to_preset(1.0)`: there the answer is False, never a
+     +        built-in's error, for an infinity, a NaN, which compares with nothing, and a finite value
+     +        too large for the quotient to be a float32 (issue #16, the final review's finding 6, and
+     +        the review of patchbay-vital's PR 19, finding 1). What an end lands on is not always the
+     +        bound: from -16777216 to 1.0000001192092896 the span rounds up, and 1 lands on 2.
+     +
+     +        Within those ends a preset the landing reaches is reached from `[0, 1]`, so the normalized
+     +        value is not tested again. The landing keeps its step inside `[0, 1]`, and the float32
+     +        nearest the quotient is there too: 0 lands on the minimum, whose quotient is 0, and what
+     +        1 lands on is at most `span * 2 ** -24` past `minimum + span`, a quotient that rounds to
+     +        1 (the shape.md of the revision after the review of patchbay-vital's PR 19).
+              """
+     -        if not math.isfinite(preset):
+     +        if not self.to_preset(0.0) <= preset <= self.to_preset(1.0):
+                  return False
+     -        normalized, landed = _landing(self, preset)
+     -        return 0.0 <= normalized <= 1.0 and landed == preset
+     +        return _landing(self, preset)[1] == preset
+      
+          @model_validator(mode="after")
+          def _bounds_are_float32_and_ordered(self) -> Self:
+     @@ -310,7 +319,11 @@ class MappedParameter(PatchbayModel, frozen=True):
+              (`verification/indexed-count.txt`) and, as a sample, on arbitrary displays of every
+              continuous group (`verification/arbitrary-displays.txt`). On the map's indexed scales a
+              whole number is its own result; on a scale wider than its float32s, which the map has none
+     -        of, the result is the whole number a set holds, not always the one asked for.
+     +        of, the result is the whole number a set holds, not always the one asked for. An indexed
+     +        scale takes the exception too, but only where the float32 on the other side is itself a
+     +        whole number, from 2 ** 23 up, where float32s are 1 apart: the map's widest indexed scale
+     +        ends at 362,879, and a unit test holds the branch on a made-up one (the review of
+     +        patchbay-vital's PR 19, finding 7).
+      
+              Which held preset an arbitrary display takes, Vital's rounding as here or the nearer held
+              neighbour, is issue #8's finding 1; whether a set keeps a stored value given the display
+   Each function's statements, docstrings dropped, in the tree before the revision and in main's,
+   against this tree's:
+   before, f26e6bc against this tree: 48 functions, class bodies and module-level values; the same statements in both: 47; different: ['NormalizedScale.holds']
+   main, f533b1b against this tree: 48 functions, class bodies and module-level values; the same statements in both: 46; different: ['MappedParameter.to_preset', 'NormalizedScale.holds']
+   So against the tree the direct count of 2026-11-14 ran on, whose src f26e6bc holds, only
+   NormalizedScale.holds has other statements: MappedParameter.to_preset, to_normalized and
+   _landing run as they did. to_preset calls holds in one place, inside its exception, which a
+   value enters only where what a set holds is not the curve's float32 and does not show the
+   display. That count (agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/verification/direct-count.txt, its blob above)
+   classed every float32 normalized value of volume and of env_1_delay from to_preset's own
+   result: OTHER where the exception returned the other side, FELL where a value entered the
+   exception and did not. Its sections, its table's heading, its rows where OTHER or FELL is not
+   0, and each section's total:
+   So, in that count: OTHER is not 0 in binades -58, -57 and -56 of volume alone, 31,879 + 176,711
+   + 99,796 = 308,386 values; FELL is 0 in every section but the control's, section 3, which
+   removes the exception on purpose; and every value of env_1_delay is KEPT. Those 308,386 are
+   the values on which a counted linear scale calls holds. The control is not rerun: it removes
+   the exception, and the call to holds with it.
+
+== the scripts, run from the repository root as: bash <scratchpad>/r19/run_direct3.sh <scratchpad>/r19
+```bash
+#!/bin/bash
+# The revision after the review of patchbay-vital's PR 19: the direct count, again, on the three
+# binades of volume where to_preset takes its exception and so calls holds.
+# Run from the repository root: bash run_direct3.sh <scratch>
+# The transcript is written outside the tree, to <scratch>/out, a line as it comes, and copied in
+# afterwards.
+set -u
+R=$1
+FILES=$(git ls-files src | tr '\n' ' ')
+EARLIER=agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/verification/direct-count.txt
+EXPECTED=308386
+scrub() { sed -l -e "s#$R#<scratchpad>/r19#g" -e "s#$PWD/##g"; }
+machine() { echo "$(uname -m), $(sysctl -n machdep.cpu.brand_string), $(sysctl -n hw.ncpu) cores, $(sw_vers -productName) $(sw_vers -productVersion) ($(sw_vers -buildVersion)), $(uv run --locked python -V), load$(sysctl -n vm.loadavg | tr -d '{}' | sed 's/ *$//'), at $(date '+%Y-%m-%d %H:%M %Z')"; }
+{
+echo "The revision after the review of patchbay-vital's PR 19: the direct count of volume's binades -58 to -56, main's shipped methods against this tree's, run $(date '+%Y-%m-%d %H:%M %Z') on branch"
+echo "$(git branch --show-current), unattended, under caffeinate -i"
+echo "the machine before the run: $(machine)"
+echo "the trees before the run:"
+bash "$R/tree.sh" "$R/main" $FILES $EARLIER | tee "$R/out/tree-before-direct.txt"
+echo "  git hash-object of each script the run runs:"
+for s in direct_count.py statements.py envelope_group.py pools.py tree.sh run_direct3.sh; do echo "    $(git hash-object "$R/$s")  <scratchpad>/r19/$s"; done
+echo
+echo "== 1. why these three binades."
+echo "   What the revision changes in src, the working tree against HEAD (f26e6bc), whole:"
+git diff HEAD -- src | sed 's/^/     /'
+echo "   Each function's statements, docstrings dropped, in the tree before the revision and in main's,"
+echo "   against this tree's:"
+uv run --locked python "$R/statements.py" --this "$PWD/src" --tree "before, f26e6bc=$R/before/src" --tree "main, f533b1b=$R/main/src"
+echo "   So against the tree the direct count of 2026-11-14 ran on, whose src f26e6bc holds, only"
+echo "   NormalizedScale.holds has other statements: MappedParameter.to_preset, to_normalized and"
+echo "   _landing run as they did. to_preset calls holds in one place, inside its exception, which a"
+echo "   value enters only where what a set holds is not the curve's float32 and does not show the"
+echo "   display. That count ($EARLIER, its blob above)"
+echo "   classed every float32 normalized value of volume and of env_1_delay from to_preset's own"
+echo "   result: OTHER where the exception returned the other side, FELL where a value entered the"
+echo "   exception and did not. Its sections, its table's heading, its rows where OTHER or FELL is not"
+echo "   0, and each section's total:"
+awk '/^== its output/{f=1} f' "$EARLIER" | awk '
+  /^== [2-7]\. (volume|a control|the 12 envelope|env_1_delay)/ {print "     " substr($0, 1, 118); next}
+  /^ +binade +n / {print "     " $0; cols = NF; next}
+  /^ +(total|-?[0-9]+|zero|sub|one) +[0-9]+ / {
+    other = (cols == 14) ? $11 : $9; fell = (cols == 14) ? $12 : $10
+    if ($1 == "total" || other + 0 > 0 || fell + 0 > 0) print "     " $0
+  }'
+echo "   So, in that count: OTHER is not 0 in binades -58, -57 and -56 of volume alone, 31,879 + 176,711"
+echo "   + 99,796 = 308,386 values; FELL is 0 in every section but the control's, section 3, which"
+echo "   removes the exception on purpose; and every value of env_1_delay is KEPT. Those 308,386 are"
+echo "   the values on which a counted linear scale calls holds. The control is not rerun: it removes"
+echo "   the exception, and the call to holds with it."
+echo
+echo "== the scripts, run from the repository root as: bash <scratchpad>/r19/run_direct3.sh <scratchpad>/r19"
+echo '```bash'; cat "$R/run_direct3.sh"; echo '```'
+echo '```python'; cat "$R/direct_count.py"; echo '```'
+echo '```python'; cat "$R/statements.py"; echo '```'
+echo '```python'; cat "$R/envelope_group.py"; echo '```'
+echo '```python'; cat "$R/pools.py"; echo '```'
+echo '```bash'; cat "$R/tree.sh"; echo '```'
+echo
+echo "== 2. the recount: volume, binades -58 to -56, every float32 normalized value, five calls a value"
+echo "   in each tree. It stops at once on any difference from main."
+caffeinate -i uv run --locked python -u "$R/direct_count.py" --main "$R/main/src" --branch "$PWD/src" --main-processes 6 --branch-processes 7 --record volume --columns five --from -58 --to -56 | tee "$R/out/direct-recount-raw.txt"
+status=${PIPESTATUS[0]}; echo "exit=$status"
+other=$(awk '/^ +total +[0-9]+ /{print $11}' "$R/out/direct-recount-raw.txt")
+echo
+echo "== 3. the recount's OTHER total, ${other:-none}, against the 2026-11-14 count's $EXPECTED: $([ "${other:-x}" = "$EXPECTED" ] && echo "the same" || echo "NOT the same")"
+echo
+echo "the trees after the run:"
+bash "$R/tree.sh" "$R/main" $FILES $EARLIER | tee "$R/out/tree-after-direct.txt"
+cmp "$R/out/tree-before-direct.txt" "$R/out/tree-after-direct.txt" && echo "cmp: the trees before and after are the same"
+echo "the machine after the run: $(machine)"
+} 2>&1 | scrub > "$R/out/direct-count.txt"
+```
+```python
+"""The revision after the review of patchbay-vital's PR 19: `main`'s shipped methods against this branch's, directly, on every value.
+
+The fifth review's direct count, for this change. Nothing is reproduced. Two pools of processes
+each import `patchbay_vital` from one tree (`pools.py`), `main`'s (an extract of its commit) or
+this branch's, and each calls its own tree's scalar methods on every float32 normalized value r
+of a record, as a caller would:
+
+  P0 = scale.to_preset(r)            the preset the parameter holds
+  D0 = record.from_normalized(r)     its display
+  TP = record.to_preset(D0)          the display's preset
+  TN = record.to_normalized(D0)      the normalized value a set of the display sends
+  HN = scale.to_normalized(P0)       the held preset's normalized value
+
+With `--columns five` all five are called in both trees and compared. With `--columns two` only
+the two methods issue #16's change can reach are: D0 is still made by each tree's own
+`from_normalized`, as the input, and compared; P0 and HN are not called in `main`'s tree
+(`envelope_group.py` shows their statements are the same in both trees).
+
+This process compares the two trees on every r and counts, by binade of r:
+
+  S!=, D!=   P0 or D0 differs
+  PRESET     TP differs from `main`'s
+  NORM       TN differs from `main`'s
+  HELDNORM   HN differs from `main`'s
+  ANY        any compared value differs
+
+and, from this branch's own result TP on a linear scale, what the rule did. P1 is the curve's
+float32 for D0, kept within the scale; `landed` is what a set of P1 holds,
+scale.to_preset(scale.to_normalized(P1)); `other` is the float32 next to P1 away from `landed`:
+
+  KEPT       TP == P1 and a set of it holds it (0 <= TN <= 1 and scale.to_preset(TN) == TP)
+  PLUGIN     TP == landed != P1 and landed shows D0: what a set holds, Vital's own rounding
+  OTHER      TP == other, landed != P1: the rule's one exception
+  FELL       TP == landed != P1 and landed does not show D0: what a set holds where neither
+             candidate shows the display. D0 is a display a held preset shows, so this is expected
+             on no value: it is where `main` kept the curve's float32, its third branch.
+  UNKNOWN    none of these
+
+On `volume` every count is also split at its floor exactly, by this branch's P0 <= 2 ** -43 and
+P0 > 2 ** -43, value by value, never by binade. On another record the split's two rows are not
+printed: with `--columns two` its P0 is not called, and every value counts as above the floor.
+
+OUT counts what the run stops on, at once: ANY difference from `main`, any FELL, any UNKNOWN.
+Every display counted is one a held preset shows, where issue #16 changes nothing; a difference
+is outside what the rule is meant to change. `--control` counts the same and does not stop.
+
+Run from the repository root:
+  uv run --locked python direct_count.py --main <main's src> --branch <this branch's src>
+      --record <id> --columns five|two [--from <binade> --to <binade>] [--time [--budget <hours>]]
+      [--control] [--label <text>] [--main-processes <n>] [--branch-processes <n>]
+"""
+
+import argparse
+import math
+import sys
+import time
+
+import numpy as np
+
+import pools
+
+FLOOR = 2.0**-43
+CHUNK = 1 << 16
+SPANS = [("zero", 0, 1), ("sub", 1, 1 << 23)]
+SPANS += [(str(e - 127), e << 23, (e + 1) << 23) for e in range(1, 127)]
+SPANS += [("one", 0x3F800000, 0x3F800001)]
+COMPARED = {"five": ("S!=", "D!=", "PRESET", "NORM", "HELDNORM"), "two": ("D!=", "PRESET", "NORM")}
+ROWS = {"five": (0, 1, 2, 3, 4), "two": (1, 2, 3)}
+CLASSES = ("KEPT", "PLUGIN", "OTHER", "FELL", "UNKNOWN")
+
+
+def work(job):
+    """Call one tree's methods on every float32 normalized value of a bit-pattern range."""
+    name, lo, hi, five, classify = job
+    record = pools.record(name)
+    scale, curve = record.scale, record.curve
+    linear = scale.kind == "linear"
+    split = classify and name == "volume"  # this branch's P0, for the split at volume's floor
+    values = np.arange(lo, hi, dtype=np.uint32).view(np.float32).astype(np.float64).tolist()
+    out = np.full((5, len(values)), np.nan)
+    rule = np.full(len(values), -1, np.int8)
+    step = pools.TREE["float32"].next_float32
+    for i, r in enumerate(values):
+        d0 = record.from_normalized(r)
+        tp = record.to_preset(d0)
+        tn = record.to_normalized(d0)
+        if five or split:
+            p0 = scale.to_preset(r)
+            out[0, i] = p0
+        if five:
+            out[4, i] = scale.to_normalized(p0)
+        out[1:4, i] = (d0, tp, tn)
+        if not (classify and linear):
+            continue
+        p1 = min(max(curve.to_preset(d0), scale.minimum), scale.maximum)
+        if tp == p1:
+            rule[i] = 0 if 0.0 <= tn <= 1.0 and scale.to_preset(tn) == tp else 4
+            continue
+        landed = scale.to_preset(scale.to_normalized(p1))
+        if landed == p1:
+            rule[i] = 4
+        elif tp == landed:
+            rule[i] = 1 if record.to_display(tp) == d0 else 3
+        elif tp == step(p1, math.copysign(math.inf, p1 - landed)):
+            rule[i] = 2
+        else:
+            rule[i] = 4
+    return lo, out, rule
+
+
+def tally(columns, ours, theirs, rule):
+    """Return the counts at or below the floor and above it, and the values the run stops on."""
+    differs = [ours[k] != theirs[k] for k in ROWS[columns]]
+    anything = np.logical_or.reduce(differs)
+    classes = [rule == c for c in range(len(CLASSES))]
+    out = anything | classes[3] | classes[4]
+    flags = (*differs, anything, *classes, out)
+    below = ours[0] <= FLOOR  # a NaN, where P0 was not called, is above
+    rows = [[int(np.count_nonzero(side)), *(int(np.count_nonzero(f & side)) for f in flags)]
+            for side in (below, ~below)]
+    return np.array(rows, dtype=np.int64), np.flatnonzero(out)
+
+
+def spans(first, last):
+    labels = [label for label, _, _ in SPANS]
+    lo = 0 if first is None else labels.index(first)
+    hi = len(SPANS) - 1 if last is None else labels.index(last)
+    return SPANS[lo : hi + 1]
+
+
+def line(label, row):
+    return f"{label:>12} " + " ".join(f"{int(v):>11}" for v in row)
+
+
+def timing(open_pools, sizes, name, five):
+    """Time each tree on 200,000 values: 4 ranges of 50,000, at once, in 4 of its processes."""
+    rng = np.random.default_rng(21)
+    report = {}
+    starts = rng.integers(0x10000000, 0x3F000000, 4, dtype=np.uint32).tolist()
+    for side, pool in open_pools.items():
+        started = time.time()
+        jobs = [pool.apply_async(work, ((name, start, start + 50_000, five, side == "branch"),))
+                for start in starts]
+        for job in jobs:
+            job.get()
+        report[side] = (time.time() - started) / 50_000 * 1e6
+        print(f"  {side}: {report[side]:.1f} us a value, 4 ranges of 50,000 values in 4 processes"
+              " at once")
+    total = 1_065_353_217
+    wall = max(report[s] / sizes[s] for s in sizes) * total / 3.6e9
+    cpu = sum(report.values()) * total / 3.6e9
+    print(f"   every float32 normalized value of {name}, {total:,}: about {cpu:.1f} CPU-hours,"
+          f" {wall:.2f} hours wall on these pools")
+    return wall
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--main", required=True)
+    parser.add_argument("--branch", required=True)
+    parser.add_argument("--record", required=True)
+    parser.add_argument("--columns", choices=("five", "two"), required=True)
+    parser.add_argument("--from", dest="first")
+    parser.add_argument("--to", dest="last")
+    parser.add_argument("--main-processes", type=int, default=6)
+    parser.add_argument("--branch-processes", type=int, default=7)
+    parser.add_argument("--time", action="store_true")
+    parser.add_argument("--control", action="store_true")
+    parser.add_argument("--label", default="")
+    parser.add_argument("--budget", type=float, default=5.0)
+    args = parser.parse_args()
+    five = args.columns == "five"
+    sizes = {"main": args.main_processes, "branch": args.branch_processes}
+    open_pools = pools.open_pools({"main": args.main, "branch": args.branch}, sizes)
+    if args.time:
+        print(f"== timing on {args.record}, --columns {args.columns}")
+        wall = timing(open_pools, sizes, args.record, five)
+        for pool in open_pools.values():
+            pool.close()
+        if wall > args.budget:
+            print(f"   more than the {args.budget} hours a record the owner allowed: stopping")
+            return 3
+        return 0
+    columns = ("n", *COMPARED[args.columns], "ANY", *CLASSES, "OUT")
+    chosen = spans(args.first, args.last)
+    print(f"== {args.record}{args.label}, --columns {args.columns}: binades {chosen[0][0]} to"
+          f" {chosen[-1][0]}, {sum(hi - lo for _, lo, hi in chosen):,} float32 normalized values,"
+          " each through both trees")
+    print(line("binade", ()) + " ".join(f"{c:>11}" for c in columns))
+    started = time.time()
+    total = np.zeros((2, len(columns)), dtype=np.int64)
+    quiet = []
+    kept = columns.index("KEPT")
+    for label, lo, hi in chosen:
+        row = np.zeros((2, len(columns)), dtype=np.int64)
+        jobs = []
+        for start in range(lo, hi, CHUNK):
+            end = min(hi, start + CHUNK)
+            jobs.append((
+                open_pools["main"].apply_async(work, ((args.record, start, end, five, False),)),
+                open_pools["branch"].apply_async(work, ((args.record, start, end, five, True),)),
+            ))
+        for theirs_job, ours_job in jobs:
+            start, theirs, _ = theirs_job.get()
+            _, ours, rule = ours_job.get()
+            counted, stops = tally(args.columns, ours, theirs, rule)
+            row += counted
+            if stops.size and not args.control:
+                print(line(label, row.sum(axis=0)))
+                print(f"== OUT: {stops.size} values in the range from bit pattern {start}; the first:")
+                for i in stops[:5].tolist():
+                    bits = np.array([start + i], dtype=np.uint32).view(np.float32)[0]
+                    print(f"   r {float(bits)!r}: this branch's P0, D0, TP, TN, HN"
+                          f" {[float(v) for v in ours[:, i]]!r}, main's"
+                          f" {[float(v) for v in theirs[:, i]]!r}, the rule"
+                          f" {CLASSES[rule[i]] if rule[i] >= 0 else 'none'}")
+                print("== stopped at once: a difference from main outside the rule's change")
+                for pool in open_pools.values():
+                    pool.terminate()
+                return 1
+        total += row
+        whole = row.sum(axis=0)
+        if whole[kept] == whole[0] and not whole[1:kept].any() and not whole[kept + 1 :].any():
+            quiet.append(label)
+        elif row[0, 0] and row[1, 0]:
+            print(line(label, whole))
+            print(line("<= 2**-43", row[0]))
+            print(line("> 2**-43", row[1]))
+        else:
+            print(line(label, whole))
+        sys.stdout.flush()
+    print(line("total", total.sum(axis=0)))
+    if args.record == "volume":
+        print(line("P0 <= 2**-43", total[0]))
+        print(line("P0 > 2**-43", total[1]))
+    print(f"  every value KEPT and nothing differing from main in {len(quiet)} binades:"
+          f" {', '.join(quiet) if quiet else 'none'}")
+    print(f"  {time.time() - started:.0f} s")
+    for pool in open_pools.values():
+        pool.close()
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
+```
+```python
+"""The revision after the review of patchbay-vital's PR 19: which functions' statements differ.
+
+`parameters.py` and `float32.py` are parsed in each tree given, every docstring dropped, and each
+function's statements compared with this tree's, by the parser issue #16's direct count used
+(`envelope_group.parse`, which that count's transcript embeds). A function whose statements are
+the same in two trees runs the same in both; one whose differ is named.
+
+Run from the repository root:
+  uv run --locked python statements.py --this <this tree's src> --tree "<label>=<src>" ...
+"""
+
+import argparse
+import ast
+import sys
+from pathlib import Path
+
+import envelope_group
+
+
+def functions(src):
+    """Return {qualified name: syntax tree} of a tree's two modules, docstrings dropped."""
+    out = {}
+    for module in ("parameters", "float32"):
+        text = (Path(src) / "patchbay_vital" / f"{module}.py").read_text(encoding="utf-8")
+        out.update(envelope_group.parse(text, module))
+    return {name: ast.dump(node) for name, (node, _) in out.items()}
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--this", required=True)
+    parser.add_argument("--tree", action="append", required=True)
+    args = parser.parse_args()
+    ours = functions(args.this)
+    for given in args.tree:
+        label, _, src = given.partition("=")
+        theirs = functions(src)
+        names = sorted(set(ours) | set(theirs))
+        differ = [n for n in names if ours.get(n) != theirs.get(n)]
+        print(f"   {label} against this tree: {len(names)} functions, class bodies and module-level"
+              f" values; the same statements in both: {len(names) - len(differ)}; different:"
+              f" {differ}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
+```
+```python
+"""Issue #16's spec: the envelope records are one group, and which of the count's calls can differ.
+
+Two things the direct count of `env_1_delay` rests on, each read from the shipped source of both
+trees, `main`'s and this branch's, imported by one pool a tree (`pools.py`):
+
+1. The 12 `env_N_delay` and `env_N_hold` records have one group key, every field the map's
+   methods read of a record: the parameter's kind and bounds, the scale's kind and bounds, the
+   curve's kind, multiply and offset. So `env_1_delay`'s count is the group's.
+
+2. Which methods can give another value than `main`'s. `parameters.py` and `float32.py` are
+   parsed in each tree, every docstring dropped, and each function's statements compared between
+   the trees. Then, for each of the five calls the count makes on a value, the functions it can
+   reach are followed through the source: a call of a name, a method or property read off `self`,
+   off a `scale` (NormalizedScale), a `curve` (DisplayCurve) or a `record` (MappedParameter), and
+   a module-level table a function reads. A call whose every reachable function has the same
+   statements in both trees cannot differ from `main`'s; the others are the ones to count. A
+   method-named attribute whose receiver this cannot place is printed, so nothing is passed over;
+   one read off a `parameter` is core's `Parameter`'s own field, outside these two files.
+
+Run from the repository root:
+  uv run --locked python envelope_group.py --main <main's src> --branch <this branch's src>
+"""
+
+import argparse
+import ast
+import sys
+
+import pools
+
+ENVELOPE = [f"env_{n}_{part}" for n in range(1, 7) for part in ("delay", "hold")]
+FIELDS = ("parameter.kind", "parameter.minimum", "parameter.maximum", "scale.kind",
+          "scale.minimum", "scale.maximum", "curve.kind", "curve.multiply", "curve.offset")
+CALLS = {
+    "P0 = scale.to_preset(r)": "NormalizedScale.to_preset",
+    "D0 = record.from_normalized(r)": "MappedParameter.from_normalized",
+    "TP = record.to_preset(D0)": "MappedParameter.to_preset",
+    "TN = record.to_normalized(D0)": "MappedParameter.to_normalized",
+    "HN = scale.to_normalized(P0)": "NormalizedScale.to_normalized",
+}
+RECEIVERS = {"scale": "NormalizedScale", "curve": "DisplayCurve", "record": "MappedParameter"}
+OUTSIDE = {"parameter"}  # core's `Parameter`, a model of patchbay-core: its fields are not these files'
+
+
+def keys(_):
+    """Return each envelope record's group key in this worker's tree."""
+    out = []
+    for name in ENVELOPE:
+        r = pools.record(name)
+        p, s, c = r.parameter, r.scale, r.curve
+        out.append((name, p.kind, p.minimum, p.maximum, s.kind, s.minimum, s.maximum, c.kind,
+                    c.multiply, c.offset))
+    return out
+
+
+def sources(_):
+    """Return this worker's tree's parameters.py and float32.py as text."""
+    return {name: open(pools.TREE[name].__file__, encoding="utf-8").read()
+            for name in ("parameters", "float32")}
+
+
+def without_docstring(node):
+    """Drop a module's, class's or function's docstring, in place."""
+    body = node.body
+    if body and isinstance(body[0], ast.Expr) and isinstance(body[0].value, ast.Constant) \
+            and isinstance(body[0].value.value, str):
+        del body[0]
+    # a string that documents the assignment before it is a docstring too
+    node.body = [s for s in body if not (isinstance(s, ast.Expr) and isinstance(s.value, ast.Constant)
+                                         and isinstance(s.value.value, str))]
+
+
+def parse(text, module):
+    """Return {qualified name: (node, class name)} of a module's functions and its tables."""
+    tree = ast.parse(text)
+    without_docstring(tree)
+    found = {}
+    for node in tree.body:
+        if isinstance(node, ast.ClassDef):
+            without_docstring(node)
+            rest = []
+            for item in node.body:
+                if isinstance(item, ast.FunctionDef):
+                    without_docstring(item)
+                    found[f"{node.name}.{item.name}"] = (item, node.name)
+                else:
+                    rest.append(item)
+            found[f"{node.name}, its fields"] = (ast.Module(body=rest, type_ignores=[]), node.name)
+        elif isinstance(node, ast.FunctionDef):
+            without_docstring(node)
+            found[node.name] = (node, None)
+        elif isinstance(node, (ast.Assign, ast.AnnAssign)):
+            targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+            for target in targets:
+                if isinstance(target, ast.Name):
+                    found[f"{target.id}, a module-level value"] = (node, None)
+    return {(f"float32.{name}" if module == "float32" else name): value
+            for name, value in found.items()}
+
+
+def reaches(name, functions, unplaced):
+    """Return the names a function's statements can reach, one step."""
+    node, owner = functions[name]
+    out = set()
+    for sub in ast.walk(node):
+        if isinstance(sub, ast.Name):
+            for candidate in (sub.id, f"float32.{sub.id}", f"{sub.id}, a module-level value",
+                              f"float32.{sub.id}, a module-level value"):
+                if candidate in functions and candidate != name:
+                    out.add(candidate)
+        elif isinstance(sub, ast.Attribute):
+            methods = [q for q in functions if q.endswith(f".{sub.attr}") and not q.startswith("float32.")]
+            if not methods:
+                continue
+            receiver = ast.unparse(sub.value)
+            last = receiver.rsplit(".", 1)[-1]
+            cls = owner if receiver == "self" else RECEIVERS.get(last)
+            if cls and f"{cls}.{sub.attr}" in functions:
+                out.add(f"{cls}.{sub.attr}")
+            elif cls is None and last not in OUTSIDE:
+                unplaced.add(f"{name}: {receiver}.{sub.attr}")
+    return out
+
+
+def closure(start, functions, unplaced):
+    seen, todo = set(), [start]
+    while todo:
+        name = todo.pop()
+        if name in seen:
+            continue
+        seen.add(name)
+        todo.extend(reaches(name, functions, unplaced))
+    return seen
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--main", required=True)
+    parser.add_argument("--branch", required=True)
+    args = parser.parse_args()
+    open_pools = pools.open_pools({"main": args.main, "branch": args.branch}, {"main": 1, "branch": 1})
+
+    print("== 1. the 12 envelope delay and hold records, every field the map's methods read:")
+    listed = {side: pool.apply(keys, (None,)) for side, pool in open_pools.items()}
+    print("   " + ", ".join(FIELDS))
+    for row in listed["branch"]:
+        print(f"   {row[0]:>12}: {row[1:]!r}")
+    distinct = {row[1:] for row in listed["branch"]}
+    print(f"== distinct keys among them: {len(distinct)}; main's tree lists the same 12:"
+          f" {listed['main'] == listed['branch']}")
+
+    print("== 2. each function's statements, docstrings dropped, main's tree against this branch's")
+    texts = {side: pool.apply(sources, (None,)) for side, pool in open_pools.items()}
+    parsed = {side: {**parse(texts[side]["parameters"], "parameters"),
+                     **parse(texts[side]["float32"], "float32")} for side in texts}
+    ours, theirs = parsed["branch"], parsed["main"]
+    names = sorted(set(ours) | set(theirs))
+    same = {n: n in ours and n in theirs and ast.dump(ours[n][0]) == ast.dump(theirs[n][0])
+            for n in names}
+    print(f"   {len(names)} functions, class bodies and module-level values in parameters.py and"
+          f" float32.py; the same statements in both trees: {sum(same.values())}; different:"
+          f" {[n for n in names if not same[n]]}")
+    unplaced = set()
+    print("== what each of the count's calls can reach, in this branch's tree, and whether any of it"
+          " differs from main's:")
+    verdict = {}
+    for call, start in CALLS.items():
+        reached = sorted(closure(start, ours, unplaced))
+        changed = [n for n in reached if not same[n]]
+        verdict[call] = changed
+        print(f"   {call}")
+        print(f"      reaches {len(reached)}: {', '.join(reached)}")
+        print(f"      of them, with other statements than main's: {changed if changed else 'none'}")
+    print(f"== method-named attributes whose receiver was not placed: {sorted(unplaced) or 'none'}")
+    can = [call for call, changed in verdict.items() if changed]
+    cannot = [call for call, changed in verdict.items() if not changed]
+    print("== so, on any record: the calls that can differ from main's:")
+    for call in can:
+        print(f"      {call}, through {verdict[call]}")
+    print("   and the calls that cannot, every function they reach having main's statements:")
+    for call in cannot:
+        print(f"      {call}")
+    for pool in open_pools.values():
+        pool.close()
+    return 0 if len(distinct) == 1 and not unplaced else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())
+```
+```python
+"""The revision after the review of patchbay-vital's PR 19: two pools of processes, each importing `patchbay_vital` from one tree.
+
+Nothing is reproduced. A worker puts one tree's `src` first on `sys.path` before its first import
+of the package, so every method it calls is that tree's shipped one: `main`'s, an extract of its
+commit made with `git archive`, or this branch's, the working tree. `open_pools` prints the files
+each pool imported and stops unless they are under the tree asked for.
+"""
+
+import multiprocessing
+import sys
+
+TREE = {}
+
+
+def use(src):
+    """A worker's initializer: import `patchbay_vital` from one tree, before anything else does."""
+    sys.path.insert(0, src)
+    import patchbay  # noqa: PLC0415
+    import patchbay_vital.errors  # noqa: PLC0415
+    import patchbay_vital.float32  # noqa: PLC0415
+    import patchbay_vital.parameters  # noqa: PLC0415
+
+    TREE["parameters"] = patchbay_vital.parameters
+    TREE["float32"] = patchbay_vital.float32
+    TREE["errors"] = patchbay_vital.errors
+    TREE["id"] = patchbay.ParameterId
+
+
+def where():
+    """Return the files this worker's tree was imported from."""
+    return TREE["parameters"].__file__, TREE["float32"].__file__
+
+
+def record(name):
+    """Return this worker's tree's record for an id."""
+    return TREE["parameters"].parameter_map().find(TREE["id"](name))
+
+
+def open_pools(sources, sizes):
+    """Open one pool a tree, `sources` and `sizes` keyed by the tree's name; print what each imports."""
+    context = multiprocessing.get_context("spawn")
+    pools = {
+        side: context.Pool(sizes[side], initializer=use, initargs=(sources[side],)) for side in sources
+    }
+    for side, pool in pools.items():
+        files = pool.apply(where)
+        print(f"== the {side} pool, {sizes[side]} processes, imports {files[0]}")
+        print(f"   and {files[1]}")
+        if not all(f.startswith(sources[side]) for f in files):
+            print("   NOT the tree asked for: stopping")
+            for other in pools.values():
+                other.terminate()
+            raise SystemExit(2)
+    return pools
+```
+```bash
+#!/bin/bash
+# Print the trees a run reads: HEAD, git status in full, and the blob of each file read in each tree.
+# usage: tree.sh <main's extract> <file>...   (run from the repository root)
+# HEAD is the pull request's head before this revision, f26e6bc: the revision's change is in the
+# working tree, uncommitted. The tree before the change is an extract of f26e6bc, beside main's.
+main=$1; shift
+before=$(dirname "$main")/before
+echo "  HEAD $(git rev-parse HEAD)"
+echo "  git status --porcelain=v1 --untracked-files=all, $(git status --porcelain=v1 --untracked-files=all | wc -l | tr -d ' ') lines:"
+git status --porcelain=v1 --untracked-files=all | sed 's/^/    /'
+echo "  this revision's tree, the working tree: git hash-object of each file the run reads, HEAD's blob beside it:"
+for f in "$@"; do
+  head_blob=$(git rev-parse --verify --quiet "HEAD:$f" || echo "not in HEAD")
+  echo "    $(git hash-object "$f")  $f  (HEAD $head_blob)"
+done
+echo "  the tree before this revision, commit $(git rev-parse f26e6bc), extracted with git archive: git"
+echo "  hash-object of each extracted file, the blob of that commit beside it:"
+for f in "$@"; do
+  echo "    $(git hash-object "$before/$f")  <scratchpad>/r19/before/$f  (f26e6bc $(git rev-parse "f26e6bc:$f"))"
+done
+echo "  main's tree, commit $(git rev-parse f533b1b), extracted with git archive: git hash-object of"
+echo "  each extracted file, the blob of main's commit beside it:"
+for f in "$@"; do
+  echo "    $(git hash-object "$main/$f")  <scratchpad>/r19/main/$f  (main $(git rev-parse "f533b1b:$f"))"
+done
+```
+
+== 2. the recount: volume, binades -58 to -56, every float32 normalized value, five calls a value
+   in each tree. It stops at once on any difference from main.
+== the main pool, 6 processes, imports <scratchpad>/r19/main/src/patchbay_vital/parameters.py
+   and <scratchpad>/r19/main/src/patchbay_vital/float32.py
+== the branch pool, 7 processes, imports src/patchbay_vital/parameters.py
+   and src/patchbay_vital/float32.py
+== volume, --columns five: binades -58 to -56, 25,165,824 float32 normalized values, each through both trees
+      binade           n         S!=         D!=      PRESET        NORM    HELDNORM         ANY        KEPT      PLUGIN       OTHER        FELL     UNKNOWN         OUT
+         -58     8388608           0           0           0           0           0           0     7926427      430302       31879           0           0           0
+         -57     8388608           0           0           0           0           0           0     8034982      176915      176711           0           0           0
+         -56     8388608           0           0           0           0           0           0     8189176       99636       99796           0           0           0
+   <= 2**-43      898511           0           0           0           0           0           0      699079       99636       99796           0           0           0
+    > 2**-43     7490097           0           0           0           0           0           0     7490097           0           0           0           0           0
+       total    25165824           0           0           0           0           0           0    24150585      706853      308386           0           0           0
+P0 <= 2**-43    17675727           0           0           0           0           0           0    16660488      706853      308386           0           0           0
+ P0 > 2**-43     7490097           0           0           0           0           0           0     7490097           0           0           0           0           0
+  every value KEPT and nothing differing from main in 0 binades: none
+  504 s
+exit=0
+
+== 3. the recount's OTHER total, 308386, against the 2026-11-14 count's 308386: the same
+
+the trees after the run:
+  HEAD f26e6bc5dc947eb63358d12bb7d898d70101a3a5
+  git status --porcelain=v1 --untracked-files=all, 14 lines:
+     M CHANGELOG.md
+     M src/patchbay_vital/parameters.py
+     M tests/unit/test_parameters.py
+    ?? agent-os/specs/2026-11-15-0811-revision-after-pr-19-review/plan.md
+    ?? agent-os/specs/2026-11-15-0811-revision-after-pr-19-review/references.md
+    ?? agent-os/specs/2026-11-15-0811-revision-after-pr-19-review/shape.md
+    ?? agent-os/specs/2026-11-15-0811-revision-after-pr-19-review/standards.md
+    ?? agent-os/specs/2026-11-15-0811-revision-after-pr-19-review/verification/arbitrary-displays.txt
+    ?? agent-os/specs/2026-11-15-0811-revision-after-pr-19-review/verification/cost.txt
+    ?? agent-os/specs/2026-11-15-0811-revision-after-pr-19-review/verification/direct-count.txt
+    ?? agent-os/specs/2026-11-15-0811-revision-after-pr-19-review/verification/holds-check.txt
+    ?? agent-os/specs/2026-11-15-0811-revision-after-pr-19-review/verification/indexed-count.txt
+    ?? agent-os/specs/2026-11-15-0811-revision-after-pr-19-review/verification/mutation.txt
+    ?? agent-os/specs/2026-11-15-0811-revision-after-pr-19-review/verification/plugin-probe.txt
+  this revision's tree, the working tree: git hash-object of each file the run reads, HEAD's blob beside it:
+    50fe09b3c3b285b3d569a8b7eb2f76981c7d6164  src/patchbay_vital/__init__.py  (HEAD 50fe09b3c3b285b3d569a8b7eb2f76981c7d6164)
+    5bf2ff80237d4dde75a3fa3b5e45728daf2dbb46  src/patchbay_vital/census.py  (HEAD 5bf2ff80237d4dde75a3fa3b5e45728daf2dbb46)
+    109ae1887be396e43ce7939b7115ec9745b6c6ca  src/patchbay_vital/data/parameters.json  (HEAD 109ae1887be396e43ce7939b7115ec9745b6c6ca)
+    d8265cd5668a70b1802e3d7b1917104935e292ff  src/patchbay_vital/errors.py  (HEAD d8265cd5668a70b1802e3d7b1917104935e292ff)
+    ddf88f5cf88bc3bfd23301f0968ca3bcd65533ac  src/patchbay_vital/files.py  (HEAD ddf88f5cf88bc3bfd23301f0968ca3bcd65533ac)
+    27a1e91bd4483e2fbdebf444799b51f78617ab0e  src/patchbay_vital/float32.py  (HEAD 27a1e91bd4483e2fbdebf444799b51f78617ab0e)
+    4296bf4d4d4ef0280ae6ae4d16810a8bce8c9b75  src/patchbay_vital/format.py  (HEAD 4296bf4d4d4ef0280ae6ae4d16810a8bce8c9b75)
+    e72737ee0f4a1d68ae1d8374390c2fa9b0d02692  src/patchbay_vital/grisu2.py  (HEAD e72737ee0f4a1d68ae1d8374390c2fa9b0d02692)
+    b8f0e11938028b0f7ddb9b079cb36b421026fd9c  src/patchbay_vital/host.py  (HEAD b8f0e11938028b0f7ddb9b079cb36b421026fd9c)
+    1c17c898edb13ecc0df8877f078028aedc876bf8  src/patchbay_vital/parameters.py  (HEAD 51ac5eef0a8cf43c38d972323fb508db3a2a4456)
+    f75e2e85d570f3db4bf5ec206bf9143f1ca4922f  src/patchbay_vital/preset.py  (HEAD f75e2e85d570f3db4bf5ec206bf9143f1ca4922f)
+    e69de29bb2d1d6434b8b29ae775ad8c2e48c5391  src/patchbay_vital/py.typed  (HEAD e69de29bb2d1d6434b8b29ae775ad8c2e48c5391)
+    f3dc277612d28632cba39cf37fa7cd42cdaa4ef6  src/patchbay_vital/settings_keys.txt  (HEAD f3dc277612d28632cba39cf37fa7cd42cdaa4ef6)
+    4ea00da21a7666f2867cf8aba41593f928755b3e  src/patchbay_vital/state.py  (HEAD 4ea00da21a7666f2867cf8aba41593f928755b3e)
+    5b97a376e899357417f1aa559d259bcadce67d8c  agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/verification/direct-count.txt  (HEAD 5b97a376e899357417f1aa559d259bcadce67d8c)
+  the tree before this revision, commit f26e6bc5dc947eb63358d12bb7d898d70101a3a5, extracted with git archive: git
+  hash-object of each extracted file, the blob of that commit beside it:
+    50fe09b3c3b285b3d569a8b7eb2f76981c7d6164  <scratchpad>/r19/before/src/patchbay_vital/__init__.py  (f26e6bc 50fe09b3c3b285b3d569a8b7eb2f76981c7d6164)
+    5bf2ff80237d4dde75a3fa3b5e45728daf2dbb46  <scratchpad>/r19/before/src/patchbay_vital/census.py  (f26e6bc 5bf2ff80237d4dde75a3fa3b5e45728daf2dbb46)
+    109ae1887be396e43ce7939b7115ec9745b6c6ca  <scratchpad>/r19/before/src/patchbay_vital/data/parameters.json  (f26e6bc 109ae1887be396e43ce7939b7115ec9745b6c6ca)
+    d8265cd5668a70b1802e3d7b1917104935e292ff  <scratchpad>/r19/before/src/patchbay_vital/errors.py  (f26e6bc d8265cd5668a70b1802e3d7b1917104935e292ff)
+    ddf88f5cf88bc3bfd23301f0968ca3bcd65533ac  <scratchpad>/r19/before/src/patchbay_vital/files.py  (f26e6bc ddf88f5cf88bc3bfd23301f0968ca3bcd65533ac)
+    27a1e91bd4483e2fbdebf444799b51f78617ab0e  <scratchpad>/r19/before/src/patchbay_vital/float32.py  (f26e6bc 27a1e91bd4483e2fbdebf444799b51f78617ab0e)
+    4296bf4d4d4ef0280ae6ae4d16810a8bce8c9b75  <scratchpad>/r19/before/src/patchbay_vital/format.py  (f26e6bc 4296bf4d4d4ef0280ae6ae4d16810a8bce8c9b75)
+    e72737ee0f4a1d68ae1d8374390c2fa9b0d02692  <scratchpad>/r19/before/src/patchbay_vital/grisu2.py  (f26e6bc e72737ee0f4a1d68ae1d8374390c2fa9b0d02692)
+    b8f0e11938028b0f7ddb9b079cb36b421026fd9c  <scratchpad>/r19/before/src/patchbay_vital/host.py  (f26e6bc b8f0e11938028b0f7ddb9b079cb36b421026fd9c)
+    51ac5eef0a8cf43c38d972323fb508db3a2a4456  <scratchpad>/r19/before/src/patchbay_vital/parameters.py  (f26e6bc 51ac5eef0a8cf43c38d972323fb508db3a2a4456)
+    f75e2e85d570f3db4bf5ec206bf9143f1ca4922f  <scratchpad>/r19/before/src/patchbay_vital/preset.py  (f26e6bc f75e2e85d570f3db4bf5ec206bf9143f1ca4922f)
+    e69de29bb2d1d6434b8b29ae775ad8c2e48c5391  <scratchpad>/r19/before/src/patchbay_vital/py.typed  (f26e6bc e69de29bb2d1d6434b8b29ae775ad8c2e48c5391)
+    f3dc277612d28632cba39cf37fa7cd42cdaa4ef6  <scratchpad>/r19/before/src/patchbay_vital/settings_keys.txt  (f26e6bc f3dc277612d28632cba39cf37fa7cd42cdaa4ef6)
+    4ea00da21a7666f2867cf8aba41593f928755b3e  <scratchpad>/r19/before/src/patchbay_vital/state.py  (f26e6bc 4ea00da21a7666f2867cf8aba41593f928755b3e)
+    5b97a376e899357417f1aa559d259bcadce67d8c  <scratchpad>/r19/before/agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/verification/direct-count.txt  (f26e6bc 5b97a376e899357417f1aa559d259bcadce67d8c)
+  main's tree, commit f533b1b0a362373613471993c86f2df8ab0ed111, extracted with git archive: git hash-object of
+  each extracted file, the blob of main's commit beside it:
+    50fe09b3c3b285b3d569a8b7eb2f76981c7d6164  <scratchpad>/r19/main/src/patchbay_vital/__init__.py  (main 50fe09b3c3b285b3d569a8b7eb2f76981c7d6164)
+    5bf2ff80237d4dde75a3fa3b5e45728daf2dbb46  <scratchpad>/r19/main/src/patchbay_vital/census.py  (main 5bf2ff80237d4dde75a3fa3b5e45728daf2dbb46)
+    109ae1887be396e43ce7939b7115ec9745b6c6ca  <scratchpad>/r19/main/src/patchbay_vital/data/parameters.json  (main 109ae1887be396e43ce7939b7115ec9745b6c6ca)
+    d8265cd5668a70b1802e3d7b1917104935e292ff  <scratchpad>/r19/main/src/patchbay_vital/errors.py  (main d8265cd5668a70b1802e3d7b1917104935e292ff)
+    ddf88f5cf88bc3bfd23301f0968ca3bcd65533ac  <scratchpad>/r19/main/src/patchbay_vital/files.py  (main ddf88f5cf88bc3bfd23301f0968ca3bcd65533ac)
+    27a1e91bd4483e2fbdebf444799b51f78617ab0e  <scratchpad>/r19/main/src/patchbay_vital/float32.py  (main 27a1e91bd4483e2fbdebf444799b51f78617ab0e)
+    4296bf4d4d4ef0280ae6ae4d16810a8bce8c9b75  <scratchpad>/r19/main/src/patchbay_vital/format.py  (main 4296bf4d4d4ef0280ae6ae4d16810a8bce8c9b75)
+    e72737ee0f4a1d68ae1d8374390c2fa9b0d02692  <scratchpad>/r19/main/src/patchbay_vital/grisu2.py  (main e72737ee0f4a1d68ae1d8374390c2fa9b0d02692)
+    b8f0e11938028b0f7ddb9b079cb36b421026fd9c  <scratchpad>/r19/main/src/patchbay_vital/host.py  (main b8f0e11938028b0f7ddb9b079cb36b421026fd9c)
+    25b1a378e0d633bf4deede60d3173e976059a2a7  <scratchpad>/r19/main/src/patchbay_vital/parameters.py  (main 25b1a378e0d633bf4deede60d3173e976059a2a7)
+    f75e2e85d570f3db4bf5ec206bf9143f1ca4922f  <scratchpad>/r19/main/src/patchbay_vital/preset.py  (main f75e2e85d570f3db4bf5ec206bf9143f1ca4922f)
+    e69de29bb2d1d6434b8b29ae775ad8c2e48c5391  <scratchpad>/r19/main/src/patchbay_vital/py.typed  (main e69de29bb2d1d6434b8b29ae775ad8c2e48c5391)
+    f3dc277612d28632cba39cf37fa7cd42cdaa4ef6  <scratchpad>/r19/main/src/patchbay_vital/settings_keys.txt  (main f3dc277612d28632cba39cf37fa7cd42cdaa4ef6)
+    4ea00da21a7666f2867cf8aba41593f928755b3e  <scratchpad>/r19/main/src/patchbay_vital/state.py  (main 4ea00da21a7666f2867cf8aba41593f928755b3e)
+fatal: could not open '<scratchpad>/r19/main/agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/verification/direct-count.txt' for reading: No such file or directory
+fatal: path 'agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/verification/direct-count.txt' exists on disk, but not in 'f533b1b'
+      <scratchpad>/r19/main/agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/verification/direct-count.txt  (main f533b1b:agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/verification/direct-count.txt)
+cmp: the trees before and after are the same
+the machine after the run: arm64, Apple M4 Pro, 14 cores, macOS 26.6.2 (25G83), Python 3.12.16, load 42.75 51.70 43.24, at 2026-11-15 09:09 EST

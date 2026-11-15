@@ -131,13 +131,22 @@ class NormalizedScale(PatchbayModel, frozen=True):
         """Say whether the plugin can hold a preset value.
 
         It can when a normalized value in `[0, 1]` lands on it; `to_normalized` finds one if any.
-        No scale holds an infinity or a NaN: for either the answer is False, never a built-in's
-        error (issue #16, the final review's finding 6).
+        The scale's value rises with the normalized value, so it holds nothing outside what its
+        ends land on, `to_preset(0.0)` and `to_preset(1.0)`: there the answer is False, never a
+        built-in's error, for an infinity, a NaN, which compares with nothing, and a finite value
+        too large for the quotient to be a float32 (issue #16, the final review's finding 6, and
+        the review of patchbay-vital's PR 19, finding 1). What an end lands on is not always the
+        bound: from -16777216 to 1.0000001192092896 the span rounds up, and 1 lands on 2.
+
+        Within those ends a preset the landing reaches is reached from `[0, 1]`, so the normalized
+        value is not tested again. The landing keeps its step inside `[0, 1]`, and the float32
+        nearest the quotient is there too: 0 lands on the minimum, whose quotient is 0, and what
+        1 lands on is at most `span * 2 ** -24` past `minimum + span`, a quotient that rounds to
+        1 (the shape.md of the revision after the review of patchbay-vital's PR 19).
         """
-        if not math.isfinite(preset):
+        if not self.to_preset(0.0) <= preset <= self.to_preset(1.0):
             return False
-        normalized, landed = _landing(self, preset)
-        return 0.0 <= normalized <= 1.0 and landed == preset
+        return _landing(self, preset)[1] == preset
 
     @model_validator(mode="after")
     def _bounds_are_float32_and_ordered(self) -> Self:
@@ -310,7 +319,11 @@ class MappedParameter(PatchbayModel, frozen=True):
         (`verification/indexed-count.txt`) and, as a sample, on arbitrary displays of every
         continuous group (`verification/arbitrary-displays.txt`). On the map's indexed scales a
         whole number is its own result; on a scale wider than its float32s, which the map has none
-        of, the result is the whole number a set holds, not always the one asked for.
+        of, the result is the whole number a set holds, not always the one asked for. An indexed
+        scale takes the exception too, but only where the float32 on the other side is itself a
+        whole number, from 2 ** 23 up, where float32s are 1 apart: the map's widest indexed scale
+        ends at 362,879, and a unit test holds the branch on a made-up one (the review of
+        patchbay-vital's PR 19, finding 7).
 
         Which held preset an arbitrary display takes, Vital's rounding as here or the nearer held
         neighbour, is issue #8's finding 1; whether a set keeps a stored value given the display

@@ -221,9 +221,11 @@ writes the entry, in that commit
 ### Fixed
 
 - `MappedParameter.to_preset` always returns a preset the plugin holds, issue #16,
-  `agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/`. For a display no held preset
-  shows, an arbitrary one, it kept the curve's float32, which the scale need not hold, so a model
-  that stored it disagreed with Vital's state after a set. The version stays 0.0.1.
+  `agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/`, revised after the review of
+  patchbay-vital's PR 19, `agent-os/specs/2026-11-15-0811-revision-after-pr-19-review/`. For a
+  display no held preset shows, an arbitrary one, it kept the curve's float32, which the scale
+  need not hold, so a model that stored it disagreed with Vital's state after a set. The version
+  stays 0.0.1.
   - **One rule with one exception replaces the three branches.** `to_preset` returns what a set
     of the display's float32 holds: the scale's value at its normalized value, Vital's own
     rounding. The exception is issue #15's, the float32 on the other side, taken where what a set
@@ -275,11 +277,24 @@ writes the entry, in that commit
     float32s, which the map has none of, it is the nearest whole number the scale holds: from -1
     to 2 ** 24, the bound's display gives 16777215, where `main` gave 16777216, which no
     normalized value in [0, 1] lands on.
-  - **`NormalizedScale.holds` answers False for a value that is not finite,** where it raised
-    `OverflowError` or `ValueError` (the final review's finding 6). A made-up record whose
-    `to_preset` raised at infinity now returns the float32 below its maximum. The scale's
-    `to_normalized` and `to_preset` still raise a built-in on such a value, and a scale whose
-    span overflows still validates: both are left as they are, filed as issue #18.
+  - **`NormalizedScale.holds` answers False for a value outside what the scale's ends land on,**
+    `to_preset(0.0)` and `to_preset(1.0)`, where it raised `OverflowError` or `ValueError`.
+    - That covers an infinity and a NaN (the final review's finding 6), and a finite value too
+      large for its quotient to be a float32, such as 3.5e38 on a scale from 0 to 1 (the review
+      of patchbay-vital's PR 19, finding 1).
+    - The check is against what the ends land on, not the bounds. On a made-up scale from
+      -16777216 to 1.0000001192092896 the span rounds up, normalized 1 lands on 2, past the
+      maximum, and `holds(2.0)` stays True.
+    - Within what the ends land on, `holds` no longer tests the landing's normalized value
+      against [0, 1]: a preset the landing reaches there is reached from [0, 1], by the landing's
+      own test of its step and, for the nearest quotient, by rounding (the revision's shape.md,
+      Decision 10).
+    - A made-up record whose `to_preset` raised at infinity now returns the float32 below its
+      maximum.
+    - The scale's `to_normalized` and `to_preset` still raise a built-in on a value outside what
+      the scale can take, finite or not, and a scale whose span overflows still validates. Both
+      are left as they are, in issue #18. The finite case was found in the revision and sits
+      there.
   - **Vital.** After a set of 200 seeded arbitrary displays on each of the 46 linear-scale
     groups, 9,200 sets, Vital 1.6.4 holds the map's preset on every one, and `main`'s on none of
     the 2,085 that changed (`verification/plugin-probe.txt`).
@@ -297,15 +312,45 @@ writes the entry, in that commit
       purpose.
     - Two property tests hold any display in range, on the hand-built records and the committed
       map.
-    - The integration reader fails by name on an empty set and on a normalized value outside
-      [0, 1] (finding 5), and reads the file once in the test that read it once a record
-      (finding 9).
-  - **Cost** (`verification/cost.txt`, an Apple M4 Pro under macOS 26.6.2): on an indexed record `to_preset`
-    costs about 15 µs a call against `main`'s 3.5, and `to_normalized` about 27 µs against 15,
+    - Each module's reader fails by name on an empty set and on a normalized value outside
+      [0, 1]: the integration module's since the final review's finding 5, the unit module's
+      since the review of patchbay-vital's PR 19 (finding 3). The integration module reads the
+      file once in the test that read it once a record (finding 9).
+  - **Cost** (`verification/cost.txt`, an Apple M4 Pro under macOS 26.6.2): on an indexed record
+    `to_preset` costs about 15 µs a call against `main`'s 3.5, and `to_normalized` about 27 µs
+    against 15,
     since the whole number is landed like any float32. `volume` is unchanged, about 16 and 28 µs,
     and the 903 records at their defaults take 14.8 ms against 13.2. No fast path is added. The
     final review's finding 8, `_landing` calling `fma32` itself rather than narrowing a value
     that is already a float32, is declined by the owner: it changes no value.
+  - **Revised after the review of patchbay-vital's PR 19,** seven findings on `f26e6bc`; the
+    transcripts named here are in the revision's `verification/`.
+    - **Finding 1, fixed:** `holds` on a huge finite value, above. `holds` answers as it did
+      before on every committed record, at 13,397 presets around the pinned values and 798,179
+      indexed whole numbers, halves and values past each end, and no committed scale runs
+      against the normalized value (`holds-check.txt`).
+    - **The direct count stands.** `NormalizedScale.holds` is the only function whose statements
+      differ from the tree the count ran on, and `to_preset` calls it only from its exception.
+      The three binades of `volume` where the exception is taken were recounted against `main`:
+      25,165,824 values, no difference, and the same 308,386 taking the exception
+      (`direct-count.txt`).
+    - **Finding 2, fixed:** the property's helper checks the exception both ways, so a
+      `to_preset` without its exception fails the pinned-display test by name. The two
+      Hypothesis properties still pass it: a display drawn over a parameter's bounds is not one
+      a held preset shows.
+    - **Finding 3, fixed:** the unit reader, above.
+    - **Finding 4, fixed:** "the double above" a display steps toward infinity. No value the test
+      uses changes, since its displays are negative.
+    - **Findings 5 and 6, declined by the owner,** as the fast path was in PR 14's sixth review:
+      `to_normalized` landing the preset twice, and indexed records paying for a landing.
+      `cost.txt` records the timings with the machine. `holds` itself now costs 21 to 23 µs a
+      call against 12, for the two forward calls of its check.
+    - **Finding 7, not changed, and held by a test.** An indexed scale takes the exception too,
+      from 2 ** 23 up, where float32s are whole numbers; the map's widest indexed scale ends at
+      362,879. On a made-up record, an indexed scale from -2 ** 24 to 2 ** 24 under a linear
+      curve of multiply 3 and offset 2 ** 54, the held 8388610 comes back only through it.
+      Limited to linear scales, `to_preset` would give 8388612 there, which fails
+      `test_an_indexed_scale_takes_its_other_side_where_that_alone_shows_the_display` by name.
   - **Left open.** Which held preset an arbitrary display takes, Vital's rounding as here or the
     nearer held neighbour, and whether a set keeps a stored value, are issue #8's findings 1 and
     3.

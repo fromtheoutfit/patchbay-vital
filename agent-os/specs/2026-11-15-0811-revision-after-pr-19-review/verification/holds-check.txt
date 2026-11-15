@@ -1,0 +1,579 @@
+The revision after the review of patchbay-vital's PR 19: NormalizedScale.holds in the tree before the revision, f26e6bc, and in this tree, run 2026-11-15 08:59 EST on branch
+refactor/16-the-parameter-map-to_preset-returns-a-preset-the-plugin-never-holds-for-a-display-no-held-preset-shows, under caffeinate -i
+the machine before the run: arm64, Apple M4 Pro, 14 cores, macOS 26.6.2 (25G83), Python 3.12.16, load 5.45 16.83 25.42, at 2026-11-15 08:59 EST
+the trees before the run:
+  HEAD f26e6bc5dc947eb63358d12bb7d898d70101a3a5
+  git status --porcelain=v1 --untracked-files=all, 14 lines:
+     M CHANGELOG.md
+     M src/patchbay_vital/parameters.py
+     M tests/unit/test_parameters.py
+    ?? agent-os/specs/2026-11-15-0811-revision-after-pr-19-review/plan.md
+    ?? agent-os/specs/2026-11-15-0811-revision-after-pr-19-review/references.md
+    ?? agent-os/specs/2026-11-15-0811-revision-after-pr-19-review/shape.md
+    ?? agent-os/specs/2026-11-15-0811-revision-after-pr-19-review/standards.md
+    ?? agent-os/specs/2026-11-15-0811-revision-after-pr-19-review/verification/arbitrary-displays.txt
+    ?? agent-os/specs/2026-11-15-0811-revision-after-pr-19-review/verification/cost.txt
+    ?? agent-os/specs/2026-11-15-0811-revision-after-pr-19-review/verification/direct-count.txt
+    ?? agent-os/specs/2026-11-15-0811-revision-after-pr-19-review/verification/holds-check.txt
+    ?? agent-os/specs/2026-11-15-0811-revision-after-pr-19-review/verification/indexed-count.txt
+    ?? agent-os/specs/2026-11-15-0811-revision-after-pr-19-review/verification/mutation.txt
+    ?? agent-os/specs/2026-11-15-0811-revision-after-pr-19-review/verification/plugin-probe.txt
+  this revision's tree, the working tree: git hash-object of each file the run reads, HEAD's blob beside it:
+    50fe09b3c3b285b3d569a8b7eb2f76981c7d6164  src/patchbay_vital/__init__.py  (HEAD 50fe09b3c3b285b3d569a8b7eb2f76981c7d6164)
+    5bf2ff80237d4dde75a3fa3b5e45728daf2dbb46  src/patchbay_vital/census.py  (HEAD 5bf2ff80237d4dde75a3fa3b5e45728daf2dbb46)
+    109ae1887be396e43ce7939b7115ec9745b6c6ca  src/patchbay_vital/data/parameters.json  (HEAD 109ae1887be396e43ce7939b7115ec9745b6c6ca)
+    d8265cd5668a70b1802e3d7b1917104935e292ff  src/patchbay_vital/errors.py  (HEAD d8265cd5668a70b1802e3d7b1917104935e292ff)
+    ddf88f5cf88bc3bfd23301f0968ca3bcd65533ac  src/patchbay_vital/files.py  (HEAD ddf88f5cf88bc3bfd23301f0968ca3bcd65533ac)
+    27a1e91bd4483e2fbdebf444799b51f78617ab0e  src/patchbay_vital/float32.py  (HEAD 27a1e91bd4483e2fbdebf444799b51f78617ab0e)
+    4296bf4d4d4ef0280ae6ae4d16810a8bce8c9b75  src/patchbay_vital/format.py  (HEAD 4296bf4d4d4ef0280ae6ae4d16810a8bce8c9b75)
+    e72737ee0f4a1d68ae1d8374390c2fa9b0d02692  src/patchbay_vital/grisu2.py  (HEAD e72737ee0f4a1d68ae1d8374390c2fa9b0d02692)
+    b8f0e11938028b0f7ddb9b079cb36b421026fd9c  src/patchbay_vital/host.py  (HEAD b8f0e11938028b0f7ddb9b079cb36b421026fd9c)
+    1c17c898edb13ecc0df8877f078028aedc876bf8  src/patchbay_vital/parameters.py  (HEAD 51ac5eef0a8cf43c38d972323fb508db3a2a4456)
+    f75e2e85d570f3db4bf5ec206bf9143f1ca4922f  src/patchbay_vital/preset.py  (HEAD f75e2e85d570f3db4bf5ec206bf9143f1ca4922f)
+    e69de29bb2d1d6434b8b29ae775ad8c2e48c5391  src/patchbay_vital/py.typed  (HEAD e69de29bb2d1d6434b8b29ae775ad8c2e48c5391)
+    f3dc277612d28632cba39cf37fa7cd42cdaa4ef6  src/patchbay_vital/settings_keys.txt  (HEAD f3dc277612d28632cba39cf37fa7cd42cdaa4ef6)
+    4ea00da21a7666f2867cf8aba41593f928755b3e  src/patchbay_vital/state.py  (HEAD 4ea00da21a7666f2867cf8aba41593f928755b3e)
+    cb5da6c7d1977271534181d007a8aa57567ff92c  tests/data/pinned-values.txt  (HEAD cb5da6c7d1977271534181d007a8aa57567ff92c)
+  the tree before this revision, commit f26e6bc5dc947eb63358d12bb7d898d70101a3a5, extracted with git archive: git
+  hash-object of each extracted file, the blob of that commit beside it:
+    50fe09b3c3b285b3d569a8b7eb2f76981c7d6164  <scratchpad>/r19/before/src/patchbay_vital/__init__.py  (f26e6bc 50fe09b3c3b285b3d569a8b7eb2f76981c7d6164)
+    5bf2ff80237d4dde75a3fa3b5e45728daf2dbb46  <scratchpad>/r19/before/src/patchbay_vital/census.py  (f26e6bc 5bf2ff80237d4dde75a3fa3b5e45728daf2dbb46)
+    109ae1887be396e43ce7939b7115ec9745b6c6ca  <scratchpad>/r19/before/src/patchbay_vital/data/parameters.json  (f26e6bc 109ae1887be396e43ce7939b7115ec9745b6c6ca)
+    d8265cd5668a70b1802e3d7b1917104935e292ff  <scratchpad>/r19/before/src/patchbay_vital/errors.py  (f26e6bc d8265cd5668a70b1802e3d7b1917104935e292ff)
+    ddf88f5cf88bc3bfd23301f0968ca3bcd65533ac  <scratchpad>/r19/before/src/patchbay_vital/files.py  (f26e6bc ddf88f5cf88bc3bfd23301f0968ca3bcd65533ac)
+    27a1e91bd4483e2fbdebf444799b51f78617ab0e  <scratchpad>/r19/before/src/patchbay_vital/float32.py  (f26e6bc 27a1e91bd4483e2fbdebf444799b51f78617ab0e)
+    4296bf4d4d4ef0280ae6ae4d16810a8bce8c9b75  <scratchpad>/r19/before/src/patchbay_vital/format.py  (f26e6bc 4296bf4d4d4ef0280ae6ae4d16810a8bce8c9b75)
+    e72737ee0f4a1d68ae1d8374390c2fa9b0d02692  <scratchpad>/r19/before/src/patchbay_vital/grisu2.py  (f26e6bc e72737ee0f4a1d68ae1d8374390c2fa9b0d02692)
+    b8f0e11938028b0f7ddb9b079cb36b421026fd9c  <scratchpad>/r19/before/src/patchbay_vital/host.py  (f26e6bc b8f0e11938028b0f7ddb9b079cb36b421026fd9c)
+    51ac5eef0a8cf43c38d972323fb508db3a2a4456  <scratchpad>/r19/before/src/patchbay_vital/parameters.py  (f26e6bc 51ac5eef0a8cf43c38d972323fb508db3a2a4456)
+    f75e2e85d570f3db4bf5ec206bf9143f1ca4922f  <scratchpad>/r19/before/src/patchbay_vital/preset.py  (f26e6bc f75e2e85d570f3db4bf5ec206bf9143f1ca4922f)
+    e69de29bb2d1d6434b8b29ae775ad8c2e48c5391  <scratchpad>/r19/before/src/patchbay_vital/py.typed  (f26e6bc e69de29bb2d1d6434b8b29ae775ad8c2e48c5391)
+    f3dc277612d28632cba39cf37fa7cd42cdaa4ef6  <scratchpad>/r19/before/src/patchbay_vital/settings_keys.txt  (f26e6bc f3dc277612d28632cba39cf37fa7cd42cdaa4ef6)
+    4ea00da21a7666f2867cf8aba41593f928755b3e  <scratchpad>/r19/before/src/patchbay_vital/state.py  (f26e6bc 4ea00da21a7666f2867cf8aba41593f928755b3e)
+    cb5da6c7d1977271534181d007a8aa57567ff92c  <scratchpad>/r19/before/tests/data/pinned-values.txt  (f26e6bc cb5da6c7d1977271534181d007a8aa57567ff92c)
+  main's tree, commit f533b1b0a362373613471993c86f2df8ab0ed111, extracted with git archive: git hash-object of
+  each extracted file, the blob of main's commit beside it:
+    50fe09b3c3b285b3d569a8b7eb2f76981c7d6164  <scratchpad>/r19/main/src/patchbay_vital/__init__.py  (main 50fe09b3c3b285b3d569a8b7eb2f76981c7d6164)
+    5bf2ff80237d4dde75a3fa3b5e45728daf2dbb46  <scratchpad>/r19/main/src/patchbay_vital/census.py  (main 5bf2ff80237d4dde75a3fa3b5e45728daf2dbb46)
+    109ae1887be396e43ce7939b7115ec9745b6c6ca  <scratchpad>/r19/main/src/patchbay_vital/data/parameters.json  (main 109ae1887be396e43ce7939b7115ec9745b6c6ca)
+    d8265cd5668a70b1802e3d7b1917104935e292ff  <scratchpad>/r19/main/src/patchbay_vital/errors.py  (main d8265cd5668a70b1802e3d7b1917104935e292ff)
+    ddf88f5cf88bc3bfd23301f0968ca3bcd65533ac  <scratchpad>/r19/main/src/patchbay_vital/files.py  (main ddf88f5cf88bc3bfd23301f0968ca3bcd65533ac)
+    27a1e91bd4483e2fbdebf444799b51f78617ab0e  <scratchpad>/r19/main/src/patchbay_vital/float32.py  (main 27a1e91bd4483e2fbdebf444799b51f78617ab0e)
+    4296bf4d4d4ef0280ae6ae4d16810a8bce8c9b75  <scratchpad>/r19/main/src/patchbay_vital/format.py  (main 4296bf4d4d4ef0280ae6ae4d16810a8bce8c9b75)
+    e72737ee0f4a1d68ae1d8374390c2fa9b0d02692  <scratchpad>/r19/main/src/patchbay_vital/grisu2.py  (main e72737ee0f4a1d68ae1d8374390c2fa9b0d02692)
+    b8f0e11938028b0f7ddb9b079cb36b421026fd9c  <scratchpad>/r19/main/src/patchbay_vital/host.py  (main b8f0e11938028b0f7ddb9b079cb36b421026fd9c)
+    25b1a378e0d633bf4deede60d3173e976059a2a7  <scratchpad>/r19/main/src/patchbay_vital/parameters.py  (main 25b1a378e0d633bf4deede60d3173e976059a2a7)
+    f75e2e85d570f3db4bf5ec206bf9143f1ca4922f  <scratchpad>/r19/main/src/patchbay_vital/preset.py  (main f75e2e85d570f3db4bf5ec206bf9143f1ca4922f)
+    e69de29bb2d1d6434b8b29ae775ad8c2e48c5391  <scratchpad>/r19/main/src/patchbay_vital/py.typed  (main e69de29bb2d1d6434b8b29ae775ad8c2e48c5391)
+    f3dc277612d28632cba39cf37fa7cd42cdaa4ef6  <scratchpad>/r19/main/src/patchbay_vital/settings_keys.txt  (main f3dc277612d28632cba39cf37fa7cd42cdaa4ef6)
+    4ea00da21a7666f2867cf8aba41593f928755b3e  <scratchpad>/r19/main/src/patchbay_vital/state.py  (main 4ea00da21a7666f2867cf8aba41593f928755b3e)
+    40aff4ecfcdb10b848a7eb60879b7cf90d5fcacf  <scratchpad>/r19/main/tests/data/pinned-values.txt  (main 40aff4ecfcdb10b848a7eb60879b7cf90d5fcacf)
+  git hash-object of each script the run runs:
+    b9f6551499176b296aab2368a68275c980139a2a  <scratchpad>/r19/holds_check.py
+    6720ff497d484566f4a142848e9e6575b23e622f  <scratchpad>/r19/pools.py
+    f97e7da2890e424f67127651eb72cc74d74436d5  <scratchpad>/r19/tree.sh
+    4d0d3d5f5a1f59ecdfd212a9dd5d949e31a4236b  <scratchpad>/r19/run_holds.sh
+
+== what the revision changes in src, the working tree against HEAD (f26e6bc), docstrings and all:
+   diff --git a/src/patchbay_vital/parameters.py b/src/patchbay_vital/parameters.py
+   index 51ac5ee..1c17c89 100644
+   --- a/src/patchbay_vital/parameters.py
+   +++ b/src/patchbay_vital/parameters.py
+   @@ -131,13 +131,22 @@ class NormalizedScale(PatchbayModel, frozen=True):
+            """Say whether the plugin can hold a preset value.
+    
+            It can when a normalized value in `[0, 1]` lands on it; `to_normalized` finds one if any.
+   -        No scale holds an infinity or a NaN: for either the answer is False, never a built-in's
+   -        error (issue #16, the final review's finding 6).
+   +        The scale's value rises with the normalized value, so it holds nothing outside what its
+   +        ends land on, `to_preset(0.0)` and `to_preset(1.0)`: there the answer is False, never a
+   +        built-in's error, for an infinity, a NaN, which compares with nothing, and a finite value
+   +        too large for the quotient to be a float32 (issue #16, the final review's finding 6, and
+   +        the review of patchbay-vital's PR 19, finding 1). What an end lands on is not always the
+   +        bound: from -16777216 to 1.0000001192092896 the span rounds up, and 1 lands on 2.
+   +
+   +        Within those ends a preset the landing reaches is reached from `[0, 1]`, so the normalized
+   +        value is not tested again. The landing keeps its step inside `[0, 1]`, and the float32
+   +        nearest the quotient is there too: 0 lands on the minimum, whose quotient is 0, and what
+   +        1 lands on is at most `span * 2 ** -24` past `minimum + span`, a quotient that rounds to
+   +        1 (the shape.md of the revision after the review of patchbay-vital's PR 19).
+            """
+   -        if not math.isfinite(preset):
+   +        if not self.to_preset(0.0) <= preset <= self.to_preset(1.0):
+                return False
+   -        normalized, landed = _landing(self, preset)
+   -        return 0.0 <= normalized <= 1.0 and landed == preset
+   +        return _landing(self, preset)[1] == preset
+    
+        @model_validator(mode="after")
+        def _bounds_are_float32_and_ordered(self) -> Self:
+   @@ -310,7 +319,11 @@ class MappedParameter(PatchbayModel, frozen=True):
+            (`verification/indexed-count.txt`) and, as a sample, on arbitrary displays of every
+            continuous group (`verification/arbitrary-displays.txt`). On the map's indexed scales a
+            whole number is its own result; on a scale wider than its float32s, which the map has none
+   -        of, the result is the whole number a set holds, not always the one asked for.
+   +        of, the result is the whole number a set holds, not always the one asked for. An indexed
+   +        scale takes the exception too, but only where the float32 on the other side is itself a
+   +        whole number, from 2 ** 23 up, where float32s are 1 apart: the map's widest indexed scale
+   +        ends at 362,879, and a unit test holds the branch on a made-up one (the review of
+   +        patchbay-vital's PR 19, finding 7).
+    
+            Which held preset an arbitrary display takes, Vital's rounding as here or the nearer held
+            neighbour, is issue #8's finding 1; whether a set keeps a stored value given the display
+
+== the scripts, run from the repository root as: bash <scratchpad>/r19/run_holds.sh <scratchpad>/r19
+```bash
+#!/bin/bash
+# The revision after the review of patchbay-vital's PR 19: holds before the revision and after.
+# Run from the repository root: bash run_holds.sh <scratch>
+# The transcript is written outside the tree, to <scratch>/out, and copied in afterwards.
+set -u
+R=$1
+FILES="$(git ls-files src | tr '\n' ' ') tests/data/pinned-values.txt"
+scrub() { sed -e "s#$R#<scratchpad>/r19#g" -e "s#$PWD/##g"; }
+machine() { echo "$(uname -m), $(sysctl -n machdep.cpu.brand_string), $(sysctl -n hw.ncpu) cores, $(sw_vers -productName) $(sw_vers -productVersion) ($(sw_vers -buildVersion)), $(uv run --locked python -V), load$(sysctl -n vm.loadavg | tr -d '{}' | sed 's/ *$//'), at $(date '+%Y-%m-%d %H:%M %Z')"; }
+{
+echo "The revision after the review of patchbay-vital's PR 19: NormalizedScale.holds in the tree before the revision, f26e6bc, and in this tree, run $(date '+%Y-%m-%d %H:%M %Z') on branch"
+echo "$(git branch --show-current), under caffeinate -i"
+echo "the machine before the run: $(machine)"
+echo "the trees before the run:"
+bash "$R/tree.sh" "$R/main" $FILES | tee "$R/out/tree-before-holds.txt"
+echo "  git hash-object of each script the run runs:"
+for s in holds_check.py pools.py tree.sh run_holds.sh; do echo "    $(git hash-object "$R/$s")  <scratchpad>/r19/$s"; done
+echo
+echo "== what the revision changes in src, the working tree against HEAD (f26e6bc), docstrings and all:"
+git diff HEAD -- src | sed 's/^/   /'
+echo
+echo "== the scripts, run from the repository root as: bash <scratchpad>/r19/run_holds.sh <scratchpad>/r19"
+echo '```bash'; cat "$R/run_holds.sh"; echo '```'
+echo '```python'; cat "$R/holds_check.py"; echo '```'
+echo '```python'; cat "$R/pools.py"; echo '```'
+echo '```bash'; cat "$R/tree.sh"; echo '```'
+echo
+echo "== its output"
+caffeinate -i uv run --locked python "$R/holds_check.py" --before "$R/before/src" --branch "$PWD/src"; echo "exit=$?"
+echo
+echo "the trees after the run:"
+bash "$R/tree.sh" "$R/main" $FILES | tee "$R/out/tree-after-holds.txt"
+cmp "$R/out/tree-before-holds.txt" "$R/out/tree-after-holds.txt" && echo "cmp: the trees before and after are the same"
+echo "the machine after the run: $(machine)"
+} 2>&1 | scrub > "$R/out/holds.txt"
+```
+```python
+"""The revision after the review of patchbay-vital's PR 19: `NormalizedScale.holds` before and after.
+
+The revision changes `holds` alone: it answers False for a preset outside what the scale's ends
+land on, `to_preset(0.0)` and `to_preset(1.0)`, before it lands the preset. Two pools of
+processes (`pools.py`) each import `patchbay_vital` from one tree: the tree before the revision,
+an extract of the pull request's head `f26e6bc`, and this tree, the working tree. Nothing is
+reproduced: each tree's own shipped `holds` is called.
+
+1. COUNT, every committed scale. The check rests on a scale's value rising with the normalized
+   value. For each of the map's records, in this tree: the bounds in order, the span positive,
+   and what 0 and 1 land on. Beside it a SAMPLE, labelled so: on each distinct scale, the forward
+   `to_preset` at 2,000 float32 normalized values, 15 bit patterns in each binade from -126 to
+   -1 (`numpy.random.default_rng(19)`) with 0.0 and 1.0 and the float32 beside each, sorted, is
+   never smaller at a larger normalized value. A scale that runs the other way stops the work.
+
+2. COUNT, the pinned values on every committed record. For every record and every normalized
+   value of the file's `volume_floor` and `powers_of_two` sets, and for every display of its
+   `tempo_displays` set that is within the record's bounds, these presets, worked out in this
+   tree from the forward scale, the curve and `next_float32`, never from `holds`:
+     P0  the preset the normalized value lands on (a normalized value's alone)
+     P1  the curve's float32 for the display, kept within the scale, a whole number if indexed
+     L   what a set of P1 holds: the forward scale at the float32 nearest the exact quotient,
+         or at the float32 either side of it where that one lands on P1
+     and the float32 below and above each of the three, the scale's two bounds, what 0 and 1
+     land on, and the float32 past each of those four.
+   Each distinct preset of a record is asked of `holds` in both trees.
+
+3. COUNT, the indexed whole numbers. For every indexed record, every whole number between its
+   ends, every half between them, and the whole number and the float32 past each end, asked of
+   `holds` in both trees.
+
+An answer is True, False or the name of what was raised. The run exits 1 if any answer differs
+between the trees, if either tree raises, or if a scale runs the other way.
+
+Run from the repository root:
+  uv run --locked python holds_check.py --before <f26e6bc's src> --branch <this tree's src>
+"""
+
+import argparse
+import math
+import sys
+from fractions import Fraction
+from pathlib import Path
+
+import numpy as np
+
+import pools
+
+PINNED = Path("tests") / "data" / "pinned-values.txt"
+DISPLAY_SETS = {"tempo_displays"}
+
+
+def names(_):
+    """Return every record's id and scale kind, in this worker's tree."""
+    the_map = pools.TREE["parameters"].parameter_map()
+    return [(str(r.id), r.scale.kind) for r in the_map.parameters]
+
+
+def scale_facts(name):
+    """Return one record's scale: kind, bounds, span, and what 0 and 1 land on."""
+    scale = pools.record(name).scale
+    return (scale.kind, scale.minimum, scale.maximum, scale.span, scale.to_preset(0.0),
+            scale.to_preset(1.0))
+
+
+def rises(job):
+    """Say whether a scale's forward value never falls over a sorted sample of normalized values."""
+    name, values = job
+    scale = pools.record(name).scale
+    landed = [scale.to_preset(value) for value in values]
+    return all(a <= b for a, b in zip(landed, landed[1:], strict=False))
+
+
+def nearest_quotient(scale, preset):
+    """Return the float32 nearest (preset - minimum) / span, from the exact quotient."""
+    step = pools.TREE["float32"].round_to_float32
+    return step((Fraction(preset) - Fraction(scale.minimum)) / Fraction(scale.span))
+
+
+def what_a_set_holds(scale, preset):
+    """Return what a set of a preset holds, from the forward scale alone."""
+    step = pools.TREE["float32"].next_float32
+    nearest = nearest_quotient(scale, preset)
+    beside = (nearest, step(nearest, -math.inf), step(nearest, math.inf))
+    for value in beside:
+        if 0.0 <= value <= 1.0 and scale.to_preset(value) == preset:
+            return preset
+    return scale.to_preset(nearest)
+
+
+def around(scale, presets):
+    """Return each preset with the float32 below and above it, and the scale's ends with theirs."""
+    step = pools.TREE["float32"].next_float32
+    out = set()
+    ends = (scale.minimum, scale.maximum, scale.to_preset(0.0), scale.to_preset(1.0))
+    for preset in (*presets, *ends):
+        out.update((preset, step(preset, -math.inf), step(preset, math.inf)))
+    return out
+
+
+def pinned_presets(job):
+    """Return the presets section 2 asks of one record, worked out in this worker's tree."""
+    name, normalized, displays = job
+    record = pools.record(name)
+    scale, curve = record.scale, record.curve
+    low, high = record.parameter.minimum, record.parameter.maximum
+    found = set()
+    asked = [(r, record.from_normalized(r)) for r in normalized]
+    asked += [(None, d) for d in displays if low <= d <= high]
+    for r, display in asked:
+        own = min(max(curve.to_preset(display), scale.minimum), scale.maximum)
+        if scale.kind == "indexed":
+            own = math.copysign(math.floor(abs(own) + 0.5), own)
+        presets = [own, what_a_set_holds(scale, own)]
+        if r is not None:
+            presets.append(scale.to_preset(r))
+        found |= around(scale, presets)
+    return sorted(found)
+
+
+def indexed_presets(name):
+    """Return the presets section 3 asks of one indexed record."""
+    scale = pools.record(name).scale
+    step = pools.TREE["float32"].next_float32
+    low, high = int(scale.minimum), int(scale.maximum)
+    found = {float(k) for k in range(low - 1, high + 2)}
+    found |= {k + 0.5 for k in range(low, high)}
+    found |= {step(scale.minimum, -math.inf), step(scale.maximum, math.inf)}
+    return sorted(found)
+
+
+def ask(job):
+    """Ask this worker's tree's `holds` of each preset: True, False, or what it raised."""
+    name, presets = job
+    scale = pools.record(name).scale
+    out = []
+    for preset in presets:
+        try:
+            out.append(scale.holds(preset))
+        except Exception as error:  # noqa: BLE001 - the name of whatever a tree raises is the answer
+            out.append(type(error).__name__)
+    return out
+
+
+def read_pinned():
+    """Return the file's normalized values and its displays."""
+    normalized, displays = [], []
+    for line in PINNED.read_text(encoding="utf-8").splitlines():
+        if line.startswith("#"):
+            continue
+        name, text = line.split(" ")[:2]
+        (displays if name in DISPLAY_SETS else normalized).append(float(text))
+    return normalized, displays
+
+
+def compare(open_pools, jobs, label):
+    """Ask both trees and print the count; return how many answers differ or raise."""
+    before = open_pools["before"].map(ask, jobs, chunksize=8)
+    after = open_pools["this tree"].map(ask, jobs, chunksize=8)
+    asked = held = refused = differ = raised = 0
+    first = []
+    for (name, presets), old, new in zip(jobs, before, after, strict=True):
+        for preset, a, b in zip(presets, old, new, strict=True):
+            asked += 1
+            held += a is True and b is True
+            refused += a is False and b is False
+            raised += isinstance(a, str) or isinstance(b, str)
+            if a != b:
+                differ += 1
+                if len(first) < 5:
+                    first.append((name, preset, a, b))
+    print(f"   {label}: {len(jobs):,} records, {asked:,} presets asked of holds in both trees;"
+          f" True in both {held:,}, False in both {refused:,}; either tree raises {raised:,};"
+          f" answers that differ {differ:,}")
+    for name, preset, a, b in first:
+        print(f"      differs: {name} holds({preset!r}): before {a!r}, this tree {b!r}")
+    return differ + raised
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--before", required=True)
+    parser.add_argument("--branch", required=True)
+    args = parser.parse_args()
+    sizes = {"before": 6, "this tree": 6}
+    open_pools = pools.open_pools({"before": args.before, "this tree": args.branch}, sizes)
+    this, old = open_pools["this tree"], open_pools["before"]
+    listed = this.apply(names, (None,))
+    print(f"== the two trees' maps list {len(listed)} and {len(old.apply(names, (None,)))} records,"
+          f" the same ids and scale kinds: {listed == old.apply(names, (None,))}")
+    ids = [name for name, _ in listed]
+
+    print("== 1. COUNT: every committed scale, in this tree")
+    facts = this.map(scale_facts, ids, chunksize=32)
+    distinct = sorted(set(facts))
+    ordered = sum(1 for _, low, high, *_ in facts if low < high)
+    positive = sum(1 for *_, span, _, _ in facts if 0.0 < span < math.inf)
+    at_bounds = sum(1 for _, low, high, _, zero, one in facts if (zero, one) == (low, high))
+    falls = sum(1 for *_, zero, one in facts if not zero <= one)
+    print(f"   {len(facts)} records on {len(distinct)} distinct scales"
+          f" ({sum(1 for f in distinct if f[0] == 'linear')} linear,"
+          f" {sum(1 for f in distinct if f[0] == 'indexed')} indexed)")
+    print(f"   minimum below maximum on {ordered}; the span positive and finite on {positive};"
+          f" 0 lands on the minimum and 1 on the maximum on {at_bounds};"
+          f" what 1 lands on below what 0 lands on, on {falls}")
+    gen = np.random.default_rng(19)
+    bits = np.concatenate([gen.integers(e << 23, (e + 1) << 23, 15, dtype=np.uint32)
+                           for e in range(1, 127)])
+    sample = set(bits.view(np.float32).astype(np.float64).tolist()) | {0.0, 1.0}
+    beside = set()
+    for value in sample:
+        f = np.float32(value)
+        beside.update((float(np.nextafter(f, np.float32(-1.0))), float(np.nextafter(f, np.float32(2.0)))))
+    values = sorted(v for v in sample | beside if 0.0 <= v <= 1.0)
+    first_of = {}
+    for name, fact in zip(ids, facts, strict=True):
+        first_of.setdefault(fact, name)
+    rising = this.map(rises, [(name, values) for name in first_of.values()], chunksize=4)
+    print(f"   SAMPLE: on each of the {len(first_of)} distinct scales, the forward value at"
+          f" {len(values):,} sorted float32 normalized values (numpy.random.default_rng(19), 15 bit"
+          f" patterns a binade from -126 to -1, 0.0 and 1.0, and the float32 beside each) never"
+          f" falls: {sum(rising)} of {len(rising)}")
+    other_way = falls + (len(rising) - sum(rising)) + (len(facts) - ordered) + (len(facts) - positive)
+    print(f"== committed scales that run the other way: {other_way}")
+
+    print("== 2. COUNT: the pinned values on every committed record")
+    normalized, displays = read_pinned()
+    print(f"   {PINNED}: {len(normalized)} normalized values, {len(displays)} displays")
+    presets = this.map(pinned_presets, [(name, normalized, displays) for name in ids], chunksize=8)
+    wrong = compare(open_pools, list(zip(ids, presets, strict=True)), "pinned values")
+
+    print("== 3. COUNT: every whole number and half of every indexed record, and past each end")
+    indexed = [name for name, kind in listed if kind == "indexed"]
+    presets = this.map(indexed_presets, indexed, chunksize=1)
+    wrong += compare(open_pools, list(zip(indexed, presets, strict=True)), "indexed whole numbers")
+
+    print(f"== answers of holds that differ between the trees, or raise, in all: {wrong}")
+    for pool in open_pools.values():
+        pool.close()
+    return 1 if wrong or other_way else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
+```
+```python
+"""The revision after the review of patchbay-vital's PR 19: two pools of processes, each importing `patchbay_vital` from one tree.
+
+Nothing is reproduced. A worker puts one tree's `src` first on `sys.path` before its first import
+of the package, so every method it calls is that tree's shipped one: `main`'s, an extract of its
+commit made with `git archive`, or this branch's, the working tree. `open_pools` prints the files
+each pool imported and stops unless they are under the tree asked for.
+"""
+
+import multiprocessing
+import sys
+
+TREE = {}
+
+
+def use(src):
+    """A worker's initializer: import `patchbay_vital` from one tree, before anything else does."""
+    sys.path.insert(0, src)
+    import patchbay  # noqa: PLC0415
+    import patchbay_vital.errors  # noqa: PLC0415
+    import patchbay_vital.float32  # noqa: PLC0415
+    import patchbay_vital.parameters  # noqa: PLC0415
+
+    TREE["parameters"] = patchbay_vital.parameters
+    TREE["float32"] = patchbay_vital.float32
+    TREE["errors"] = patchbay_vital.errors
+    TREE["id"] = patchbay.ParameterId
+
+
+def where():
+    """Return the files this worker's tree was imported from."""
+    return TREE["parameters"].__file__, TREE["float32"].__file__
+
+
+def record(name):
+    """Return this worker's tree's record for an id."""
+    return TREE["parameters"].parameter_map().find(TREE["id"](name))
+
+
+def open_pools(sources, sizes):
+    """Open one pool a tree, `sources` and `sizes` keyed by the tree's name; print what each imports."""
+    context = multiprocessing.get_context("spawn")
+    pools = {
+        side: context.Pool(sizes[side], initializer=use, initargs=(sources[side],)) for side in sources
+    }
+    for side, pool in pools.items():
+        files = pool.apply(where)
+        print(f"== the {side} pool, {sizes[side]} processes, imports {files[0]}")
+        print(f"   and {files[1]}")
+        if not all(f.startswith(sources[side]) for f in files):
+            print("   NOT the tree asked for: stopping")
+            for other in pools.values():
+                other.terminate()
+            raise SystemExit(2)
+    return pools
+```
+```bash
+#!/bin/bash
+# Print the trees a run reads: HEAD, git status in full, and the blob of each file read in each tree.
+# usage: tree.sh <main's extract> <file>...   (run from the repository root)
+# HEAD is the pull request's head before this revision, f26e6bc: the revision's change is in the
+# working tree, uncommitted. The tree before the change is an extract of f26e6bc, beside main's.
+main=$1; shift
+before=$(dirname "$main")/before
+echo "  HEAD $(git rev-parse HEAD)"
+echo "  git status --porcelain=v1 --untracked-files=all, $(git status --porcelain=v1 --untracked-files=all | wc -l | tr -d ' ') lines:"
+git status --porcelain=v1 --untracked-files=all | sed 's/^/    /'
+echo "  this revision's tree, the working tree: git hash-object of each file the run reads, HEAD's blob beside it:"
+for f in "$@"; do
+  head_blob=$(git rev-parse --verify --quiet "HEAD:$f" || echo "not in HEAD")
+  echo "    $(git hash-object "$f")  $f  (HEAD $head_blob)"
+done
+echo "  the tree before this revision, commit $(git rev-parse f26e6bc), extracted with git archive: git"
+echo "  hash-object of each extracted file, the blob of that commit beside it:"
+for f in "$@"; do
+  echo "    $(git hash-object "$before/$f")  <scratchpad>/r19/before/$f  (f26e6bc $(git rev-parse "f26e6bc:$f"))"
+done
+echo "  main's tree, commit $(git rev-parse f533b1b), extracted with git archive: git hash-object of"
+echo "  each extracted file, the blob of main's commit beside it:"
+for f in "$@"; do
+  echo "    $(git hash-object "$main/$f")  <scratchpad>/r19/main/$f  (main $(git rev-parse "f533b1b:$f"))"
+done
+```
+
+== its output
+== the before pool, 6 processes, imports <scratchpad>/r19/before/src/patchbay_vital/parameters.py
+   and <scratchpad>/r19/before/src/patchbay_vital/float32.py
+== the this tree pool, 6 processes, imports src/patchbay_vital/parameters.py
+   and src/patchbay_vital/float32.py
+== the two trees' maps list 903 and 903 records, the same ids and scale kinds: True
+== 1. COUNT: every committed scale, in this tree
+   903 records on 60 distinct scales (39 linear, 21 indexed)
+   minimum below maximum on 903; the span positive and finite on 903; 0 lands on the minimum and 1 on the maximum on 903; what 1 lands on below what 0 lands on, on 0
+   SAMPLE: on each of the 60 distinct scales, the forward value at 5,674 sorted float32 normalized values (numpy.random.default_rng(19), 15 bit patterns a binade from -126 to -1, 0.0 and 1.0, and the float32 beside each) never falls: 60 of 60
+== committed scales that run the other way: 0
+== 2. COUNT: the pinned values on every committed record
+   tests/data/pinned-values.txt: 7 normalized values, 2 displays
+   pinned values: 903 records, 13,397 presets asked of holds in both trees; True in both 8,681, False in both 4,716; either tree raises 0; answers that differ 0
+== 3. COUNT: every whole number and half of every indexed record, and past each end
+   indexed whole numbers: 351 records, 798,179 presets asked of holds in both trees; True in both 398,563, False in both 399,616; either tree raises 0; answers that differ 0
+== answers of holds that differ between the trees, or raise, in all: 0
+exit=0
+
+the trees after the run:
+  HEAD f26e6bc5dc947eb63358d12bb7d898d70101a3a5
+  git status --porcelain=v1 --untracked-files=all, 14 lines:
+     M CHANGELOG.md
+     M src/patchbay_vital/parameters.py
+     M tests/unit/test_parameters.py
+    ?? agent-os/specs/2026-11-15-0811-revision-after-pr-19-review/plan.md
+    ?? agent-os/specs/2026-11-15-0811-revision-after-pr-19-review/references.md
+    ?? agent-os/specs/2026-11-15-0811-revision-after-pr-19-review/shape.md
+    ?? agent-os/specs/2026-11-15-0811-revision-after-pr-19-review/standards.md
+    ?? agent-os/specs/2026-11-15-0811-revision-after-pr-19-review/verification/arbitrary-displays.txt
+    ?? agent-os/specs/2026-11-15-0811-revision-after-pr-19-review/verification/cost.txt
+    ?? agent-os/specs/2026-11-15-0811-revision-after-pr-19-review/verification/direct-count.txt
+    ?? agent-os/specs/2026-11-15-0811-revision-after-pr-19-review/verification/holds-check.txt
+    ?? agent-os/specs/2026-11-15-0811-revision-after-pr-19-review/verification/indexed-count.txt
+    ?? agent-os/specs/2026-11-15-0811-revision-after-pr-19-review/verification/mutation.txt
+    ?? agent-os/specs/2026-11-15-0811-revision-after-pr-19-review/verification/plugin-probe.txt
+  this revision's tree, the working tree: git hash-object of each file the run reads, HEAD's blob beside it:
+    50fe09b3c3b285b3d569a8b7eb2f76981c7d6164  src/patchbay_vital/__init__.py  (HEAD 50fe09b3c3b285b3d569a8b7eb2f76981c7d6164)
+    5bf2ff80237d4dde75a3fa3b5e45728daf2dbb46  src/patchbay_vital/census.py  (HEAD 5bf2ff80237d4dde75a3fa3b5e45728daf2dbb46)
+    109ae1887be396e43ce7939b7115ec9745b6c6ca  src/patchbay_vital/data/parameters.json  (HEAD 109ae1887be396e43ce7939b7115ec9745b6c6ca)
+    d8265cd5668a70b1802e3d7b1917104935e292ff  src/patchbay_vital/errors.py  (HEAD d8265cd5668a70b1802e3d7b1917104935e292ff)
+    ddf88f5cf88bc3bfd23301f0968ca3bcd65533ac  src/patchbay_vital/files.py  (HEAD ddf88f5cf88bc3bfd23301f0968ca3bcd65533ac)
+    27a1e91bd4483e2fbdebf444799b51f78617ab0e  src/patchbay_vital/float32.py  (HEAD 27a1e91bd4483e2fbdebf444799b51f78617ab0e)
+    4296bf4d4d4ef0280ae6ae4d16810a8bce8c9b75  src/patchbay_vital/format.py  (HEAD 4296bf4d4d4ef0280ae6ae4d16810a8bce8c9b75)
+    e72737ee0f4a1d68ae1d8374390c2fa9b0d02692  src/patchbay_vital/grisu2.py  (HEAD e72737ee0f4a1d68ae1d8374390c2fa9b0d02692)
+    b8f0e11938028b0f7ddb9b079cb36b421026fd9c  src/patchbay_vital/host.py  (HEAD b8f0e11938028b0f7ddb9b079cb36b421026fd9c)
+    1c17c898edb13ecc0df8877f078028aedc876bf8  src/patchbay_vital/parameters.py  (HEAD 51ac5eef0a8cf43c38d972323fb508db3a2a4456)
+    f75e2e85d570f3db4bf5ec206bf9143f1ca4922f  src/patchbay_vital/preset.py  (HEAD f75e2e85d570f3db4bf5ec206bf9143f1ca4922f)
+    e69de29bb2d1d6434b8b29ae775ad8c2e48c5391  src/patchbay_vital/py.typed  (HEAD e69de29bb2d1d6434b8b29ae775ad8c2e48c5391)
+    f3dc277612d28632cba39cf37fa7cd42cdaa4ef6  src/patchbay_vital/settings_keys.txt  (HEAD f3dc277612d28632cba39cf37fa7cd42cdaa4ef6)
+    4ea00da21a7666f2867cf8aba41593f928755b3e  src/patchbay_vital/state.py  (HEAD 4ea00da21a7666f2867cf8aba41593f928755b3e)
+    cb5da6c7d1977271534181d007a8aa57567ff92c  tests/data/pinned-values.txt  (HEAD cb5da6c7d1977271534181d007a8aa57567ff92c)
+  the tree before this revision, commit f26e6bc5dc947eb63358d12bb7d898d70101a3a5, extracted with git archive: git
+  hash-object of each extracted file, the blob of that commit beside it:
+    50fe09b3c3b285b3d569a8b7eb2f76981c7d6164  <scratchpad>/r19/before/src/patchbay_vital/__init__.py  (f26e6bc 50fe09b3c3b285b3d569a8b7eb2f76981c7d6164)
+    5bf2ff80237d4dde75a3fa3b5e45728daf2dbb46  <scratchpad>/r19/before/src/patchbay_vital/census.py  (f26e6bc 5bf2ff80237d4dde75a3fa3b5e45728daf2dbb46)
+    109ae1887be396e43ce7939b7115ec9745b6c6ca  <scratchpad>/r19/before/src/patchbay_vital/data/parameters.json  (f26e6bc 109ae1887be396e43ce7939b7115ec9745b6c6ca)
+    d8265cd5668a70b1802e3d7b1917104935e292ff  <scratchpad>/r19/before/src/patchbay_vital/errors.py  (f26e6bc d8265cd5668a70b1802e3d7b1917104935e292ff)
+    ddf88f5cf88bc3bfd23301f0968ca3bcd65533ac  <scratchpad>/r19/before/src/patchbay_vital/files.py  (f26e6bc ddf88f5cf88bc3bfd23301f0968ca3bcd65533ac)
+    27a1e91bd4483e2fbdebf444799b51f78617ab0e  <scratchpad>/r19/before/src/patchbay_vital/float32.py  (f26e6bc 27a1e91bd4483e2fbdebf444799b51f78617ab0e)
+    4296bf4d4d4ef0280ae6ae4d16810a8bce8c9b75  <scratchpad>/r19/before/src/patchbay_vital/format.py  (f26e6bc 4296bf4d4d4ef0280ae6ae4d16810a8bce8c9b75)
+    e72737ee0f4a1d68ae1d8374390c2fa9b0d02692  <scratchpad>/r19/before/src/patchbay_vital/grisu2.py  (f26e6bc e72737ee0f4a1d68ae1d8374390c2fa9b0d02692)
+    b8f0e11938028b0f7ddb9b079cb36b421026fd9c  <scratchpad>/r19/before/src/patchbay_vital/host.py  (f26e6bc b8f0e11938028b0f7ddb9b079cb36b421026fd9c)
+    51ac5eef0a8cf43c38d972323fb508db3a2a4456  <scratchpad>/r19/before/src/patchbay_vital/parameters.py  (f26e6bc 51ac5eef0a8cf43c38d972323fb508db3a2a4456)
+    f75e2e85d570f3db4bf5ec206bf9143f1ca4922f  <scratchpad>/r19/before/src/patchbay_vital/preset.py  (f26e6bc f75e2e85d570f3db4bf5ec206bf9143f1ca4922f)
+    e69de29bb2d1d6434b8b29ae775ad8c2e48c5391  <scratchpad>/r19/before/src/patchbay_vital/py.typed  (f26e6bc e69de29bb2d1d6434b8b29ae775ad8c2e48c5391)
+    f3dc277612d28632cba39cf37fa7cd42cdaa4ef6  <scratchpad>/r19/before/src/patchbay_vital/settings_keys.txt  (f26e6bc f3dc277612d28632cba39cf37fa7cd42cdaa4ef6)
+    4ea00da21a7666f2867cf8aba41593f928755b3e  <scratchpad>/r19/before/src/patchbay_vital/state.py  (f26e6bc 4ea00da21a7666f2867cf8aba41593f928755b3e)
+    cb5da6c7d1977271534181d007a8aa57567ff92c  <scratchpad>/r19/before/tests/data/pinned-values.txt  (f26e6bc cb5da6c7d1977271534181d007a8aa57567ff92c)
+  main's tree, commit f533b1b0a362373613471993c86f2df8ab0ed111, extracted with git archive: git hash-object of
+  each extracted file, the blob of main's commit beside it:
+    50fe09b3c3b285b3d569a8b7eb2f76981c7d6164  <scratchpad>/r19/main/src/patchbay_vital/__init__.py  (main 50fe09b3c3b285b3d569a8b7eb2f76981c7d6164)
+    5bf2ff80237d4dde75a3fa3b5e45728daf2dbb46  <scratchpad>/r19/main/src/patchbay_vital/census.py  (main 5bf2ff80237d4dde75a3fa3b5e45728daf2dbb46)
+    109ae1887be396e43ce7939b7115ec9745b6c6ca  <scratchpad>/r19/main/src/patchbay_vital/data/parameters.json  (main 109ae1887be396e43ce7939b7115ec9745b6c6ca)
+    d8265cd5668a70b1802e3d7b1917104935e292ff  <scratchpad>/r19/main/src/patchbay_vital/errors.py  (main d8265cd5668a70b1802e3d7b1917104935e292ff)
+    ddf88f5cf88bc3bfd23301f0968ca3bcd65533ac  <scratchpad>/r19/main/src/patchbay_vital/files.py  (main ddf88f5cf88bc3bfd23301f0968ca3bcd65533ac)
+    27a1e91bd4483e2fbdebf444799b51f78617ab0e  <scratchpad>/r19/main/src/patchbay_vital/float32.py  (main 27a1e91bd4483e2fbdebf444799b51f78617ab0e)
+    4296bf4d4d4ef0280ae6ae4d16810a8bce8c9b75  <scratchpad>/r19/main/src/patchbay_vital/format.py  (main 4296bf4d4d4ef0280ae6ae4d16810a8bce8c9b75)
+    e72737ee0f4a1d68ae1d8374390c2fa9b0d02692  <scratchpad>/r19/main/src/patchbay_vital/grisu2.py  (main e72737ee0f4a1d68ae1d8374390c2fa9b0d02692)
+    b8f0e11938028b0f7ddb9b079cb36b421026fd9c  <scratchpad>/r19/main/src/patchbay_vital/host.py  (main b8f0e11938028b0f7ddb9b079cb36b421026fd9c)
+    25b1a378e0d633bf4deede60d3173e976059a2a7  <scratchpad>/r19/main/src/patchbay_vital/parameters.py  (main 25b1a378e0d633bf4deede60d3173e976059a2a7)
+    f75e2e85d570f3db4bf5ec206bf9143f1ca4922f  <scratchpad>/r19/main/src/patchbay_vital/preset.py  (main f75e2e85d570f3db4bf5ec206bf9143f1ca4922f)
+    e69de29bb2d1d6434b8b29ae775ad8c2e48c5391  <scratchpad>/r19/main/src/patchbay_vital/py.typed  (main e69de29bb2d1d6434b8b29ae775ad8c2e48c5391)
+    f3dc277612d28632cba39cf37fa7cd42cdaa4ef6  <scratchpad>/r19/main/src/patchbay_vital/settings_keys.txt  (main f3dc277612d28632cba39cf37fa7cd42cdaa4ef6)
+    4ea00da21a7666f2867cf8aba41593f928755b3e  <scratchpad>/r19/main/src/patchbay_vital/state.py  (main 4ea00da21a7666f2867cf8aba41593f928755b3e)
+    40aff4ecfcdb10b848a7eb60879b7cf90d5fcacf  <scratchpad>/r19/main/tests/data/pinned-values.txt  (main 40aff4ecfcdb10b848a7eb60879b7cf90d5fcacf)
+cmp: the trees before and after are the same
+the machine after the run: arm64, Apple M4 Pro, 14 cores, macOS 26.6.2 (25G83), Python 3.12.16, load 5.67 15.63 24.63, at 2026-11-15 09:00 EST
