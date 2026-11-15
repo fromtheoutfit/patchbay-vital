@@ -13,11 +13,13 @@ of issue #13 (`agent-os/specs/2026-11-11-1449-volume-preset-through-the-set-path
 revision after PR 14's review (`agent-os/specs/2026-11-11-1555-revision-after-pr-14-review/`), of
 the revision after its second review
 (`agent-os/specs/2026-11-11-2044-revision-after-pr-14-second-review/`), of the spec of issue #15
-(`agent-os/specs/2026-11-12-0937-map-inverses-land-on-held-presets/`) and of the revisions after
+(`agent-os/specs/2026-11-12-0937-map-inverses-land-on-held-presets/`), of the revisions after
 PR 14's fourth, fifth and sixth reviews
 (`agent-os/specs/2026-11-12-1319-revision-after-pr-14-fourth-review/`,
 `agent-os/specs/2026-11-12-1852-revision-after-pr-14-fifth-review/` and
-`agent-os/specs/2026-11-13-0853-revision-after-pr-14-sixth-review/`).
+`agent-os/specs/2026-11-13-0853-revision-after-pr-14-sixth-review/`), of the spec of issue #16
+(`agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/`) and of the revision after the
+review of patchbay-vital's PR 19 (`agent-os/specs/2026-11-15-0811-revision-after-pr-19-review/`).
 
 ## Where it comes from
 
@@ -118,13 +120,13 @@ PR 14's fourth, fifth and sixth reviews
   values, never a record's name.**
 
   **The rule.** `MappedParameter.to_preset` first takes the float32 nearest the curve's inverse,
-  within the scale. Where the scale holds that float32, it is the answer. Where the scale does not
-  hold it, the answer is, in this order:
-  - what a set of that float32 holds, the scale's value at `to_normalized`'s result, which is
-    Vital's own rounding of it, where that shows the display exactly;
-  - otherwise the float32 on the other side of it, away from that value, where the scale holds it
-    and it shows the display exactly;
-  - otherwise the float32 itself, which the scale does not hold.
+  within the scale, and on an indexed scale the nearest whole number to it, a half away from zero.
+  The answer is what a set of that value holds: the scale's value at `to_normalized`'s result,
+  Vital's own rounding of it, which is the value itself wherever the scale holds it. There is one
+  exception: the float32 on the other side of it, away from what the set holds, is the answer
+  where what the set holds does not show the display exactly, that float32 does, and the scale
+  holds it. So the answer is always a preset the scale holds, and a set of
+  `to_normalized(display)` holds it (issue #16).
 
   So a set of any display a parameter shows holds a preset that shows it, on Vital as in the map.
   Only `volume`, at or below its 2 ** -43, has a float32 the scale skips for a display it shows,
@@ -132,8 +134,9 @@ PR 14's fourth, fifth and sixth reviews
   - on 15,761,472 of them, what a set holds shows the display, so a set holds what it held before
     issue #15;
   - on the other 308,386, the values where a set before the fix showed a display one double off,
-    the float32 on the other side is taken;
-  - no value takes the third branch (`UNHELD` 0).
+    the float32 on the other side is taken, the exception;
+  - on no value does what a set holds fail to show the display with nothing on the other side to
+    take (`UNHELD` 0 then, `FELL` 0 in issue #16's count).
 
   These are counted from `to_preset`'s own results in the revision after PR 14's fifth review,
   `agent-os/specs/2026-11-12-1852-revision-after-pr-14-fifth-review/verification/direct-count.txt`,
@@ -143,21 +146,46 @@ PR 14's fourth, fifth and sixth reviews
   by value at a held preset of 2 ** -43. No value above 2 ** -43 leaves the curve's float32. The fourth review's
   `verification/sweep.txt` gave the same three counts, but as a numpy reproduction's.
 
-  The code holds the rule in `to_preset` itself, its first branch taking what a set of the
-  curve's float32 holds where that is the float32 or shows the display. The sixth review's
+  The code holds the rule in `to_preset` itself: what a set of the curve's float32 holds, with
+  the exception tried only where that is not the float32 and does not show the display. The sixth
+  review's
   `agent-os/specs/2026-11-13-0853-revision-after-pr-14-sixth-review/verification/floor-pass.txt`
   calls `e852aac`'s shipped methods, which these counts describe, and the restructured ones,
   each imported from its own tree, on every float32 normalized
   value of `volume` below 2 ** -54 and at the envelope group's 143 held powers of two, and
   finds no `to_preset` or `to_normalized` changed; no other value can differ, by reading.
 
-  The branches are tried in that order, so where both the first and the second show the display,
-  the first is taken (`test_a_display_takes_what_a_set_of_the_curve_s_float32_holds`, at issue
-  #13's value). The second asks `NormalizedScale.holds` of the float32 on the other side. A float32
-  past an end the scale does not hold can show the display and still be one no normalized value in
-  [0, 1] lands on, so it is refused:
-  `test_the_float32_past_an_end_the_scale_does_not_hold_is_not_taken`, on a constructed scale whose
-  maximum is unheld. An end is not always held.
+  What a set holds comes first, so where both it and the float32 on the other side show the
+  display, it is taken (`test_a_display_takes_what_a_set_of_the_curve_s_float32_holds`, at issue
+  #13's value). The exception asks `NormalizedScale.holds` of the float32 on the other side. A
+  float32 past an end the scale does not hold can show the display and still be one no normalized
+  value in [0, 1] lands on, so it is refused and the display takes what a set holds, the float32
+  below the end: `test_the_float32_past_an_end_the_scale_does_not_hold_is_not_taken`, on a
+  constructed scale whose maximum is unheld. An end is not always held.
+
+  **`holds` answers False for a value outside what the scale's ends land on,** `to_preset(0.0)`
+  and `to_preset(1.0)`, before it lands the value. That covers an infinity, a NaN and a finite
+  value too large for its quotient to be a float32, each of which raised a built-in
+  (`test_a_scale_holds_no_value_that_is_not_finite`,
+  `test_a_scale_holds_nothing_outside_what_its_ends_land_on`), so the exception never raises.
+  - The check is against what the ends land on, never the bounds. From -16777216 to
+    1.0000001192092896 the span rounds up and 1 lands on 2, past the maximum, which the scale
+    holds (`test_a_scale_holds_what_its_top_lands_on_though_that_is_past_its_maximum`). On all
+    903 committed records 0 lands on the minimum and 1 on the maximum.
+  - It rests on the scale's value rising with the normalized value
+    (`test_a_scale_s_value_rises_with_the_normalized_value`). No committed scale runs the other
+    way, and `holds` answers as it did before the check on every committed record: 13,397
+    presets at the pinned values and 798,179 at the indexed whole numbers, their halves and
+    past each end (`agent-os/specs/2026-11-15-0811-revision-after-pr-19-review/verification/holds-check.txt`).
+  - `holds` does not test the landing's normalized value again, as it did before the check.
+    Within what the ends land on, a preset the landing reaches is reached from [0, 1]:
+    `_landing` keeps its step there, and the float32 nearest the quotient is there by
+    rounding, since what 1 lands on is at most `span * 2 ** -24` past `minimum + span`
+    (`test_the_quotient_of_what_an_end_lands_on_is_in_the_unit_interval`; the argument is
+    Decision 10 of that revision's `shape.md`, and the test put back is M3, an equivalent, in
+    its `verification/mutation.txt`).
+  - The scale's own `to_normalized` and `to_preset` still raise a built-in on a value outside
+    what the scale can take, finite or not: issue #18.
 
   `to_normalized` of a display is `scale.to_normalized(to_preset(display))`, the scale's own
   normalized value for the preset `to_preset` gives, by definition. It lands that preset a
@@ -170,26 +198,74 @@ PR 14's fourth, fifth and sixth reviews
   Vital at that same value. The rule has no tie to break. It replaced the neighbour nearer the
   curve's inverse, whose exact ties only a sort's order decided.
 
-  **The third branch.** It is kept, not removed, though no counted value reaches it. The sweep
-  counts only displays some held preset shows, and an arbitrary display, one no preset shows
-  exactly, reaches the third branch. A unit test holds it:
-  `test_an_arbitrary_display_keeps_the_curve_s_float32`, on `beats_per_minute`'s scale and curve,
-  built in the test module as `_TEMPO`, at 216.85141355537831. The test is issue #16's
-  characterization: #16 makes `to_preset` return what a set of the display's float32 holds, so
-  always a held preset, and reverses the test on purpose. It runs before #8, whose finding 1
-  narrows to Vital's rounding or the nearer held neighbour. Of 20,000 displays drawn uniformly over
-  `volume`'s range (seed 8), 1,108 take the third branch, 5.54% (the fifth review's
-  `verification/arbitrary-displays.txt`). An indexed scale takes no branch: its
-  display goes to the nearest whole number, a half away from zero, as the plugin rounds.
+  **An arbitrary display.** One no held preset shows exactly takes what a set of its float32
+  holds, a held preset that shows another display: `beats_per_minute` at 216.85141355537831 takes
+  3.6141905784606934, shown as 216.8514347076416. Before issue #16 the rule had a third branch
+  there, which kept the curve's float32, one the scale need not hold, so a model that stored it
+  disagreed with what Vital held after a set. The sweep and the direct count reach only displays
+  some held preset shows, so an arbitrary display is held by tests and by a sample:
+  - `test_an_arbitrary_display_takes_what_a_set_of_it_holds`, at the two `tempo_displays` of
+    `tests/data/pinned-values.txt`, on `beats_per_minute`'s scale and curve, built in the test
+    module as `_TEMPO`. It reverses `test_an_arbitrary_display_keeps_the_curve_s_float32`, issue
+    #16's characterization, on purpose.
+  - `test_any_display_in_range_maps_to_a_preset_a_set_of_it_holds`, on every hand-built record,
+    and `test_every_committed_record_maps_any_display_to_a_preset_a_set_of_it_holds`: the
+    normalized value is in [0, 1], the forward scale lands it on `to_preset`'s value, and that
+    value is what the test works out a set holds, or the float32 on the other side where that
+    shows the display and what the set holds does not. The helper checks the exception both
+    ways: where the map takes what a set holds and that does not show the display, the other
+    side must not be one the rule would take. A draw over a parameter's bounds does not reach
+    a display a held preset shows, so the two properties pass a `to_preset` without its
+    exception; the pinned displays hold it, through the same helper, in
+    `test_the_doubles_beside_a_pinned_display_map_to_a_preset_a_set_of_them_holds` (M5 in the
+    `verification/mutation.txt` of the revision after the review of patchbay-vital's PR 19).
+  - A sample, never a count, since a group's displays are doubles and cannot be enumerated:
+    200,000 displays a continuous group, uniform over its bounds (`numpy.random.default_rng(16)`),
+    11,000,000 over 55 groups, each through `main`'s shipped methods and the spec's. 2,041,885
+    give another preset than `main`'s, on 31 groups. On every one `main`'s preset was not held,
+    the new one is, and the normalized value a set sends is the same. Of 20,000 over `volume`'s
+    range (seed 8), 1,108 change, the ones that took the third branch
+    (`agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/verification/arbitrary-displays.txt`).
+  - At `volume`'s floor the doubles can be enumerated, so they are counted: of the 23,726,567
+    from -80 to the display at 2 ** -43, 344,580 give another preset than `main`'s. `main`'s
+    showed the display and was not held; the new one is held and shows a display one double away.
+  - Vital 1.6.4 holds the map's preset after a set of 200 seeded arbitrary displays on each of
+    the 46 linear-scale groups, 9,200 sets, and held `main`'s value on none of the 2,085 that
+    changed (that spec's `verification/plugin-probe.txt`).
+
+  Which held preset an arbitrary display should take, Vital's rounding as here or the nearer held
+  neighbour, is issue #8's finding 1, still open.
+
+  **An indexed scale** goes through the same set path: its display goes to the nearest whole
+  number, a half away from zero, as the plugin rounds, and the answer is what a set of that whole
+  number holds. On every whole number of every one of the map's 351 indexed records that is the
+  whole number itself, as on `main`: 398,563 calls, counted in full, over 21 distinct scales
+  holding 371,476 whole numbers (that spec's `verification/indexed-count.txt`). On a scale wider
+  than its float32s, which the map has none of, it is the nearest whole number the scale holds,
+  not always the one asked for: on a constructed scale from -1 to 2 ** 24 the bound's display
+  takes 16777215 (`test_an_indexed_scale_wider_than_its_float32s_takes_what_a_set_holds`).
+
+  An indexed scale takes the exception too, but only where the float32 on the other side is
+  itself a whole number: from 2 ** 23 up, where float32s are 1 apart. The map's widest indexed
+  scale ends at 362,879, so no value of the map does. The branch is held by a test on a made-up
+  record, an indexed scale from -2 ** 24 to 2 ** 24 under a linear curve of multiply 3 and
+  offset 2 ** 54, where the held 8388610 comes back only through it
+  (`test_an_indexed_scale_takes_its_other_side_where_that_alone_shows_the_display`; limited to
+  linear scales, `to_preset` gives 8388612 there, MI1 in that revision's
+  `verification/mutation.txt`).
 
   **The exception, in plain words.** `_assert_comes_back` runs every check exactly first, on every
   value. Only where the check that the display's preset is the held one fails does it ask
   `_unnamed_by_its_display`, and the value then passes only if that holds: the curve's own
   float32 for the display is not the held preset, so the display does not name it, and the
-  display's preset is what a set of that float32 holds. The test works that value out from the
-  scale's and the curve's primitives (`_what_a_set_holds`: `curve.to_preset`, the scale's
-  `to_normalized` and `to_preset`), never from `to_preset`, so a wrong rule in the map cannot
-  agree with itself.
+  display's preset is what a set of that float32 holds. The test works that value out from
+  primitives (`_what_a_set_holds`: `curve.to_preset`, the float32 nearest the exact quotient,
+  worked out with `Fraction`, the forward `scale.to_preset` at it and at the float32 either side,
+  and `next_float32`), never from `MappedParameter.to_preset` or `to_normalized`, the scale's
+  `to_normalized`, `holds` or `_landing`, so a wrong rule or a wrong landing in the map cannot
+  agree with itself. Before issue #16 the helper called the scale's `to_normalized`, and a
+  `_landing` that kept a missed step passed the property; it now fails it by name (issue #16's
+  `verification/mutation.txt`).
   - It is asked on 570,997,534 values, all of `volume`'s, every one below 2 ** -54 at a held
     preset at or below 2 ** -43, and holds on each. There the display's preset is another held
     one that shows the display, and the display cannot say which of them was held. Counted with
@@ -198,7 +274,7 @@ PR 14's fourth, fifth and sixth reviews
     which also finds no value at or above 2 ** -54 asking it. The fourth review's reproduction,
     `agent-os/specs/2026-11-12-1319-revision-after-pr-14-fourth-review/verification/sweep.txt`,
     gave the same total and no value of the other 68 groups asking it.
-  - The float32 on the other side, which `to_preset` takes in its second branch, is not
+  - The float32 on the other side, which `to_preset` takes as its exception, is not
     excused: that count finds it on no value, so a record that needed it would fail the
     property. The test module's hand-built records are not counted.
   - `test_a_display_excuses_only_what_a_set_of_its_own_float32_holds` offers it what it must
@@ -229,11 +305,26 @@ PR 14's fourth, fifth and sixth reviews
   `test_at_or_below_volume_s_floor_a_display_maps_to_a_held_preset`,
   `test_a_display_takes_what_a_set_of_the_curve_s_float32_holds`,
   `test_else_a_display_takes_the_float32_on_the_other_side`,
-  `test_an_arbitrary_display_keeps_the_curve_s_float32`,
+  `test_an_arbitrary_display_takes_what_a_set_of_it_holds`,
+  `test_any_display_in_range_maps_to_a_preset_a_set_of_it_holds`,
+  `test_every_committed_record_maps_any_display_to_a_preset_a_set_of_it_holds`,
+  `test_the_doubles_beside_a_pinned_display_map_to_a_preset_a_set_of_them_holds`,
+  `test_an_indexed_scale_wider_than_its_float32s_takes_what_a_set_holds`,
+  `test_a_scale_holds_no_value_that_is_not_finite`,
+  `test_a_scale_holds_nothing_outside_what_its_ends_land_on`,
+  `test_a_scale_holds_what_its_top_lands_on_though_that_is_past_its_maximum`,
+  `test_a_scale_s_value_rises_with_the_normalized_value`,
+  `test_the_quotient_of_what_an_end_lands_on_is_in_the_unit_interval`,
+  `test_an_indexed_scale_takes_its_other_side_where_that_alone_shows_the_display`,
   `test_a_value_between_an_indexed_scale_s_steps_goes_to_the_nearest_step`,
   `tests/integration/test_vital_plugin.py`
   (`test_at_or_below_volume_s_floor_a_set_holds_the_map_s_preset`,
-  `test_a_held_power_of_two_set_through_the_host_is_held`), `verification/census-run.txt`, and the
+  `test_a_held_power_of_two_set_through_the_host_is_held`,
+  `test_an_arbitrary_display_set_through_the_host_holds_the_map_s_preset`),
+  `verification/census-run.txt`, the `verification/direct-count.txt`,
+  `verification/indexed-count.txt`, `verification/arbitrary-displays.txt`,
+  `verification/plugin-probe.txt` and `verification/mutation.txt` of issue #16's spec
+  (`agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/`), and the
   `verification/sweep.txt`, `verification/plugin-probe.txt` and `verification/mutation.txt` of the
   revision after PR 14's fourth review, and the `verification/floor-pass.txt`,
   `verification/mutation.txt` and `verification/cost.txt` of the sixth. The defects were first
@@ -259,6 +350,9 @@ PR 14's fourth, fifth and sixth reviews
   the platform's own `pow` and `log2` value by value, as `DisplayCurve` does. That count is true of
   the machine it ran on, macOS 26.6.2 on arm64, whose libSystem 1351 holds the libm, and of
   another machine only as far as its libm gives the same values.
+  Issue #16's spec ran it again with the rule as it now reads: each of the 69 groups' tables
+  equals the fourth review's, and no value takes what a set holds where that does not show the
+  display (its `verification/sweep.txt`, a reproduction's, checked on 200,010 values a group).
 
   **The check before counting.** Each group's reproduction is first checked against the shipped
   scalar methods on 200,010 values. The check covers every value it counts, the branch each value
@@ -276,8 +370,14 @@ PR 14's fourth, fifth and sixth reviews
   was, bounds nothing, however its count reads.
 
   **A rule's branches are each counted.** A branch no counted value reaches is either removed or
-  held by a unit test, and the standard says which; the third branch of `to_preset`, above, is
-  held by a test.
+  held by a unit test, and the standard says which. `to_preset`'s third branch was held by a test
+  until issue #16 removed it; what an arbitrary display takes now is held by the tests and the
+  sample above.
+
+  **A claim over values that cannot be enumerated is sampled and called a sample,** with its
+  size, its generator and its seed beside it, and never called a count. A display is a double,
+  so a group's arbitrary displays are sampled; where a range's doubles can be enumerated, as
+  `volume`'s 23,726,567 at its floor, they are counted, and the transcript labels each part.
 
   **A fix is counted against the old code itself: the old tree's shipped methods and the new
   tree's, each imported from its own tree and called value by value.** A count a reproduction's
@@ -295,6 +395,42 @@ PR 14's fourth, fifth and sixth reviews
     preset differs;
   - nothing else differs on either record;
   - a control with two branches swapped moves the counts, so they are read from the result.
+
+  Issue #16's spec counted the same way
+  (`agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/verification/direct-count.txt`),
+  `main` at `f533b1b` against its work tree, on arm64, macOS 26.6.2 (25G83). A display a held
+  preset shows is where that change is meant to move nothing, so any difference stops the run:
+  - on `volume`, all five calls give `main`'s value on every one of the 1,065,353,217 values,
+    with 15,761,472 taking what a set holds and 308,386 the exception, as before;
+  - on `env_1_delay`, the display, its preset and its normalized value are `main`'s on every
+    value;
+  - a control with the exception removed moves 99,796 values of binade -56.
+
+  **A count calls only what can differ, and shows which.** Both trees' `parameters.py` and
+  `float32.py` are parsed, each function's statements compared with its docstring dropped, and
+  each call the count makes followed to every function it can reach. A call that reaches only
+  statements the old tree has cannot differ and need not be called in both trees. In issue #16's
+  count 46 of 48 functions and module values were `main`'s, and only `to_preset` and
+  `to_normalized` of a display reached the other two, so the envelope record was counted on
+  those. A method is never ruled out by an earlier count of another tree.
+
+  **A change inside one branch is recounted where that branch runs.** The revision after the
+  review of patchbay-vital's PR 19 changed `NormalizedScale.holds` alone, which `to_preset`
+  calls only from its exception.
+  - Parsing both trees showed every other function's statements the same as in the tree issue
+    #16's count ran on, 47 of 48.
+  - That count's classes then say where the exception is taken: the 308,386 OTHER values of
+    `volume`, in binades -58 to -56, with none entering it and falling through.
+  - Those three binades were recounted against `main`, 25,165,824 values, with no difference and
+    the same 308,386 (`agent-os/specs/2026-11-15-0811-revision-after-pr-19-review/verification/direct-count.txt`).
+
+  An earlier count's classes say where a branch runs only for a tree whose statements up to
+  that branch are shown to be the ones it counted.
+
+  **A count's cost is timed as the count will run,** every pool at its full size at once. Issue
+  #16's timing ran 4 processes and estimated 4.25 hours for `volume`; the count ran 13, on 10
+  performance cores and 4 efficiency ones, and took 5.25. A stop on a budget is checked against
+  the clock while the run goes, not only against the estimate made before it.
 
   **The other 67 groups were not counted directly,** by the owner's decision at about 2.5 hours
   wall a group. Two things hold the claim there, that a quotient which lands is returned

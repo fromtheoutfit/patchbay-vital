@@ -1,7 +1,8 @@
-# The parameter map's pinned normalized values, one per line: <set> <value> <name>. Both
+# The parameter map's pinned values, one per line: <set> <value> <name>. Both
 # tests/unit/test_parameters.py, against the map, and tests/integration/test_vital_plugin.py,
 # against Vital, read this file through pytestconfig.rootpath, so a value is written once. A value
-# is the float32 normalized value written as Python's repr, read back with float().
+# of volume_floor or powers_of_two is a float32 normalized value, and one of tempo_displays a
+# display, a double; each is written as Python's repr and read back with float().
 #
 # volume_floor: volume's normalized values at or below its floor, preset 2 ** -43, where the
 # curve's own float32 for the display is one the scale does not hold. Issue #13's value was found
@@ -18,9 +19,17 @@
 # verification/plugin-probe.txt), and 0.5 and 2 ** -20 by the revision after its second review
 # (agent-os/specs/2026-11-11-2044-revision-after-pr-14-second-review/verification/plugin-probe.txt).
 #
+# tempo_displays: displays of beats_per_minute no held preset shows, arbitrary ones, where the
+# curve's own float32 is one the scale does not hold: the map's value before issue #16, which now
+# gives what a set of that float32 holds. The first is issue #16's example, measured on Vital by
+# core's review of its PR 19 (issue #8, finding 1): the set holds the float32 above the curve's.
+# The second was drawn by issue #16's shaping (numpy default_rng(16)): the set holds the float32
+# below.
+#
 # Vital 1.6.4 holds the map's preset at every one (the verification/plugin-probe.txt of issue
-# #15's spec, agent-os/specs/2026-11-12-0937-map-inverses-land-on-held-presets/, and of the
-# revisions after PR 14's fourth and fifth reviews).
+# #15's spec, agent-os/specs/2026-11-12-0937-map-inverses-land-on-held-presets/, of the
+# revisions after PR 14's fourth and fifth reviews, and of issue #16's spec,
+# agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/).
 volume_floor 5.857149595214349e-20 issue #13's value
 volume_floor 3.4694490199051456e-18 the smallest of the former one-ulp landings
 volume_floor 1.439742266862027e-17 a former one-ulp landing below the display
@@ -28,3 +37,5 @@ volume_floor 1.53642479121845e-17 the floor's own, preset 2 ** -43
 powers_of_two 0.7071068286895752 1.0 on the envelope records
 powers_of_two 0.3535534143447876 0.5 on the envelope records
 powers_of_two 6.74349621476722e-07 2 ** -20 on the envelope records
+tempo_displays 216.85141355537831 issue #16's example, held as the float32 above the curve's
+tempo_displays 58.843714737570515 held as the float32 below the curve's

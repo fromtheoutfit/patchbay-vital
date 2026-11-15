@@ -6,16 +6,17 @@ wrote from the plugin (`verification/census-run.txt`), is held to the same prope
 """
 
 import math
+import sys
 from fractions import Fraction
 from typing import Literal
 
 import pytest
-from hypothesis import example, given
+from hypothesis import assume, example, given
 from hypothesis import strategies as st
 from patchbay import Parameter, ParameterId, PatchbayValidationError, PresetKey, Quantity, Unit
 
 from patchbay_vital.errors import ParameterRangeError, UnknownParameterError
-from patchbay_vital.float32 import next_float32, round_to_float32, to_float32
+from patchbay_vital.float32 import fma32, next_float32, round_to_float32, to_float32
 from patchbay_vital.parameters import (
     PRESET_ONLY_KEYS,
     DisplayCurve,
@@ -281,15 +282,15 @@ def test_a_display_excuses_only_what_a_set_of_its_own_float32_holds() -> None:
     own, held, other = _what_a_set_holds(_VOLUME, display)
     back = _VOLUME.to_preset(display)
     assert back == own == held != preset
-    assert scale.holds(own)
+    assert _a_set_lands_on(scale, own)
     assert _unnamed_by_its_display(_VOLUME, display, preset, back)
     far = next_float32(next_float32(next_float32(own, 0.0), 0.0), 0.0)
-    assert scale.holds(far)
+    assert _a_set_lands_on(scale, far)
     assert _VOLUME.to_display(far) == display
     assert not _unnamed_by_its_display(_VOLUME, display, preset, far)
     above = next_float32(own, 1.0)
     assert above == other
-    assert scale.holds(above)
+    assert _a_set_lands_on(scale, above)
     assert _VOLUME.to_display(above) == display
     assert not _unnamed_by_its_display(_VOLUME, display, preset, above)
     assert not _unnamed_by_its_display(_VOLUME, display, own, preset)
@@ -297,7 +298,7 @@ def test_a_display_excuses_only_what_a_set_of_its_own_float32_holds() -> None:
     display = _VOLUME.to_display(last)
     own, held, other = _what_a_set_holds(_VOLUME, display)
     assert own != last
-    assert not scale.holds(own)
+    assert not _a_set_lands_on(scale, own)
     assert _VOLUME.to_display(held) != display
     assert _VOLUME.to_preset(display) == other == last
     first = next_float32(last, 1.0)
@@ -306,7 +307,9 @@ def test_a_display_excuses_only_what_a_set_of_its_own_float32_holds() -> None:
 
 
 _PINNED = ("tests", "data", "pinned-values.txt")
-_PINNED_SETS = ("volume_floor", "powers_of_two")
+_PINNED_SETS = ("volume_floor", "powers_of_two", "tempo_displays")
+_DISPLAY_SETS = frozenset({"tempo_displays"})
+"""The sets whose values are displays, doubles; a value of any other set is a float32."""
 
 
 def _pinned(pytestconfig: pytest.Config) -> dict[str, tuple[float, ...]]:
@@ -314,8 +317,11 @@ def _pinned(pytestconfig: pytest.Config) -> dict[str, tuple[float, ...]]:
 
     The one place the pinned values are written, read from pytest's root as every repository file
     is (`base/testing/tests.md`); `test_vital_plugin.py` reads it with a reader of its own. A line
-    that is not `<set> <float32> <name>`, of a set named here, fails the test reading it, naming
-    the file and the line; a missing file fails it naming the path.
+    that is not `<set> <value> <name>`, of a set named here, fails the test reading it, naming the
+    file and the line: its value is a float32 in `[0, 1]`, a normalized value, or in a set of
+    displays a finite double. A set with no value fails it too, by the set's name: a loop over an
+    empty set would pass having run nothing (the review of patchbay-vital's PR 19, finding 3). A
+    missing file fails it naming the path.
     """
     path = pytestconfig.rootpath.joinpath(*_PINNED)
     found: dict[str, list[float]] = {name: [] for name in _PINNED_SETS}
@@ -328,20 +334,31 @@ def _pinned(pytestconfig: pytest.Config) -> dict[str, tuple[float, ...]]:
             value = float(text)
         except ValueError:
             value = math.nan
-        if name not in found or not label or to_float32(value) != value:
-            pytest.fail(f"{path.name}:{number} is not '<set> <float32> <name>': {line!r}")
+        normalized = to_float32(value) == value and 0.0 <= value <= 1.0
+        a_value = math.isfinite(value) if name in _DISPLAY_SETS else normalized
+        if name not in found or not label or not a_value:
+            pytest.fail(f"{path.name}:{number} is not '<set> <value> <name>': {line!r}")
         found[name].append(value)
+    for name, values in found.items():
+        if not values:
+            pytest.fail(f"{path.name} holds no {name} value")
     return {name: tuple(values) for name, values in found.items()}
 
 
-def test_the_pinned_values_file_holds_two_named_sets(pytestconfig: pytest.Config) -> None:
-    """The file holds `volume`'s four floor values and the envelope's three, each in `[0, 1]`."""
+def test_the_pinned_values_file_holds_three_named_sets(pytestconfig: pytest.Config) -> None:
+    """`volume`'s four floor values, the envelope's three, and two displays of the tempo's.
+
+    That a normalized value is in `[0, 1]` is the reader's check, which fails every test reading
+    the file.
+    """
     pinned = _pinned(pytestconfig)
     assert {name: len(values) for name, values in pinned.items()} == {
         "volume_floor": 4,
         "powers_of_two": 3,
+        "tempo_displays": 2,
     }
-    assert all(0.0 <= value <= 1.0 for values in pinned.values() for value in values)
+    tempo = _TEMPO.parameter
+    assert all(tempo.minimum <= display <= tempo.maximum for display in pinned["tempo_displays"])
 
 
 def test_every_pinned_value_comes_back_on_every_record(pytestconfig: pytest.Config) -> None:
@@ -352,8 +369,12 @@ def test_every_pinned_value_comes_back_on_every_record(pytestconfig: pytest.Conf
     file's values run here instead, on every record as an `@example` runs: a regression that only
     they reach fails this test by name whatever Hypothesis draws (MC in the sixth review's
     `verification/mutation.txt`, the seeded regression of the revision after PR 14's review).
+    The file's displays are not normalized values and run in
+    `test_an_arbitrary_display_takes_what_a_set_of_it_holds`.
     """
-    for values in _pinned(pytestconfig).values():
+    for name, values in _pinned(pytestconfig).items():
+        if name in _DISPLAY_SETS:
+            continue
         for normalized in values:
             for record in _RECORDS:
                 _assert_comes_back(record, normalized)
@@ -373,13 +394,39 @@ def test_at_or_below_volume_s_floor_a_display_maps_to_a_held_preset(
     for normalized in _pinned(pytestconfig)["volume_floor"]:
         _assert_comes_back(record, normalized)
         display = record.from_normalized(normalized)
-        assert not record.scale.holds(record.curve.to_preset(display)), normalized
+        assert not _a_set_lands_on(record.scale, record.curve.to_preset(display)), normalized
+
+
+def _a_set_lands_on(scale: NormalizedScale, preset: float) -> bool:
+    """Say whether some normalized value in `[0, 1]` lands on a preset, from primitives.
+
+    The normalized values that land on one preset are neighbours, around its exact quotient, so if
+    any lands, the float32 nearest the quotient (`_nearest_quotient`) or the one on either side of
+    it does: each is tried through the forward scale, the plugin's own arithmetic. Never the
+    scale's `holds` or `to_normalized`, which are the code the tests hold.
+    """
+    nearest = _nearest_quotient(scale, preset)
+    beside = (nearest, next_float32(nearest, -math.inf), next_float32(nearest, math.inf))
+    return any(0.0 <= value <= 1.0 and scale.to_preset(value) == preset for value in beside)
 
 
 def _what_a_set_holds(record: MappedParameter, display: float) -> tuple[float, float, float]:
-    """Return the curve's float32 for a display, what a set of it holds, and its other side."""
-    own = record.curve.to_preset(display)
-    held = record.scale.to_preset(record.scale.to_normalized(own))
+    """Return the curve's value for a display, what a set of it holds, and its other side.
+
+    Worked out from primitives, never from the scale's `to_normalized`, which reads the same
+    `_landing` that `to_preset` does: a wrong landing would agree with itself, and the property's
+    excuse with it (issue #16, the final review's finding 2, and the `verification/mutation.txt`
+    of its spec). The curve's float32 is kept within the scale and, on an indexed
+    scale, rounded to a whole number, a half away from zero, as the rule does both. A set of it
+    holds it where a normalized value in `[0, 1]` lands on it (`_a_set_lands_on`). Where none
+    does, the host is sent the float32 nearest its exact quotient, and the set holds the forward
+    scale's value there.
+    """
+    scale = record.scale
+    own = min(max(record.curve.to_preset(display), scale.minimum), scale.maximum)
+    if scale.kind == "indexed":
+        own = math.copysign(math.floor(abs(own) + 0.5), own)
+    held = own if _a_set_lands_on(scale, own) else scale.to_preset(_nearest_quotient(scale, own))
     return own, held, next_float32(own, math.copysign(math.inf, own - held))
 
 
@@ -390,7 +437,8 @@ _FLOOR_PRESETS = (
     1.1368683772161603e-13,
 )
 """The preset `to_preset` gives at each `volume_floor` value of `tests/data/pinned-values.txt`, in
-the file's order: the first by the rule's first branch, the other three by its second."""
+the file's order: the first what a set of the curve's float32 holds, the other three the rule's
+one exception, the float32 on its other side."""
 
 
 def _floor_presets(pytestconfig: pytest.Config) -> list[tuple[float, float]]:
@@ -405,15 +453,15 @@ def test_a_display_takes_what_a_set_of_the_curve_s_float32_holds(
 
     The curve's float32 is one the scale skips. A set of it holds the float32 below, Vital's own
     rounding of it, which shows the display; the one above is held and shows it too. The map takes
-    what the set holds (the first branch of `to_preset`), so the order of the branches decides
-    here, and a set of the display holds what a set of it held before issue #15.
+    what the set holds, the rule itself: its exception is only for where that does not show the
+    display. So a set of the display holds what a set of it held before issue #15.
     """
     record = parameter_map().find(ParameterId("volume"))
     for normalized, preset in _floor_presets(pytestconfig)[:1]:
         display = record.from_normalized(normalized)
         _, held, other = _what_a_set_holds(record, display)
         assert record.to_preset(display) == held == preset, normalized
-        assert record.scale.holds(other), normalized
+        assert _a_set_lands_on(record.scale, other), normalized
         assert record.to_display(other) == display, normalized
 
 
@@ -422,8 +470,8 @@ def test_else_a_display_takes_the_float32_on_the_other_side(pytestconfig: pytest
 
     At the other three pinned floor values a set of the curve's float32 holds a float32 next to it
     whose display is a double from the one given, as a set of the display held before issue #15.
-    The float32 on the curve's float32's other side is held and shows the display (the second
-    branch of `to_preset`).
+    The float32 on the curve's float32's other side is held and shows the display (`to_preset`'s
+    one exception).
     """
     record = parameter_map().find(ParameterId("volume"))
     for normalized, preset in _floor_presets(pytestconfig)[1:]:
@@ -481,21 +529,120 @@ def test_a_scale_holds_its_values_and_none_past_its_ends() -> None:
         assert not scale.holds(past), past
 
 
-def test_an_arbitrary_display_keeps_the_curve_s_float32() -> None:
-    """Issue #16, characterized: an arbitrary display keeps the curve's unheld float32.
+_TEMPO_PRESETS = (
+    3.6141905784606934,  # issue #16's example: the float32 above the curve's 3.6141903400421143
+    0.9807285070419312,  # the float32 below the curve's 0.9807285666465759
+)
+"""The preset `to_preset` gives at each `tempo_displays` value of `tests/data/pinned-values.txt`,
+in the file's order: what a set of the display's float32 holds, as Vital 1.6.4 holds it (issue
+#8's finding 1 for the first, shown as 216.8514347076416; the `verification/plugin-probe.txt` of
+issue #16's spec for both)."""
 
-    `beats_per_minute` at 216.85141355537831 is a display no preset shows exactly: the float32
-    nearest the curve's inverse is not one the scale holds, and neither what a set of it holds nor
-    the float32 on its other side shows the display, so `to_preset` keeps it (the third branch).
-    Issue #16 has the map take what a set of it holds instead, and reverses this test on purpose;
-    whether that or the nearer held neighbour is right stays issue #8's finding 1. So the test
-    asserts only what #16 would change: the value kept at this display, the curve's own float32,
-    unheld.
+
+def _assert_a_set_holds_it(record: MappedParameter, display: float) -> None:
+    """Assert a display's preset is one a set of the display holds, and which one it is.
+
+    The property that stands in for a count of arbitrary displays, which are doubles and cannot be
+    enumerated (issue #16). The normalized value the map sends is one the host can set, and the
+    forward scale lands it on `to_preset`'s value: so the scale holds that preset, and the plugin
+    holds it after the set. Which preset it is comes from primitives (`_what_a_set_holds`): what a
+    set of the curve's value holds, or the float32 on its other side, and that one only where it
+    shows the display and what the set holds does not.
+
+    The exception is checked both ways. Where the map takes the other side, it must be the one
+    the rule allows. Where it takes what the set holds and that does not show the display, the
+    other side must not be one the rule would take: shown by it and landed on by a normalized
+    value in `[0, 1]`. Without the second, a `to_preset` that never took the exception passed
+    (the review of patchbay-vital's PR 19, finding 2). The displays that reach it are ones a held
+    preset shows, at or below `volume`'s floor: a draw over a parameter's bounds does not, so the
+    pinned displays are what hold it, in
+    `test_the_doubles_beside_a_pinned_display_map_to_a_preset_a_set_of_them_holds`.
     """
-    display = 216.85141355537831
-    back = _TEMPO.to_preset(display)
-    assert back == _TEMPO.curve.to_preset(display)
-    assert not _TEMPO.scale.holds(back)
+    scale = record.scale
+    back = record.to_preset(display)
+    normalized = record.to_normalized(display)
+    assert 0.0 <= normalized <= 1.0
+    assert scale.to_preset(normalized) == back
+    _, held, other = _what_a_set_holds(record, display)
+    if back != held:
+        assert back == other
+        assert record.to_display(back) == display
+        assert record.to_display(held) != display
+    elif record.to_display(held) != display:
+        assert not (record.to_display(other) == display and _a_set_lands_on(scale, other))
+
+
+def _displays(record: MappedParameter) -> st.SearchStrategy[float]:
+    """Return the displays a record takes: a double in its bounds, or a choice's whole index."""
+    parameter = record.parameter
+    if parameter.kind == "continuous":
+        return st.floats(min_value=parameter.minimum, max_value=parameter.maximum)
+    return st.integers(int(parameter.minimum), int(parameter.maximum)).map(float)
+
+
+@pytest.mark.parametrize("record", _RECORDS, ids=lambda record: record.id)
+@given(data=st.data())
+def test_any_display_in_range_maps_to_a_preset_a_set_of_it_holds(
+    record: MappedParameter, data: st.DataObject
+) -> None:
+    """Whatever display is given, in range, the map's preset for it is what a set of it holds.
+
+    Not only a display a parameter shows: any double within the bounds, most of which no held
+    preset shows exactly. Before issue #16 such a display kept the curve's float32, which the
+    scale need not hold.
+    """
+    _assert_a_set_holds_it(record, data.draw(_displays(record)))
+
+
+def test_an_arbitrary_display_takes_what_a_set_of_it_holds(pytestconfig: pytest.Config) -> None:
+    """Issue #16: an arbitrary display takes the held preset a set of it holds, never an unheld one.
+
+    Each pinned `tempo_displays` value is a display of `beats_per_minute` no preset shows exactly:
+    the float32 nearest the curve's inverse is not one the scale holds, and neither what a set of
+    it holds nor the float32 on its other side shows the display. Before issue #16 `to_preset`
+    kept that float32, and this test, then `test_an_arbitrary_display_keeps_the_curve_s_float32`,
+    held it there until the issue reversed it on purpose. It now takes what the set holds, the
+    preset Vital holds after a set of the display: worked out here from the quotient and the
+    forward scale, and written beside it as a literal. Whether that or the nearer held neighbour
+    is right stays issue #8's finding 1, which names the float32 below the curve's as the nearer
+    at the first display, where the set holds the one above.
+    """
+    scale = _TEMPO.scale
+    above = []
+    for display, preset in zip(
+        _pinned(pytestconfig)["tempo_displays"], _TEMPO_PRESETS, strict=True
+    ):
+        own, held, other = _what_a_set_holds(_TEMPO, display)
+        assert own == _TEMPO.curve.to_preset(display), display
+        assert not _a_set_lands_on(scale, own), display
+        assert _TEMPO.to_preset(display) == held == preset, display
+        assert scale.to_preset(_TEMPO.to_normalized(display)) == preset, display
+        assert display not in {_TEMPO.to_display(value) for value in (own, held, other)}, display
+        _assert_a_set_holds_it(_TEMPO, display)
+        above.append(preset > own)
+    assert above == [True, False]  # the set holds the float32 above the curve's, then the one below
+
+
+def test_the_doubles_beside_a_pinned_display_map_to_a_preset_a_set_of_them_holds(
+    pytestconfig: pytest.Config,
+) -> None:
+    """At or below `volume`'s floor, the double either side of a display maps to a held preset.
+
+    A uniform draw over a parameter's bounds does not reach the displays within 3.4e-7 dB of -80,
+    where presets share a display and the rule's exception is taken. So the property's assertions
+    run at each pinned `volume_floor` value's display and at the double below and above it, on the
+    hand-built record and the committed one.
+    """
+    for record in (_VOLUME, parameter_map().find(ParameterId("volume"))):
+        for normalized in _pinned(pytestconfig)["volume_floor"]:
+            display = record.from_normalized(normalized)
+            for beside in (
+                math.nextafter(display, -math.inf),
+                display,
+                math.nextafter(display, math.inf),
+            ):
+                if record.parameter.minimum <= beside <= record.parameter.maximum:
+                    _assert_a_set_holds_it(record, beside)
 
 
 def test_the_step_toward_a_preset_stays_where_the_host_can_set_it() -> None:
@@ -533,11 +680,12 @@ def test_a_quotient_that_lands_is_the_normalized_value_whatever_lands_beside_it(
 def test_the_float32_past_an_end_the_scale_does_not_hold_is_not_taken() -> None:
     """A float32 only a normalized value above 1 lands on is no preset, though it shows the display.
 
-    A record made up to reach `to_preset`'s second branch past the scale: its maximum, 1, is not
+    A record made up to reach `to_preset`'s exception past the scale: its maximum, 1, is not
     held, a set of it landing one float32 below, which shows another display; the float32 above
     1 shows the maximum's display, and the normalized value above 1 lands on it, which the host
-    cannot set. So the scale does not hold it and the display keeps the curve's float32, the
-    maximum (the third branch), never a preset past the scale.
+    cannot set. So the scale does not hold it, and the display takes what a set of it holds, the
+    float32 below the maximum, never a preset past the scale. Before issue #16 it kept the
+    maximum, which the scale does not hold either.
     """
     top, display = 1.0, 2.0**30
     record = _record(
@@ -556,8 +704,227 @@ def test_the_float32_past_an_end_the_scale_does_not_hold_is_not_taken() -> None:
     past = next_float32(1.0, 2.0)
     assert (scale.to_normalized(other), scale.to_preset(past)) == (past, other)
     assert not scale.holds(other)
-    assert record.to_preset(display) == top
+    assert not _a_set_lands_on(scale, top)
+    assert record.to_preset(display) == held
     assert record.to_normalized(display) == 1.0
+    assert scale.to_preset(1.0) == held
+
+
+def test_an_indexed_scale_wider_than_its_float32s_takes_what_a_set_holds() -> None:
+    """On an indexed scale the nearest whole number goes through the set path, as a preset does.
+
+    Every whole number of the committed map's indexed scales is held, so there it is its own
+    result (the `verification/indexed-count.txt` of issue #16's spec, counted in full). This
+    record is made up for the case the map has none of: an indexed scale from -1 to 2 ** 24,
+    whose span is 2 ** 24. The normalized value nearest the maximum's quotient is 1, and the
+    plugin's fused multiply-add there is 2 ** 24 - 1, so no normalized value in [0, 1] lands on
+    the maximum. Before issue #16 `to_preset` gave the maximum for its display, a whole number
+    the plugin never holds. It now gives the whole number a set holds, 16777215, here the nearest
+    the scale holds: a caller who sets the bound's display holds a preset shown one below it, and
+    reads that display back.
+    """
+    top = 2.0**24
+    record = _record(
+        "made_up",
+        "made_up",
+        scale=NormalizedScale(kind="indexed", minimum=-1.0, maximum=top),
+        curve=DisplayCurve(kind="linear", multiply=1.0),
+        preset_default=0.0,
+        unit=Unit.none,
+    )
+    scale = record.scale
+    nearest = _nearest_quotient(scale, top)
+    held = fma32(nearest, scale.span, scale.minimum)
+    assert (scale.span, nearest, held) == (top, 1.0, 16777215.0)
+    assert not _a_set_lands_on(scale, top)
+    assert record.to_preset(top) == held
+    assert record.to_normalized(top) == nearest
+    assert record.from_normalized(nearest) == held
+    assert record.to_preset(5.0) == 5.0  # noqa: PLR2004 - a whole number the scale holds
+    assert record.to_preset(5.5) == 6.0  # noqa: PLR2004 - a half goes away from zero, as before
+
+
+def test_a_scale_holds_no_value_that_is_not_finite() -> None:
+    """No scale holds an infinity or a NaN: `holds` says so, and raises no built-in's error.
+
+    By definition a scale holds the values a normalized value in [0, 1] lands on, each a finite
+    float32, so for a value that is not finite the answer is False. Before issue #16 `holds`
+    raised `OverflowError` on an infinity and `ValueError` on a NaN, from the `Fraction` its
+    landing builds (the final review's finding 6).
+
+    `MappedParameter.to_preset` reached it too, on a record made up for it: a scale from 2 ** 103
+    to the largest float32, which does not hold its maximum, and a linear curve that displays the
+    maximum as infinity and the float32 below it as a finite number. A display of infinity is
+    then in range, its float32 is the maximum, what a set of it holds does not show it, and the
+    float32 on the other side is infinity, which does: `to_preset` asked `holds` of it and
+    raised. It now takes what the set holds, the float32 below the maximum.
+    """
+    for scale in (_LEVEL.scale, _VOLUME.scale, _POLYPHONY.scale):
+        for value in (math.inf, -math.inf, math.nan):
+            assert scale.holds(value) is False, (scale, value)
+    largest = next_float32(math.inf, 0.0)
+    below = next_float32(largest, 0.0)
+    scale = NormalizedScale(kind="linear", minimum=2.0**103, maximum=largest)
+    curve = DisplayCurve(kind="linear", multiply=5.28294562624475e269)
+    assert fma32(_nearest_quotient(scale, largest), scale.span, scale.minimum) == below
+    assert not _a_set_lands_on(scale, largest)
+    assert curve.to_display(largest) == math.inf
+    assert math.isfinite(curve.to_display(below))
+    lowest = curve.to_display(scale.minimum)
+    parameter = Parameter(
+        id=ParameterId("made_up"),
+        label="Made Up",
+        kind="continuous",
+        unit=Unit.none,
+        minimum=lowest,
+        maximum=sys.float_info.max,
+        default=Quantity(value=lowest, unit=Unit.none),
+    )
+    record = MappedParameter(
+        parameter=parameter,
+        host_id="made_up",
+        scale=scale,
+        curve=curve,
+        preset_default=scale.minimum,
+        host_unit="",
+    )
+    assert record.to_preset(math.inf) == below
+
+
+def test_a_scale_holds_nothing_outside_what_its_ends_land_on() -> None:
+    """A value past what a scale's ends land on is not held, however large: `holds` says so.
+
+    The scale's value rises with the normalized value, so the most it lands on is the plugin's
+    fused multiply-add at 1 and the least the one at 0, each worked out here with `fma32`, and no
+    normalized value in [0, 1] lands on a value outside them. Before the review of
+    patchbay-vital's PR 19 (finding 1) `holds` refused only an infinity and a NaN. For a finite
+    value this far out the quotient is an infinity as a float32, and landing it raised
+    `OverflowError`: 3.5e38 on a scale from 0 to 1, and 1 on a scale whose span is the smallest
+    float32.
+    """
+    unit = NormalizedScale(kind="linear", minimum=0.0, maximum=1.0)
+    tiny = NormalizedScale(kind="linear", minimum=0.0, maximum=next_float32(0.0, math.inf))
+    for scale, values in ((unit, (3.5e38, 1e300, -1e300)), (tiny, (1.0, -1.0))):
+        bottom = fma32(0.0, scale.span, scale.minimum)
+        top = fma32(1.0, scale.span, scale.minimum)
+        assert (bottom, top) == (scale.minimum, scale.maximum)
+        for value in values:
+            assert not bottom <= value <= top
+            assert scale.holds(value) is False, (scale, value)
+
+
+def test_a_scale_holds_what_its_top_lands_on_though_that_is_past_its_maximum() -> None:
+    """What normalized 1 lands on is held, even past the maximum; the float32 above it is not.
+
+    A scale's ends are what 0 and 1 land on, which are not always its bounds. This scale is made
+    up for it: from -2 ** 24 to the float32 above 1, the exact difference of the bounds rounds up
+    to 16777218 as a float32, so the plugin's fused multiply-add at 1 is 2, a value past the
+    maximum that a normalized value in [0, 1] lands on. So `holds` bounds a value by what the
+    ends land on, never by the bounds themselves, which would refuse a value the plugin holds
+    (the review of patchbay-vital's PR 19, finding 1, which suggested the bounds).
+    """
+    scale = NormalizedScale(kind="linear", minimum=-(2.0**24), maximum=next_float32(1.0, math.inf))
+    top = fma32(1.0, scale.span, scale.minimum)
+    assert (scale.span, top) == (16777218.0, 2.0)
+    assert top > scale.maximum
+    past = next_float32(top, math.inf)
+    assert _a_set_lands_on(scale, top)
+    assert not _a_set_lands_on(scale, past)
+    assert scale.holds(top) is True
+    assert scale.holds(past) is False
+    assert scale.to_preset(scale.to_normalized(top)) == top
+
+
+@pytest.mark.parametrize("record", _RECORDS, ids=lambda record: record.id)
+@given(first=_UNIT_INTERVAL, second=_UNIT_INTERVAL)
+def test_a_scale_s_value_rises_with_the_normalized_value(
+    record: MappedParameter, first: float, second: float
+) -> None:
+    """A larger normalized value never lands on a smaller preset, and none lands past the ends.
+
+    `NormalizedScale.holds` rests on it: nothing below what 0 lands on, or above what 1 lands
+    on, is held.
+    """
+    scale = record.scale
+    low, high = sorted((first, second))
+    landed = [scale.to_preset(value) for value in (0.0, low, high, 1.0)]
+    assert landed == sorted(landed)
+
+
+_FLOAT32 = st.floats(width=32, allow_nan=False, allow_infinity=False)
+
+
+@given(first=_FLOAT32, second=_FLOAT32, kind=st.sampled_from(["linear", "indexed"]))
+def test_the_quotient_of_what_an_end_lands_on_is_in_the_unit_interval(
+    first: float, second: float, kind: Literal["linear", "indexed"]
+) -> None:
+    """On any scale, the float32 nearest the quotient of what 0 or 1 lands on is in [0, 1].
+
+    Each is worked out here from the exact quotient, with `Fraction`.
+
+    `NormalizedScale.holds` rests on it. A preset within what the ends land on has a quotient
+    between theirs, and rounding keeps order, so its nearest quotient is in [0, 1] as well: the
+    landing reaches such a preset from a normalized value the host can set, or not at all, and
+    `holds` does not test the normalized value again. What 1 lands on can lie past
+    `minimum + span`, by the rounding of the sum, but by no more than `span * 2 ** -24`, and a
+    quotient of 1 + 2 ** -24 is a tie that rounds to 1. The bounds are any two float32s, of any
+    sign and exponent, whole ones for an indexed scale.
+    """
+    if kind == "indexed":
+        first, second = float(round(first)), float(round(second))
+    low, high = sorted((to_float32(first), to_float32(second)))
+    assume(low < high)
+    scale = NormalizedScale(kind=kind, minimum=low, maximum=high)
+    assume(math.isfinite(scale.span))
+    bottom, top = scale.to_preset(0.0), scale.to_preset(1.0)
+    assert bottom == scale.minimum
+    assert _nearest_quotient(scale, bottom) == 0.0
+    assert (Fraction(top) - Fraction(scale.minimum)) / Fraction(scale.span) <= 1 + Fraction(
+        1, 2**24
+    )
+    assert 0.0 <= _nearest_quotient(scale, top) <= 1.0
+
+
+def test_an_indexed_scale_takes_its_other_side_where_that_alone_shows_the_display() -> None:
+    """An indexed scale takes the rule's exception too, where its float32s are whole numbers.
+
+    From 2 ** 23 up float32s are 1 apart, so the float32 next to a whole number is a whole
+    number, and the exception can be taken on an indexed scale. The map has none that wide: its
+    widest indexed scale ends at 362,879. So this record is made up to reach the branch: an
+    indexed scale from -2 ** 24 to 2 ** 24, which holds every other whole number near 2 ** 23,
+    and a linear curve whose offset, 2 ** 54, leaves displays 4 apart, so that neighbouring whole
+    numbers share one.
+
+    The display of the held 8388610 has 8388611 as its curve's value, which no normalized value
+    lands on. A set of that holds 8388612, which shows another display, and the whole number on
+    the other side, 8388610, is held and shows the display. `to_preset` takes it, so the held
+    preset comes back. The review of patchbay-vital's PR 19 (finding 7) read the branch as one an
+    indexed scale can never take, which is so below 2 ** 23 alone; limited to linear scales,
+    `to_preset` would give 8388612 here. The record is beyond what the map promises: its curve
+    cannot tell neighbouring whole numbers apart, and not every display comes back on it.
+    """
+    record = _record(
+        "made_up",
+        "made_up",
+        scale=NormalizedScale(kind="indexed", minimum=-(2.0**24), maximum=2.0**24),
+        curve=DisplayCurve(kind="linear", multiply=3.0, offset=2.0**54),
+        preset_default=0.0,
+        unit=Unit.none,
+    )
+    scale = record.scale
+    preset = 8388610.0
+    normalized = _nearest_quotient(scale, preset)
+    assert scale.to_preset(normalized) == preset
+    display = record.from_normalized(normalized)
+    own, held, other = _what_a_set_holds(record, display)
+    assert (own, held, other) == (8388611.0, 8388612.0, preset)
+    assert not _a_set_lands_on(scale, own)
+    assert _a_set_lands_on(scale, other)
+    assert record.to_display(held) != display
+    assert record.to_display(other) == display
+    assert record.to_preset(display) == other
+    assert scale.to_preset(record.to_normalized(display)) == other
+    _assert_a_set_holds_it(record, display)
 
 
 @pytest.mark.parametrize("record", _RECORDS, ids=lambda record: record.id)
@@ -826,6 +1193,15 @@ def test_the_format_s_key_list_is_derived_from_the_committed_map(
 def test_every_committed_record_comes_back_exactly(index: int, normalized: float) -> None:
     """The map's records hold the property its hand-built ones do, whichever is drawn."""
     _assert_comes_back(parameter_map().parameters[index], normalized)
+
+
+@given(index=st.integers(min_value=0, max_value=_HOSTED - 1), data=st.data())
+def test_every_committed_record_maps_any_display_to_a_preset_a_set_of_it_holds(
+    index: int, data: st.DataObject
+) -> None:
+    """The map's records map any display in range to a held preset, as its hand-built ones do."""
+    record = parameter_map().parameters[index]
+    _assert_a_set_holds_it(record, data.draw(_displays(record)))
 
 
 def test_the_committed_map_tells_its_choices_apart() -> None:

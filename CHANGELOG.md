@@ -220,6 +220,140 @@ writes the entry, in that commit
 
 ### Fixed
 
+- `MappedParameter.to_preset` always returns a preset the plugin holds, issue #16,
+  `agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/`, revised after the review of
+  patchbay-vital's PR 19, `agent-os/specs/2026-11-15-0811-revision-after-pr-19-review/`. For a
+  display no held preset shows, an arbitrary one, it kept the curve's float32, which the scale
+  need not hold, so a model that stored it disagreed with Vital's state after a set. The version
+  stays 0.0.1.
+  - **One rule with one exception replaces the three branches.** `to_preset` returns what a set
+    of the display's float32 holds: the scale's value at its normalized value, Vital's own
+    rounding. The exception is issue #15's, the float32 on the other side, taken where what a set
+    holds does not show the display, that float32 does, and the scale holds it.
+  - **What changes for a caller.**
+    - An arbitrary display gives the held preset a set of it holds, which shows another display.
+      `beats_per_minute` at 216.85141355537831 gives 3.6141905784606934, shown as
+      216.8514347076416, where it gave 3.6141903400421143, which the scale does not hold.
+    - The normalized value `to_normalized` sends is the same, so Vital holds what it held. Only
+      the preset the map reports changes.
+    - A display a held preset shows gives the same preset and normalized value as before.
+  - **Sampled on arbitrary displays, which cannot be enumerated**
+    (`verification/arbitrary-displays.txt`), each through `main`'s shipped methods and this
+    branch's:
+    - 200,000 displays a continuous group, uniform over its bounds
+      (`numpy.random.default_rng(16)`), 11,000,000 over 55 groups: 2,041,885 give another preset,
+      on 31 groups. On every one `main`'s preset was not held, the new one is, and the normalized
+      value is the same. On 1,361,005 the new preset is the float32 next to `main`'s.
+    - Of 20,000 over `volume`'s range, 1,085 change with `random.Random(8)` and 1,108 with
+      `numpy.random.default_rng(8)`, the two figures issue #16 gives.
+    - The double below and above a held display, at 2,034 normalized values a group that reach
+      every exponent (seed 14), 223,740 displays: 61,284 are past a bound and refused by both
+      trees, and of the other 162,456, 7 change, all `volume`'s.
+  - **Counted where the doubles can be enumerated.** Of the 23,726,567 doubles from -80 to
+    `volume`'s display at 2 ** -43, 344,580 give another preset. `main`'s showed the display
+    exactly and was not held; the new one is held and shows a display one double away.
+  - **Counted directly against `main` on the displays held presets show**
+    (`verification/direct-count.txt`): `main`'s shipped methods and this branch's, each imported
+    from its own tree and called on every float32 normalized value, nothing reproduced.
+    - On `volume`, 1,065,353,217 values, the held preset, the display, the display's preset, the
+      normalized value a set sends and the held preset's normalized value are `main`'s on every
+      one. 15,761,472 take what a set holds and 308,386 the exception, the fifth review's counts;
+      on none does what a set holds fail to show the display.
+    - On `env_1_delay`, counted for the 12 envelope records, the display, its preset and its
+      normalized value are `main`'s on every one of the 1,065,353,217 values. Only those two
+      methods are called there: of the 48 functions and module values of `parameters.py` and
+      `float32.py`, 46 have `main`'s statements, and no other call of the count reaches the two
+      that differ.
+    - A control with the exception removed moves 99,796 values of binade -56, so the counts are
+      read from the result.
+  - **The reproduction's sweep, rerun** (`verification/sweep.txt`): over every float32 normalized
+    value of all 69 groups, each group's table is the fourth review's, and no value takes what a
+    set holds where that does not show the display. It is a reproduction's count, checked against
+    the shipped methods on 200,010 values a group with no mismatch.
+  - **An indexed scale goes through the same path.** The nearest whole number is asked of the
+    scale like any float32. On every whole number of the map's 351 indexed records the result is
+    the whole number, as on `main`: 398,563 calls counted in full, over 21 distinct scales
+    holding 371,476 whole numbers (`verification/indexed-count.txt`). On a scale wider than its
+    float32s, which the map has none of, it is the nearest whole number the scale holds: from -1
+    to 2 ** 24, the bound's display gives 16777215, where `main` gave 16777216, which no
+    normalized value in [0, 1] lands on.
+  - **`NormalizedScale.holds` answers False for a value outside what the scale's ends land on,**
+    `to_preset(0.0)` and `to_preset(1.0)`, where it raised `OverflowError` or `ValueError`.
+    - That covers an infinity and a NaN (the final review's finding 6), and a finite value too
+      large for its quotient to be a float32, such as 3.5e38 on a scale from 0 to 1 (the review
+      of patchbay-vital's PR 19, finding 1).
+    - The check is against what the ends land on, not the bounds. On a made-up scale from
+      -16777216 to 1.0000001192092896 the span rounds up, normalized 1 lands on 2, past the
+      maximum, and `holds(2.0)` stays True.
+    - Within what the ends land on, `holds` no longer tests the landing's normalized value
+      against [0, 1]: a preset the landing reaches there is reached from [0, 1], by the landing's
+      own test of its step and, for the nearest quotient, by rounding (the revision's shape.md,
+      Decision 10).
+    - A made-up record whose `to_preset` raised at infinity now returns the float32 below its
+      maximum.
+    - The scale's `to_normalized` and `to_preset` still raise a built-in on a value outside what
+      the scale can take, finite or not, and a scale whose span overflows still validates. Both
+      are left as they are, in issue #18. The finite case was found in the revision and sits
+      there.
+  - **Vital.** After a set of 200 seeded arbitrary displays on each of the 46 linear-scale
+    groups, 9,200 sets, Vital 1.6.4 holds the map's preset on every one, and `main`'s on none of
+    the 2,085 that changed (`verification/plugin-probe.txt`).
+  - **The tests' expected values come from primitives** (the final review's findings 2 and 3).
+    - `_what_a_set_holds` and the load test's expected value called the scale's `to_normalized`,
+      so a `_landing` that kept a missed step passed the property and moved the load test's
+      expected value with it.
+    - Both now work from the float32 nearest the exact quotient, the forward scale and
+      `next_float32`. The mutant fails the unit tests by name, and the load test no longer
+      follows it (`verification/mutation.txt`).
+  - **The pinned values gain a set of displays,** `tempo_displays`, in
+    `tests/data/pinned-values.txt`.
+    - `test_an_arbitrary_display_takes_what_a_set_of_it_holds` reverses
+      `test_an_arbitrary_display_keeps_the_curve_s_float32`, issue #16's characterization, on
+      purpose.
+    - Two property tests hold any display in range, on the hand-built records and the committed
+      map.
+    - Each module's reader fails by name on an empty set and on a normalized value outside
+      [0, 1]: the integration module's since the final review's finding 5, the unit module's
+      since the review of patchbay-vital's PR 19 (finding 3). The integration module reads the
+      file once in the test that read it once a record (finding 9).
+  - **Cost** (`verification/cost.txt`, an Apple M4 Pro under macOS 26.6.2): on an indexed record
+    `to_preset` costs about 15 µs a call against `main`'s 3.5, and `to_normalized` about 27 µs
+    against 15,
+    since the whole number is landed like any float32. `volume` is unchanged, about 16 and 28 µs,
+    and the 903 records at their defaults take 14.8 ms against 13.2. No fast path is added. The
+    final review's finding 8, `_landing` calling `fma32` itself rather than narrowing a value
+    that is already a float32, is declined by the owner: it changes no value.
+  - **Revised after the review of patchbay-vital's PR 19,** seven findings on `f26e6bc`; the
+    transcripts named here are in the revision's `verification/`.
+    - **Finding 1, fixed:** `holds` on a huge finite value, above. `holds` answers as it did
+      before on every committed record, at 13,397 presets around the pinned values and 798,179
+      indexed whole numbers, halves and values past each end, and no committed scale runs
+      against the normalized value (`holds-check.txt`).
+    - **The direct count stands.** `NormalizedScale.holds` is the only function whose statements
+      differ from the tree the count ran on, and `to_preset` calls it only from its exception.
+      The three binades of `volume` where the exception is taken were recounted against `main`:
+      25,165,824 values, no difference, and the same 308,386 taking the exception
+      (`direct-count.txt`).
+    - **Finding 2, fixed:** the property's helper checks the exception both ways, so a
+      `to_preset` without its exception fails the pinned-display test by name. The two
+      Hypothesis properties still pass it: a display drawn over a parameter's bounds is not one
+      a held preset shows.
+    - **Finding 3, fixed:** the unit reader, above.
+    - **Finding 4, fixed:** "the double above" a display steps toward infinity. No value the test
+      uses changes, since its displays are negative.
+    - **Findings 5 and 6, declined by the owner,** as the fast path was in PR 14's sixth review:
+      `to_normalized` landing the preset twice, and indexed records paying for a landing.
+      `cost.txt` records the timings with the machine. `holds` itself now costs 21 to 23 µs a
+      call against 12, for the two forward calls of its check.
+    - **Finding 7, not changed, and held by a test.** An indexed scale takes the exception too,
+      from 2 ** 23 up, where float32s are whole numbers; the map's widest indexed scale ends at
+      362,879. On a made-up record, an indexed scale from -2 ** 24 to 2 ** 24 under a linear
+      curve of multiply 3 and offset 2 ** 54, the held 8388610 comes back only through it.
+      Limited to linear scales, `to_preset` would give 8388612 there, which fails
+      `test_an_indexed_scale_takes_its_other_side_where_that_alone_shows_the_display` by name.
+  - **Left open.** Which held preset an arbitrary display takes, Vital's rounding as here or the
+    nearer held neighbour, and whether a set keeps a stored value, are issue #8's findings 1 and
+    3.
 - The parameter map's two inverses, issue #15,
   `agent-os/specs/2026-11-12-0937-map-inverses-land-on-held-presets/`, revised after the fourth,
   fifth and sixth reviews of PR 14,
@@ -237,7 +371,8 @@ writes the entry, in that commit
   - **`MappedParameter.to_preset`** handles a display whose curve float32 the scale does not hold.
     It takes what a set of that float32 holds, Vital's own rounding of it, where that shows the
     display. Otherwise it takes the float32 on its other side, where the scale holds it and it
-    shows the display. Otherwise it keeps the curve's float32, as before.
+    shows the display. Otherwise it kept the curve's float32, as before, until issue #16's fix
+    above.
     - At or below `volume`'s 2 ** -43, presets share a display, and a set of a display now shows
       it again exactly.
     - On 15,761,472 of `volume`'s values a set holds what it held before, now the value
@@ -247,10 +382,10 @@ writes the entry, in that commit
     - The two are tried in that order: where both show the display, the first is taken.
     - The float32 on the other side is asked of `NormalizedScale.holds`, so one past an end the
       scale does not hold is never taken.
-    - A display no preset shows exactly keeps the curve's float32, which need not be one the
+    - A display no preset shows exactly kept the curve's float32, which need not be one the
       scale holds. The sixth review found that a model storing it disagrees with what Vital holds
-      after a set; that is issue #16, filed to run before #8, which makes `to_preset` return what
-      a set of the display's float32 holds. Whether a set keeps a stored value is left to issue #8
+      after a set; that is issue #16, fixed above, which makes `to_preset` return what a set of
+      the display's float32 holds. Whether a set keeps a stored value is left to issue #8
       (finding 3).
   - **Written plainer after the sixth review, no value changed.** `to_preset` holds the rule
     itself, its first branch taking what a set of the curve's float32 holds where that is the

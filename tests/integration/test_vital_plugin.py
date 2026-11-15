@@ -14,6 +14,7 @@ import json
 import math
 import platform
 import sys
+from fractions import Fraction
 from pathlib import Path
 
 import numpy as np
@@ -23,9 +24,14 @@ from patchbay import ParameterId
 from patchbay_vital import VitalSettings, dumps, loads
 from patchbay_vital.census import build_map
 from patchbay_vital.errors import ParameterRangeError, PluginRenderError, UnknownParameterError
-from patchbay_vital.float32 import to_float32
+from patchbay_vital.float32 import round_to_float32, to_float32
 from patchbay_vital.host import DEFAULT_PATH, VitalHost, _floats
-from patchbay_vital.parameters import PRESET_ONLY_KEYS, MappedParameter, parameter_map
+from patchbay_vital.parameters import (
+    PRESET_ONLY_KEYS,
+    MappedParameter,
+    NormalizedScale,
+    parameter_map,
+)
 from patchbay_vital.state import unwrap, wrap
 
 pytestmark = pytest.mark.integration
@@ -112,18 +118,27 @@ def _held_after_a_set(host: VitalHost, record: MappedParameter, display: float) 
 
 
 def test_a_value_set_through_the_host_is_the_one_the_state_holds(host: VitalHost) -> None:
-    """Per kind, scale and curve: a displayed value set normalized lands on its preset value."""
+    """Per kind, scale and curve: a displayed value set normalized lands on its preset value.
+
+    At each bound, at a display the parameter shows, and at one 37% of the way between the
+    bounds, which no preset need show: the state holds the map's preset for it either way (issue
+    #16), and `get` shows that preset's display.
+    """
     for record in _one_of_each():
         parameter = record.parameter
         middle = record.from_normalized(0.37)
-        for display in (parameter.minimum, middle, parameter.maximum):
+        between = parameter.minimum + 0.37 * (parameter.maximum - parameter.minimum)
+        arbitrary = between if parameter.kind == "continuous" else float(round(between))
+        for display in (parameter.minimum, middle, arbitrary, parameter.maximum):
             held = _held_after_a_set(host, record, display)
             assert held == record.to_preset(display), (record.id, display)
             assert record.from_normalized(host.get(record.id)) == record.to_display(held)
 
 
 _PINNED = Path("tests") / "data" / "pinned-values.txt"
-_PINNED_SETS = ("volume_floor", "powers_of_two")
+_PINNED_SETS = ("volume_floor", "powers_of_two", "tempo_displays")
+_DISPLAY_SETS = frozenset({"tempo_displays"})
+"""The sets whose values are displays, doubles; any other set's are normalized float32s."""
 
 
 def _pinned(pytestconfig: pytest.Config) -> dict[str, tuple[float, ...]]:
@@ -131,8 +146,11 @@ def _pinned(pytestconfig: pytest.Config) -> dict[str, tuple[float, ...]]:
 
     The values `test_parameters.py` holds the map at, written once in that file and read from
     pytest's root; this module reads them with a reader of its own, since the two test directories
-    import nothing from each other. A line that is not `<set> <float32> <name>`, of a set named
-    here, fails the test reading it, naming the file and the line.
+    import nothing from each other. A line that is not `<set> <value> <name>`, of a set named
+    here, fails the test reading it, naming the file and the line: its value is a float32 in
+    `[0, 1]`, a normalized value, or in a set of displays a finite double. A set with no value
+    fails it too, by the set's name: a loop over an empty set would pass having run nothing (issue
+    #16, the final review's finding 5).
     """
     path = pytestconfig.rootpath / _PINNED
     found: dict[str, list[float]] = {name: [] for name in _PINNED_SETS}
@@ -145,10 +163,53 @@ def _pinned(pytestconfig: pytest.Config) -> dict[str, tuple[float, ...]]:
             value = float(text)
         except ValueError:
             value = math.nan
-        if name not in found or not label or to_float32(value) != value:
-            pytest.fail(f"{path.name}:{number} is not '<set> <float32> <name>': {line!r}")
+        normalized = to_float32(value) == value and 0.0 <= value <= 1.0
+        a_value = math.isfinite(value) if name in _DISPLAY_SETS else normalized
+        if name not in found or not label or not a_value:
+            pytest.fail(f"{path.name}:{number} is not '<set> <value> <name>': {line!r}")
         found[name].append(value)
+    for name, values in found.items():
+        if not values:
+            pytest.fail(f"{path.name} holds no {name} value")
     return {name: tuple(values) for name, values in found.items()}
+
+
+def _nearest_quotient(scale: NormalizedScale, preset: float) -> float:
+    """Return the float32 nearest a preset's exact quotient, `(preset - minimum) / span`.
+
+    Worked out here from `Fraction` primitives, as `tests/unit/test_parameters.py` works out its
+    own, the two test directories importing nothing from each other. It is the normalized value
+    the host is sent for a preset no normalized value lands on, so the scale's forward value there
+    is what a set of that preset holds: an expected value that does not follow the map's
+    `to_normalized`, the code it stands beside (issue #16, the final review's finding 3).
+    """
+    return round_to_float32((Fraction(preset) - Fraction(scale.minimum)) / Fraction(scale.span))
+
+
+def test_an_arbitrary_display_set_through_the_host_holds_the_map_s_preset(
+    host: VitalHost, initial: bytes, pytestconfig: pytest.Config
+) -> None:
+    """A display no held preset shows, set through the map, holds the map's preset for it.
+
+    At each pinned `tempo_displays` value of `tests/data/pinned-values.txt`, a display of
+    `beats_per_minute` whose curve float32 (`record.curve.to_preset`) is not one the scale holds.
+    Set from `initial`, Vital holds `to_preset`'s value exactly: what a set of the curve's float32
+    holds, the scale's value at that float32's nearest quotient, worked out here from primitives.
+    It is never the float32 itself, which the map gave before issue #16, so that a model storing
+    it disagreed with the state. Its display is another than the one set, and `get` shows it (the
+    `verification/plugin-probe.txt` of issue #16's spec; the first display is issue #8's finding
+    1).
+    """
+    record = parameter_map().find(ParameterId("beats_per_minute"))
+    for display in _pinned(pytestconfig)["tempo_displays"]:
+        host.load_state(initial)
+        held = _held_after_a_set(host, record, display)
+        own = record.curve.to_preset(display)
+        assert held == record.to_preset(display), display
+        assert held == record.scale.to_preset(_nearest_quotient(record.scale, own)), display
+        assert held != own, display
+        assert record.to_display(held) != display, display
+        assert record.from_normalized(host.get(record.id)) == record.to_display(held), display
 
 
 def test_at_or_below_volume_s_floor_a_set_holds_the_map_s_preset(
@@ -188,10 +249,11 @@ def test_a_held_power_of_two_set_through_the_host_is_held(
     the float32 below, and Vital held the float32 below the power.
     """
     first = parameter_map().find(ParameterId("env_1_delay"))
+    powers = _pinned(pytestconfig)["powers_of_two"]
     for name in ("env_1_delay", "env_3_hold"):
         record = parameter_map().find(ParameterId(name))
         assert (record.scale, record.curve) == (first.scale, first.curve), name
-        for normalized in _pinned(pytestconfig)["powers_of_two"]:
+        for normalized in powers:
             host.load_state(initial)
             preset = record.scale.to_preset(normalized)
             held = _held_after_a_set(host, record, record.to_display(preset))
@@ -207,7 +269,10 @@ def test_a_load_holds_volume_s_unheld_float32_as_its_neighbour_and_chorus_feedba
     For each pinned `volume_floor` value, a load of `initial` and then, with no set between them,
     of `initial` holding `volume` at the curve's own float32 for the value's display
     (`curve.to_preset`), which the scale does not hold, is held at the normalized path's value for
-    that float32; `chorus_feedback`'s off-grid initial value in the same load is held as given. The
+    that float32: the scale's value at the float32 nearest its exact quotient, worked out here from
+    primitives (`_nearest_quotient`), so the value expected is the recorded observation and does
+    not move with the map's `to_normalized`. `chorus_feedback`'s off-grid initial value in the
+    same load is held as given. The
     state is written with the package's `dumps`, which gives the plugin's own text back byte for
     byte, so it differs from text Vital wrote only in `volume`'s value. The probe saw the same
     after each of the four histories it tried before the first of those loads: a fresh instance,
@@ -232,7 +297,7 @@ def test_a_load_holds_volume_s_unheld_float32_as_its_neighbour_and_chorus_feedba
         host.load_state(initial)
         host.load_state(state.encode("utf-8"))
         floats = _floats(host.state())
-        held = volume.scale.to_preset(volume.scale.to_normalized(own))
+        held = volume.scale.to_preset(_nearest_quotient(volume.scale, own))
         assert held != own, normalized
         assert floats[volume.preset_key] == held, normalized
         assert floats[chorus.preset_key] == given, normalized

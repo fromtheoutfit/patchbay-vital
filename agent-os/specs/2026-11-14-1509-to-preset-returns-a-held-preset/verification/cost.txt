@@ -1,0 +1,233 @@
+Issue #16's spec: what a call costs, run 2026-11-15 05:28 EST on branch
+refactor/16-the-parameter-map-to_preset-returns-a-preset-the-plugin-never-holds-for-a-display-no-held-preset-shows at f533b1b0a362373613471993c86f2df8ab0ed111, the change in the working tree
+the machine before the run: arm64, Apple M4 Pro, 14 cores, macOS 26.6.2 (25G83), Python 3.12.16, load 3.23 8.97 11.73, at 2026-11-15 05:28 EST
+the trees before the run, main's and this branch's (new):
+  HEAD f533b1b0a362373613471993c86f2df8ab0ed111
+  git status --porcelain=v1 --untracked-files=all, 15 lines:
+     M src/patchbay_vital/parameters.py
+     M tests/data/pinned-values.txt
+     M tests/integration/test_vital_plugin.py
+     M tests/unit/test_parameters.py
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/plan.md
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/references.md
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/shape.md
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/standards.md
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/verification/arbitrary-displays.txt
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/verification/cost.txt
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/verification/direct-count.txt
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/verification/indexed-count.txt
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/verification/mutation.txt
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/verification/plugin-probe.txt
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/verification/sweep.txt
+  this branch's tree, the working tree: git hash-object of each file the run reads, HEAD's blob beside it:
+    50fe09b3c3b285b3d569a8b7eb2f76981c7d6164  src/patchbay_vital/__init__.py  (HEAD 50fe09b3c3b285b3d569a8b7eb2f76981c7d6164)
+    5bf2ff80237d4dde75a3fa3b5e45728daf2dbb46  src/patchbay_vital/census.py  (HEAD 5bf2ff80237d4dde75a3fa3b5e45728daf2dbb46)
+    109ae1887be396e43ce7939b7115ec9745b6c6ca  src/patchbay_vital/data/parameters.json  (HEAD 109ae1887be396e43ce7939b7115ec9745b6c6ca)
+    d8265cd5668a70b1802e3d7b1917104935e292ff  src/patchbay_vital/errors.py  (HEAD d8265cd5668a70b1802e3d7b1917104935e292ff)
+    ddf88f5cf88bc3bfd23301f0968ca3bcd65533ac  src/patchbay_vital/files.py  (HEAD ddf88f5cf88bc3bfd23301f0968ca3bcd65533ac)
+    27a1e91bd4483e2fbdebf444799b51f78617ab0e  src/patchbay_vital/float32.py  (HEAD 27a1e91bd4483e2fbdebf444799b51f78617ab0e)
+    4296bf4d4d4ef0280ae6ae4d16810a8bce8c9b75  src/patchbay_vital/format.py  (HEAD 4296bf4d4d4ef0280ae6ae4d16810a8bce8c9b75)
+    e72737ee0f4a1d68ae1d8374390c2fa9b0d02692  src/patchbay_vital/grisu2.py  (HEAD e72737ee0f4a1d68ae1d8374390c2fa9b0d02692)
+    b8f0e11938028b0f7ddb9b079cb36b421026fd9c  src/patchbay_vital/host.py  (HEAD b8f0e11938028b0f7ddb9b079cb36b421026fd9c)
+    51ac5eef0a8cf43c38d972323fb508db3a2a4456  src/patchbay_vital/parameters.py  (HEAD 25b1a378e0d633bf4deede60d3173e976059a2a7)
+    f75e2e85d570f3db4bf5ec206bf9143f1ca4922f  src/patchbay_vital/preset.py  (HEAD f75e2e85d570f3db4bf5ec206bf9143f1ca4922f)
+    e69de29bb2d1d6434b8b29ae775ad8c2e48c5391  src/patchbay_vital/py.typed  (HEAD e69de29bb2d1d6434b8b29ae775ad8c2e48c5391)
+    f3dc277612d28632cba39cf37fa7cd42cdaa4ef6  src/patchbay_vital/settings_keys.txt  (HEAD f3dc277612d28632cba39cf37fa7cd42cdaa4ef6)
+    4ea00da21a7666f2867cf8aba41593f928755b3e  src/patchbay_vital/state.py  (HEAD 4ea00da21a7666f2867cf8aba41593f928755b3e)
+  main's tree, commit f533b1b0a362373613471993c86f2df8ab0ed111, extracted with git archive: git hash-object of
+  each extracted file, the blob of main's commit beside it:
+    50fe09b3c3b285b3d569a8b7eb2f76981c7d6164  <scratchpad>/r16/main/src/patchbay_vital/__init__.py  (main 50fe09b3c3b285b3d569a8b7eb2f76981c7d6164)
+    5bf2ff80237d4dde75a3fa3b5e45728daf2dbb46  <scratchpad>/r16/main/src/patchbay_vital/census.py  (main 5bf2ff80237d4dde75a3fa3b5e45728daf2dbb46)
+    109ae1887be396e43ce7939b7115ec9745b6c6ca  <scratchpad>/r16/main/src/patchbay_vital/data/parameters.json  (main 109ae1887be396e43ce7939b7115ec9745b6c6ca)
+    d8265cd5668a70b1802e3d7b1917104935e292ff  <scratchpad>/r16/main/src/patchbay_vital/errors.py  (main d8265cd5668a70b1802e3d7b1917104935e292ff)
+    ddf88f5cf88bc3bfd23301f0968ca3bcd65533ac  <scratchpad>/r16/main/src/patchbay_vital/files.py  (main ddf88f5cf88bc3bfd23301f0968ca3bcd65533ac)
+    27a1e91bd4483e2fbdebf444799b51f78617ab0e  <scratchpad>/r16/main/src/patchbay_vital/float32.py  (main 27a1e91bd4483e2fbdebf444799b51f78617ab0e)
+    4296bf4d4d4ef0280ae6ae4d16810a8bce8c9b75  <scratchpad>/r16/main/src/patchbay_vital/format.py  (main 4296bf4d4d4ef0280ae6ae4d16810a8bce8c9b75)
+    e72737ee0f4a1d68ae1d8374390c2fa9b0d02692  <scratchpad>/r16/main/src/patchbay_vital/grisu2.py  (main e72737ee0f4a1d68ae1d8374390c2fa9b0d02692)
+    b8f0e11938028b0f7ddb9b079cb36b421026fd9c  <scratchpad>/r16/main/src/patchbay_vital/host.py  (main b8f0e11938028b0f7ddb9b079cb36b421026fd9c)
+    25b1a378e0d633bf4deede60d3173e976059a2a7  <scratchpad>/r16/main/src/patchbay_vital/parameters.py  (main 25b1a378e0d633bf4deede60d3173e976059a2a7)
+    f75e2e85d570f3db4bf5ec206bf9143f1ca4922f  <scratchpad>/r16/main/src/patchbay_vital/preset.py  (main f75e2e85d570f3db4bf5ec206bf9143f1ca4922f)
+    e69de29bb2d1d6434b8b29ae775ad8c2e48c5391  <scratchpad>/r16/main/src/patchbay_vital/py.typed  (main e69de29bb2d1d6434b8b29ae775ad8c2e48c5391)
+    f3dc277612d28632cba39cf37fa7cd42cdaa4ef6  <scratchpad>/r16/main/src/patchbay_vital/settings_keys.txt  (main f3dc277612d28632cba39cf37fa7cd42cdaa4ef6)
+    4ea00da21a7666f2867cf8aba41593f928755b3e  <scratchpad>/r16/main/src/patchbay_vital/state.py  (main 4ea00da21a7666f2867cf8aba41593f928755b3e)
+  git hash-object of each script the run runs:
+    f090e5a81d4436b35d88250c6727de332c6a4142  <scratchpad>/r16/cost.py
+    b73908ae2f6024994b2277d8e8f7091e95e42281  <scratchpad>/r16/tree.sh
+    230593df76197aadaf5603bf47d76de7a1e8dd51  <scratchpad>/r16/run_cost.sh
+
+```bash
+#!/bin/bash
+# Issue #16's spec: what a call costs, main's tree and this branch's, two passes.
+# Run from the repository root: bash run_cost.sh <scratch>
+set -u
+R=$1
+scrub() { sed -e "s#$R#<scratchpad>/r16#g" -e "s#$PWD/##g"; }
+FILES=$(git ls-files src | tr '\n' ' ')
+machine() { echo "$(uname -m), $(sysctl -n machdep.cpu.brand_string), $(sysctl -n hw.ncpu) cores, $(sw_vers -productName) $(sw_vers -productVersion) ($(sw_vers -buildVersion)), $(uv run --locked python -V), load$(sysctl -n vm.loadavg | tr -d '{}' | sed 's/ *$//'), at $(date '+%Y-%m-%d %H:%M %Z')"; }
+{
+echo "Issue #16's spec: what a call costs, run $(date '+%Y-%m-%d %H:%M %Z') on branch"
+echo "$(git branch --show-current) at $(git rev-parse HEAD), the change in the working tree"
+echo "the machine before the run: $(machine)"
+echo "the trees before the run, main's and this branch's (new):"
+bash "$R/tree.sh" "$R/main" $FILES | tee "$R/out/tree-before-cost.txt"
+echo "  git hash-object of each script the run runs:"
+for s in cost.py tree.sh run_cost.sh; do echo "    $(git hash-object "$R/$s")  <scratchpad>/r16/$s"; done
+echo
+echo '```bash'; cat "$R/run_cost.sh"; echo '```'
+echo
+echo '```python'; cat "$R/cost.py"; echo '```'
+echo
+for pass in 1 2; do
+  echo "== pass $pass"
+  uv run --locked python "$R/cost.py" "$R/main/src" main; echo "exit=$?"
+  uv run --locked python "$R/cost.py" "$PWD/src" new; echo "exit=$?"
+done
+echo
+echo "the trees after the run:"
+bash "$R/tree.sh" "$R/main" $FILES | tee "$R/out/tree-after-cost.txt"
+cmp "$R/out/tree-before-cost.txt" "$R/out/tree-after-cost.txt" && echo "cmp: the trees before and after are the same"
+echo "the machine after the run: $(machine)"
+} 2>&1 | scrub > "$R/out/cost.txt"
+```
+
+```python
+"""Issue #16's spec: what a call of the map costs, in one tree. Information, no claim rests on it.
+
+Imports `patchbay_vital` from the tree given, first on sys.path, and prints its file to show it.
+Times, the minimum of 7 repeats, each a loop over a fixed set of values after one warm-up loop:
+- `volume`'s `to_preset` and `to_normalized` on 1,000 displays, those of the normalized values
+  i / 999 for i in 0..999, through `from_normalized`;
+- the same two on 1,000 displays at or below the floor, those of the normalized values
+  i / 999 * 1.53642479121845e-17 (the floor's own normalized value, preset 2 ** -43);
+- the same two on `polyphony`, an indexed record, at 1,000 displays evenly spaced over its
+  bounds, whose whole number issue #16 sends through the set path;
+- `to_normalized` of every record of the map at its own default display, the whole map once.
+Run from the repository root: uv run --locked python <scratchpad>/r16/cost.py <src> <label>
+"""
+
+import sys
+import timeit
+
+src, label = sys.argv[1], sys.argv[2]
+sys.path.insert(0, src)
+
+from patchbay import ParameterId  # noqa: E402
+
+import patchbay_vital.parameters as p  # noqa: E402
+
+the_map = p.parameter_map()
+volume = the_map.find(ParameterId("volume"))
+polyphony = the_map.find(ParameterId("polyphony"))
+floor = 1.53642479121845e-17
+low, high = polyphony.parameter.minimum, polyphony.parameter.maximum
+sets = {
+    "volume, uniform": (volume, [volume.from_normalized(i / 999) for i in range(1000)]),
+    "volume, floor": (volume, [volume.from_normalized(i / 999 * floor) for i in range(1000)]),
+    "polyphony": (polyphony, [low + i / 999 * (high - low) for i in range(1000)]),
+}
+defaults = [(r, r.parameter.default.value) for r in the_map.parameters]
+
+
+def per_call(function, values):
+    def loop():
+        for value in values:
+            function(value)
+
+    loop()
+    return min(timeit.repeat(loop, number=1, repeat=7)) / len(values) * 1e6
+
+
+def whole_map():
+    for record, display in defaults:
+        record.to_normalized(display)
+
+
+whole_map()
+whole = min(timeit.repeat(whole_map, number=1, repeat=7)) * 1e3
+print(f"{label}: imports {p.__file__.split('/src/')[-1]} from {src.rsplit('/', 2)[-2]}/src")
+for name, (record, values) in sets.items():
+    print(
+        f"  {name:16} 1,000 displays: to_preset {per_call(record.to_preset, values):6.1f} µs,"
+        f" to_normalized {per_call(record.to_normalized, values):6.1f} µs a call"
+    )
+print(f"  the whole map, {len(defaults)} records at their defaults: to_normalized {whole:5.1f} ms")
+```
+
+== pass 1
+main: imports patchbay_vital/parameters.py from main/src
+  volume, uniform  1,000 displays: to_preset   15.9 µs, to_normalized   28.1 µs a call
+  volume, floor    1,000 displays: to_preset   18.7 µs, to_normalized   31.9 µs a call
+  polyphony        1,000 displays: to_preset    3.8 µs, to_normalized   15.8 µs a call
+  the whole map, 903 records at their defaults: to_normalized  13.5 ms
+exit=0
+new: imports patchbay_vital/parameters.py from patchbay-vital/src
+  volume, uniform  1,000 displays: to_preset   15.6 µs, to_normalized   27.6 µs a call
+  volume, floor    1,000 displays: to_preset   18.4 µs, to_normalized   31.5 µs a call
+  polyphony        1,000 displays: to_preset   15.2 µs, to_normalized   26.8 µs a call
+  the whole map, 903 records at their defaults: to_normalized  14.8 ms
+exit=0
+== pass 2
+main: imports patchbay_vital/parameters.py from main/src
+  volume, uniform  1,000 displays: to_preset   15.5 µs, to_normalized   27.4 µs a call
+  volume, floor    1,000 displays: to_preset   18.2 µs, to_normalized   31.2 µs a call
+  polyphony        1,000 displays: to_preset    3.5 µs, to_normalized   15.3 µs a call
+  the whole map, 903 records at their defaults: to_normalized  13.2 ms
+exit=0
+new: imports patchbay_vital/parameters.py from patchbay-vital/src
+  volume, uniform  1,000 displays: to_preset   15.6 µs, to_normalized   27.7 µs a call
+  volume, floor    1,000 displays: to_preset   18.2 µs, to_normalized   31.6 µs a call
+  polyphony        1,000 displays: to_preset   15.3 µs, to_normalized   26.6 µs a call
+  the whole map, 903 records at their defaults: to_normalized  14.8 ms
+exit=0
+
+the trees after the run:
+  HEAD f533b1b0a362373613471993c86f2df8ab0ed111
+  git status --porcelain=v1 --untracked-files=all, 15 lines:
+     M src/patchbay_vital/parameters.py
+     M tests/data/pinned-values.txt
+     M tests/integration/test_vital_plugin.py
+     M tests/unit/test_parameters.py
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/plan.md
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/references.md
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/shape.md
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/standards.md
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/verification/arbitrary-displays.txt
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/verification/cost.txt
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/verification/direct-count.txt
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/verification/indexed-count.txt
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/verification/mutation.txt
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/verification/plugin-probe.txt
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/verification/sweep.txt
+  this branch's tree, the working tree: git hash-object of each file the run reads, HEAD's blob beside it:
+    50fe09b3c3b285b3d569a8b7eb2f76981c7d6164  src/patchbay_vital/__init__.py  (HEAD 50fe09b3c3b285b3d569a8b7eb2f76981c7d6164)
+    5bf2ff80237d4dde75a3fa3b5e45728daf2dbb46  src/patchbay_vital/census.py  (HEAD 5bf2ff80237d4dde75a3fa3b5e45728daf2dbb46)
+    109ae1887be396e43ce7939b7115ec9745b6c6ca  src/patchbay_vital/data/parameters.json  (HEAD 109ae1887be396e43ce7939b7115ec9745b6c6ca)
+    d8265cd5668a70b1802e3d7b1917104935e292ff  src/patchbay_vital/errors.py  (HEAD d8265cd5668a70b1802e3d7b1917104935e292ff)
+    ddf88f5cf88bc3bfd23301f0968ca3bcd65533ac  src/patchbay_vital/files.py  (HEAD ddf88f5cf88bc3bfd23301f0968ca3bcd65533ac)
+    27a1e91bd4483e2fbdebf444799b51f78617ab0e  src/patchbay_vital/float32.py  (HEAD 27a1e91bd4483e2fbdebf444799b51f78617ab0e)
+    4296bf4d4d4ef0280ae6ae4d16810a8bce8c9b75  src/patchbay_vital/format.py  (HEAD 4296bf4d4d4ef0280ae6ae4d16810a8bce8c9b75)
+    e72737ee0f4a1d68ae1d8374390c2fa9b0d02692  src/patchbay_vital/grisu2.py  (HEAD e72737ee0f4a1d68ae1d8374390c2fa9b0d02692)
+    b8f0e11938028b0f7ddb9b079cb36b421026fd9c  src/patchbay_vital/host.py  (HEAD b8f0e11938028b0f7ddb9b079cb36b421026fd9c)
+    51ac5eef0a8cf43c38d972323fb508db3a2a4456  src/patchbay_vital/parameters.py  (HEAD 25b1a378e0d633bf4deede60d3173e976059a2a7)
+    f75e2e85d570f3db4bf5ec206bf9143f1ca4922f  src/patchbay_vital/preset.py  (HEAD f75e2e85d570f3db4bf5ec206bf9143f1ca4922f)
+    e69de29bb2d1d6434b8b29ae775ad8c2e48c5391  src/patchbay_vital/py.typed  (HEAD e69de29bb2d1d6434b8b29ae775ad8c2e48c5391)
+    f3dc277612d28632cba39cf37fa7cd42cdaa4ef6  src/patchbay_vital/settings_keys.txt  (HEAD f3dc277612d28632cba39cf37fa7cd42cdaa4ef6)
+    4ea00da21a7666f2867cf8aba41593f928755b3e  src/patchbay_vital/state.py  (HEAD 4ea00da21a7666f2867cf8aba41593f928755b3e)
+  main's tree, commit f533b1b0a362373613471993c86f2df8ab0ed111, extracted with git archive: git hash-object of
+  each extracted file, the blob of main's commit beside it:
+    50fe09b3c3b285b3d569a8b7eb2f76981c7d6164  <scratchpad>/r16/main/src/patchbay_vital/__init__.py  (main 50fe09b3c3b285b3d569a8b7eb2f76981c7d6164)
+    5bf2ff80237d4dde75a3fa3b5e45728daf2dbb46  <scratchpad>/r16/main/src/patchbay_vital/census.py  (main 5bf2ff80237d4dde75a3fa3b5e45728daf2dbb46)
+    109ae1887be396e43ce7939b7115ec9745b6c6ca  <scratchpad>/r16/main/src/patchbay_vital/data/parameters.json  (main 109ae1887be396e43ce7939b7115ec9745b6c6ca)
+    d8265cd5668a70b1802e3d7b1917104935e292ff  <scratchpad>/r16/main/src/patchbay_vital/errors.py  (main d8265cd5668a70b1802e3d7b1917104935e292ff)
+    ddf88f5cf88bc3bfd23301f0968ca3bcd65533ac  <scratchpad>/r16/main/src/patchbay_vital/files.py  (main ddf88f5cf88bc3bfd23301f0968ca3bcd65533ac)
+    27a1e91bd4483e2fbdebf444799b51f78617ab0e  <scratchpad>/r16/main/src/patchbay_vital/float32.py  (main 27a1e91bd4483e2fbdebf444799b51f78617ab0e)
+    4296bf4d4d4ef0280ae6ae4d16810a8bce8c9b75  <scratchpad>/r16/main/src/patchbay_vital/format.py  (main 4296bf4d4d4ef0280ae6ae4d16810a8bce8c9b75)
+    e72737ee0f4a1d68ae1d8374390c2fa9b0d02692  <scratchpad>/r16/main/src/patchbay_vital/grisu2.py  (main e72737ee0f4a1d68ae1d8374390c2fa9b0d02692)
+    b8f0e11938028b0f7ddb9b079cb36b421026fd9c  <scratchpad>/r16/main/src/patchbay_vital/host.py  (main b8f0e11938028b0f7ddb9b079cb36b421026fd9c)
+    25b1a378e0d633bf4deede60d3173e976059a2a7  <scratchpad>/r16/main/src/patchbay_vital/parameters.py  (main 25b1a378e0d633bf4deede60d3173e976059a2a7)
+    f75e2e85d570f3db4bf5ec206bf9143f1ca4922f  <scratchpad>/r16/main/src/patchbay_vital/preset.py  (main f75e2e85d570f3db4bf5ec206bf9143f1ca4922f)
+    e69de29bb2d1d6434b8b29ae775ad8c2e48c5391  <scratchpad>/r16/main/src/patchbay_vital/py.typed  (main e69de29bb2d1d6434b8b29ae775ad8c2e48c5391)
+    f3dc277612d28632cba39cf37fa7cd42cdaa4ef6  <scratchpad>/r16/main/src/patchbay_vital/settings_keys.txt  (main f3dc277612d28632cba39cf37fa7cd42cdaa4ef6)
+    4ea00da21a7666f2867cf8aba41593f928755b3e  <scratchpad>/r16/main/src/patchbay_vital/state.py  (main 4ea00da21a7666f2867cf8aba41593f928755b3e)
+cmp: the trees before and after are the same
+the machine after the run: arm64, Apple M4 Pro, 14 cores, macOS 26.6.2 (25G83), Python 3.12.16, load 3.05 8.84 11.67, at 2026-11-15 05:28 EST

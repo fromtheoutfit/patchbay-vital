@@ -1,0 +1,467 @@
+Issue #16's spec: every whole number of every indexed record, main's methods against this branch's, run 2026-11-15 05:15 EST on branch
+refactor/16-the-parameter-map-to_preset-returns-a-preset-the-plugin-never-holds-for-a-display-no-held-preset-shows, under caffeinate -i
+the machine before the run: arm64, Apple M4 Pro, 14 cores, macOS 26.6.2 (25G83), Python 3.12.16, load 2.19 7.53 12.96, at 2026-11-15 05:15 EST
+the trees before the run:
+  HEAD f533b1b0a362373613471993c86f2df8ab0ed111
+  git status --porcelain=v1 --untracked-files=all, 15 lines:
+     M src/patchbay_vital/parameters.py
+     M tests/data/pinned-values.txt
+     M tests/integration/test_vital_plugin.py
+     M tests/unit/test_parameters.py
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/plan.md
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/references.md
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/shape.md
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/standards.md
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/verification/arbitrary-displays.txt
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/verification/cost.txt
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/verification/direct-count.txt
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/verification/indexed-count.txt
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/verification/mutation.txt
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/verification/plugin-probe.txt
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/verification/sweep.txt
+  this branch's tree, the working tree: git hash-object of each file the run reads, HEAD's blob beside it:
+    50fe09b3c3b285b3d569a8b7eb2f76981c7d6164  src/patchbay_vital/__init__.py  (HEAD 50fe09b3c3b285b3d569a8b7eb2f76981c7d6164)
+    5bf2ff80237d4dde75a3fa3b5e45728daf2dbb46  src/patchbay_vital/census.py  (HEAD 5bf2ff80237d4dde75a3fa3b5e45728daf2dbb46)
+    109ae1887be396e43ce7939b7115ec9745b6c6ca  src/patchbay_vital/data/parameters.json  (HEAD 109ae1887be396e43ce7939b7115ec9745b6c6ca)
+    d8265cd5668a70b1802e3d7b1917104935e292ff  src/patchbay_vital/errors.py  (HEAD d8265cd5668a70b1802e3d7b1917104935e292ff)
+    ddf88f5cf88bc3bfd23301f0968ca3bcd65533ac  src/patchbay_vital/files.py  (HEAD ddf88f5cf88bc3bfd23301f0968ca3bcd65533ac)
+    27a1e91bd4483e2fbdebf444799b51f78617ab0e  src/patchbay_vital/float32.py  (HEAD 27a1e91bd4483e2fbdebf444799b51f78617ab0e)
+    4296bf4d4d4ef0280ae6ae4d16810a8bce8c9b75  src/patchbay_vital/format.py  (HEAD 4296bf4d4d4ef0280ae6ae4d16810a8bce8c9b75)
+    e72737ee0f4a1d68ae1d8374390c2fa9b0d02692  src/patchbay_vital/grisu2.py  (HEAD e72737ee0f4a1d68ae1d8374390c2fa9b0d02692)
+    b8f0e11938028b0f7ddb9b079cb36b421026fd9c  src/patchbay_vital/host.py  (HEAD b8f0e11938028b0f7ddb9b079cb36b421026fd9c)
+    51ac5eef0a8cf43c38d972323fb508db3a2a4456  src/patchbay_vital/parameters.py  (HEAD 25b1a378e0d633bf4deede60d3173e976059a2a7)
+    f75e2e85d570f3db4bf5ec206bf9143f1ca4922f  src/patchbay_vital/preset.py  (HEAD f75e2e85d570f3db4bf5ec206bf9143f1ca4922f)
+    e69de29bb2d1d6434b8b29ae775ad8c2e48c5391  src/patchbay_vital/py.typed  (HEAD e69de29bb2d1d6434b8b29ae775ad8c2e48c5391)
+    f3dc277612d28632cba39cf37fa7cd42cdaa4ef6  src/patchbay_vital/settings_keys.txt  (HEAD f3dc277612d28632cba39cf37fa7cd42cdaa4ef6)
+    4ea00da21a7666f2867cf8aba41593f928755b3e  src/patchbay_vital/state.py  (HEAD 4ea00da21a7666f2867cf8aba41593f928755b3e)
+  main's tree, commit f533b1b0a362373613471993c86f2df8ab0ed111, extracted with git archive: git hash-object of
+  each extracted file, the blob of main's commit beside it:
+    50fe09b3c3b285b3d569a8b7eb2f76981c7d6164  <scratchpad>/r16/main/src/patchbay_vital/__init__.py  (main 50fe09b3c3b285b3d569a8b7eb2f76981c7d6164)
+    5bf2ff80237d4dde75a3fa3b5e45728daf2dbb46  <scratchpad>/r16/main/src/patchbay_vital/census.py  (main 5bf2ff80237d4dde75a3fa3b5e45728daf2dbb46)
+    109ae1887be396e43ce7939b7115ec9745b6c6ca  <scratchpad>/r16/main/src/patchbay_vital/data/parameters.json  (main 109ae1887be396e43ce7939b7115ec9745b6c6ca)
+    d8265cd5668a70b1802e3d7b1917104935e292ff  <scratchpad>/r16/main/src/patchbay_vital/errors.py  (main d8265cd5668a70b1802e3d7b1917104935e292ff)
+    ddf88f5cf88bc3bfd23301f0968ca3bcd65533ac  <scratchpad>/r16/main/src/patchbay_vital/files.py  (main ddf88f5cf88bc3bfd23301f0968ca3bcd65533ac)
+    27a1e91bd4483e2fbdebf444799b51f78617ab0e  <scratchpad>/r16/main/src/patchbay_vital/float32.py  (main 27a1e91bd4483e2fbdebf444799b51f78617ab0e)
+    4296bf4d4d4ef0280ae6ae4d16810a8bce8c9b75  <scratchpad>/r16/main/src/patchbay_vital/format.py  (main 4296bf4d4d4ef0280ae6ae4d16810a8bce8c9b75)
+    e72737ee0f4a1d68ae1d8374390c2fa9b0d02692  <scratchpad>/r16/main/src/patchbay_vital/grisu2.py  (main e72737ee0f4a1d68ae1d8374390c2fa9b0d02692)
+    b8f0e11938028b0f7ddb9b079cb36b421026fd9c  <scratchpad>/r16/main/src/patchbay_vital/host.py  (main b8f0e11938028b0f7ddb9b079cb36b421026fd9c)
+    25b1a378e0d633bf4deede60d3173e976059a2a7  <scratchpad>/r16/main/src/patchbay_vital/parameters.py  (main 25b1a378e0d633bf4deede60d3173e976059a2a7)
+    f75e2e85d570f3db4bf5ec206bf9143f1ca4922f  <scratchpad>/r16/main/src/patchbay_vital/preset.py  (main f75e2e85d570f3db4bf5ec206bf9143f1ca4922f)
+    e69de29bb2d1d6434b8b29ae775ad8c2e48c5391  <scratchpad>/r16/main/src/patchbay_vital/py.typed  (main e69de29bb2d1d6434b8b29ae775ad8c2e48c5391)
+    f3dc277612d28632cba39cf37fa7cd42cdaa4ef6  <scratchpad>/r16/main/src/patchbay_vital/settings_keys.txt  (main f3dc277612d28632cba39cf37fa7cd42cdaa4ef6)
+    4ea00da21a7666f2867cf8aba41593f928755b3e  <scratchpad>/r16/main/src/patchbay_vital/state.py  (main 4ea00da21a7666f2867cf8aba41593f928755b3e)
+  git hash-object of each script the run runs:
+    6cc1b347f11cf8c102767319cefc49f503e2f1b2  <scratchpad>/r16/indexed_count.py
+    842636461d7627ac773f6f94377de057160ed509  <scratchpad>/r16/pools.py
+    b73908ae2f6024994b2277d8e8f7091e95e42281  <scratchpad>/r16/tree.sh
+    ebdb4081d9c41e6dce6ef54bb6b256f141e97aa7  <scratchpad>/r16/run_short.sh
+
+== the scripts, run from the repository root as: bash <scratchpad>/r16/run_short.sh <scratchpad>/r16 indexed
+```bash
+#!/bin/bash
+# Issue #16's spec: one of the short transcripts, main's shipped methods against this branch's.
+# Run from the repository root: bash run_short.sh <scratch> indexed|arbitrary
+# The transcript is written outside the tree, to <scratch>/out, and copied in afterwards.
+set -u
+R=$1; stage=$2
+FILES=$(git ls-files src | tr '\n' ' ')
+scrub() { sed -e "s#$R#<scratchpad>/r16#g" -e "s#$PWD/##g"; }
+machine() { echo "$(uname -m), $(sysctl -n machdep.cpu.brand_string), $(sysctl -n hw.ncpu) cores, $(sw_vers -productName) $(sw_vers -productVersion) ($(sw_vers -buildVersion)), $(uv run --locked python -V), load$(sysctl -n vm.loadavg | tr -d '{}' | sed 's/ *$//'), at $(date '+%Y-%m-%d %H:%M %Z')"; }
+case $stage in
+  indexed) title="every whole number of every indexed record, main's methods against this branch's"; script=indexed_count.py;;
+  arbitrary) title="arbitrary displays, main's methods against this branch's"; script=arbitrary_displays.py;;
+  *) echo "usage: run_short.sh <scratch> indexed|arbitrary" >&2; exit 2;;
+esac
+{
+echo "Issue #16's spec: $title, run $(date '+%Y-%m-%d %H:%M %Z') on branch"
+echo "$(git branch --show-current), under caffeinate -i"
+echo "the machine before the run: $(machine)"
+echo "the trees before the run:"
+bash "$R/tree.sh" "$R/main" $FILES | tee "$R/out/tree-before-$stage.txt"
+echo "  git hash-object of each script the run runs:"
+for s in $script pools.py tree.sh run_short.sh; do echo "    $(git hash-object "$R/$s")  <scratchpad>/r16/$s"; done
+echo
+echo "== the scripts, run from the repository root as: bash <scratchpad>/r16/run_short.sh <scratchpad>/r16 $stage"
+echo '```bash'; cat "$R/run_short.sh"; echo '```'
+echo '```python'; cat "$R/$script"; echo '```'
+echo '```python'; cat "$R/pools.py"; echo '```'
+echo '```bash'; cat "$R/tree.sh"; echo '```'
+echo
+echo "== its output"
+caffeinate -i uv run --locked python "$R/$script" --main "$R/main/src" --branch "$PWD/src"; echo "exit=$?"
+echo
+echo "the trees after the run:"
+bash "$R/tree.sh" "$R/main" $FILES | tee "$R/out/tree-after-$stage.txt"
+cmp "$R/out/tree-before-$stage.txt" "$R/out/tree-after-$stage.txt" && echo "cmp: the trees before and after are the same"
+echo "the machine after the run: $(machine)"
+} 2>&1 | scrub > "$R/out/$stage.txt"
+```
+```python
+"""Issue #16's spec: every whole number of every indexed record, `main`'s methods against this branch's.
+
+A count, not a sample: an indexed scale holds whole numbers, few enough to call every one. Issue
+#16 sends `MappedParameter.to_preset`'s whole number through the set path, as a linear preset
+goes, where `main` returned it without asking the scale. This shows the change moves no value of
+the committed map. Two pools each import `patchbay_vital` from one tree (`pools.py`) and call
+that tree's shipped scalar methods, as a caller would, on every indexed record of the map:
+
+  for every whole number k from the scale's minimum to its maximum
+    D  = record.to_display(k)          the display of k
+    TP = record.to_preset(D)           the display's preset
+    TN = record.to_normalized(D)       the normalized value a set of the display sends
+    FN = record.from_normalized(TN)    the display `get` shows after that set
+  for every half k + 0.5 below the maximum
+    H  = record.to_display(k + 0.5)    a display between two whole numbers
+    TP, TN of H, or `refused` where the record is a choice or a boolean, which takes a whole
+    index and nothing else (ParameterRangeError)
+
+This process compares the two trees' values on every k and counts, by scale and curve group:
+
+  D!=, TP!=, TN!=, FN!=   a value differs from `main`'s
+  not k                    this branch's TP is not k itself
+  not back                 this branch's FN is not D: the display does not come back
+  halves, refused, H!=     the halves called, those both trees refuse, and those where a value or
+                           a refusal differs from `main`'s
+
+It also compares, record by record, what the two trees' maps say of each indexed record: its
+kind, its group key, its choices and its choice labels.
+
+Run from the repository root:
+  uv run --locked python indexed_count.py --main <main's src> --branch <this branch's src>
+"""
+
+import argparse
+import sys
+import time
+from collections import defaultdict
+
+import numpy as np
+
+import pools
+
+CHUNK = 1 << 14
+COLUMNS = ("records", "calls", "D!=", "TP!=", "TN!=", "FN!=", "not k", "not back", "halves",
+           "refused", "H!=")
+
+
+def listing(_):
+    """Return what this worker's map says of each indexed record."""
+    out = []
+    for r in pools.TREE["parameters"].parameter_map().parameters:
+        if r.scale.kind != "indexed":
+            continue
+        p, s, c = r.parameter, r.scale, r.curve
+        key = (p.kind, p.minimum, p.maximum, s.kind, s.minimum, s.maximum, c.kind, c.multiply,
+               c.offset)
+        out.append((r.id, key, p.choices, r.choice_labels))
+    return out
+
+
+def work(job):
+    """Call one tree's methods on the whole numbers lo to hi - 1 of a record, and the halves."""
+    name, lo, hi = job
+    rec = pools.record(name)
+    refused = pools.TREE["errors"].ParameterRangeError
+    top = rec.scale.maximum
+    whole = np.empty((5, hi - lo))  # k, D, TP, TN, FN
+    half = np.full((3, hi - lo), np.nan)
+    status = np.zeros(hi - lo, np.int8)  # 0 no half (the maximum), 1 values, 2 refused
+    for i, k in enumerate(range(lo, hi)):
+        d = rec.to_display(float(k))
+        tn = rec.to_normalized(d)
+        whole[:, i] = (k, d, rec.to_preset(d), tn, rec.from_normalized(tn))
+        if k < top:
+            h = rec.to_display(k + 0.5)
+            half[0, i] = h
+            try:
+                half[1:, i] = (rec.to_preset(h), rec.to_normalized(h))
+                status[i] = 1
+            except refused:
+                status[i] = 2
+    return whole, half, status
+
+
+def differs(a, b):
+    """Say where two arrays differ, a NaN in both being no difference."""
+    return (a != b) & ~(np.isnan(a) & np.isnan(b))
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--main", required=True)
+    parser.add_argument("--branch", required=True)
+    parser.add_argument("--main-processes", type=int, default=6)
+    parser.add_argument("--branch-processes", type=int, default=6)
+    args = parser.parse_args()
+    started = time.time()
+    open_pools = pools.open_pools(
+        {"main": args.main, "branch": args.branch},
+        {"main": args.main_processes, "branch": args.branch_processes},
+    )
+    lists = {side: pool.apply(listing, (None,)) for side, pool in open_pools.items()}
+    same = lists["main"] == lists["branch"]
+    records = lists["branch"]
+    print(f"== the two trees' maps list {len(lists['main'])} and {len(records)} indexed records;"
+          f" every one has the same id, kind, group key, choices and choice labels in both: {same}")
+    if not same:
+        print("== stopped: the maps differ")
+        return 1
+    groups = defaultdict(list)
+    for name, key, _, _ in records:
+        groups[key].append(name)
+    scales = {(key[4], key[5]) for key in groups}
+    print(f"== {len(records)} indexed records in {len(groups)} scale and curve groups, on"
+          f" {len(scales)} distinct scales")
+    jobs = []
+    for name, key, _, _ in records:
+        lo, hi = int(key[4]), int(key[5]) + 1
+        for start in range(lo, hi, CHUNK):
+            job = (name, start, min(hi, start + CHUNK))
+            jobs.append((key, open_pools["main"].apply_async(work, (job,)),
+                         open_pools["branch"].apply_async(work, (job,))))
+    rows = {key: np.zeros(len(COLUMNS), dtype=np.int64) for key in groups}
+    for key, names in groups.items():
+        rows[key][0] = len(names)
+    first = None
+    for key, theirs_job, ours_job in jobs:
+        theirs, their_half, their_status = theirs_job.get()
+        ours, our_half, our_status = ours_job.get()
+        row = rows[key]
+        row[1] += ours.shape[1]
+        for column in range(4):
+            row[2 + column] += int(np.count_nonzero(differs(ours[1 + column], theirs[1 + column])))
+        row[6] += int(np.count_nonzero(ours[2] != ours[0]))  # TP is not k
+        row[7] += int(np.count_nonzero(ours[4] != ours[1]))  # FN is not D
+        row[8] += int(np.count_nonzero(our_status))
+        row[9] += int(np.count_nonzero((our_status == 2) & (their_status == 2)))  # noqa: PLR2004
+        half_differs = (our_status != their_status) | differs(our_half, their_half).any(axis=0)
+        row[10] += int(np.count_nonzero(half_differs))
+        if first is None and (differs(ours, theirs).any() or half_differs.any()):
+            first = (key, ours, theirs)
+    print(f"{'group, by its first record':>34} {'kind':>10} {'curve':>12} {'scale':>16} "
+          + " ".join(f"{c:>8}" for c in COLUMNS))
+    total = np.zeros(len(COLUMNS), dtype=np.int64)
+    for key, names in groups.items():
+        total += rows[key]
+        scale = f"{key[4]:g}..{key[5]:g}"
+        print(f"{names[0]:>34} {key[0]:>10} {key[6]:>12} {scale:>16} "
+              + " ".join(f"{int(v):>8}" for v in rows[key]))
+    print(f"{'total':>34} {'':>10} {'':>12} {'':>16} " + " ".join(f"{int(v):>8}" for v in total))
+    on_scales = sum(int(hi - lo) + 1 for lo, hi in scales)
+    print(f"== {int(total[1]):,} whole numbers called, one call for each of a record's, over"
+          f" {int(total[0])} records.")
+    print(f"   The {len(scales)} distinct scales hold {on_scales:,} whole numbers between their ends.")
+    print("   The two totals differ because a scale that several records share is called once for"
+          " each of them:")
+    by_scale = defaultdict(int)
+    for key, names in groups.items():
+        by_scale[(key[4], key[5])] += len(names)
+    for (lo, hi), count in sorted(by_scale.items(), key=lambda item: -(item[0][1] - item[0][0])):
+        size = int(hi - lo) + 1
+        print(f"     scale {lo:g}..{hi:g}: {size:,} whole numbers, {count} records,"
+              f" {size * count:,} calls")
+    moved = int(total[2:6].sum() + total[10])
+    print(f"== values that differ from main's, of the whole numbers and the halves: {moved}")
+    print(f"   this branch's to_preset is not the whole number itself on {int(total[6])}; its"
+          f" display does not come back through the normalized path on {int(total[7])}")
+    print(f"  {time.time() - started:.0f} s")
+    for pool in open_pools.values():
+        pool.close()
+    if moved or total[6] or total[7]:
+        print("== stopped: a value differs; the first group:", first[0] if first else None)
+        return 1
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
+```
+```python
+"""Issue #16's spec: two pools of processes, each importing `patchbay_vital` from one tree.
+
+Nothing is reproduced. A worker puts one tree's `src` first on `sys.path` before its first import
+of the package, so every method it calls is that tree's shipped one: `main`'s, an extract of its
+commit made with `git archive`, or this branch's, the working tree. `open_pools` prints the files
+each pool imported and stops unless they are under the tree asked for.
+"""
+
+import multiprocessing
+import sys
+
+TREE = {}
+
+
+def use(src):
+    """A worker's initializer: import `patchbay_vital` from one tree, before anything else does."""
+    sys.path.insert(0, src)
+    import patchbay  # noqa: PLC0415
+    import patchbay_vital.errors  # noqa: PLC0415
+    import patchbay_vital.float32  # noqa: PLC0415
+    import patchbay_vital.parameters  # noqa: PLC0415
+
+    TREE["parameters"] = patchbay_vital.parameters
+    TREE["float32"] = patchbay_vital.float32
+    TREE["errors"] = patchbay_vital.errors
+    TREE["id"] = patchbay.ParameterId
+
+
+def where():
+    """Return the files this worker's tree was imported from."""
+    return TREE["parameters"].__file__, TREE["float32"].__file__
+
+
+def record(name):
+    """Return this worker's tree's record for an id."""
+    return TREE["parameters"].parameter_map().find(TREE["id"](name))
+
+
+def open_pools(sources, sizes):
+    """Open one pool a tree, `sources` and `sizes` keyed by the tree's name; print what each imports."""
+    context = multiprocessing.get_context("spawn")
+    pools = {
+        side: context.Pool(sizes[side], initializer=use, initargs=(sources[side],)) for side in sources
+    }
+    for side, pool in pools.items():
+        files = pool.apply(where)
+        print(f"== the {side} pool, {sizes[side]} processes, imports {files[0]}")
+        print(f"   and {files[1]}")
+        if not all(f.startswith(sources[side]) for f in files):
+            print("   NOT the tree asked for: stopping")
+            for other in pools.values():
+                other.terminate()
+            raise SystemExit(2)
+    return pools
+```
+```bash
+#!/bin/bash
+# Print the trees a run reads: HEAD, git status in full, and the blob of each file read in each tree.
+# usage: tree.sh <main's extract> <file>...   (run from the repository root)
+# HEAD is main's commit, f533b1b: this branch's change is in the working tree, uncommitted.
+main=$1; shift
+echo "  HEAD $(git rev-parse HEAD)"
+echo "  git status --porcelain=v1 --untracked-files=all, $(git status --porcelain=v1 --untracked-files=all | wc -l | tr -d ' ') lines:"
+git status --porcelain=v1 --untracked-files=all | sed 's/^/    /'
+echo "  this branch's tree, the working tree: git hash-object of each file the run reads, HEAD's blob beside it:"
+for f in "$@"; do
+  head_blob=$(git rev-parse --verify --quiet "HEAD:$f" || echo "not in HEAD")
+  echo "    $(git hash-object "$f")  $f  (HEAD $head_blob)"
+done
+echo "  main's tree, commit $(git rev-parse f533b1b), extracted with git archive: git hash-object of"
+echo "  each extracted file, the blob of main's commit beside it:"
+for f in "$@"; do
+  echo "    $(git hash-object "$main/$f")  <scratchpad>/r16/main/$f  (main $(git rev-parse "f533b1b:$f"))"
+done
+```
+
+== its output
+== the main pool, 6 processes, imports <scratchpad>/r16/main/src/patchbay_vital/parameters.py
+   and <scratchpad>/r16/main/src/patchbay_vital/float32.py
+== the branch pool, 6 processes, imports src/patchbay_vital/parameters.py
+   and src/patchbay_vital/float32.py
+== the two trees' maps list 351 and 351 indexed records; every one has the same id, kind, group key, choices and choice labels in both: True
+== 351 indexed records in 23 scale and curve groups, on 21 distinct scales
+        group, by its first record       kind        curve            scale  records    calls      D!=     TP!=     TN!=     FN!=    not k not back   halves  refused      H!=
+                            bypass    boolean       linear             0..1      243      486        0        0        0        0        0        0      243      243        0
+                       chorus_sync     choice       linear             0..3       11       44        0        0        0        0        0        0       33       33        0
+                      chorus_tempo     choice       linear            0..10        3       33        0        0        0        0        0        0       30       30        0
+                     chorus_voices continuous       linear             1..4        1        4        0        0        0        0        0        0        3        0        0
+                   delay_aux_tempo     choice       linear            4..12        2       18        0        0        0        0        0        0       16       16        0
+           distortion_filter_order     choice       linear             0..2        5       15        0        0        0        0        0        0       10       10        0
+                   distortion_type     choice       linear             0..5        1        6        0        0        0        0        0        0        5        5        0
+                effect_chain_order continuous       linear        0..362879        1   362880        0        0        0        0        0        0   362879        0        0
+                      eq_band_mode     choice       linear             0..1        5       10        0        0        0        0        0        0        5        5        0
+                    filter_1_model     choice       linear             0..7        3       24        0        0        0        0        0        0       21       21        0
+                    filter_1_style     choice       linear             0..8        3       27        0        0        0        0        0        0       24       24        0
+          lfo_1_keytrack_transpose continuous       linear          -60..36       12     1164        0        0        0        0        0        0     1152        0        0
+                        lfo_1_sync     choice       linear             0..4       13       65        0        0        0        0        0        0       52       52        0
+                   lfo_1_sync_type     choice       linear             0..6        8       56        0        0        0        0        0        0       48       48        0
+                       lfo_1_tempo     choice       linear            0..12       18      234        0        0        0        0        0        0      216      216        0
+                 osc_1_destination     choice       linear            0..14        4       60        0        0        0        0        0        0       56       56        0
+         osc_1_spectral_morph_type     choice       linear            0..16        3       51        0        0        0        0        0        0       48       48        0
+                   osc_1_transpose continuous       linear          -48..48        5      485        0        0        0        0        0        0      480        0        0
+          osc_1_transpose_quantize continuous       linear          0..8191        4    32768        0        0        0        0        0        0    32764        0        0
+               osc_1_unison_voices continuous       linear            1..16        3       48        0        0        0        0        0        0       45        0        0
+                      oversampling continuous  exponential             0..3        1        4        0        0        0        0        0        0        3        0        0
+                  pitch_bend_range continuous       linear            0..48        1       49        0        0        0        0        0        0       48        0        0
+                         polyphony continuous       linear            1..32        1       32        0        0        0        0        0        0       31        0        0
+                             total                                               351   398563        0        0        0        0        0        0   398212      807        0
+== 398,563 whole numbers called, one call for each of a record's, over 351 records.
+   The 21 distinct scales hold 371,476 whole numbers between their ends.
+   The two totals differ because a scale that several records share is called once for each of them:
+     scale 0..362879: 362,880 whole numbers, 1 records, 362,880 calls
+     scale 0..8191: 8,192 whole numbers, 4 records, 32,768 calls
+     scale -60..36: 97 whole numbers, 12 records, 1,164 calls
+     scale -48..48: 97 whole numbers, 5 records, 485 calls
+     scale 0..48: 49 whole numbers, 1 records, 49 calls
+     scale 1..32: 32 whole numbers, 1 records, 32 calls
+     scale 0..16: 17 whole numbers, 3 records, 51 calls
+     scale 1..16: 16 whole numbers, 3 records, 48 calls
+     scale 0..14: 15 whole numbers, 4 records, 60 calls
+     scale 0..12: 13 whole numbers, 18 records, 234 calls
+     scale 0..10: 11 whole numbers, 3 records, 33 calls
+     scale 4..12: 9 whole numbers, 2 records, 18 calls
+     scale 0..8: 9 whole numbers, 3 records, 27 calls
+     scale 0..7: 8 whole numbers, 3 records, 24 calls
+     scale 0..6: 7 whole numbers, 8 records, 56 calls
+     scale 0..5: 6 whole numbers, 1 records, 6 calls
+     scale 0..4: 5 whole numbers, 13 records, 65 calls
+     scale 0..3: 4 whole numbers, 12 records, 48 calls
+     scale 1..4: 4 whole numbers, 1 records, 4 calls
+     scale 0..2: 3 whole numbers, 5 records, 15 calls
+     scale 0..1: 2 whole numbers, 248 records, 496 calls
+== values that differ from main's, of the whole numbers and the halves: 0
+   this branch's to_preset is not the whole number itself on 0; its display does not come back through the normalized path on 0
+  7 s
+exit=0
+
+the trees after the run:
+  HEAD f533b1b0a362373613471993c86f2df8ab0ed111
+  git status --porcelain=v1 --untracked-files=all, 15 lines:
+     M src/patchbay_vital/parameters.py
+     M tests/data/pinned-values.txt
+     M tests/integration/test_vital_plugin.py
+     M tests/unit/test_parameters.py
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/plan.md
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/references.md
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/shape.md
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/standards.md
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/verification/arbitrary-displays.txt
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/verification/cost.txt
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/verification/direct-count.txt
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/verification/indexed-count.txt
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/verification/mutation.txt
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/verification/plugin-probe.txt
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/verification/sweep.txt
+  this branch's tree, the working tree: git hash-object of each file the run reads, HEAD's blob beside it:
+    50fe09b3c3b285b3d569a8b7eb2f76981c7d6164  src/patchbay_vital/__init__.py  (HEAD 50fe09b3c3b285b3d569a8b7eb2f76981c7d6164)
+    5bf2ff80237d4dde75a3fa3b5e45728daf2dbb46  src/patchbay_vital/census.py  (HEAD 5bf2ff80237d4dde75a3fa3b5e45728daf2dbb46)
+    109ae1887be396e43ce7939b7115ec9745b6c6ca  src/patchbay_vital/data/parameters.json  (HEAD 109ae1887be396e43ce7939b7115ec9745b6c6ca)
+    d8265cd5668a70b1802e3d7b1917104935e292ff  src/patchbay_vital/errors.py  (HEAD d8265cd5668a70b1802e3d7b1917104935e292ff)
+    ddf88f5cf88bc3bfd23301f0968ca3bcd65533ac  src/patchbay_vital/files.py  (HEAD ddf88f5cf88bc3bfd23301f0968ca3bcd65533ac)
+    27a1e91bd4483e2fbdebf444799b51f78617ab0e  src/patchbay_vital/float32.py  (HEAD 27a1e91bd4483e2fbdebf444799b51f78617ab0e)
+    4296bf4d4d4ef0280ae6ae4d16810a8bce8c9b75  src/patchbay_vital/format.py  (HEAD 4296bf4d4d4ef0280ae6ae4d16810a8bce8c9b75)
+    e72737ee0f4a1d68ae1d8374390c2fa9b0d02692  src/patchbay_vital/grisu2.py  (HEAD e72737ee0f4a1d68ae1d8374390c2fa9b0d02692)
+    b8f0e11938028b0f7ddb9b079cb36b421026fd9c  src/patchbay_vital/host.py  (HEAD b8f0e11938028b0f7ddb9b079cb36b421026fd9c)
+    51ac5eef0a8cf43c38d972323fb508db3a2a4456  src/patchbay_vital/parameters.py  (HEAD 25b1a378e0d633bf4deede60d3173e976059a2a7)
+    f75e2e85d570f3db4bf5ec206bf9143f1ca4922f  src/patchbay_vital/preset.py  (HEAD f75e2e85d570f3db4bf5ec206bf9143f1ca4922f)
+    e69de29bb2d1d6434b8b29ae775ad8c2e48c5391  src/patchbay_vital/py.typed  (HEAD e69de29bb2d1d6434b8b29ae775ad8c2e48c5391)
+    f3dc277612d28632cba39cf37fa7cd42cdaa4ef6  src/patchbay_vital/settings_keys.txt  (HEAD f3dc277612d28632cba39cf37fa7cd42cdaa4ef6)
+    4ea00da21a7666f2867cf8aba41593f928755b3e  src/patchbay_vital/state.py  (HEAD 4ea00da21a7666f2867cf8aba41593f928755b3e)
+  main's tree, commit f533b1b0a362373613471993c86f2df8ab0ed111, extracted with git archive: git hash-object of
+  each extracted file, the blob of main's commit beside it:
+    50fe09b3c3b285b3d569a8b7eb2f76981c7d6164  <scratchpad>/r16/main/src/patchbay_vital/__init__.py  (main 50fe09b3c3b285b3d569a8b7eb2f76981c7d6164)
+    5bf2ff80237d4dde75a3fa3b5e45728daf2dbb46  <scratchpad>/r16/main/src/patchbay_vital/census.py  (main 5bf2ff80237d4dde75a3fa3b5e45728daf2dbb46)
+    109ae1887be396e43ce7939b7115ec9745b6c6ca  <scratchpad>/r16/main/src/patchbay_vital/data/parameters.json  (main 109ae1887be396e43ce7939b7115ec9745b6c6ca)
+    d8265cd5668a70b1802e3d7b1917104935e292ff  <scratchpad>/r16/main/src/patchbay_vital/errors.py  (main d8265cd5668a70b1802e3d7b1917104935e292ff)
+    ddf88f5cf88bc3bfd23301f0968ca3bcd65533ac  <scratchpad>/r16/main/src/patchbay_vital/files.py  (main ddf88f5cf88bc3bfd23301f0968ca3bcd65533ac)
+    27a1e91bd4483e2fbdebf444799b51f78617ab0e  <scratchpad>/r16/main/src/patchbay_vital/float32.py  (main 27a1e91bd4483e2fbdebf444799b51f78617ab0e)
+    4296bf4d4d4ef0280ae6ae4d16810a8bce8c9b75  <scratchpad>/r16/main/src/patchbay_vital/format.py  (main 4296bf4d4d4ef0280ae6ae4d16810a8bce8c9b75)
+    e72737ee0f4a1d68ae1d8374390c2fa9b0d02692  <scratchpad>/r16/main/src/patchbay_vital/grisu2.py  (main e72737ee0f4a1d68ae1d8374390c2fa9b0d02692)
+    b8f0e11938028b0f7ddb9b079cb36b421026fd9c  <scratchpad>/r16/main/src/patchbay_vital/host.py  (main b8f0e11938028b0f7ddb9b079cb36b421026fd9c)
+    25b1a378e0d633bf4deede60d3173e976059a2a7  <scratchpad>/r16/main/src/patchbay_vital/parameters.py  (main 25b1a378e0d633bf4deede60d3173e976059a2a7)
+    f75e2e85d570f3db4bf5ec206bf9143f1ca4922f  <scratchpad>/r16/main/src/patchbay_vital/preset.py  (main f75e2e85d570f3db4bf5ec206bf9143f1ca4922f)
+    e69de29bb2d1d6434b8b29ae775ad8c2e48c5391  <scratchpad>/r16/main/src/patchbay_vital/py.typed  (main e69de29bb2d1d6434b8b29ae775ad8c2e48c5391)
+    f3dc277612d28632cba39cf37fa7cd42cdaa4ef6  <scratchpad>/r16/main/src/patchbay_vital/settings_keys.txt  (main f3dc277612d28632cba39cf37fa7cd42cdaa4ef6)
+    4ea00da21a7666f2867cf8aba41593f928755b3e  <scratchpad>/r16/main/src/patchbay_vital/state.py  (main 4ea00da21a7666f2867cf8aba41593f928755b3e)
+cmp: the trees before and after are the same
+the machine after the run: arm64, Apple M4 Pro, 14 cores, macOS 26.6.2 (25G83), Python 3.12.16, load 3.30 7.67 12.97, at 2026-11-15 05:16 EST
