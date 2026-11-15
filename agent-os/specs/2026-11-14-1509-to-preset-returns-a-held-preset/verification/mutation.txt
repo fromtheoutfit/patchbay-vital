@@ -1,0 +1,1334 @@
+Issue #16's spec: mutations of the map, its tests and the pinned-values file, run 2026-11-15 05:25 EST on branch
+refactor/16-the-parameter-map-to_preset-returns-a-preset-the-plugin-never-holds-for-a-display-no-held-preset-shows, Vital at /Library/Audio/Plug-Ins/VST3/Vital.vst3; on scratch copies, the working tree untouched
+the machine before the run: arm64, Apple M4 Pro, 14 cores, macOS 26.6.2 (25G83), Python 3.12.16, load 14.20 13.47 13.60, at 2026-11-15 05:25 EST
+the trees before the run, each copied whole for a mutant:
+  HEAD f533b1b0a362373613471993c86f2df8ab0ed111
+  git status --porcelain=v1 --untracked-files=all, 15 lines:
+     M src/patchbay_vital/parameters.py
+     M tests/data/pinned-values.txt
+     M tests/integration/test_vital_plugin.py
+     M tests/unit/test_parameters.py
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/plan.md
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/references.md
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/shape.md
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/standards.md
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/verification/arbitrary-displays.txt
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/verification/cost.txt
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/verification/direct-count.txt
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/verification/indexed-count.txt
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/verification/mutation.txt
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/verification/plugin-probe.txt
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/verification/sweep.txt
+  this branch's tree, the working tree: git hash-object of each file the run reads, HEAD's blob beside it:
+    50fe09b3c3b285b3d569a8b7eb2f76981c7d6164  src/patchbay_vital/__init__.py  (HEAD 50fe09b3c3b285b3d569a8b7eb2f76981c7d6164)
+    5bf2ff80237d4dde75a3fa3b5e45728daf2dbb46  src/patchbay_vital/census.py  (HEAD 5bf2ff80237d4dde75a3fa3b5e45728daf2dbb46)
+    109ae1887be396e43ce7939b7115ec9745b6c6ca  src/patchbay_vital/data/parameters.json  (HEAD 109ae1887be396e43ce7939b7115ec9745b6c6ca)
+    d8265cd5668a70b1802e3d7b1917104935e292ff  src/patchbay_vital/errors.py  (HEAD d8265cd5668a70b1802e3d7b1917104935e292ff)
+    ddf88f5cf88bc3bfd23301f0968ca3bcd65533ac  src/patchbay_vital/files.py  (HEAD ddf88f5cf88bc3bfd23301f0968ca3bcd65533ac)
+    27a1e91bd4483e2fbdebf444799b51f78617ab0e  src/patchbay_vital/float32.py  (HEAD 27a1e91bd4483e2fbdebf444799b51f78617ab0e)
+    4296bf4d4d4ef0280ae6ae4d16810a8bce8c9b75  src/patchbay_vital/format.py  (HEAD 4296bf4d4d4ef0280ae6ae4d16810a8bce8c9b75)
+    e72737ee0f4a1d68ae1d8374390c2fa9b0d02692  src/patchbay_vital/grisu2.py  (HEAD e72737ee0f4a1d68ae1d8374390c2fa9b0d02692)
+    b8f0e11938028b0f7ddb9b079cb36b421026fd9c  src/patchbay_vital/host.py  (HEAD b8f0e11938028b0f7ddb9b079cb36b421026fd9c)
+    51ac5eef0a8cf43c38d972323fb508db3a2a4456  src/patchbay_vital/parameters.py  (HEAD 25b1a378e0d633bf4deede60d3173e976059a2a7)
+    f75e2e85d570f3db4bf5ec206bf9143f1ca4922f  src/patchbay_vital/preset.py  (HEAD f75e2e85d570f3db4bf5ec206bf9143f1ca4922f)
+    e69de29bb2d1d6434b8b29ae775ad8c2e48c5391  src/patchbay_vital/py.typed  (HEAD e69de29bb2d1d6434b8b29ae775ad8c2e48c5391)
+    f3dc277612d28632cba39cf37fa7cd42cdaa4ef6  src/patchbay_vital/settings_keys.txt  (HEAD f3dc277612d28632cba39cf37fa7cd42cdaa4ef6)
+    4ea00da21a7666f2867cf8aba41593f928755b3e  src/patchbay_vital/state.py  (HEAD 4ea00da21a7666f2867cf8aba41593f928755b3e)
+    7c3745ee4e0b9b081f3ab829b2207c6894345c22  tests/unit/test_parameters.py  (HEAD 5ba924207a40104c5a3e1ee79ea4cf81c171a813)
+    30c55ede7a4d93930b727f6248f5369545c33e34  tests/unit/test_float32.py  (HEAD 30c55ede7a4d93930b727f6248f5369545c33e34)
+    5d2f90e9480483728ca94dca968562b97595ae21  tests/integration/test_vital_plugin.py  (HEAD f85e667fa1bdb48fc1f75cfc3f0b9c4c5b9f3f6d)
+    cb5da6c7d1977271534181d007a8aa57567ff92c  tests/data/pinned-values.txt  (HEAD 40aff4ecfcdb10b848a7eb60879b7cf90d5fcacf)
+  main's tree, commit f533b1b0a362373613471993c86f2df8ab0ed111, extracted with git archive: git hash-object of
+  each extracted file, the blob of main's commit beside it:
+    50fe09b3c3b285b3d569a8b7eb2f76981c7d6164  <scratchpad>/r16/main/src/patchbay_vital/__init__.py  (main 50fe09b3c3b285b3d569a8b7eb2f76981c7d6164)
+    5bf2ff80237d4dde75a3fa3b5e45728daf2dbb46  <scratchpad>/r16/main/src/patchbay_vital/census.py  (main 5bf2ff80237d4dde75a3fa3b5e45728daf2dbb46)
+    109ae1887be396e43ce7939b7115ec9745b6c6ca  <scratchpad>/r16/main/src/patchbay_vital/data/parameters.json  (main 109ae1887be396e43ce7939b7115ec9745b6c6ca)
+    d8265cd5668a70b1802e3d7b1917104935e292ff  <scratchpad>/r16/main/src/patchbay_vital/errors.py  (main d8265cd5668a70b1802e3d7b1917104935e292ff)
+    ddf88f5cf88bc3bfd23301f0968ca3bcd65533ac  <scratchpad>/r16/main/src/patchbay_vital/files.py  (main ddf88f5cf88bc3bfd23301f0968ca3bcd65533ac)
+    27a1e91bd4483e2fbdebf444799b51f78617ab0e  <scratchpad>/r16/main/src/patchbay_vital/float32.py  (main 27a1e91bd4483e2fbdebf444799b51f78617ab0e)
+    4296bf4d4d4ef0280ae6ae4d16810a8bce8c9b75  <scratchpad>/r16/main/src/patchbay_vital/format.py  (main 4296bf4d4d4ef0280ae6ae4d16810a8bce8c9b75)
+    e72737ee0f4a1d68ae1d8374390c2fa9b0d02692  <scratchpad>/r16/main/src/patchbay_vital/grisu2.py  (main e72737ee0f4a1d68ae1d8374390c2fa9b0d02692)
+    b8f0e11938028b0f7ddb9b079cb36b421026fd9c  <scratchpad>/r16/main/src/patchbay_vital/host.py  (main b8f0e11938028b0f7ddb9b079cb36b421026fd9c)
+    25b1a378e0d633bf4deede60d3173e976059a2a7  <scratchpad>/r16/main/src/patchbay_vital/parameters.py  (main 25b1a378e0d633bf4deede60d3173e976059a2a7)
+    f75e2e85d570f3db4bf5ec206bf9143f1ca4922f  <scratchpad>/r16/main/src/patchbay_vital/preset.py  (main f75e2e85d570f3db4bf5ec206bf9143f1ca4922f)
+    e69de29bb2d1d6434b8b29ae775ad8c2e48c5391  <scratchpad>/r16/main/src/patchbay_vital/py.typed  (main e69de29bb2d1d6434b8b29ae775ad8c2e48c5391)
+    f3dc277612d28632cba39cf37fa7cd42cdaa4ef6  <scratchpad>/r16/main/src/patchbay_vital/settings_keys.txt  (main f3dc277612d28632cba39cf37fa7cd42cdaa4ef6)
+    4ea00da21a7666f2867cf8aba41593f928755b3e  <scratchpad>/r16/main/src/patchbay_vital/state.py  (main 4ea00da21a7666f2867cf8aba41593f928755b3e)
+    5ba924207a40104c5a3e1ee79ea4cf81c171a813  <scratchpad>/r16/main/tests/unit/test_parameters.py  (main 5ba924207a40104c5a3e1ee79ea4cf81c171a813)
+    30c55ede7a4d93930b727f6248f5369545c33e34  <scratchpad>/r16/main/tests/unit/test_float32.py  (main 30c55ede7a4d93930b727f6248f5369545c33e34)
+    f85e667fa1bdb48fc1f75cfc3f0b9c4c5b9f3f6d  <scratchpad>/r16/main/tests/integration/test_vital_plugin.py  (main f85e667fa1bdb48fc1f75cfc3f0b9c4c5b9f3f6d)
+    40aff4ecfcdb10b848a7eb60879b7cf90d5fcacf  <scratchpad>/r16/main/tests/data/pinned-values.txt  (main 40aff4ecfcdb10b848a7eb60879b7cf90d5fcacf)
+  git hash-object of each script the run runs:
+    c667af14d3bd33563e56a4c587dd122d2f7a7716  <scratchpad>/r16/mutate.sh
+    b73908ae2f6024994b2277d8e8f7091e95e42281  <scratchpad>/r16/tree.sh
+    a3a621374767c2a151ed7580326d9830725b316a  <scratchpad>/r16/run_mutate.sh
+
+== the scripts, run from the repository root as: bash <scratchpad>/r16/run_mutate.sh <scratchpad>/r16
+```bash
+#!/bin/bash
+# Issue #16's spec: the mutation transcript. Run from the repository root: bash run_mutate.sh <scratch>
+# The transcript is written outside the tree, to <scratch>/out, and copied in afterwards.
+set -u
+R=$1
+FILES="$(git ls-files src | tr '\n' ' ') tests/unit/test_parameters.py tests/unit/test_float32.py tests/integration/test_vital_plugin.py tests/data/pinned-values.txt"
+scrub() { sed -e "s#$R#<scratchpad>/r16#g" -e "s#$PWD/##g"; }
+machine() { echo "$(uname -m), $(sysctl -n machdep.cpu.brand_string), $(sysctl -n hw.ncpu) cores, $(sw_vers -productName) $(sw_vers -productVersion) ($(sw_vers -buildVersion)), $(uv run --locked python -V), load$(sysctl -n vm.loadavg | tr -d '{}' | sed 's/ *$//'), at $(date '+%Y-%m-%d %H:%M %Z')"; }
+{
+echo "Issue #16's spec: mutations of the map, its tests and the pinned-values file, run $(date '+%Y-%m-%d %H:%M %Z') on branch"
+echo "$(git branch --show-current), Vital at $(ls -d /Library/Audio/Plug-Ins/VST3/Vital.vst3); on scratch copies, the working tree untouched"
+echo "the machine before the run: $(machine)"
+echo "the trees before the run, each copied whole for a mutant:"
+bash "$R/tree.sh" "$R/main" $FILES | tee "$R/out/tree-before-mutation.txt"
+echo "  git hash-object of each script the run runs:"
+for s in mutate.sh tree.sh run_mutate.sh; do echo "    $(git hash-object "$R/$s")  <scratchpad>/r16/$s"; done
+echo
+echo "== the scripts, run from the repository root as: bash <scratchpad>/r16/run_mutate.sh <scratchpad>/r16"
+echo '```bash'; cat "$R/run_mutate.sh"; echo '```'
+echo '```bash'; cat "$R/mutate.sh"; echo '```'
+echo
+echo "== its output"
+bash "$R/mutate.sh" "$R/out"; echo "exit=$?"
+echo
+echo "the trees after the run:"
+bash "$R/tree.sh" "$R/main" $FILES | tee "$R/out/tree-after-mutation.txt"
+cmp "$R/out/tree-before-mutation.txt" "$R/out/tree-after-mutation.txt" && echo "cmp: the trees before and after are the same"
+echo "the machine after the run: $(machine)"
+} 2>&1 | scrub > "$R/out/mutation.txt"
+```
+```bash
+#!/usr/bin/env bash
+# Issue #16's spec: the map's rule, its scale's inverse and the pinned-values file changed on
+# scratch copies, one change a copy, the tests run on each, Hypothesis derandomized
+# (--hypothesis-seed=0) so a run reads the same twice.
+# - M1 to M16, MA to MF2: the sixth review's mutants on the code as it now reads. Its M5 and M9
+#   are one mutant now, the rule's exception removed; M8b stays an expected equivalent.
+# - MN1 to MN3: this spec's own: main's third branch, its indexed line and its raise, put back.
+# - ML1 to ML3: mutants of _landing, for the final review's findings 2 and 3, on main's tree
+#   (f533b1b) and on this branch's, and ML3 on the load test of each with Vital.
+# - MG1 to MG3: the pinned-values file, for finding 5 and the third set, on both trees with Vital.
+# Run from the repository root: bash <scratchpad>/mutate.sh <scratchpad>
+set -u
+repo=$(pwd)
+scratch=$1
+python="$repo/.venv/bin/python"
+P=src/patchbay_vital/parameters.py
+D=tests/data/pinned-values.txt
+UNIT="tests/unit/test_parameters.py tests/unit/test_float32.py"
+M=tests/integration/test_vital_plugin.py
+LOAD="$M::test_a_load_holds_volume_s_unheld_float32_as_its_neighbour_and_chorus_feedback_as_given"
+HOSTED_MAIN="$M::test_at_or_below_volume_s_floor_a_set_holds_the_map_s_preset \
+$M::test_a_held_power_of_two_set_through_the_host_is_held $LOAD"
+HOSTED="$HOSTED_MAIN $M::test_an_arbitrary_display_set_through_the_host_holds_the_map_s_preset"
+
+copy() {  # copy the tree as git lists it (tracked or untracked, not ignored, present) to $1
+  rm -rf "$1" && mkdir -p "$1" || exit 2
+  git ls-files -z -co --exclude-standard --deduplicate |
+    while IFS= read -r -d '' f; do [ -f "$f" ] && printf '%s\0' "$f"; done |
+    rsync -a --from0 --files-from=- ./ "$1/" || exit 2
+}
+
+main_copy() {  # copy the tree of main's commit, f533b1b, to $1
+  rm -rf "$1" && mkdir -p "$1" || exit 2
+  git archive f533b1b | tar -x -C "$1" || exit 2
+}
+
+edit() {  # $1 the copy, $2 file, $3 python snippet reading s and writing s
+  MUT_FILE="$1/$2" MUT_CODE="$3" "$python" -I - <<'PY' || exit 2
+import os
+from pathlib import Path
+p = Path(os.environ["MUT_FILE"])
+old = p.read_text() if p.exists() else None
+scope = {"s": old}
+exec(os.environ["MUT_CODE"], scope)
+assert scope["s"] != old, "the mutation changed nothing"
+if scope["s"] is None:
+    p.unlink()
+else:
+    p.write_text(scope["s"])
+PY
+}
+
+run() {  # $1 the copy, $2 the pristine tree it came from, $3 file, $4 tests, $5 extra pytest arguments
+  local dir=$1
+  if [ -n "$3" ]; then
+    if [ -f "$dir/$3" ]; then
+      (cd "$dir" && diff -u "$2/$3" "$3" | sed -e "s|$repo/||" -e "s|$scratch|<scratchpad>|")
+    else
+      echo "   $3 removed from the copy"
+    fi
+  fi
+  (cd "$dir" && PYTHONPATH="$dir/src" "$python" -c \
+    'import patchbay_vital.parameters as m; print("imports", m.__file__.split("/mutation-")[1])')
+  local status
+  # shellcheck disable=SC2086 # $4 and $5 are lists of pytest arguments, split on purpose
+  (cd "$dir" && PYTHONPATH="$dir/src" "$python" -m pytest -c pyproject.toml -p no:doctest \
+    -p no:cacheprovider --hypothesis-seed=0 $4 -rf ${5:-} > "$dir.out" 2>&1)
+  status=$?
+  grep -E '^(FAILED|ERROR|[0-9]+ (passed|failed|deselected)|=+ .*(passed|failed|error))' "$dir.out" |
+    sed 's/ - .*//'
+  grep -E "^E +(Failed|FileNotFoundError): " "$dir.out" | sed -e 's/^E *//' -e "s|$scratch|<scratchpad>|g" | sort -u
+  echo "exit=$status"
+  rm -f "$dir.out"
+  rm -rf "$dir"
+}
+
+mutate() {  # on this branch's tree: $1 name, $2 file, $3 python snippet, $4 tests (default the unit ones), $5 pytest arguments
+  local dir="$scratch/mutation-$1"
+  copy "$dir"
+  [ -n "$2" ] && edit "$dir" "$2" "$3"
+  run "$dir" "$repo" "$2" "${4:-$UNIT}" "${5:-}"
+}
+
+mutate_main() {  # the same on a copy of main's commit
+  local dir="$scratch/mutation-$1" pristine="$scratch/mutation-$1-pristine"
+  main_copy "$dir"
+  main_copy "$pristine"
+  [ -n "$2" ] && edit "$dir" "$2" "$3"
+  run "$dir" "$pristine" "$2" "${4:-$UNIT}" "${5:-}"
+  rm -rf "$pristine"
+}
+
+RULE='"        if held != preset and curve.to_display(held) != display:\n            other = next_float32(preset, math.copysign(math.inf, preset - held))\n            if curve.to_display(other) == display and scale.holds(other):\n                return other\n"'
+
+echo "== M0: the tree unmutated (the copy runs, and passes)"
+mutate M0 "" ""
+
+echo
+echo "== MN1, issue #16's own: main's third branch put back, the curve's float32 kept where neither"
+echo "   candidate shows the display (must fail test_an_arbitrary_display_takes_what_a_set_of_it_holds"
+echo "   by name, and no test of a display a held preset shows)"
+MN1='
+old = "                return other\n        return held\n"
+assert s.count(old) == 1
+s = s.replace(old, "                return other\n            return preset  # MUTATION: main keeps the float32 here\n        return held\n")
+'
+mutate MN1 $P "$MN1"
+echo "-- MN1 again, the tests of pinned and made-up values deselected: what the property's two"
+echo "   Hypothesis tests over arbitrary displays catch alone"
+mutate MN1-property-only $P "$MN1" "" "-k any_display"
+
+echo
+echo "== MN2: the indexed line as main has it, the whole number returned without asking the scale"
+echo "   (must fail test_an_indexed_scale_wider_than_its_float32s_takes_what_a_set_holds by name)"
+mutate MN2 $P '
+old = "            preset = _round_half_away(preset)\n"
+assert s.count(old) == 1
+s = s.replace(old, "            return _round_half_away(preset)\n")
+'
+
+echo
+echo "== MN3: holds without its guard, raising on a value that is not finite as main does (must fail"
+echo "   test_a_scale_holds_no_value_that_is_not_finite by name)"
+mutate MN3 $P '
+old = "        if not math.isfinite(preset):\n            return False\n"
+assert s.count(old) == 1
+s = s.replace(old, "")
+'
+
+echo
+echo "== M1: _landing reverted to the nearest quotient (must fail at the powers of two)"
+mutate M1 $P '
+old = "    if landed == preset:\n        return nearest, landed\n"
+start = s.index(old)
+end = s.index("    return nearest, landed\n", start + len(old)) + len("    return nearest, landed\n")
+s = s[:start] + "    return nearest, landed\n" + s[end:]
+'
+
+echo
+echo "== M2: to_preset the curve's float32 wherever it is unheld, as before issue #15 (must fail at"
+echo "   the floor and at the arbitrary displays)"
+mutate M2 $P "
+rule = $RULE
+assert s.count(rule + '        return held\n') == 1
+s = s.replace(rule + '        return held\n', '        return held if held == preset else preset\n')
+"
+
+echo
+echo "== M3: holds without its [0, 1] check (must fail where a value past the scale lands)"
+mutate M3 $P '
+old = "        return 0.0 <= normalized <= 1.0 and landed == preset\n"
+assert s.count(old) == 1
+s = s.replace(old, "        return landed == preset\n")
+'
+
+echo
+echo "== M4: the step in _landing without its [0, 1] check (must fail on the span of 2 ** 24)"
+mutate M4 $P '
+old = "    if 0.0 <= toward <= 1.0:\n"
+assert s.count(old) == 1
+s = s.replace(old, "    if True:\n")
+'
+
+echo
+echo "== M5, and M9, one mutant now: the rule's exception removed, what a set holds always taken"
+echo "   (must fail at the floor values the exception is for)"
+mutate M5 $P "
+rule = $RULE
+assert s.count(rule) == 1
+s = s.replace(rule, '')
+"
+
+echo
+echo "== M6: the exception without its display check (must fail at the arbitrary displays)"
+mutate M6 $P '
+old = "            if curve.to_display(other) == display and scale.holds(other):\n"
+assert s.count(old) == 1
+s = s.replace(old, "            if scale.holds(other):\n")
+'
+
+echo
+echo "== M7: the other side tried before what a set holds, wherever the curve's float32 is unheld"
+echo "   (must fail at issue #13's value, where both show the display)"
+mutate M7 $P '
+old = "        if held != preset and curve.to_display(held) != display:\n"
+assert s.count(old) == 1
+s = s.replace(old, "        if held != preset:\n")
+'
+
+echo
+echo "== M8b: the exception tried where the curve's float32 is held too (expected equivalent: a held"
+echo "   float32 that does not show the display has no neighbour above it that the scale holds and"
+echo "   that shows it, on any value the tests reach; main's first branch returned the held float32"
+echo "   without asking, and the rule keeps that by reading)"
+mutate M8b $P '
+old = "        if held != preset and curve.to_display(held) != display:\n"
+assert s.count(old) == 1
+s = s.replace(old, "        if curve.to_display(held) != display:\n")
+'
+
+echo
+echo "== M15: _landing without its first return, stepping though the nearest quotient lands (must fail"
+echo "   test_a_quotient_that_lands_is_the_normalized_value_whatever_lands_beside_it)"
+mutate M15 $P '
+old = "    if landed == preset:\n        return nearest, landed\n    toward"
+assert s.count(old) == 1
+s = s.replace(old, "    toward")
+'
+
+echo
+echo "== M16: the exception without its holds check (must fail"
+echo "   test_the_float32_past_an_end_the_scale_does_not_hold_is_not_taken)"
+mutate M16 $P '
+old = "            if curve.to_display(other) == display and scale.holds(other):\n"
+assert s.count(old) == 1
+s = s.replace(old, "            if curve.to_display(other) == display:\n")
+'
+
+echo
+echo "== MA, the sixth review's first scenario: where the curve's float32 is held, to_preset returns"
+echo "   the held float32 above it wherever that shows the display too (must fail by name)"
+mutate MA $P '
+old = "        held = _landing(scale, preset)[1]\n"
+assert s.count(old) == 1
+s = s.replace(old, old + """        if held == preset:
+            beside = next_float32(preset, math.inf)  # MUTATION: a held neighbour, if it shows the display
+            if scale.holds(beside) and curve.to_display(beside) == display:
+                return beside
+""")
+'
+
+echo
+echo "== MB, its second scenario: to_preset returns a held float32 three steps below what a set"
+echo "   holds, wherever that shows the display too, on a flat stretch (must fail by name)"
+mutate MB $P '
+old = "                return other\n        return held\n"
+assert s.count(old) == 1
+s = s.replace(old, """                return other
+        far = next_float32(next_float32(next_float32(held, 0.0), 0.0), 0.0)  # MUTATION
+        return far if scale.holds(far) and curve.to_display(far) == display else held
+""")
+'
+
+MC='
+old = "    return nearest, landed\n\n\ndef _square"
+assert s.count(old) == 1
+s = s.replace(old, """    if 1e-13 < preset <= 2.0**-43:  # MUTATION: an unheld preset sent 8 float32 steps up
+        for _ in range(8):
+            nearest = next_float32(nearest, 1.0)
+        return nearest, scale.to_preset(nearest)
+    return nearest, landed
+
+
+def _square""")
+'
+echo
+echo "== MC, the seeded regression only the pinned rows caught in the revision after PR 14's review:"
+echo "   an unheld preset in (1e-13, 2 ** -43] sent 8 float32 steps up, in _landing. With every"
+echo "   Hypothesis test deselected, the tests over the pinned file must fail it by name"
+mutate MC $P "$MC" "" "--deselect tests/unit/test_parameters.py::test_a_value_the_parameter_holds_comes_back_exactly --deselect tests/unit/test_parameters.py::test_every_committed_record_comes_back_exactly --deselect tests/unit/test_parameters.py::test_any_display_in_range_maps_to_a_preset_a_set_of_it_holds --deselect tests/unit/test_parameters.py::test_every_committed_record_maps_any_display_to_a_preset_a_set_of_it_holds"
+
+echo
+echo "== MD: _landing's first step not the nearest quotient but the float32 below it (must fail"
+echo "   test_a_quotient_that_lands_is_the_normalized_value_whatever_lands_beside_it by name)"
+mutate MD $P '
+old = "    nearest = round_to_float32((Fraction(preset) - Fraction(scale.minimum)) / Fraction(scale.span))\n"
+assert s.count(old) == 1
+s = s.replace(old, old + "    nearest = next_float32(nearest, 0.0) if nearest > 0.0 else nearest  # MUTATION\n")
+'
+
+echo
+echo "== ME: tests/data/pinned-values.txt missing (every test reading it must fail by name)"
+mutate ME $D 's = None'
+echo "-- ME again, on the integration module's four tests that read the file, with Vital"
+mutate ME-hosted $D 's = None' "$HOSTED"
+
+MF='
+old = "volume_floor 3.4694490199051456e-18 the smallest of the former one-ulp landings\n"
+assert s.count(old) == 1
+s = s.replace(old, "volume_floor 0.1 the smallest of the former one-ulp landings\n")
+'
+echo
+echo "== MF: a malformed line, a normalized value that is not a float32, 0.1 (every test reading the"
+echo "   file must fail by name, naming the file and the line)"
+mutate MF $D "$MF"
+echo "-- MF again, on the integration module's four tests that read the file, with Vital"
+mutate MF-hosted $D "$MF" "$HOSTED"
+
+MF2='
+old = "volume_floor 3.4694490199051456e-18 the smallest of the former one-ulp landings\n"
+assert s.count(old) == 1
+s = s.replace(old, "volume_ceiling 3.4694490199051456e-18 the smallest of the former one-ulp landings\n")
+'
+echo
+echo "== MF2: a line of a set no reader knows (every test reading the file must fail by name, naming"
+echo "   the file and the line)"
+mutate MF2 $D "$MF2"
+echo "-- MF2 again, on the integration module's four tests that read the file, with Vital"
+mutate MF2-hosted $D "$MF2" "$HOSTED"
+
+MF3='
+old = "tempo_displays 58.843714737570515 held as the float32 below the curve'"'"'s\n"
+assert s.count(old) == 1
+s = s.replace(old, "tempo_displays inf held as the float32 below the curve'"'"'s\n")
+'
+echo
+echo "== MF3: a display that is not finite in the third set (every test reading the file must fail by"
+echo "   name, naming the file and the line)"
+mutate MF3 $D "$MF3"
+echo "-- MF3 again, on the integration module's four tests that read the file, with Vital"
+mutate MF3-hosted $D "$MF3" "$HOSTED"
+
+echo
+echo "================ the final review's findings 2 and 3: mutants of _landing ================"
+echo "_landing is the same text in main's tree and this branch's. What a run's pass or fail means is"
+echo "said before it."
+ML1='
+old = "    toward = next_float32(nearest, math.copysign(math.inf, preset - landed))\n"
+assert s.count(old) == 1
+s = s.replace(old, "    toward = next_float32(nearest, math.copysign(math.inf, landed - preset))\n")
+'
+ML2='
+old = "    if 0.0 <= toward <= 1.0:\n"
+assert s.count(old) == 1
+s = s.replace(old, "    if True:\n")
+'
+ML3='
+old = "        stepped = scale.to_preset(toward)\n        if stepped == preset:\n            return toward, stepped\n"
+assert s.count(old) == 1
+s = s.replace(old, "        stepped = scale.to_preset(toward)\n        return toward, stepped  # MUTATION: a miss keeps the step'"'"'s landing\n")
+'
+echo
+echo "== ML1, finding 2's first scenario, the step the wrong way, on MAIN's tree and tests. The"
+echo "   finding says the tests still pass. A fail here means main's tests already catch it."
+mutate_main ML1-main $P "$ML1"
+echo
+echo "== ML2, its second scenario, the step without its [0, 1] check, on MAIN's tree and tests. A"
+echo "   fail here means main's tests already catch it."
+mutate_main ML2-main $P "$ML2"
+echo
+echo "== ML3: where no normalized value lands on a preset, _landing keeps the step's landing, not"
+echo "   the nearest quotient's, so what a set of an unheld float32 holds moves. On MAIN's tree and"
+echo "   tests, where _what_a_set_holds reads _landing through scale.to_normalized. The tests that"
+echo "   fail are those that compare with a literal; the property's tests and the test over the"
+echo "   pinned file pass, their expected value having followed the mutant. That is finding 2."
+mutate_main ML3-main $P "$ML3"
+echo "-- ML3 on THIS BRANCH's tree and tests, where _what_a_set_holds is worked out from primitives."
+echo "   The property's tests and the test over the pinned file fail by name: they own _landing now."
+mutate ML3 $P "$ML3"
+echo "-- ML3 on MAIN's load test, with Vital. Its expected value is computed with the shipped"
+echo "   to_normalized, so it follows the mutant, and the test fails though Vital holds what it held."
+echo "   That is finding 3: a fail for the wrong reason."
+mutate_main ML3-main-load $P "$ML3" "$LOAD"
+echo "-- ML3 on THIS BRANCH's load test, with Vital. Its expected value is the forward scale at the"
+echo "   Fraction quotient, so it does not move, and the test passes: Vital's held value did not"
+echo "   change. The mutant is failed by this branch's unit tests, above."
+mutate ML3-load $P "$ML3" "$LOAD"
+
+echo
+echo "================ the final review's finding 5: the integration module's reader ================"
+MG1='
+lines = [line for line in s.splitlines(keepends=True) if not line.startswith("volume_floor ")]
+assert len(lines) == len(s.splitlines()) - 4
+s = "".join(lines)
+'
+echo
+echo "== MG1: the four volume_floor lines deleted from MAIN's file, on MAIN's three integration"
+echo "   tests that read it, with Vital. A pass here is the finding: the loops ran nothing."
+mutate_main MG1-main $D "$MG1" "$HOSTED_MAIN"
+echo "-- MG1 on THIS BRANCH's file and its four integration tests, with Vital: each must fail by"
+echo "   name, naming the file and the empty set"
+mutate MG1 $D "$MG1" "$HOSTED"
+
+MG2='
+old = "powers_of_two 0.3535534143447876 0.5 on the envelope records\n"
+assert s.count(old) == 1
+s = s.replace(old, "powers_of_two 1.5 0.5 on the envelope records\n")
+'
+echo
+echo "== MG2: a normalized value outside [0, 1], 1.5, a float32, in MAIN's file, on MAIN's three"
+echo "   integration tests, with Vital. Its reader takes the line; what fails, fails downstream."
+mutate_main MG2-main $D "$MG2" "$HOSTED_MAIN"
+echo "-- MG2 on THIS BRANCH's file and its four integration tests, with Vital: each must fail by"
+echo "   name, naming the file and the line"
+mutate MG2 $D "$MG2" "$HOSTED"
+```
+
+== its output
+== M0: the tree unmutated (the copy runs, and passes)
+imports M0/src/patchbay_vital/parameters.py
+102 passed in 0.82s
+exit=0
+
+== MN1, issue #16's own: main's third branch put back, the curve's float32 kept where neither
+   candidate shows the display (must fail test_an_arbitrary_display_takes_what_a_set_of_it_holds
+   by name, and no test of a display a held preset shows)
+--- src/patchbay_vital/parameters.py	2026-11-14 15:11:55
++++ src/patchbay_vital/parameters.py	2026-11-15 05:25:52
+@@ -333,6 +333,7 @@
+             other = next_float32(preset, math.copysign(math.inf, preset - held))
+             if curve.to_display(other) == display and scale.holds(other):
+                 return other
++            return preset  # MUTATION: main keeps the float32 here
+         return held
+ 
+     def to_normalized(self, display: float) -> float:
+imports MN1/src/patchbay_vital/parameters.py
+FAILED tests/unit/test_parameters.py::test_any_display_in_range_maps_to_a_preset_a_set_of_it_holds[env_1_attack]
+FAILED tests/unit/test_parameters.py::test_any_display_in_range_maps_to_a_preset_a_set_of_it_holds[lfo_1_frequency]
+FAILED tests/unit/test_parameters.py::test_any_display_in_range_maps_to_a_preset_a_set_of_it_holds[reverb_decay_time]
+FAILED tests/unit/test_parameters.py::test_any_display_in_range_maps_to_a_preset_a_set_of_it_holds[volume]
+FAILED tests/unit/test_parameters.py::test_any_display_in_range_maps_to_a_preset_a_set_of_it_holds[beats_per_minute]
+FAILED tests/unit/test_parameters.py::test_an_arbitrary_display_takes_what_a_set_of_it_holds
+FAILED tests/unit/test_parameters.py::test_the_doubles_beside_a_pinned_display_map_to_a_preset_a_set_of_them_holds
+FAILED tests/unit/test_parameters.py::test_the_float32_past_an_end_the_scale_does_not_hold_is_not_taken
+FAILED tests/unit/test_parameters.py::test_an_indexed_scale_wider_than_its_float32s_takes_what_a_set_holds
+FAILED tests/unit/test_parameters.py::test_a_scale_holds_no_value_that_is_not_finite
+FAILED tests/unit/test_parameters.py::test_every_committed_record_maps_any_display_to_a_preset_a_set_of_it_holds
+11 failed, 91 passed in 1.02s
+exit=1
+-- MN1 again, the tests of pinned and made-up values deselected: what the property's two
+   Hypothesis tests over arbitrary displays catch alone
+--- src/patchbay_vital/parameters.py	2026-11-14 15:11:55
++++ src/patchbay_vital/parameters.py	2026-11-15 05:25:53
+@@ -333,6 +333,7 @@
+             other = next_float32(preset, math.copysign(math.inf, preset - held))
+             if curve.to_display(other) == display and scale.holds(other):
+                 return other
++            return preset  # MUTATION: main keeps the float32 here
+         return held
+ 
+     def to_normalized(self, display: float) -> float:
+imports MN1-property-only/src/patchbay_vital/parameters.py
+FAILED tests/unit/test_parameters.py::test_any_display_in_range_maps_to_a_preset_a_set_of_it_holds[env_1_attack]
+FAILED tests/unit/test_parameters.py::test_any_display_in_range_maps_to_a_preset_a_set_of_it_holds[lfo_1_frequency]
+FAILED tests/unit/test_parameters.py::test_any_display_in_range_maps_to_a_preset_a_set_of_it_holds[reverb_decay_time]
+FAILED tests/unit/test_parameters.py::test_any_display_in_range_maps_to_a_preset_a_set_of_it_holds[volume]
+FAILED tests/unit/test_parameters.py::test_any_display_in_range_maps_to_a_preset_a_set_of_it_holds[beats_per_minute]
+FAILED tests/unit/test_parameters.py::test_every_committed_record_maps_any_display_to_a_preset_a_set_of_it_holds
+6 failed, 4 passed, 92 deselected in 0.56s
+exit=1
+
+== MN2: the indexed line as main has it, the whole number returned without asking the scale
+   (must fail test_an_indexed_scale_wider_than_its_float32s_takes_what_a_set_holds by name)
+--- src/patchbay_vital/parameters.py	2026-11-14 15:11:55
++++ src/patchbay_vital/parameters.py	2026-11-15 05:25:54
+@@ -327,7 +327,7 @@
+             raise ParameterRangeError(self.id, parameter.minimum, parameter.maximum, display)
+         preset = min(max(curve.to_preset(display), scale.minimum), scale.maximum)
+         if scale.kind == "indexed":
+-            preset = _round_half_away(preset)
++            return _round_half_away(preset)
+         held = _landing(scale, preset)[1]
+         if held != preset and curve.to_display(held) != display:
+             other = next_float32(preset, math.copysign(math.inf, preset - held))
+imports MN2/src/patchbay_vital/parameters.py
+FAILED tests/unit/test_parameters.py::test_an_indexed_scale_wider_than_its_float32s_takes_what_a_set_holds
+1 failed, 101 passed in 0.83s
+exit=1
+
+== MN3: holds without its guard, raising on a value that is not finite as main does (must fail
+   test_a_scale_holds_no_value_that_is_not_finite by name)
+--- src/patchbay_vital/parameters.py	2026-11-14 15:11:55
++++ src/patchbay_vital/parameters.py	2026-11-15 05:25:56
+@@ -134,8 +134,6 @@
+         No scale holds an infinity or a NaN: for either the answer is False, never a built-in's
+         error (issue #16, the final review's finding 6).
+         """
+-        if not math.isfinite(preset):
+-            return False
+         normalized, landed = _landing(self, preset)
+         return 0.0 <= normalized <= 1.0 and landed == preset
+ 
+imports MN3/src/patchbay_vital/parameters.py
+FAILED tests/unit/test_parameters.py::test_a_scale_holds_no_value_that_is_not_finite
+1 failed, 101 passed in 0.84s
+exit=1
+
+== M1: _landing reverted to the nearest quotient (must fail at the powers of two)
+--- src/patchbay_vital/parameters.py	2026-11-14 15:11:55
++++ src/patchbay_vital/parameters.py	2026-11-15 05:25:57
+@@ -162,13 +162,6 @@
+     """
+     nearest = round_to_float32((Fraction(preset) - Fraction(scale.minimum)) / Fraction(scale.span))
+     landed = scale.to_preset(nearest)
+-    if landed == preset:
+-        return nearest, landed
+-    toward = next_float32(nearest, math.copysign(math.inf, preset - landed))
+-    if 0.0 <= toward <= 1.0:
+-        stepped = scale.to_preset(toward)
+-        if stepped == preset:
+-            return toward, stepped
+     return nearest, landed
+ 
+ 
+imports M1/src/patchbay_vital/parameters.py
+FAILED tests/unit/test_parameters.py::test_a_held_power_of_two_comes_back_through_the_normalized_path[env_1_delay]
+FAILED tests/unit/test_parameters.py::test_a_held_power_of_two_comes_back_through_the_normalized_path[env_3_hold]
+2 failed, 100 passed in 0.83s
+exit=1
+
+== M2: to_preset the curve's float32 wherever it is unheld, as before issue #15 (must fail at
+   the floor and at the arbitrary displays)
+--- src/patchbay_vital/parameters.py	2026-11-14 15:11:55
++++ src/patchbay_vital/parameters.py	2026-11-15 05:25:58
+@@ -329,11 +329,7 @@
+         if scale.kind == "indexed":
+             preset = _round_half_away(preset)
+         held = _landing(scale, preset)[1]
+-        if held != preset and curve.to_display(held) != display:
+-            other = next_float32(preset, math.copysign(math.inf, preset - held))
+-            if curve.to_display(other) == display and scale.holds(other):
+-                return other
+-        return held
++        return held if held == preset else preset
+ 
+     def to_normalized(self, display: float) -> float:
+         """Return the normalized value the host sets for a displayed value: its preset's own.
+imports M2/src/patchbay_vital/parameters.py
+FAILED tests/unit/test_parameters.py::test_a_display_excuses_only_what_a_set_of_its_own_float32_holds
+FAILED tests/unit/test_parameters.py::test_every_pinned_value_comes_back_on_every_record
+FAILED tests/unit/test_parameters.py::test_at_or_below_volume_s_floor_a_display_maps_to_a_held_preset
+FAILED tests/unit/test_parameters.py::test_a_display_takes_what_a_set_of_the_curve_s_float32_holds
+FAILED tests/unit/test_parameters.py::test_else_a_display_takes_the_float32_on_the_other_side
+FAILED tests/unit/test_parameters.py::test_any_display_in_range_maps_to_a_preset_a_set_of_it_holds[env_1_attack]
+FAILED tests/unit/test_parameters.py::test_any_display_in_range_maps_to_a_preset_a_set_of_it_holds[lfo_1_frequency]
+FAILED tests/unit/test_parameters.py::test_any_display_in_range_maps_to_a_preset_a_set_of_it_holds[reverb_decay_time]
+FAILED tests/unit/test_parameters.py::test_any_display_in_range_maps_to_a_preset_a_set_of_it_holds[volume]
+FAILED tests/unit/test_parameters.py::test_any_display_in_range_maps_to_a_preset_a_set_of_it_holds[beats_per_minute]
+FAILED tests/unit/test_parameters.py::test_an_arbitrary_display_takes_what_a_set_of_it_holds
+FAILED tests/unit/test_parameters.py::test_the_doubles_beside_a_pinned_display_map_to_a_preset_a_set_of_them_holds
+FAILED tests/unit/test_parameters.py::test_the_float32_past_an_end_the_scale_does_not_hold_is_not_taken
+FAILED tests/unit/test_parameters.py::test_an_indexed_scale_wider_than_its_float32s_takes_what_a_set_holds
+FAILED tests/unit/test_parameters.py::test_a_scale_holds_no_value_that_is_not_finite
+FAILED tests/unit/test_parameters.py::test_every_committed_record_maps_any_display_to_a_preset_a_set_of_it_holds
+16 failed, 86 passed in 1.03s
+exit=1
+
+== M3: holds without its [0, 1] check (must fail where a value past the scale lands)
+--- src/patchbay_vital/parameters.py	2026-11-14 15:11:55
++++ src/patchbay_vital/parameters.py	2026-11-15 05:26:00
+@@ -137,7 +137,7 @@
+         if not math.isfinite(preset):
+             return False
+         normalized, landed = _landing(self, preset)
+-        return 0.0 <= normalized <= 1.0 and landed == preset
++        return landed == preset
+ 
+     @model_validator(mode="after")
+     def _bounds_are_float32_and_ordered(self) -> Self:
+imports M3/src/patchbay_vital/parameters.py
+FAILED tests/unit/test_parameters.py::test_a_scale_holds_its_values_and_none_past_its_ends
+FAILED tests/unit/test_parameters.py::test_the_float32_past_an_end_the_scale_does_not_hold_is_not_taken
+2 failed, 100 passed in 0.84s
+exit=1
+
+== M4: the step in _landing without its [0, 1] check (must fail on the span of 2 ** 24)
+--- src/patchbay_vital/parameters.py	2026-11-14 15:11:55
++++ src/patchbay_vital/parameters.py	2026-11-15 05:26:01
+@@ -165,7 +165,7 @@
+     if landed == preset:
+         return nearest, landed
+     toward = next_float32(nearest, math.copysign(math.inf, preset - landed))
+-    if 0.0 <= toward <= 1.0:
++    if True:
+         stepped = scale.to_preset(toward)
+         if stepped == preset:
+             return toward, stepped
+imports M4/src/patchbay_vital/parameters.py
+FAILED tests/unit/test_parameters.py::test_the_step_toward_a_preset_stays_where_the_host_can_set_it
+FAILED tests/unit/test_parameters.py::test_an_indexed_scale_wider_than_its_float32s_takes_what_a_set_holds
+2 failed, 100 passed in 0.85s
+exit=1
+
+== M5, and M9, one mutant now: the rule's exception removed, what a set holds always taken
+   (must fail at the floor values the exception is for)
+--- src/patchbay_vital/parameters.py	2026-11-14 15:11:55
++++ src/patchbay_vital/parameters.py	2026-11-15 05:26:03
+@@ -329,10 +329,6 @@
+         if scale.kind == "indexed":
+             preset = _round_half_away(preset)
+         held = _landing(scale, preset)[1]
+-        if held != preset and curve.to_display(held) != display:
+-            other = next_float32(preset, math.copysign(math.inf, preset - held))
+-            if curve.to_display(other) == display and scale.holds(other):
+-                return other
+         return held
+ 
+     def to_normalized(self, display: float) -> float:
+imports M5/src/patchbay_vital/parameters.py
+FAILED tests/unit/test_parameters.py::test_a_display_excuses_only_what_a_set_of_its_own_float32_holds
+FAILED tests/unit/test_parameters.py::test_every_pinned_value_comes_back_on_every_record
+FAILED tests/unit/test_parameters.py::test_at_or_below_volume_s_floor_a_display_maps_to_a_held_preset
+FAILED tests/unit/test_parameters.py::test_else_a_display_takes_the_float32_on_the_other_side
+4 failed, 98 passed in 0.85s
+exit=1
+
+== M6: the exception without its display check (must fail at the arbitrary displays)
+--- src/patchbay_vital/parameters.py	2026-11-14 15:11:55
++++ src/patchbay_vital/parameters.py	2026-11-15 05:26:04
+@@ -331,7 +331,7 @@
+         held = _landing(scale, preset)[1]
+         if held != preset and curve.to_display(held) != display:
+             other = next_float32(preset, math.copysign(math.inf, preset - held))
+-            if curve.to_display(other) == display and scale.holds(other):
++            if scale.holds(other):
+                 return other
+         return held
+ 
+imports M6/src/patchbay_vital/parameters.py
+FAILED tests/unit/test_parameters.py::test_any_display_in_range_maps_to_a_preset_a_set_of_it_holds[env_1_attack]
+FAILED tests/unit/test_parameters.py::test_any_display_in_range_maps_to_a_preset_a_set_of_it_holds[lfo_1_frequency]
+FAILED tests/unit/test_parameters.py::test_any_display_in_range_maps_to_a_preset_a_set_of_it_holds[reverb_decay_time]
+FAILED tests/unit/test_parameters.py::test_any_display_in_range_maps_to_a_preset_a_set_of_it_holds[volume]
+FAILED tests/unit/test_parameters.py::test_any_display_in_range_maps_to_a_preset_a_set_of_it_holds[beats_per_minute]
+FAILED tests/unit/test_parameters.py::test_an_arbitrary_display_takes_what_a_set_of_it_holds
+FAILED tests/unit/test_parameters.py::test_the_doubles_beside_a_pinned_display_map_to_a_preset_a_set_of_them_holds
+FAILED tests/unit/test_parameters.py::test_every_committed_record_maps_any_display_to_a_preset_a_set_of_it_holds
+8 failed, 94 passed in 1.09s
+exit=1
+
+== M7: the other side tried before what a set holds, wherever the curve's float32 is unheld
+   (must fail at issue #13's value, where both show the display)
+--- src/patchbay_vital/parameters.py	2026-11-14 15:11:55
++++ src/patchbay_vital/parameters.py	2026-11-15 05:26:05
+@@ -329,7 +329,7 @@
+         if scale.kind == "indexed":
+             preset = _round_half_away(preset)
+         held = _landing(scale, preset)[1]
+-        if held != preset and curve.to_display(held) != display:
++        if held != preset:
+             other = next_float32(preset, math.copysign(math.inf, preset - held))
+             if curve.to_display(other) == display and scale.holds(other):
+                 return other
+imports M7/src/patchbay_vital/parameters.py
+FAILED tests/unit/test_parameters.py::test_every_pinned_value_comes_back_on_every_record
+FAILED tests/unit/test_parameters.py::test_at_or_below_volume_s_floor_a_display_maps_to_a_held_preset
+FAILED tests/unit/test_parameters.py::test_a_display_takes_what_a_set_of_the_curve_s_float32_holds
+FAILED tests/unit/test_parameters.py::test_the_doubles_beside_a_pinned_display_map_to_a_preset_a_set_of_them_holds
+4 failed, 98 passed in 0.84s
+exit=1
+
+== M8b: the exception tried where the curve's float32 is held too (expected equivalent: a held
+   float32 that does not show the display has no neighbour above it that the scale holds and
+   that shows it, on any value the tests reach; main's first branch returned the held float32
+   without asking, and the rule keeps that by reading)
+--- src/patchbay_vital/parameters.py	2026-11-14 15:11:55
++++ src/patchbay_vital/parameters.py	2026-11-15 05:26:07
+@@ -329,7 +329,7 @@
+         if scale.kind == "indexed":
+             preset = _round_half_away(preset)
+         held = _landing(scale, preset)[1]
+-        if held != preset and curve.to_display(held) != display:
++        if curve.to_display(held) != display:
+             other = next_float32(preset, math.copysign(math.inf, preset - held))
+             if curve.to_display(other) == display and scale.holds(other):
+                 return other
+imports M8b/src/patchbay_vital/parameters.py
+102 passed in 0.82s
+exit=0
+
+== M15: _landing without its first return, stepping though the nearest quotient lands (must fail
+   test_a_quotient_that_lands_is_the_normalized_value_whatever_lands_beside_it)
+--- src/patchbay_vital/parameters.py	2026-11-14 15:11:55
++++ src/patchbay_vital/parameters.py	2026-11-15 05:26:08
+@@ -162,8 +162,6 @@
+     """
+     nearest = round_to_float32((Fraction(preset) - Fraction(scale.minimum)) / Fraction(scale.span))
+     landed = scale.to_preset(nearest)
+-    if landed == preset:
+-        return nearest, landed
+     toward = next_float32(nearest, math.copysign(math.inf, preset - landed))
+     if 0.0 <= toward <= 1.0:
+         stepped = scale.to_preset(toward)
+imports M15/src/patchbay_vital/parameters.py
+FAILED tests/unit/test_parameters.py::test_a_quotient_that_lands_is_the_normalized_value_whatever_lands_beside_it
+1 failed, 101 passed in 0.91s
+exit=1
+
+== M16: the exception without its holds check (must fail
+   test_the_float32_past_an_end_the_scale_does_not_hold_is_not_taken)
+--- src/patchbay_vital/parameters.py	2026-11-14 15:11:55
++++ src/patchbay_vital/parameters.py	2026-11-15 05:26:09
+@@ -331,7 +331,7 @@
+         held = _landing(scale, preset)[1]
+         if held != preset and curve.to_display(held) != display:
+             other = next_float32(preset, math.copysign(math.inf, preset - held))
+-            if curve.to_display(other) == display and scale.holds(other):
++            if curve.to_display(other) == display:
+                 return other
+         return held
+ 
+imports M16/src/patchbay_vital/parameters.py
+FAILED tests/unit/test_parameters.py::test_the_float32_past_an_end_the_scale_does_not_hold_is_not_taken
+FAILED tests/unit/test_parameters.py::test_a_scale_holds_no_value_that_is_not_finite
+2 failed, 100 passed in 0.84s
+exit=1
+
+== MA, the sixth review's first scenario: where the curve's float32 is held, to_preset returns
+   the held float32 above it wherever that shows the display too (must fail by name)
+--- src/patchbay_vital/parameters.py	2026-11-14 15:11:55
++++ src/patchbay_vital/parameters.py	2026-11-15 05:26:11
+@@ -329,6 +329,10 @@
+         if scale.kind == "indexed":
+             preset = _round_half_away(preset)
+         held = _landing(scale, preset)[1]
++        if held == preset:
++            beside = next_float32(preset, math.inf)  # MUTATION: a held neighbour, if it shows the display
++            if scale.holds(beside) and curve.to_display(beside) == display:
++                return beside
+         if held != preset and curve.to_display(held) != display:
+             other = next_float32(preset, math.copysign(math.inf, preset - held))
+             if curve.to_display(other) == display and scale.holds(other):
+imports MA/src/patchbay_vital/parameters.py
+FAILED tests/unit/test_parameters.py::test_a_value_the_parameter_holds_comes_back_exactly[volume]
+FAILED tests/unit/test_parameters.py::test_a_display_excuses_only_what_a_set_of_its_own_float32_holds
+FAILED tests/unit/test_parameters.py::test_any_display_in_range_maps_to_a_preset_a_set_of_it_holds[volume]
+FAILED tests/unit/test_parameters.py::test_the_doubles_beside_a_pinned_display_map_to_a_preset_a_set_of_them_holds
+4 failed, 98 passed in 1.18s
+exit=1
+
+== MB, its second scenario: to_preset returns a held float32 three steps below what a set
+   holds, wherever that shows the display too, on a flat stretch (must fail by name)
+--- src/patchbay_vital/parameters.py	2026-11-14 15:11:55
++++ src/patchbay_vital/parameters.py	2026-11-15 05:26:12
+@@ -333,7 +333,8 @@
+             other = next_float32(preset, math.copysign(math.inf, preset - held))
+             if curve.to_display(other) == display and scale.holds(other):
+                 return other
+-        return held
++        far = next_float32(next_float32(next_float32(held, 0.0), 0.0), 0.0)  # MUTATION
++        return far if scale.holds(far) and curve.to_display(far) == display else held
+ 
+     def to_normalized(self, display: float) -> float:
+         """Return the normalized value the host sets for a displayed value: its preset's own.
+imports MB/src/patchbay_vital/parameters.py
+FAILED tests/unit/test_parameters.py::test_a_value_the_parameter_holds_comes_back_exactly[volume]
+FAILED tests/unit/test_parameters.py::test_a_display_excuses_only_what_a_set_of_its_own_float32_holds
+FAILED tests/unit/test_parameters.py::test_every_pinned_value_comes_back_on_every_record
+FAILED tests/unit/test_parameters.py::test_at_or_below_volume_s_floor_a_display_maps_to_a_held_preset
+FAILED tests/unit/test_parameters.py::test_a_display_takes_what_a_set_of_the_curve_s_float32_holds
+FAILED tests/unit/test_parameters.py::test_the_doubles_beside_a_pinned_display_map_to_a_preset_a_set_of_them_holds
+6 failed, 96 passed in 1.17s
+exit=1
+
+== MC, the seeded regression only the pinned rows caught in the revision after PR 14's review:
+   an unheld preset in (1e-13, 2 ** -43] sent 8 float32 steps up, in _landing. With every
+   Hypothesis test deselected, the tests over the pinned file must fail it by name
+--- src/patchbay_vital/parameters.py	2026-11-14 15:11:55
++++ src/patchbay_vital/parameters.py	2026-11-15 05:26:14
+@@ -169,6 +169,10 @@
+         stepped = scale.to_preset(toward)
+         if stepped == preset:
+             return toward, stepped
++    if 1e-13 < preset <= 2.0**-43:  # MUTATION: an unheld preset sent 8 float32 steps up
++        for _ in range(8):
++            nearest = next_float32(nearest, 1.0)
++        return nearest, scale.to_preset(nearest)
+     return nearest, landed
+ 
+ 
+imports MC/src/patchbay_vital/parameters.py
+FAILED tests/unit/test_parameters.py::test_a_display_excuses_only_what_a_set_of_its_own_float32_holds
+FAILED tests/unit/test_parameters.py::test_every_pinned_value_comes_back_on_every_record
+FAILED tests/unit/test_parameters.py::test_at_or_below_volume_s_floor_a_display_maps_to_a_held_preset
+FAILED tests/unit/test_parameters.py::test_else_a_display_takes_the_float32_on_the_other_side
+FAILED tests/unit/test_parameters.py::test_the_doubles_beside_a_pinned_display_map_to_a_preset_a_set_of_them_holds
+5 failed, 77 passed, 20 deselected in 0.32s
+exit=1
+
+== MD: _landing's first step not the nearest quotient but the float32 below it (must fail
+   test_a_quotient_that_lands_is_the_normalized_value_whatever_lands_beside_it by name)
+--- src/patchbay_vital/parameters.py	2026-11-14 15:11:55
++++ src/patchbay_vital/parameters.py	2026-11-15 05:26:15
+@@ -161,6 +161,7 @@
+     the maximum, which the nearest quotient, 1, misses.
+     """
+     nearest = round_to_float32((Fraction(preset) - Fraction(scale.minimum)) / Fraction(scale.span))
++    nearest = next_float32(nearest, 0.0) if nearest > 0.0 else nearest  # MUTATION
+     landed = scale.to_preset(nearest)
+     if landed == preset:
+         return nearest, landed
+imports MD/src/patchbay_vital/parameters.py
+FAILED tests/unit/test_parameters.py::test_every_pinned_value_comes_back_on_every_record
+FAILED tests/unit/test_parameters.py::test_at_or_below_volume_s_floor_a_display_maps_to_a_held_preset
+FAILED tests/unit/test_parameters.py::test_a_display_takes_what_a_set_of_the_curve_s_float32_holds
+FAILED tests/unit/test_parameters.py::test_a_held_power_of_two_comes_back_through_the_normalized_path[env_1_delay]
+FAILED tests/unit/test_parameters.py::test_a_held_power_of_two_comes_back_through_the_normalized_path[env_3_hold]
+FAILED tests/unit/test_parameters.py::test_a_scale_holds_its_values_and_none_past_its_ends
+FAILED tests/unit/test_parameters.py::test_any_display_in_range_maps_to_a_preset_a_set_of_it_holds[env_1_attack]
+FAILED tests/unit/test_parameters.py::test_any_display_in_range_maps_to_a_preset_a_set_of_it_holds[lfo_1_frequency]
+FAILED tests/unit/test_parameters.py::test_any_display_in_range_maps_to_a_preset_a_set_of_it_holds[reverb_decay_time]
+FAILED tests/unit/test_parameters.py::test_any_display_in_range_maps_to_a_preset_a_set_of_it_holds[volume]
+FAILED tests/unit/test_parameters.py::test_any_display_in_range_maps_to_a_preset_a_set_of_it_holds[beats_per_minute]
+FAILED tests/unit/test_parameters.py::test_an_arbitrary_display_takes_what_a_set_of_it_holds
+FAILED tests/unit/test_parameters.py::test_the_doubles_beside_a_pinned_display_map_to_a_preset_a_set_of_them_holds
+FAILED tests/unit/test_parameters.py::test_the_step_toward_a_preset_stays_where_the_host_can_set_it
+FAILED tests/unit/test_parameters.py::test_a_quotient_that_lands_is_the_normalized_value_whatever_lands_beside_it
+FAILED tests/unit/test_parameters.py::test_the_float32_past_an_end_the_scale_does_not_hold_is_not_taken
+FAILED tests/unit/test_parameters.py::test_an_indexed_scale_wider_than_its_float32s_takes_what_a_set_holds
+FAILED tests/unit/test_parameters.py::test_every_committed_record_maps_any_display_to_a_preset_a_set_of_it_holds
+18 failed, 84 passed in 1.30s
+exit=1
+
+== ME: tests/data/pinned-values.txt missing (every test reading it must fail by name)
+   tests/data/pinned-values.txt removed from the copy
+imports ME/src/patchbay_vital/parameters.py
+FAILED tests/unit/test_parameters.py::test_the_pinned_values_file_holds_three_named_sets
+FAILED tests/unit/test_parameters.py::test_every_pinned_value_comes_back_on_every_record
+FAILED tests/unit/test_parameters.py::test_at_or_below_volume_s_floor_a_display_maps_to_a_held_preset
+FAILED tests/unit/test_parameters.py::test_a_display_takes_what_a_set_of_the_curve_s_float32_holds
+FAILED tests/unit/test_parameters.py::test_else_a_display_takes_the_float32_on_the_other_side
+FAILED tests/unit/test_parameters.py::test_a_held_power_of_two_comes_back_through_the_normalized_path[env_1_delay]
+FAILED tests/unit/test_parameters.py::test_a_held_power_of_two_comes_back_through_the_normalized_path[env_3_hold]
+FAILED tests/unit/test_parameters.py::test_an_arbitrary_display_takes_what_a_set_of_it_holds
+FAILED tests/unit/test_parameters.py::test_the_doubles_beside_a_pinned_display_map_to_a_preset_a_set_of_them_holds
+9 failed, 93 passed in 0.96s
+FileNotFoundError: [Errno 2] No such file or directory: '<scratchpad>/mutation-ME/tests/data/pinned-values.txt'
+exit=1
+-- ME again, on the integration module's four tests that read the file, with Vital
+   tests/data/pinned-values.txt removed from the copy
+imports ME-hosted/src/patchbay_vital/parameters.py
+FAILED tests/integration/test_vital_plugin.py::test_at_or_below_volume_s_floor_a_set_holds_the_map_s_preset
+FAILED tests/integration/test_vital_plugin.py::test_a_held_power_of_two_set_through_the_host_is_held
+FAILED tests/integration/test_vital_plugin.py::test_a_load_holds_volume_s_unheld_float32_as_its_neighbour_and_chorus_feedback_as_given
+FAILED tests/integration/test_vital_plugin.py::test_an_arbitrary_display_set_through_the_host_holds_the_map_s_preset
+4 failed in 2.47s
+FileNotFoundError: [Errno 2] No such file or directory: '<scratchpad>/mutation-ME-hosted/tests/data/pinned-values.txt'
+exit=1
+
+== MF: a malformed line, a normalized value that is not a float32, 0.1 (every test reading the
+   file must fail by name, naming the file and the line)
+--- tests/data/pinned-values.txt	2026-11-14 15:13:46
++++ tests/data/pinned-values.txt	2026-11-15 05:26:21
+@@ -31,7 +31,7 @@
+ # revisions after PR 14's fourth and fifth reviews, and of issue #16's spec,
+ # agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/).
+ volume_floor 5.857149595214349e-20 issue #13's value
+-volume_floor 3.4694490199051456e-18 the smallest of the former one-ulp landings
++volume_floor 0.1 the smallest of the former one-ulp landings
+ volume_floor 1.439742266862027e-17 a former one-ulp landing below the display
+ volume_floor 1.53642479121845e-17 the floor's own, preset 2 ** -43
+ powers_of_two 0.7071068286895752 1.0 on the envelope records
+imports MF/src/patchbay_vital/parameters.py
+FAILED tests/unit/test_parameters.py::test_the_pinned_values_file_holds_three_named_sets
+FAILED tests/unit/test_parameters.py::test_every_pinned_value_comes_back_on_every_record
+FAILED tests/unit/test_parameters.py::test_at_or_below_volume_s_floor_a_display_maps_to_a_held_preset
+FAILED tests/unit/test_parameters.py::test_a_display_takes_what_a_set_of_the_curve_s_float32_holds
+FAILED tests/unit/test_parameters.py::test_else_a_display_takes_the_float32_on_the_other_side
+FAILED tests/unit/test_parameters.py::test_a_held_power_of_two_comes_back_through_the_normalized_path[env_1_delay]
+FAILED tests/unit/test_parameters.py::test_a_held_power_of_two_comes_back_through_the_normalized_path[env_3_hold]
+FAILED tests/unit/test_parameters.py::test_an_arbitrary_display_takes_what_a_set_of_it_holds
+FAILED tests/unit/test_parameters.py::test_the_doubles_beside_a_pinned_display_map_to_a_preset_a_set_of_them_holds
+9 failed, 93 passed in 0.87s
+Failed: pinned-values.txt:34 is not '<set> <value> <name>': 'volume_floor 0.1 the smallest of the former one-ulp landings'
+exit=1
+-- MF again, on the integration module's four tests that read the file, with Vital
+--- tests/data/pinned-values.txt	2026-11-14 15:13:46
++++ tests/data/pinned-values.txt	2026-11-15 05:26:23
+@@ -31,7 +31,7 @@
+ # revisions after PR 14's fourth and fifth reviews, and of issue #16's spec,
+ # agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/).
+ volume_floor 5.857149595214349e-20 issue #13's value
+-volume_floor 3.4694490199051456e-18 the smallest of the former one-ulp landings
++volume_floor 0.1 the smallest of the former one-ulp landings
+ volume_floor 1.439742266862027e-17 a former one-ulp landing below the display
+ volume_floor 1.53642479121845e-17 the floor's own, preset 2 ** -43
+ powers_of_two 0.7071068286895752 1.0 on the envelope records
+imports MF-hosted/src/patchbay_vital/parameters.py
+FAILED tests/integration/test_vital_plugin.py::test_at_or_below_volume_s_floor_a_set_holds_the_map_s_preset
+FAILED tests/integration/test_vital_plugin.py::test_a_held_power_of_two_set_through_the_host_is_held
+FAILED tests/integration/test_vital_plugin.py::test_a_load_holds_volume_s_unheld_float32_as_its_neighbour_and_chorus_feedback_as_given
+FAILED tests/integration/test_vital_plugin.py::test_an_arbitrary_display_set_through_the_host_holds_the_map_s_preset
+4 failed in 2.40s
+Failed: pinned-values.txt:34 is not '<set> <value> <name>': 'volume_floor 0.1 the smallest of the former one-ulp landings'
+exit=1
+
+== MF2: a line of a set no reader knows (every test reading the file must fail by name, naming
+   the file and the line)
+--- tests/data/pinned-values.txt	2026-11-14 15:13:46
++++ tests/data/pinned-values.txt	2026-11-15 05:26:25
+@@ -31,7 +31,7 @@
+ # revisions after PR 14's fourth and fifth reviews, and of issue #16's spec,
+ # agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/).
+ volume_floor 5.857149595214349e-20 issue #13's value
+-volume_floor 3.4694490199051456e-18 the smallest of the former one-ulp landings
++volume_ceiling 3.4694490199051456e-18 the smallest of the former one-ulp landings
+ volume_floor 1.439742266862027e-17 a former one-ulp landing below the display
+ volume_floor 1.53642479121845e-17 the floor's own, preset 2 ** -43
+ powers_of_two 0.7071068286895752 1.0 on the envelope records
+imports MF2/src/patchbay_vital/parameters.py
+FAILED tests/unit/test_parameters.py::test_the_pinned_values_file_holds_three_named_sets
+FAILED tests/unit/test_parameters.py::test_every_pinned_value_comes_back_on_every_record
+FAILED tests/unit/test_parameters.py::test_at_or_below_volume_s_floor_a_display_maps_to_a_held_preset
+FAILED tests/unit/test_parameters.py::test_a_display_takes_what_a_set_of_the_curve_s_float32_holds
+FAILED tests/unit/test_parameters.py::test_else_a_display_takes_the_float32_on_the_other_side
+FAILED tests/unit/test_parameters.py::test_a_held_power_of_two_comes_back_through_the_normalized_path[env_1_delay]
+FAILED tests/unit/test_parameters.py::test_a_held_power_of_two_comes_back_through_the_normalized_path[env_3_hold]
+FAILED tests/unit/test_parameters.py::test_an_arbitrary_display_takes_what_a_set_of_it_holds
+FAILED tests/unit/test_parameters.py::test_the_doubles_beside_a_pinned_display_map_to_a_preset_a_set_of_them_holds
+9 failed, 93 passed in 0.86s
+Failed: pinned-values.txt:34 is not '<set> <value> <name>': 'volume_ceiling 3.4694490199051456e-18 the smallest of the former one-ulp landings'
+exit=1
+-- MF2 again, on the integration module's four tests that read the file, with Vital
+--- tests/data/pinned-values.txt	2026-11-14 15:13:46
++++ tests/data/pinned-values.txt	2026-11-15 05:26:27
+@@ -31,7 +31,7 @@
+ # revisions after PR 14's fourth and fifth reviews, and of issue #16's spec,
+ # agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/).
+ volume_floor 5.857149595214349e-20 issue #13's value
+-volume_floor 3.4694490199051456e-18 the smallest of the former one-ulp landings
++volume_ceiling 3.4694490199051456e-18 the smallest of the former one-ulp landings
+ volume_floor 1.439742266862027e-17 a former one-ulp landing below the display
+ volume_floor 1.53642479121845e-17 the floor's own, preset 2 ** -43
+ powers_of_two 0.7071068286895752 1.0 on the envelope records
+imports MF2-hosted/src/patchbay_vital/parameters.py
+FAILED tests/integration/test_vital_plugin.py::test_at_or_below_volume_s_floor_a_set_holds_the_map_s_preset
+FAILED tests/integration/test_vital_plugin.py::test_a_held_power_of_two_set_through_the_host_is_held
+FAILED tests/integration/test_vital_plugin.py::test_a_load_holds_volume_s_unheld_float32_as_its_neighbour_and_chorus_feedback_as_given
+FAILED tests/integration/test_vital_plugin.py::test_an_arbitrary_display_set_through_the_host_holds_the_map_s_preset
+4 failed in 2.40s
+Failed: pinned-values.txt:34 is not '<set> <value> <name>': 'volume_ceiling 3.4694490199051456e-18 the smallest of the former one-ulp landings'
+exit=1
+
+== MF3: a display that is not finite in the third set (every test reading the file must fail by
+   name, naming the file and the line)
+--- tests/data/pinned-values.txt	2026-11-14 15:13:46
++++ tests/data/pinned-values.txt	2026-11-15 05:26:30
+@@ -38,4 +38,4 @@
+ powers_of_two 0.3535534143447876 0.5 on the envelope records
+ powers_of_two 6.74349621476722e-07 2 ** -20 on the envelope records
+ tempo_displays 216.85141355537831 issue #16's example, held as the float32 above the curve's
+-tempo_displays 58.843714737570515 held as the float32 below the curve's
++tempo_displays inf held as the float32 below the curve's
+imports MF3/src/patchbay_vital/parameters.py
+FAILED tests/unit/test_parameters.py::test_the_pinned_values_file_holds_three_named_sets
+FAILED tests/unit/test_parameters.py::test_every_pinned_value_comes_back_on_every_record
+FAILED tests/unit/test_parameters.py::test_at_or_below_volume_s_floor_a_display_maps_to_a_held_preset
+FAILED tests/unit/test_parameters.py::test_a_display_takes_what_a_set_of_the_curve_s_float32_holds
+FAILED tests/unit/test_parameters.py::test_else_a_display_takes_the_float32_on_the_other_side
+FAILED tests/unit/test_parameters.py::test_a_held_power_of_two_comes_back_through_the_normalized_path[env_1_delay]
+FAILED tests/unit/test_parameters.py::test_a_held_power_of_two_comes_back_through_the_normalized_path[env_3_hold]
+FAILED tests/unit/test_parameters.py::test_an_arbitrary_display_takes_what_a_set_of_it_holds
+FAILED tests/unit/test_parameters.py::test_the_doubles_beside_a_pinned_display_map_to_a_preset_a_set_of_them_holds
+9 failed, 93 passed in 0.87s
+Failed: pinned-values.txt:41 is not '<set> <value> <name>': "tempo_displays inf held as the float32 below the curve's"
+exit=1
+-- MF3 again, on the integration module's four tests that read the file, with Vital
+--- tests/data/pinned-values.txt	2026-11-14 15:13:46
++++ tests/data/pinned-values.txt	2026-11-15 05:26:31
+@@ -38,4 +38,4 @@
+ powers_of_two 0.3535534143447876 0.5 on the envelope records
+ powers_of_two 6.74349621476722e-07 2 ** -20 on the envelope records
+ tempo_displays 216.85141355537831 issue #16's example, held as the float32 above the curve's
+-tempo_displays 58.843714737570515 held as the float32 below the curve's
++tempo_displays inf held as the float32 below the curve's
+imports MF3-hosted/src/patchbay_vital/parameters.py
+FAILED tests/integration/test_vital_plugin.py::test_at_or_below_volume_s_floor_a_set_holds_the_map_s_preset
+FAILED tests/integration/test_vital_plugin.py::test_a_held_power_of_two_set_through_the_host_is_held
+FAILED tests/integration/test_vital_plugin.py::test_a_load_holds_volume_s_unheld_float32_as_its_neighbour_and_chorus_feedback_as_given
+FAILED tests/integration/test_vital_plugin.py::test_an_arbitrary_display_set_through_the_host_holds_the_map_s_preset
+4 failed in 2.39s
+Failed: pinned-values.txt:41 is not '<set> <value> <name>': "tempo_displays inf held as the float32 below the curve's"
+exit=1
+
+================ the final review's findings 2 and 3: mutants of _landing ================
+_landing is the same text in main's tree and this branch's. What a run's pass or fail means is
+said before it.
+
+== ML1, finding 2's first scenario, the step the wrong way, on MAIN's tree and tests. The
+   finding says the tests still pass. A fail here means main's tests already catch it.
+--- <scratchpad>/mutation-ML1-main-pristine/src/patchbay_vital/parameters.py	2026-11-13 15:26:28
++++ src/patchbay_vital/parameters.py	2026-11-15 05:26:34
+@@ -159,7 +159,7 @@
+     landed = scale.to_preset(nearest)
+     if landed == preset:
+         return nearest, landed
+-    toward = next_float32(nearest, math.copysign(math.inf, preset - landed))
++    toward = next_float32(nearest, math.copysign(math.inf, landed - preset))
+     if 0.0 <= toward <= 1.0:
+         stepped = scale.to_preset(toward)
+         if stepped == preset:
+imports ML1-main/src/patchbay_vital/parameters.py
+FAILED tests/unit/test_parameters.py::test_a_held_power_of_two_comes_back_through_the_normalized_path[env_1_delay]
+FAILED tests/unit/test_parameters.py::test_a_held_power_of_two_comes_back_through_the_normalized_path[env_3_hold]
+2 failed, 87 passed in 0.55s
+exit=1
+
+== ML2, its second scenario, the step without its [0, 1] check, on MAIN's tree and tests. A
+   fail here means main's tests already catch it.
+--- <scratchpad>/mutation-ML2-main-pristine/src/patchbay_vital/parameters.py	2026-11-13 15:26:28
++++ src/patchbay_vital/parameters.py	2026-11-15 05:26:35
+@@ -160,7 +160,7 @@
+     if landed == preset:
+         return nearest, landed
+     toward = next_float32(nearest, math.copysign(math.inf, preset - landed))
+-    if 0.0 <= toward <= 1.0:
++    if True:
+         stepped = scale.to_preset(toward)
+         if stepped == preset:
+             return toward, stepped
+imports ML2-main/src/patchbay_vital/parameters.py
+FAILED tests/unit/test_parameters.py::test_the_step_toward_a_preset_stays_where_the_host_can_set_it
+1 failed, 88 passed in 0.55s
+exit=1
+
+== ML3: where no normalized value lands on a preset, _landing keeps the step's landing, not
+   the nearest quotient's, so what a set of an unheld float32 holds moves. On MAIN's tree and
+   tests, where _what_a_set_holds reads _landing through scale.to_normalized. The tests that
+   fail are those that compare with a literal; the property's tests and the test over the
+   pinned file pass, their expected value having followed the mutant. That is finding 2.
+--- <scratchpad>/mutation-ML3-main-pristine/src/patchbay_vital/parameters.py	2026-11-13 15:26:28
++++ src/patchbay_vital/parameters.py	2026-11-15 05:26:36
+@@ -162,8 +162,7 @@
+     toward = next_float32(nearest, math.copysign(math.inf, preset - landed))
+     if 0.0 <= toward <= 1.0:
+         stepped = scale.to_preset(toward)
+-        if stepped == preset:
+-            return toward, stepped
++        return toward, stepped  # MUTATION: a miss keeps the step's landing
+     return nearest, landed
+ 
+ 
+imports ML3-main/src/patchbay_vital/parameters.py
+FAILED tests/unit/test_parameters.py::test_a_display_excuses_only_what_a_set_of_its_own_float32_holds
+FAILED tests/unit/test_parameters.py::test_a_display_takes_what_a_set_of_the_curve_s_float32_holds
+FAILED tests/unit/test_parameters.py::test_else_a_display_takes_the_float32_on_the_other_side
+3 failed, 86 passed in 0.56s
+exit=1
+-- ML3 on THIS BRANCH's tree and tests, where _what_a_set_holds is worked out from primitives.
+   The property's tests and the test over the pinned file fail by name: they own _landing now.
+--- src/patchbay_vital/parameters.py	2026-11-14 15:11:55
++++ src/patchbay_vital/parameters.py	2026-11-15 05:26:37
+@@ -167,8 +167,7 @@
+     toward = next_float32(nearest, math.copysign(math.inf, preset - landed))
+     if 0.0 <= toward <= 1.0:
+         stepped = scale.to_preset(toward)
+-        if stepped == preset:
+-            return toward, stepped
++        return toward, stepped  # MUTATION: a miss keeps the step's landing
+     return nearest, landed
+ 
+ 
+imports ML3/src/patchbay_vital/parameters.py
+FAILED tests/unit/test_parameters.py::test_every_pinned_value_comes_back_on_every_record
+FAILED tests/unit/test_parameters.py::test_at_or_below_volume_s_floor_a_display_maps_to_a_held_preset
+FAILED tests/unit/test_parameters.py::test_a_display_takes_what_a_set_of_the_curve_s_float32_holds
+FAILED tests/unit/test_parameters.py::test_any_display_in_range_maps_to_a_preset_a_set_of_it_holds[env_1_attack]
+FAILED tests/unit/test_parameters.py::test_any_display_in_range_maps_to_a_preset_a_set_of_it_holds[lfo_1_frequency]
+FAILED tests/unit/test_parameters.py::test_any_display_in_range_maps_to_a_preset_a_set_of_it_holds[reverb_decay_time]
+FAILED tests/unit/test_parameters.py::test_any_display_in_range_maps_to_a_preset_a_set_of_it_holds[volume]
+FAILED tests/unit/test_parameters.py::test_any_display_in_range_maps_to_a_preset_a_set_of_it_holds[beats_per_minute]
+FAILED tests/unit/test_parameters.py::test_an_arbitrary_display_takes_what_a_set_of_it_holds
+FAILED tests/unit/test_parameters.py::test_the_doubles_beside_a_pinned_display_map_to_a_preset_a_set_of_them_holds
+FAILED tests/unit/test_parameters.py::test_every_committed_record_maps_any_display_to_a_preset_a_set_of_it_holds
+11 failed, 91 passed in 1.09s
+exit=1
+-- ML3 on MAIN's load test, with Vital. Its expected value is computed with the shipped
+   to_normalized, so it follows the mutant, and the test fails though Vital holds what it held.
+   That is finding 3: a fail for the wrong reason.
+--- <scratchpad>/mutation-ML3-main-load-pristine/src/patchbay_vital/parameters.py	2026-11-13 15:26:28
++++ src/patchbay_vital/parameters.py	2026-11-15 05:26:39
+@@ -162,8 +162,7 @@
+     toward = next_float32(nearest, math.copysign(math.inf, preset - landed))
+     if 0.0 <= toward <= 1.0:
+         stepped = scale.to_preset(toward)
+-        if stepped == preset:
+-            return toward, stepped
++        return toward, stepped  # MUTATION: a miss keeps the step's landing
+     return nearest, landed
+ 
+ 
+imports ML3-main-load/src/patchbay_vital/parameters.py
+FAILED tests/integration/test_vital_plugin.py::test_a_load_holds_volume_s_unheld_float32_as_its_neighbour_and_chorus_feedback_as_given
+1 failed in 2.38s
+exit=1
+-- ML3 on THIS BRANCH's load test, with Vital. Its expected value is the forward scale at the
+   Fraction quotient, so it does not move, and the test passes: Vital's held value did not
+   change. The mutant is failed by this branch's unit tests, above.
+--- src/patchbay_vital/parameters.py	2026-11-14 15:11:55
++++ src/patchbay_vital/parameters.py	2026-11-15 05:26:42
+@@ -167,8 +167,7 @@
+     toward = next_float32(nearest, math.copysign(math.inf, preset - landed))
+     if 0.0 <= toward <= 1.0:
+         stepped = scale.to_preset(toward)
+-        if stepped == preset:
+-            return toward, stepped
++        return toward, stepped  # MUTATION: a miss keeps the step's landing
+     return nearest, landed
+ 
+ 
+imports ML3-load/src/patchbay_vital/parameters.py
+1 passed in 2.40s
+exit=0
+
+================ the final review's finding 5: the integration module's reader ================
+
+== MG1: the four volume_floor lines deleted from MAIN's file, on MAIN's three integration
+   tests that read it, with Vital. A pass here is the finding: the loops ran nothing.
+--- <scratchpad>/mutation-MG1-main-pristine/tests/data/pinned-values.txt	2026-11-13 15:26:28
++++ tests/data/pinned-values.txt	2026-11-15 05:26:45
+@@ -21,10 +21,6 @@
+ # Vital 1.6.4 holds the map's preset at every one (the verification/plugin-probe.txt of issue
+ # #15's spec, agent-os/specs/2026-11-12-0937-map-inverses-land-on-held-presets/, and of the
+ # revisions after PR 14's fourth and fifth reviews).
+-volume_floor 5.857149595214349e-20 issue #13's value
+-volume_floor 3.4694490199051456e-18 the smallest of the former one-ulp landings
+-volume_floor 1.439742266862027e-17 a former one-ulp landing below the display
+-volume_floor 1.53642479121845e-17 the floor's own, preset 2 ** -43
+ powers_of_two 0.7071068286895752 1.0 on the envelope records
+ powers_of_two 0.3535534143447876 0.5 on the envelope records
+ powers_of_two 6.74349621476722e-07 2 ** -20 on the envelope records
+imports MG1-main/src/patchbay_vital/parameters.py
+3 passed in 2.41s
+exit=0
+-- MG1 on THIS BRANCH's file and its four integration tests, with Vital: each must fail by
+   name, naming the file and the empty set
+--- tests/data/pinned-values.txt	2026-11-14 15:13:46
++++ tests/data/pinned-values.txt	2026-11-15 05:26:47
+@@ -30,10 +30,6 @@
+ # #15's spec, agent-os/specs/2026-11-12-0937-map-inverses-land-on-held-presets/, of the
+ # revisions after PR 14's fourth and fifth reviews, and of issue #16's spec,
+ # agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/).
+-volume_floor 5.857149595214349e-20 issue #13's value
+-volume_floor 3.4694490199051456e-18 the smallest of the former one-ulp landings
+-volume_floor 1.439742266862027e-17 a former one-ulp landing below the display
+-volume_floor 1.53642479121845e-17 the floor's own, preset 2 ** -43
+ powers_of_two 0.7071068286895752 1.0 on the envelope records
+ powers_of_two 0.3535534143447876 0.5 on the envelope records
+ powers_of_two 6.74349621476722e-07 2 ** -20 on the envelope records
+imports MG1/src/patchbay_vital/parameters.py
+FAILED tests/integration/test_vital_plugin.py::test_at_or_below_volume_s_floor_a_set_holds_the_map_s_preset
+FAILED tests/integration/test_vital_plugin.py::test_a_held_power_of_two_set_through_the_host_is_held
+FAILED tests/integration/test_vital_plugin.py::test_a_load_holds_volume_s_unheld_float32_as_its_neighbour_and_chorus_feedback_as_given
+FAILED tests/integration/test_vital_plugin.py::test_an_arbitrary_display_set_through_the_host_holds_the_map_s_preset
+4 failed in 2.40s
+Failed: pinned-values.txt holds no volume_floor value
+exit=1
+
+== MG2: a normalized value outside [0, 1], 1.5, a float32, in MAIN's file, on MAIN's three
+   integration tests, with Vital. Its reader takes the line; what fails, fails downstream.
+--- <scratchpad>/mutation-MG2-main-pristine/tests/data/pinned-values.txt	2026-11-13 15:26:28
++++ tests/data/pinned-values.txt	2026-11-15 05:26:50
+@@ -26,5 +26,5 @@
+ volume_floor 1.439742266862027e-17 a former one-ulp landing below the display
+ volume_floor 1.53642479121845e-17 the floor's own, preset 2 ** -43
+ powers_of_two 0.7071068286895752 1.0 on the envelope records
+-powers_of_two 0.3535534143447876 0.5 on the envelope records
++powers_of_two 1.5 0.5 on the envelope records
+ powers_of_two 6.74349621476722e-07 2 ** -20 on the envelope records
+imports MG2-main/src/patchbay_vital/parameters.py
+FAILED tests/integration/test_vital_plugin.py::test_a_held_power_of_two_set_through_the_host_is_held
+1 failed, 2 passed in 2.49s
+exit=1
+-- MG2 on THIS BRANCH's file and its four integration tests, with Vital: each must fail by
+   name, naming the file and the line
+--- tests/data/pinned-values.txt	2026-11-14 15:13:46
++++ tests/data/pinned-values.txt	2026-11-15 05:26:53
+@@ -35,7 +35,7 @@
+ volume_floor 1.439742266862027e-17 a former one-ulp landing below the display
+ volume_floor 1.53642479121845e-17 the floor's own, preset 2 ** -43
+ powers_of_two 0.7071068286895752 1.0 on the envelope records
+-powers_of_two 0.3535534143447876 0.5 on the envelope records
++powers_of_two 1.5 0.5 on the envelope records
+ powers_of_two 6.74349621476722e-07 2 ** -20 on the envelope records
+ tempo_displays 216.85141355537831 issue #16's example, held as the float32 above the curve's
+ tempo_displays 58.843714737570515 held as the float32 below the curve's
+imports MG2/src/patchbay_vital/parameters.py
+FAILED tests/integration/test_vital_plugin.py::test_at_or_below_volume_s_floor_a_set_holds_the_map_s_preset
+FAILED tests/integration/test_vital_plugin.py::test_a_held_power_of_two_set_through_the_host_is_held
+FAILED tests/integration/test_vital_plugin.py::test_a_load_holds_volume_s_unheld_float32_as_its_neighbour_and_chorus_feedback_as_given
+FAILED tests/integration/test_vital_plugin.py::test_an_arbitrary_display_set_through_the_host_holds_the_map_s_preset
+4 failed in 2.39s
+Failed: pinned-values.txt:38 is not '<set> <value> <name>': 'powers_of_two 1.5 0.5 on the envelope records'
+exit=1
+exit=0
+
+the trees after the run:
+  HEAD f533b1b0a362373613471993c86f2df8ab0ed111
+  git status --porcelain=v1 --untracked-files=all, 15 lines:
+     M src/patchbay_vital/parameters.py
+     M tests/data/pinned-values.txt
+     M tests/integration/test_vital_plugin.py
+     M tests/unit/test_parameters.py
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/plan.md
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/references.md
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/shape.md
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/standards.md
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/verification/arbitrary-displays.txt
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/verification/cost.txt
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/verification/direct-count.txt
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/verification/indexed-count.txt
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/verification/mutation.txt
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/verification/plugin-probe.txt
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/verification/sweep.txt
+  this branch's tree, the working tree: git hash-object of each file the run reads, HEAD's blob beside it:
+    50fe09b3c3b285b3d569a8b7eb2f76981c7d6164  src/patchbay_vital/__init__.py  (HEAD 50fe09b3c3b285b3d569a8b7eb2f76981c7d6164)
+    5bf2ff80237d4dde75a3fa3b5e45728daf2dbb46  src/patchbay_vital/census.py  (HEAD 5bf2ff80237d4dde75a3fa3b5e45728daf2dbb46)
+    109ae1887be396e43ce7939b7115ec9745b6c6ca  src/patchbay_vital/data/parameters.json  (HEAD 109ae1887be396e43ce7939b7115ec9745b6c6ca)
+    d8265cd5668a70b1802e3d7b1917104935e292ff  src/patchbay_vital/errors.py  (HEAD d8265cd5668a70b1802e3d7b1917104935e292ff)
+    ddf88f5cf88bc3bfd23301f0968ca3bcd65533ac  src/patchbay_vital/files.py  (HEAD ddf88f5cf88bc3bfd23301f0968ca3bcd65533ac)
+    27a1e91bd4483e2fbdebf444799b51f78617ab0e  src/patchbay_vital/float32.py  (HEAD 27a1e91bd4483e2fbdebf444799b51f78617ab0e)
+    4296bf4d4d4ef0280ae6ae4d16810a8bce8c9b75  src/patchbay_vital/format.py  (HEAD 4296bf4d4d4ef0280ae6ae4d16810a8bce8c9b75)
+    e72737ee0f4a1d68ae1d8374390c2fa9b0d02692  src/patchbay_vital/grisu2.py  (HEAD e72737ee0f4a1d68ae1d8374390c2fa9b0d02692)
+    b8f0e11938028b0f7ddb9b079cb36b421026fd9c  src/patchbay_vital/host.py  (HEAD b8f0e11938028b0f7ddb9b079cb36b421026fd9c)
+    51ac5eef0a8cf43c38d972323fb508db3a2a4456  src/patchbay_vital/parameters.py  (HEAD 25b1a378e0d633bf4deede60d3173e976059a2a7)
+    f75e2e85d570f3db4bf5ec206bf9143f1ca4922f  src/patchbay_vital/preset.py  (HEAD f75e2e85d570f3db4bf5ec206bf9143f1ca4922f)
+    e69de29bb2d1d6434b8b29ae775ad8c2e48c5391  src/patchbay_vital/py.typed  (HEAD e69de29bb2d1d6434b8b29ae775ad8c2e48c5391)
+    f3dc277612d28632cba39cf37fa7cd42cdaa4ef6  src/patchbay_vital/settings_keys.txt  (HEAD f3dc277612d28632cba39cf37fa7cd42cdaa4ef6)
+    4ea00da21a7666f2867cf8aba41593f928755b3e  src/patchbay_vital/state.py  (HEAD 4ea00da21a7666f2867cf8aba41593f928755b3e)
+    7c3745ee4e0b9b081f3ab829b2207c6894345c22  tests/unit/test_parameters.py  (HEAD 5ba924207a40104c5a3e1ee79ea4cf81c171a813)
+    30c55ede7a4d93930b727f6248f5369545c33e34  tests/unit/test_float32.py  (HEAD 30c55ede7a4d93930b727f6248f5369545c33e34)
+    5d2f90e9480483728ca94dca968562b97595ae21  tests/integration/test_vital_plugin.py  (HEAD f85e667fa1bdb48fc1f75cfc3f0b9c4c5b9f3f6d)
+    cb5da6c7d1977271534181d007a8aa57567ff92c  tests/data/pinned-values.txt  (HEAD 40aff4ecfcdb10b848a7eb60879b7cf90d5fcacf)
+  main's tree, commit f533b1b0a362373613471993c86f2df8ab0ed111, extracted with git archive: git hash-object of
+  each extracted file, the blob of main's commit beside it:
+    50fe09b3c3b285b3d569a8b7eb2f76981c7d6164  <scratchpad>/r16/main/src/patchbay_vital/__init__.py  (main 50fe09b3c3b285b3d569a8b7eb2f76981c7d6164)
+    5bf2ff80237d4dde75a3fa3b5e45728daf2dbb46  <scratchpad>/r16/main/src/patchbay_vital/census.py  (main 5bf2ff80237d4dde75a3fa3b5e45728daf2dbb46)
+    109ae1887be396e43ce7939b7115ec9745b6c6ca  <scratchpad>/r16/main/src/patchbay_vital/data/parameters.json  (main 109ae1887be396e43ce7939b7115ec9745b6c6ca)
+    d8265cd5668a70b1802e3d7b1917104935e292ff  <scratchpad>/r16/main/src/patchbay_vital/errors.py  (main d8265cd5668a70b1802e3d7b1917104935e292ff)
+    ddf88f5cf88bc3bfd23301f0968ca3bcd65533ac  <scratchpad>/r16/main/src/patchbay_vital/files.py  (main ddf88f5cf88bc3bfd23301f0968ca3bcd65533ac)
+    27a1e91bd4483e2fbdebf444799b51f78617ab0e  <scratchpad>/r16/main/src/patchbay_vital/float32.py  (main 27a1e91bd4483e2fbdebf444799b51f78617ab0e)
+    4296bf4d4d4ef0280ae6ae4d16810a8bce8c9b75  <scratchpad>/r16/main/src/patchbay_vital/format.py  (main 4296bf4d4d4ef0280ae6ae4d16810a8bce8c9b75)
+    e72737ee0f4a1d68ae1d8374390c2fa9b0d02692  <scratchpad>/r16/main/src/patchbay_vital/grisu2.py  (main e72737ee0f4a1d68ae1d8374390c2fa9b0d02692)
+    b8f0e11938028b0f7ddb9b079cb36b421026fd9c  <scratchpad>/r16/main/src/patchbay_vital/host.py  (main b8f0e11938028b0f7ddb9b079cb36b421026fd9c)
+    25b1a378e0d633bf4deede60d3173e976059a2a7  <scratchpad>/r16/main/src/patchbay_vital/parameters.py  (main 25b1a378e0d633bf4deede60d3173e976059a2a7)
+    f75e2e85d570f3db4bf5ec206bf9143f1ca4922f  <scratchpad>/r16/main/src/patchbay_vital/preset.py  (main f75e2e85d570f3db4bf5ec206bf9143f1ca4922f)
+    e69de29bb2d1d6434b8b29ae775ad8c2e48c5391  <scratchpad>/r16/main/src/patchbay_vital/py.typed  (main e69de29bb2d1d6434b8b29ae775ad8c2e48c5391)
+    f3dc277612d28632cba39cf37fa7cd42cdaa4ef6  <scratchpad>/r16/main/src/patchbay_vital/settings_keys.txt  (main f3dc277612d28632cba39cf37fa7cd42cdaa4ef6)
+    4ea00da21a7666f2867cf8aba41593f928755b3e  <scratchpad>/r16/main/src/patchbay_vital/state.py  (main 4ea00da21a7666f2867cf8aba41593f928755b3e)
+    5ba924207a40104c5a3e1ee79ea4cf81c171a813  <scratchpad>/r16/main/tests/unit/test_parameters.py  (main 5ba924207a40104c5a3e1ee79ea4cf81c171a813)
+    30c55ede7a4d93930b727f6248f5369545c33e34  <scratchpad>/r16/main/tests/unit/test_float32.py  (main 30c55ede7a4d93930b727f6248f5369545c33e34)
+    f85e667fa1bdb48fc1f75cfc3f0b9c4c5b9f3f6d  <scratchpad>/r16/main/tests/integration/test_vital_plugin.py  (main f85e667fa1bdb48fc1f75cfc3f0b9c4c5b9f3f6d)
+    40aff4ecfcdb10b848a7eb60879b7cf90d5fcacf  <scratchpad>/r16/main/tests/data/pinned-values.txt  (main 40aff4ecfcdb10b848a7eb60879b7cf90d5fcacf)
+cmp: the trees before and after are the same
+the machine after the run: arm64, Apple M4 Pro, 14 cores, macOS 26.6.2 (25G83), Python 3.12.16, load 6.35 11.28 12.76, at 2026-11-15 05:26 EST

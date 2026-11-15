@@ -1,0 +1,438 @@
+Issue #16's spec: the plugin probe, what Vital holds after a set of an arbitrary display, run 2026-11-15 05:26 EST on branch
+refactor/16-the-parameter-map-to_preset-returns-a-preset-the-plugin-never-holds-for-a-display-no-held-preset-shows, Vital at /Library/Audio/Plug-Ins/VST3/Vital.vst3
+the machine before the run: arm64, Apple M4 Pro, 14 cores, macOS 26.6.2 (25G83), Python 3.12.16, load 6.35 11.28 12.76, at 2026-11-15 05:26 EST
+the trees before the run:
+  HEAD f533b1b0a362373613471993c86f2df8ab0ed111
+  git status --porcelain=v1 --untracked-files=all, 15 lines:
+     M src/patchbay_vital/parameters.py
+     M tests/data/pinned-values.txt
+     M tests/integration/test_vital_plugin.py
+     M tests/unit/test_parameters.py
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/plan.md
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/references.md
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/shape.md
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/standards.md
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/verification/arbitrary-displays.txt
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/verification/cost.txt
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/verification/direct-count.txt
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/verification/indexed-count.txt
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/verification/mutation.txt
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/verification/plugin-probe.txt
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/verification/sweep.txt
+  this branch's tree, the working tree: git hash-object of each file the run reads, HEAD's blob beside it:
+    50fe09b3c3b285b3d569a8b7eb2f76981c7d6164  src/patchbay_vital/__init__.py  (HEAD 50fe09b3c3b285b3d569a8b7eb2f76981c7d6164)
+    5bf2ff80237d4dde75a3fa3b5e45728daf2dbb46  src/patchbay_vital/census.py  (HEAD 5bf2ff80237d4dde75a3fa3b5e45728daf2dbb46)
+    109ae1887be396e43ce7939b7115ec9745b6c6ca  src/patchbay_vital/data/parameters.json  (HEAD 109ae1887be396e43ce7939b7115ec9745b6c6ca)
+    d8265cd5668a70b1802e3d7b1917104935e292ff  src/patchbay_vital/errors.py  (HEAD d8265cd5668a70b1802e3d7b1917104935e292ff)
+    ddf88f5cf88bc3bfd23301f0968ca3bcd65533ac  src/patchbay_vital/files.py  (HEAD ddf88f5cf88bc3bfd23301f0968ca3bcd65533ac)
+    27a1e91bd4483e2fbdebf444799b51f78617ab0e  src/patchbay_vital/float32.py  (HEAD 27a1e91bd4483e2fbdebf444799b51f78617ab0e)
+    4296bf4d4d4ef0280ae6ae4d16810a8bce8c9b75  src/patchbay_vital/format.py  (HEAD 4296bf4d4d4ef0280ae6ae4d16810a8bce8c9b75)
+    e72737ee0f4a1d68ae1d8374390c2fa9b0d02692  src/patchbay_vital/grisu2.py  (HEAD e72737ee0f4a1d68ae1d8374390c2fa9b0d02692)
+    b8f0e11938028b0f7ddb9b079cb36b421026fd9c  src/patchbay_vital/host.py  (HEAD b8f0e11938028b0f7ddb9b079cb36b421026fd9c)
+    51ac5eef0a8cf43c38d972323fb508db3a2a4456  src/patchbay_vital/parameters.py  (HEAD 25b1a378e0d633bf4deede60d3173e976059a2a7)
+    f75e2e85d570f3db4bf5ec206bf9143f1ca4922f  src/patchbay_vital/preset.py  (HEAD f75e2e85d570f3db4bf5ec206bf9143f1ca4922f)
+    e69de29bb2d1d6434b8b29ae775ad8c2e48c5391  src/patchbay_vital/py.typed  (HEAD e69de29bb2d1d6434b8b29ae775ad8c2e48c5391)
+    f3dc277612d28632cba39cf37fa7cd42cdaa4ef6  src/patchbay_vital/settings_keys.txt  (HEAD f3dc277612d28632cba39cf37fa7cd42cdaa4ef6)
+    4ea00da21a7666f2867cf8aba41593f928755b3e  src/patchbay_vital/state.py  (HEAD 4ea00da21a7666f2867cf8aba41593f928755b3e)
+    5d2f90e9480483728ca94dca968562b97595ae21  tests/integration/test_vital_plugin.py  (HEAD f85e667fa1bdb48fc1f75cfc3f0b9c4c5b9f3f6d)
+    cb5da6c7d1977271534181d007a8aa57567ff92c  tests/data/pinned-values.txt  (HEAD 40aff4ecfcdb10b848a7eb60879b7cf90d5fcacf)
+  main's tree, commit f533b1b0a362373613471993c86f2df8ab0ed111, extracted with git archive: git hash-object of
+  each extracted file, the blob of main's commit beside it:
+    50fe09b3c3b285b3d569a8b7eb2f76981c7d6164  <scratchpad>/r16/main/src/patchbay_vital/__init__.py  (main 50fe09b3c3b285b3d569a8b7eb2f76981c7d6164)
+    5bf2ff80237d4dde75a3fa3b5e45728daf2dbb46  <scratchpad>/r16/main/src/patchbay_vital/census.py  (main 5bf2ff80237d4dde75a3fa3b5e45728daf2dbb46)
+    109ae1887be396e43ce7939b7115ec9745b6c6ca  <scratchpad>/r16/main/src/patchbay_vital/data/parameters.json  (main 109ae1887be396e43ce7939b7115ec9745b6c6ca)
+    d8265cd5668a70b1802e3d7b1917104935e292ff  <scratchpad>/r16/main/src/patchbay_vital/errors.py  (main d8265cd5668a70b1802e3d7b1917104935e292ff)
+    ddf88f5cf88bc3bfd23301f0968ca3bcd65533ac  <scratchpad>/r16/main/src/patchbay_vital/files.py  (main ddf88f5cf88bc3bfd23301f0968ca3bcd65533ac)
+    27a1e91bd4483e2fbdebf444799b51f78617ab0e  <scratchpad>/r16/main/src/patchbay_vital/float32.py  (main 27a1e91bd4483e2fbdebf444799b51f78617ab0e)
+    4296bf4d4d4ef0280ae6ae4d16810a8bce8c9b75  <scratchpad>/r16/main/src/patchbay_vital/format.py  (main 4296bf4d4d4ef0280ae6ae4d16810a8bce8c9b75)
+    e72737ee0f4a1d68ae1d8374390c2fa9b0d02692  <scratchpad>/r16/main/src/patchbay_vital/grisu2.py  (main e72737ee0f4a1d68ae1d8374390c2fa9b0d02692)
+    b8f0e11938028b0f7ddb9b079cb36b421026fd9c  <scratchpad>/r16/main/src/patchbay_vital/host.py  (main b8f0e11938028b0f7ddb9b079cb36b421026fd9c)
+    25b1a378e0d633bf4deede60d3173e976059a2a7  <scratchpad>/r16/main/src/patchbay_vital/parameters.py  (main 25b1a378e0d633bf4deede60d3173e976059a2a7)
+    f75e2e85d570f3db4bf5ec206bf9143f1ca4922f  <scratchpad>/r16/main/src/patchbay_vital/preset.py  (main f75e2e85d570f3db4bf5ec206bf9143f1ca4922f)
+    e69de29bb2d1d6434b8b29ae775ad8c2e48c5391  <scratchpad>/r16/main/src/patchbay_vital/py.typed  (main e69de29bb2d1d6434b8b29ae775ad8c2e48c5391)
+    f3dc277612d28632cba39cf37fa7cd42cdaa4ef6  <scratchpad>/r16/main/src/patchbay_vital/settings_keys.txt  (main f3dc277612d28632cba39cf37fa7cd42cdaa4ef6)
+    4ea00da21a7666f2867cf8aba41593f928755b3e  <scratchpad>/r16/main/src/patchbay_vital/state.py  (main 4ea00da21a7666f2867cf8aba41593f928755b3e)
+    f85e667fa1bdb48fc1f75cfc3f0b9c4c5b9f3f6d  <scratchpad>/r16/main/tests/integration/test_vital_plugin.py  (main f85e667fa1bdb48fc1f75cfc3f0b9c4c5b9f3f6d)
+    40aff4ecfcdb10b848a7eb60879b7cf90d5fcacf  <scratchpad>/r16/main/tests/data/pinned-values.txt  (main 40aff4ecfcdb10b848a7eb60879b7cf90d5fcacf)
+  git hash-object of each script the run runs:
+    59a2db83ecf68c1eefcf14325edb0a1ad143d1ac  <scratchpad>/r16/plugin_probe.py
+    842636461d7627ac773f6f94377de057160ed509  <scratchpad>/r16/pools.py
+    b73908ae2f6024994b2277d8e8f7091e95e42281  <scratchpad>/r16/tree.sh
+    4e9bd089c0311e865968b241e6f68152d74b4ed2  <scratchpad>/r16/run_probe.sh
+
+== the scripts, run from the repository root as: bash <scratchpad>/r16/run_probe.sh <scratchpad>/r16
+   (blank lines the plugin prints are dropped)
+```bash
+#!/bin/bash
+# Issue #16's spec: the plugin probe's transcript. Run from the repository root: bash run_probe.sh <scratch>
+# The transcript is written outside the tree, to <scratch>/out, and copied in afterwards.
+set -u
+R=$1
+FILES="$(git ls-files src | tr '\n' ' ') tests/integration/test_vital_plugin.py tests/data/pinned-values.txt"
+scrub() { sed -e "s#$R#<scratchpad>/r16#g" -e "s#$PWD/##g"; }
+machine() { echo "$(uname -m), $(sysctl -n machdep.cpu.brand_string), $(sysctl -n hw.ncpu) cores, $(sw_vers -productName) $(sw_vers -productVersion) ($(sw_vers -buildVersion)), $(uv run --locked python -V), load$(sysctl -n vm.loadavg | tr -d '{}' | sed 's/ *$//'), at $(date '+%Y-%m-%d %H:%M %Z')"; }
+{
+echo "Issue #16's spec: the plugin probe, what Vital holds after a set of an arbitrary display, run $(date '+%Y-%m-%d %H:%M %Z') on branch"
+echo "$(git branch --show-current), Vital at $(ls -d /Library/Audio/Plug-Ins/VST3/Vital.vst3)"
+echo "the machine before the run: $(machine)"
+echo "the trees before the run:"
+bash "$R/tree.sh" "$R/main" $FILES | tee "$R/out/tree-before-probe.txt"
+echo "  git hash-object of each script the run runs:"
+for s in plugin_probe.py pools.py tree.sh run_probe.sh; do echo "    $(git hash-object "$R/$s")  <scratchpad>/r16/$s"; done
+echo
+echo "== the scripts, run from the repository root as: bash <scratchpad>/r16/run_probe.sh <scratchpad>/r16"
+echo "   (blank lines the plugin prints are dropped)"
+echo '```bash'; cat "$R/run_probe.sh"; echo '```'
+echo '```python'; cat "$R/plugin_probe.py"; echo '```'
+echo '```python'; cat "$R/pools.py"; echo '```'
+echo '```bash'; cat "$R/tree.sh"; echo '```'
+echo
+echo "== the integration module's helper the probe sets with, as imported:"
+echo '```python'
+uv run --locked python - <<'PY'
+import inspect, sys
+sys.path.insert(0, "tests/integration")
+import test_vital_plugin as t
+print(inspect.getsource(t._held_after_a_set))
+PY
+echo '```'
+echo
+echo "== its output"
+uv run --locked python "$R/plugin_probe.py" --main "$R/main/src" | grep -v '^$'; echo "exit=${PIPESTATUS[0]}"
+echo
+echo "the trees after the run:"
+bash "$R/tree.sh" "$R/main" $FILES | tee "$R/out/tree-after-probe.txt"
+cmp "$R/out/tree-before-probe.txt" "$R/out/tree-after-probe.txt" && echo "cmp: the trees before and after are the same"
+echo "the machine after the run: $(machine)"
+} 2>&1 | scrub > "$R/out/probe.txt"
+```
+```python
+"""Issue #16's spec: what Vital holds after a set of an arbitrary display through the map.
+
+A SAMPLE, on the installed Vital: 200 displays a group for every scale and curve group of the map
+on a linear scale, uniform over the parameter's bounds, numpy.random.default_rng(16).uniform, one
+generator across the groups in map order; and, beside it, the pinned `tempo_displays` of
+`tests/data/pinned-values.txt` on `beats_per_minute`.
+
+Each display D is set as the integration module sets one, with its own `_held_after_a_set`,
+imported from it, after a load of the plugin's initial state, the sequence its tests run:
+
+  V  = the state's float after host.set(id, record.to_normalized(D))     what Vital holds
+  TP = record.to_preset(D)                                              this branch's map
+  G  = record.from_normalized(host.get(id))                             what `get` shows
+
+`main`'s `to_preset(D)` and whether `main`'s scale holds it come from `main`'s own tree, imported
+by one pool of processes (`pools.py`) and called directly. Counted, by group:
+
+  sets        the displays set
+  V == TP     Vital holds this branch's preset for the display, exactly
+  changed     this branch's TP differs from `main`'s
+  was unheld  of those, `main`'s TP is one `main`'s scale does not hold
+  V == main   of the changed, Vital holds `main`'s value (expected on none)
+  G == shown  `get` shows the display of the preset held, record.to_display(V)
+
+The run stops at the first display where V is not TP.
+
+Run from the repository root:
+  uv run --locked python plugin_probe.py --main <main's src>
+"""
+
+import argparse
+import sys
+import time
+
+import numpy as np
+
+import pools
+
+SETS = 200
+
+
+def main_values(job):
+    """Return `main`'s to_preset for each display of a record, and whether its scale holds it."""
+    name, displays = job
+    rec = pools.record(name)
+    presets = [rec.to_preset(d) for d in displays]
+    return presets, [rec.scale.holds(p) for p in presets]
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--main", required=True)
+    args = parser.parse_args()
+    started = time.time()
+    open_pools = pools.open_pools({"main": args.main}, {"main": 2})
+
+    sys.path.insert(0, "tests/integration")
+    import types  # noqa: PLC0415
+    from pathlib import Path  # noqa: PLC0415
+
+    import test_vital_plugin as module  # noqa: PLC0415
+    from patchbay import ParameterId  # noqa: PLC0415
+    from patchbay_vital import parameters  # noqa: PLC0415
+    from patchbay_vital.host import DEFAULT_PATH, VitalHost  # noqa: PLC0415
+
+    print(f"== this process imports {parameters.__file__} and {module.__file__}")
+    host = VitalHost()
+    initial = host.state()
+    the_map = parameters.parameter_map()
+    print(f"== Vital at {DEFAULT_PATH}: {host.name} {host.version}; the map is of"
+          f" {the_map.instrument} {the_map.vital_version}, {the_map.host}, {the_map.machine}")
+
+    groups = {}
+    for r in the_map.parameters:
+        p, s, c = r.parameter, r.scale, r.curve
+        key = (p.kind, p.minimum, p.maximum, s.kind, s.minimum, s.maximum, c.kind, c.multiply,
+               c.offset)
+        groups.setdefault(key, r)
+    linear = [r for key, r in groups.items() if key[0] == "continuous" and key[3] == "linear"]
+    rng = np.random.default_rng(16)
+    batches = [(r, rng.uniform(r.parameter.minimum, r.parameter.maximum, SETS).tolist())
+               for r in linear]
+    pinned = module._pinned(types.SimpleNamespace(rootpath=Path.cwd()))["tempo_displays"]
+    tempo = the_map.find(ParameterId("beats_per_minute"))
+    batches.append((tempo, list(pinned)))
+
+    print(f"== SAMPLE: {SETS} displays a group on the {len(linear)} continuous groups of a linear"
+          f" scale, numpy.random.default_rng(16).uniform: {SETS * len(linear):,} sets, each after a"
+          " load of the initial state; then the pinned tempo_displays")
+    columns = ("sets", "V == TP", "changed", "was unheld", "V == main", "G == shown")
+    print(f"{'group, by its first record':>32} {'curve':>20} " + " ".join(f"{c:>10}" for c in columns))
+    total = np.zeros(len(columns), dtype=np.int64)
+    for index, (record, displays) in enumerate(batches):
+        theirs, their_holds = open_pools["main"].apply(main_values, ((record.id, displays),))
+        row = np.zeros(len(columns), dtype=np.int64)
+        lines = []
+        for display, main_preset, main_held in zip(displays, theirs, their_holds, strict=True):
+            host.load_state(initial)
+            held = module._held_after_a_set(host, record, display)
+            preset = record.to_preset(display)
+            shown = record.from_normalized(host.get(record.id))
+            changed = preset != main_preset
+            row += (1, held == preset, changed, changed and not main_held,
+                    changed and held == main_preset, shown == record.to_display(held))
+            lines.append(f"   display {display!r}: main's to_preset {main_preset!r}"
+                         f" ({'held' if main_held else 'unheld'}), this branch's {preset!r},"
+                         f" Vital holds {held!r}, shown as {shown!r}")
+            if held != preset:
+                print(lines[-1])
+                print("== stopped: Vital holds another value than the map's")
+                return 1
+        label = record.id if index < len(linear) else f"{record.id}, the pinned"
+        print(f"{label:>32} {record.curve.kind:>20} " + " ".join(f"{int(v):>10}" for v in row))
+        if index >= len(linear):
+            print("\n".join(lines))
+        else:
+            total += row
+        sys.stdout.flush()
+    print(f"{'total of the sample':>32} {'':>20} " + " ".join(f"{int(v):>10}" for v in total))
+    print(f"  {time.time() - started:.0f} s")
+    for pool in open_pools.values():
+        pool.close()
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
+```
+```python
+"""Issue #16's spec: two pools of processes, each importing `patchbay_vital` from one tree.
+
+Nothing is reproduced. A worker puts one tree's `src` first on `sys.path` before its first import
+of the package, so every method it calls is that tree's shipped one: `main`'s, an extract of its
+commit made with `git archive`, or this branch's, the working tree. `open_pools` prints the files
+each pool imported and stops unless they are under the tree asked for.
+"""
+
+import multiprocessing
+import sys
+
+TREE = {}
+
+
+def use(src):
+    """A worker's initializer: import `patchbay_vital` from one tree, before anything else does."""
+    sys.path.insert(0, src)
+    import patchbay  # noqa: PLC0415
+    import patchbay_vital.errors  # noqa: PLC0415
+    import patchbay_vital.float32  # noqa: PLC0415
+    import patchbay_vital.parameters  # noqa: PLC0415
+
+    TREE["parameters"] = patchbay_vital.parameters
+    TREE["float32"] = patchbay_vital.float32
+    TREE["errors"] = patchbay_vital.errors
+    TREE["id"] = patchbay.ParameterId
+
+
+def where():
+    """Return the files this worker's tree was imported from."""
+    return TREE["parameters"].__file__, TREE["float32"].__file__
+
+
+def record(name):
+    """Return this worker's tree's record for an id."""
+    return TREE["parameters"].parameter_map().find(TREE["id"](name))
+
+
+def open_pools(sources, sizes):
+    """Open one pool a tree, `sources` and `sizes` keyed by the tree's name; print what each imports."""
+    context = multiprocessing.get_context("spawn")
+    pools = {
+        side: context.Pool(sizes[side], initializer=use, initargs=(sources[side],)) for side in sources
+    }
+    for side, pool in pools.items():
+        files = pool.apply(where)
+        print(f"== the {side} pool, {sizes[side]} processes, imports {files[0]}")
+        print(f"   and {files[1]}")
+        if not all(f.startswith(sources[side]) for f in files):
+            print("   NOT the tree asked for: stopping")
+            for other in pools.values():
+                other.terminate()
+            raise SystemExit(2)
+    return pools
+```
+```bash
+#!/bin/bash
+# Print the trees a run reads: HEAD, git status in full, and the blob of each file read in each tree.
+# usage: tree.sh <main's extract> <file>...   (run from the repository root)
+# HEAD is main's commit, f533b1b: this branch's change is in the working tree, uncommitted.
+main=$1; shift
+echo "  HEAD $(git rev-parse HEAD)"
+echo "  git status --porcelain=v1 --untracked-files=all, $(git status --porcelain=v1 --untracked-files=all | wc -l | tr -d ' ') lines:"
+git status --porcelain=v1 --untracked-files=all | sed 's/^/    /'
+echo "  this branch's tree, the working tree: git hash-object of each file the run reads, HEAD's blob beside it:"
+for f in "$@"; do
+  head_blob=$(git rev-parse --verify --quiet "HEAD:$f" || echo "not in HEAD")
+  echo "    $(git hash-object "$f")  $f  (HEAD $head_blob)"
+done
+echo "  main's tree, commit $(git rev-parse f533b1b), extracted with git archive: git hash-object of"
+echo "  each extracted file, the blob of main's commit beside it:"
+for f in "$@"; do
+  echo "    $(git hash-object "$main/$f")  <scratchpad>/r16/main/$f  (main $(git rev-parse "f533b1b:$f"))"
+done
+```
+
+== the integration module's helper the probe sets with, as imported:
+```python
+def _held_after_a_set(host: VitalHost, record: MappedParameter, display: float) -> float:
+    """Set a display through the host, normalized as the map gives it; return the state's value."""
+    host.set(record.id, record.to_normalized(display))
+    return _floats(host.state())[record.preset_key]
+
+```
+
+== its output
+== the main pool, 2 processes, imports <scratchpad>/r16/main/src/patchbay_vital/parameters.py
+   and <scratchpad>/r16/main/src/patchbay_vital/float32.py
+== this process imports src/patchbay_vital/parameters.py and tests/integration/test_vital_plugin.py
+== Vital at /Library/Audio/Plug-Ins/VST3/Vital.vst3: Vital 1.6.4; the map is of Vital 1.6.4, pedalboard 0.9.26, arm64
+== SAMPLE: 200 displays a group on the 46 continuous groups of a linear scale, numpy.random.default_rng(16).uniform: 9,200 sets, each after a load of the initial state; then the pinned tempo_displays
+      group, by its first record                curve       sets    V == TP    changed was unheld  V == main G == shown
+                beats_per_minute               linear        200        200         15         15          0        200
+                   chorus_cutoff               linear        200        200          0          0          0        200
+                  chorus_delay_1          exponential        200        200          0          0          0        200
+                  chorus_dry_wet               linear        200        200          0          0          0        200
+                 chorus_feedback               linear        200        200        102        102          0        200
+                chorus_frequency exponential_inverted        200        200         16         16          0        200
+                   chorus_spread               linear        200        200          0          0          0        200
+            compressor_band_gain               linear        200        200         97         97          0        200
+     compressor_band_lower_ratio               linear        200        200        102        102          0        200
+ compressor_band_lower_threshold               linear        200        200         55         55          0        200
+             delay_aux_frequency exponential_inverted        200        200         54         54          0        200
+                  delay_feedback               linear        200        200        107        107          0        200
+         distortion_filter_blend               linear        200        200          0          0          0        200
+                    env_1_attack              quartic        200        200         14         14          0        200
+              env_1_attack_power               linear        200        200         99         99          0        200
+                     env_1_delay              quartic        200        200         14         14          0        200
+                    eq_band_gain               linear        200        200         96         96          0        200
+               eq_band_resonance            quadratic        200        200          0          0          0        200
+        filter_1_blend_transpose               linear        200        200         24         24          0        200
+                 filter_1_cutoff               linear        200        200          0          0          0        200
+                  filter_1_drive               linear        200        200         22         22          0        200
+      filter_1_formant_resonance               linear        200        200          0          0          0        200
+      filter_1_formant_transpose               linear        200        200         91         91          0        200
+                 flanger_dry_wet               linear        200        200          0          0          0        200
+               flanger_frequency exponential_inverted        200        200         11         11          0        200
+            flanger_phase_offset               linear        200        200          0          0          0        200
+                lfo_1_delay_time               linear        200        200          0          0          0        200
+                 lfo_1_fade_time               linear        200        200          0          0          0        200
+                 lfo_1_frequency exponential_inverted        200        200         10         10          0        200
+               lfo_1_smooth_time          exponential        200        200        154        154          0        200
+                    lfo_1_stereo               linear        200        200        101        101          0        200
+             modulation_10_power               linear        200        200         99         99          0        200
+              osc_1_detune_power               linear        200        200        106        106          0        200
+              osc_1_detune_range               linear        200        200         19         19          0        200
+         osc_1_distortion_spread               linear        200        200        108        108          0        200
+              osc_1_frame_spread               linear        200        200        102        102          0        200
+                     osc_1_level            quadratic        200        200          0          0          0        200
+             osc_1_unison_detune            quadratic        200        200         13         13          0        200
+                osc_1_wave_frame               linear        200        200          0          0          0        200
+                portamento_slope               linear        200        200         91         91          0        200
+         reverb_chorus_frequency          exponential        200        200        153        153          0        200
+               reverb_decay_time          exponential        200        200         93         93          0        200
+                    reverb_delay               linear        200        200         37         37          0        200
+        reverb_high_shelf_cutoff               linear        200        200          0          0          0        200
+          reverb_high_shelf_gain               linear        200        200         71         71          0        200
+                          volume          square_root        200        200          9          9          0        200
+    beats_per_minute, the pinned               linear          2          2          2          2          0          2
+   display 216.85141355537831: main's to_preset 3.6141903400421143 (unheld), this branch's 3.6141905784606934, Vital holds 3.6141905784606934, shown as 216.8514347076416
+   display 58.843714737570515: main's to_preset 0.9807285666465759 (unheld), this branch's 0.9807285070419312, Vital holds 0.9807285070419312, shown as 58.84371042251587
+             total of the sample                            9200       9200       2085       2085          0       9200
+  79 s
+exit=0
+
+the trees after the run:
+  HEAD f533b1b0a362373613471993c86f2df8ab0ed111
+  git status --porcelain=v1 --untracked-files=all, 15 lines:
+     M src/patchbay_vital/parameters.py
+     M tests/data/pinned-values.txt
+     M tests/integration/test_vital_plugin.py
+     M tests/unit/test_parameters.py
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/plan.md
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/references.md
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/shape.md
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/standards.md
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/verification/arbitrary-displays.txt
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/verification/cost.txt
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/verification/direct-count.txt
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/verification/indexed-count.txt
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/verification/mutation.txt
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/verification/plugin-probe.txt
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/verification/sweep.txt
+  this branch's tree, the working tree: git hash-object of each file the run reads, HEAD's blob beside it:
+    50fe09b3c3b285b3d569a8b7eb2f76981c7d6164  src/patchbay_vital/__init__.py  (HEAD 50fe09b3c3b285b3d569a8b7eb2f76981c7d6164)
+    5bf2ff80237d4dde75a3fa3b5e45728daf2dbb46  src/patchbay_vital/census.py  (HEAD 5bf2ff80237d4dde75a3fa3b5e45728daf2dbb46)
+    109ae1887be396e43ce7939b7115ec9745b6c6ca  src/patchbay_vital/data/parameters.json  (HEAD 109ae1887be396e43ce7939b7115ec9745b6c6ca)
+    d8265cd5668a70b1802e3d7b1917104935e292ff  src/patchbay_vital/errors.py  (HEAD d8265cd5668a70b1802e3d7b1917104935e292ff)
+    ddf88f5cf88bc3bfd23301f0968ca3bcd65533ac  src/patchbay_vital/files.py  (HEAD ddf88f5cf88bc3bfd23301f0968ca3bcd65533ac)
+    27a1e91bd4483e2fbdebf444799b51f78617ab0e  src/patchbay_vital/float32.py  (HEAD 27a1e91bd4483e2fbdebf444799b51f78617ab0e)
+    4296bf4d4d4ef0280ae6ae4d16810a8bce8c9b75  src/patchbay_vital/format.py  (HEAD 4296bf4d4d4ef0280ae6ae4d16810a8bce8c9b75)
+    e72737ee0f4a1d68ae1d8374390c2fa9b0d02692  src/patchbay_vital/grisu2.py  (HEAD e72737ee0f4a1d68ae1d8374390c2fa9b0d02692)
+    b8f0e11938028b0f7ddb9b079cb36b421026fd9c  src/patchbay_vital/host.py  (HEAD b8f0e11938028b0f7ddb9b079cb36b421026fd9c)
+    51ac5eef0a8cf43c38d972323fb508db3a2a4456  src/patchbay_vital/parameters.py  (HEAD 25b1a378e0d633bf4deede60d3173e976059a2a7)
+    f75e2e85d570f3db4bf5ec206bf9143f1ca4922f  src/patchbay_vital/preset.py  (HEAD f75e2e85d570f3db4bf5ec206bf9143f1ca4922f)
+    e69de29bb2d1d6434b8b29ae775ad8c2e48c5391  src/patchbay_vital/py.typed  (HEAD e69de29bb2d1d6434b8b29ae775ad8c2e48c5391)
+    f3dc277612d28632cba39cf37fa7cd42cdaa4ef6  src/patchbay_vital/settings_keys.txt  (HEAD f3dc277612d28632cba39cf37fa7cd42cdaa4ef6)
+    4ea00da21a7666f2867cf8aba41593f928755b3e  src/patchbay_vital/state.py  (HEAD 4ea00da21a7666f2867cf8aba41593f928755b3e)
+    5d2f90e9480483728ca94dca968562b97595ae21  tests/integration/test_vital_plugin.py  (HEAD f85e667fa1bdb48fc1f75cfc3f0b9c4c5b9f3f6d)
+    cb5da6c7d1977271534181d007a8aa57567ff92c  tests/data/pinned-values.txt  (HEAD 40aff4ecfcdb10b848a7eb60879b7cf90d5fcacf)
+  main's tree, commit f533b1b0a362373613471993c86f2df8ab0ed111, extracted with git archive: git hash-object of
+  each extracted file, the blob of main's commit beside it:
+    50fe09b3c3b285b3d569a8b7eb2f76981c7d6164  <scratchpad>/r16/main/src/patchbay_vital/__init__.py  (main 50fe09b3c3b285b3d569a8b7eb2f76981c7d6164)
+    5bf2ff80237d4dde75a3fa3b5e45728daf2dbb46  <scratchpad>/r16/main/src/patchbay_vital/census.py  (main 5bf2ff80237d4dde75a3fa3b5e45728daf2dbb46)
+    109ae1887be396e43ce7939b7115ec9745b6c6ca  <scratchpad>/r16/main/src/patchbay_vital/data/parameters.json  (main 109ae1887be396e43ce7939b7115ec9745b6c6ca)
+    d8265cd5668a70b1802e3d7b1917104935e292ff  <scratchpad>/r16/main/src/patchbay_vital/errors.py  (main d8265cd5668a70b1802e3d7b1917104935e292ff)
+    ddf88f5cf88bc3bfd23301f0968ca3bcd65533ac  <scratchpad>/r16/main/src/patchbay_vital/files.py  (main ddf88f5cf88bc3bfd23301f0968ca3bcd65533ac)
+    27a1e91bd4483e2fbdebf444799b51f78617ab0e  <scratchpad>/r16/main/src/patchbay_vital/float32.py  (main 27a1e91bd4483e2fbdebf444799b51f78617ab0e)
+    4296bf4d4d4ef0280ae6ae4d16810a8bce8c9b75  <scratchpad>/r16/main/src/patchbay_vital/format.py  (main 4296bf4d4d4ef0280ae6ae4d16810a8bce8c9b75)
+    e72737ee0f4a1d68ae1d8374390c2fa9b0d02692  <scratchpad>/r16/main/src/patchbay_vital/grisu2.py  (main e72737ee0f4a1d68ae1d8374390c2fa9b0d02692)
+    b8f0e11938028b0f7ddb9b079cb36b421026fd9c  <scratchpad>/r16/main/src/patchbay_vital/host.py  (main b8f0e11938028b0f7ddb9b079cb36b421026fd9c)
+    25b1a378e0d633bf4deede60d3173e976059a2a7  <scratchpad>/r16/main/src/patchbay_vital/parameters.py  (main 25b1a378e0d633bf4deede60d3173e976059a2a7)
+    f75e2e85d570f3db4bf5ec206bf9143f1ca4922f  <scratchpad>/r16/main/src/patchbay_vital/preset.py  (main f75e2e85d570f3db4bf5ec206bf9143f1ca4922f)
+    e69de29bb2d1d6434b8b29ae775ad8c2e48c5391  <scratchpad>/r16/main/src/patchbay_vital/py.typed  (main e69de29bb2d1d6434b8b29ae775ad8c2e48c5391)
+    f3dc277612d28632cba39cf37fa7cd42cdaa4ef6  <scratchpad>/r16/main/src/patchbay_vital/settings_keys.txt  (main f3dc277612d28632cba39cf37fa7cd42cdaa4ef6)
+    4ea00da21a7666f2867cf8aba41593f928755b3e  <scratchpad>/r16/main/src/patchbay_vital/state.py  (main 4ea00da21a7666f2867cf8aba41593f928755b3e)
+    f85e667fa1bdb48fc1f75cfc3f0b9c4c5b9f3f6d  <scratchpad>/r16/main/tests/integration/test_vital_plugin.py  (main f85e667fa1bdb48fc1f75cfc3f0b9c4c5b9f3f6d)
+    40aff4ecfcdb10b848a7eb60879b7cf90d5fcacf  <scratchpad>/r16/main/tests/data/pinned-values.txt  (main 40aff4ecfcdb10b848a7eb60879b7cf90d5fcacf)
+cmp: the trees before and after are the same
+the machine after the run: arm64, Apple M4 Pro, 14 cores, macOS 26.6.2 (25G83), Python 3.12.16, load 2.82 8.99 11.75, at 2026-11-15 05:28 EST

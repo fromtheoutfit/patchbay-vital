@@ -1,0 +1,900 @@
+Issue #16's spec: the direct count, volume with --columns five, env_1_delay with --columns two, run 2026-11-14 18:41 EST on branch
+refactor/16-the-parameter-map-to_preset-returns-a-preset-the-plugin-never-holds-for-a-display-no-held-preset-shows, unattended, under caffeinate -i
+the machine before the run: arm64, Apple M4 Pro, 14 cores, macOS 26.6.2 (25G83), Python 3.12.16, load 4.80 2.39 1.69, at 2026-11-14 18:41 EST
+the trees before the run:
+  HEAD f533b1b0a362373613471993c86f2df8ab0ed111
+  git status --porcelain=v1 --untracked-files=all, 13 lines:
+     M src/patchbay_vital/parameters.py
+     M tests/data/pinned-values.txt
+     M tests/integration/test_vital_plugin.py
+     M tests/unit/test_parameters.py
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/plan.md
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/references.md
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/shape.md
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/standards.md
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/verification/arbitrary-displays.txt
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/verification/cost.txt
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/verification/indexed-count.txt
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/verification/mutation.txt
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/verification/plugin-probe.txt
+  this branch's tree, the working tree: git hash-object of each file the run reads, HEAD's blob beside it:
+    50fe09b3c3b285b3d569a8b7eb2f76981c7d6164  src/patchbay_vital/__init__.py  (HEAD 50fe09b3c3b285b3d569a8b7eb2f76981c7d6164)
+    5bf2ff80237d4dde75a3fa3b5e45728daf2dbb46  src/patchbay_vital/census.py  (HEAD 5bf2ff80237d4dde75a3fa3b5e45728daf2dbb46)
+    109ae1887be396e43ce7939b7115ec9745b6c6ca  src/patchbay_vital/data/parameters.json  (HEAD 109ae1887be396e43ce7939b7115ec9745b6c6ca)
+    d8265cd5668a70b1802e3d7b1917104935e292ff  src/patchbay_vital/errors.py  (HEAD d8265cd5668a70b1802e3d7b1917104935e292ff)
+    ddf88f5cf88bc3bfd23301f0968ca3bcd65533ac  src/patchbay_vital/files.py  (HEAD ddf88f5cf88bc3bfd23301f0968ca3bcd65533ac)
+    27a1e91bd4483e2fbdebf444799b51f78617ab0e  src/patchbay_vital/float32.py  (HEAD 27a1e91bd4483e2fbdebf444799b51f78617ab0e)
+    4296bf4d4d4ef0280ae6ae4d16810a8bce8c9b75  src/patchbay_vital/format.py  (HEAD 4296bf4d4d4ef0280ae6ae4d16810a8bce8c9b75)
+    e72737ee0f4a1d68ae1d8374390c2fa9b0d02692  src/patchbay_vital/grisu2.py  (HEAD e72737ee0f4a1d68ae1d8374390c2fa9b0d02692)
+    b8f0e11938028b0f7ddb9b079cb36b421026fd9c  src/patchbay_vital/host.py  (HEAD b8f0e11938028b0f7ddb9b079cb36b421026fd9c)
+    51ac5eef0a8cf43c38d972323fb508db3a2a4456  src/patchbay_vital/parameters.py  (HEAD 25b1a378e0d633bf4deede60d3173e976059a2a7)
+    f75e2e85d570f3db4bf5ec206bf9143f1ca4922f  src/patchbay_vital/preset.py  (HEAD f75e2e85d570f3db4bf5ec206bf9143f1ca4922f)
+    e69de29bb2d1d6434b8b29ae775ad8c2e48c5391  src/patchbay_vital/py.typed  (HEAD e69de29bb2d1d6434b8b29ae775ad8c2e48c5391)
+    f3dc277612d28632cba39cf37fa7cd42cdaa4ef6  src/patchbay_vital/settings_keys.txt  (HEAD f3dc277612d28632cba39cf37fa7cd42cdaa4ef6)
+    4ea00da21a7666f2867cf8aba41593f928755b3e  src/patchbay_vital/state.py  (HEAD 4ea00da21a7666f2867cf8aba41593f928755b3e)
+  main's tree, commit f533b1b0a362373613471993c86f2df8ab0ed111, extracted with git archive: git hash-object of
+  each extracted file, the blob of main's commit beside it:
+    50fe09b3c3b285b3d569a8b7eb2f76981c7d6164  <scratchpad>/r16/main/src/patchbay_vital/__init__.py  (main 50fe09b3c3b285b3d569a8b7eb2f76981c7d6164)
+    5bf2ff80237d4dde75a3fa3b5e45728daf2dbb46  <scratchpad>/r16/main/src/patchbay_vital/census.py  (main 5bf2ff80237d4dde75a3fa3b5e45728daf2dbb46)
+    109ae1887be396e43ce7939b7115ec9745b6c6ca  <scratchpad>/r16/main/src/patchbay_vital/data/parameters.json  (main 109ae1887be396e43ce7939b7115ec9745b6c6ca)
+    d8265cd5668a70b1802e3d7b1917104935e292ff  <scratchpad>/r16/main/src/patchbay_vital/errors.py  (main d8265cd5668a70b1802e3d7b1917104935e292ff)
+    ddf88f5cf88bc3bfd23301f0968ca3bcd65533ac  <scratchpad>/r16/main/src/patchbay_vital/files.py  (main ddf88f5cf88bc3bfd23301f0968ca3bcd65533ac)
+    27a1e91bd4483e2fbdebf444799b51f78617ab0e  <scratchpad>/r16/main/src/patchbay_vital/float32.py  (main 27a1e91bd4483e2fbdebf444799b51f78617ab0e)
+    4296bf4d4d4ef0280ae6ae4d16810a8bce8c9b75  <scratchpad>/r16/main/src/patchbay_vital/format.py  (main 4296bf4d4d4ef0280ae6ae4d16810a8bce8c9b75)
+    e72737ee0f4a1d68ae1d8374390c2fa9b0d02692  <scratchpad>/r16/main/src/patchbay_vital/grisu2.py  (main e72737ee0f4a1d68ae1d8374390c2fa9b0d02692)
+    b8f0e11938028b0f7ddb9b079cb36b421026fd9c  <scratchpad>/r16/main/src/patchbay_vital/host.py  (main b8f0e11938028b0f7ddb9b079cb36b421026fd9c)
+    25b1a378e0d633bf4deede60d3173e976059a2a7  <scratchpad>/r16/main/src/patchbay_vital/parameters.py  (main 25b1a378e0d633bf4deede60d3173e976059a2a7)
+    f75e2e85d570f3db4bf5ec206bf9143f1ca4922f  <scratchpad>/r16/main/src/patchbay_vital/preset.py  (main f75e2e85d570f3db4bf5ec206bf9143f1ca4922f)
+    e69de29bb2d1d6434b8b29ae775ad8c2e48c5391  <scratchpad>/r16/main/src/patchbay_vital/py.typed  (main e69de29bb2d1d6434b8b29ae775ad8c2e48c5391)
+    f3dc277612d28632cba39cf37fa7cd42cdaa4ef6  <scratchpad>/r16/main/src/patchbay_vital/settings_keys.txt  (main f3dc277612d28632cba39cf37fa7cd42cdaa4ef6)
+    4ea00da21a7666f2867cf8aba41593f928755b3e  <scratchpad>/r16/main/src/patchbay_vital/state.py  (main 4ea00da21a7666f2867cf8aba41593f928755b3e)
+  git hash-object of each script the run runs:
+    4c3427e073c527f1ab405d0ebcaa5531fc563a22  <scratchpad>/r16/direct_count.py
+    f4bae9411cf3681741902f51be744cf5790e9e6a  <scratchpad>/r16/envelope_group.py
+    842636461d7627ac773f6f94377de057160ed509  <scratchpad>/r16/pools.py
+    b73908ae2f6024994b2277d8e8f7091e95e42281  <scratchpad>/r16/tree.sh
+    f756ed76212c47a61cc55cad9a50a5ff624c3579  <scratchpad>/r16/run_direct.sh
+
+== the scripts, run from the repository root as: bash <scratchpad>/r16/run_direct.sh <scratchpad>/r16 count five 5
+```bash
+#!/bin/bash
+# Issue #16's spec: the direct count. Run from the repository root:
+#   bash run_direct.sh <scratch> time                      the cost alone, both column sets
+#   bash run_direct.sh <scratch> count <five|two> <hours>  the count: volume's columns, and the
+#                                                          budget in hours a record
+# The transcript is written outside the tree, to <scratch>/out, a line as it comes, and copied in
+# afterwards. A step that does not exit 0 ends the run.
+set -u
+R=$1; stage=$2; columns=${3:-five}; budget=${4:-5}
+FILES=$(git ls-files src | tr '\n' ' ')
+MAINP=6; BRANCHP=7
+count() { caffeinate -i uv run --locked python -u "$R/direct_count.py" --main "$R/main/src" --main-processes $MAINP --branch-processes $BRANCHP "$@"; status=$?; echo "exit=$status"; return $status; }
+scrub() { sed -l -e "s#$R#<scratchpad>/r16#g" -e "s#$PWD/##g"; }
+machine() { echo "$(uname -m), $(sysctl -n machdep.cpu.brand_string), $(sysctl -n hw.ncpu) cores, $(sw_vers -productName) $(sw_vers -productVersion) ($(sw_vers -buildVersion)), $(uv run --locked python -V), load$(sysctl -n vm.loadavg | tr -d '{}' | sed 's/ *$//'), at $(date '+%Y-%m-%d %H:%M %Z')"; }
+head_lines() {
+echo "Issue #16's spec: the direct count, $1, run $(date '+%Y-%m-%d %H:%M %Z') on branch"
+echo "$(git branch --show-current), unattended, under caffeinate -i"
+echo "the machine before the run: $(machine)"
+}
+if [ "$stage" = time ]; then
+  {
+  head_lines "its cost alone"
+  for c in five two; do
+    count --branch "$PWD/src" --record volume --columns $c --time --budget 99
+    count --branch "$PWD/src" --record env_1_delay --columns $c --time --budget 99
+  done
+  } 2>&1 | scrub | tee "$R/out/direct-time.txt"
+  exit 0
+fi
+after() {
+  echo
+  echo "the trees after the run:"
+  bash "$R/tree.sh" "$R/main" $FILES | tee "$R/out/tree-after-direct.txt"
+  cmp "$R/out/tree-before-direct.txt" "$R/out/tree-after-direct.txt" && echo "cmp: the trees before and after are the same"
+  echo "the machine after the run: $(machine)"
+}
+{
+head_lines "volume with --columns $columns, env_1_delay with --columns two"
+echo "the trees before the run:"
+bash "$R/tree.sh" "$R/main" $FILES | tee "$R/out/tree-before-direct.txt"
+echo "  git hash-object of each script the run runs:"
+for s in direct_count.py envelope_group.py pools.py tree.sh run_direct.sh; do echo "    $(git hash-object "$R/$s")  <scratchpad>/r16/$s"; done
+echo
+echo "== the scripts, run from the repository root as: bash <scratchpad>/r16/run_direct.sh <scratchpad>/r16 count $columns $budget"
+echo '```bash'; cat "$R/run_direct.sh"; echo '```'
+echo '```python'; cat "$R/direct_count.py"; echo '```'
+echo '```python'; cat "$R/envelope_group.py"; echo '```'
+echo '```python'; cat "$R/pools.py"; echo '```'
+echo '```bash'; cat "$R/tree.sh"; echo '```'
+echo
+echo "== 1. the cost, before anything is counted (stop past $budget hours a record)"
+count --branch "$PWD/src" --record volume --columns $columns --time --budget $budget || { after; exit 1; }
+count --branch "$PWD/src" --record env_1_delay --columns two --time --budget $budget || { after; exit 1; }
+echo
+echo "== 2. volume, the floor binades first: -96 to -55, the binades where the fifth review's count found a value leaving KEPT (-95 to -56) and one either side"
+count --branch "$PWD/src" --record volume --columns $columns --from -96 --to -55 || { after; exit 1; }
+echo "== the floor binades are done, at $(date '+%Y-%m-%d %H:%M %Z'): the table above is their whole result, readable before the rest completes"
+echo
+echo "== 3. a control: the same pass over binade -56 with the rule's exception removed in a scratch copy of this branch's src. It counts and does not stop."
+rm -rf "$R/control" && mkdir -p "$R/control" && cp -R "$PWD/src" "$R/control/src"
+uv run --locked python - "$R/control/src/patchbay_vital/parameters.py" <<'PY' || { after; exit 1; }
+import sys
+from pathlib import Path
+p = Path(sys.argv[1]); s = p.read_text()
+rule = ("        if held != preset and curve.to_display(held) != display:\n"
+        "            other = next_float32(preset, math.copysign(math.inf, preset - held))\n"
+        "            if curve.to_display(other) == display and scale.holds(other):\n"
+        "                return other\n")
+assert s.count(rule) == 1
+p.write_text(s.replace(rule, ""))
+PY
+echo "   (the copy's diff from the tree:)"
+diff "$PWD/src/patchbay_vital/parameters.py" "$R/control/src/patchbay_vital/parameters.py" | sed 's/^/   /'
+count --branch "$R/control/src" --record volume --columns $columns --from -56 --to -56 --control --label ", the control, the exception removed" || { after; exit 1; }
+echo
+echo "== 4. volume, every binade below -96"
+count --branch "$PWD/src" --record volume --columns $columns --to -97 || { after; exit 1; }
+echo
+echo "== 5. volume, every binade above -55"
+count --branch "$PWD/src" --record volume --columns $columns --from -54 || { after; exit 1; }
+echo
+echo "== 6. the 12 envelope records are one group, and which of the count's calls can differ from main's"
+uv run --locked python -u "$R/envelope_group.py" --main "$R/main/src" --branch "$PWD/src"; status=$?; echo "exit=$status"
+[ $status -eq 0 ] || { after; exit 1; }
+echo
+echo "== 7. env_1_delay, every float32 normalized value, the two methods that can differ"
+count --branch "$PWD/src" --record env_1_delay --columns two || { after; exit 1; }
+after
+} 2>&1 | scrub > "$R/out/direct-count.txt"
+```
+```python
+"""Issue #16's spec: `main`'s shipped methods against this branch's, directly, on every value.
+
+The fifth review's direct count, for this change. Nothing is reproduced. Two pools of processes
+each import `patchbay_vital` from one tree (`pools.py`), `main`'s (an extract of its commit) or
+this branch's, and each calls its own tree's scalar methods on every float32 normalized value r
+of a record, as a caller would:
+
+  P0 = scale.to_preset(r)            the preset the parameter holds
+  D0 = record.from_normalized(r)     its display
+  TP = record.to_preset(D0)          the display's preset
+  TN = record.to_normalized(D0)      the normalized value a set of the display sends
+  HN = scale.to_normalized(P0)       the held preset's normalized value
+
+With `--columns five` all five are called in both trees and compared. With `--columns two` only
+the two methods issue #16's change can reach are: D0 is still made by each tree's own
+`from_normalized`, as the input, and compared; P0 and HN are not called in `main`'s tree
+(`envelope_group.py` shows their statements are the same in both trees).
+
+This process compares the two trees on every r and counts, by binade of r:
+
+  S!=, D!=   P0 or D0 differs
+  PRESET     TP differs from `main`'s
+  NORM       TN differs from `main`'s
+  HELDNORM   HN differs from `main`'s
+  ANY        any compared value differs
+
+and, from this branch's own result TP on a linear scale, what the rule did. P1 is the curve's
+float32 for D0, kept within the scale; `landed` is what a set of P1 holds,
+scale.to_preset(scale.to_normalized(P1)); `other` is the float32 next to P1 away from `landed`:
+
+  KEPT       TP == P1 and a set of it holds it (0 <= TN <= 1 and scale.to_preset(TN) == TP)
+  PLUGIN     TP == landed != P1 and landed shows D0: what a set holds, Vital's own rounding
+  OTHER      TP == other, landed != P1: the rule's one exception
+  FELL       TP == landed != P1 and landed does not show D0: what a set holds where neither
+             candidate shows the display. D0 is a display a held preset shows, so this is expected
+             on no value: it is where `main` kept the curve's float32, its third branch.
+  UNKNOWN    none of these
+
+On `volume` every count is also split at its floor exactly, by this branch's P0 <= 2 ** -43 and
+P0 > 2 ** -43, value by value, never by binade. On another record the split's two rows are not
+printed: with `--columns two` its P0 is not called, and every value counts as above the floor.
+
+OUT counts what the run stops on, at once: ANY difference from `main`, any FELL, any UNKNOWN.
+Every display counted is one a held preset shows, where issue #16 changes nothing; a difference
+is outside what the rule is meant to change. `--control` counts the same and does not stop.
+
+Run from the repository root:
+  uv run --locked python direct_count.py --main <main's src> --branch <this branch's src>
+      --record <id> --columns five|two [--from <binade> --to <binade>] [--time [--budget <hours>]]
+      [--control] [--label <text>] [--main-processes <n>] [--branch-processes <n>]
+"""
+
+import argparse
+import math
+import sys
+import time
+
+import numpy as np
+
+import pools
+
+FLOOR = 2.0**-43
+CHUNK = 1 << 16
+SPANS = [("zero", 0, 1), ("sub", 1, 1 << 23)]
+SPANS += [(str(e - 127), e << 23, (e + 1) << 23) for e in range(1, 127)]
+SPANS += [("one", 0x3F800000, 0x3F800001)]
+COMPARED = {"five": ("S!=", "D!=", "PRESET", "NORM", "HELDNORM"), "two": ("D!=", "PRESET", "NORM")}
+ROWS = {"five": (0, 1, 2, 3, 4), "two": (1, 2, 3)}
+CLASSES = ("KEPT", "PLUGIN", "OTHER", "FELL", "UNKNOWN")
+
+
+def work(job):
+    """Call one tree's methods on every float32 normalized value of a bit-pattern range."""
+    name, lo, hi, five, classify = job
+    record = pools.record(name)
+    scale, curve = record.scale, record.curve
+    linear = scale.kind == "linear"
+    split = classify and name == "volume"  # this branch's P0, for the split at volume's floor
+    values = np.arange(lo, hi, dtype=np.uint32).view(np.float32).astype(np.float64).tolist()
+    out = np.full((5, len(values)), np.nan)
+    rule = np.full(len(values), -1, np.int8)
+    step = pools.TREE["float32"].next_float32
+    for i, r in enumerate(values):
+        d0 = record.from_normalized(r)
+        tp = record.to_preset(d0)
+        tn = record.to_normalized(d0)
+        if five or split:
+            p0 = scale.to_preset(r)
+            out[0, i] = p0
+        if five:
+            out[4, i] = scale.to_normalized(p0)
+        out[1:4, i] = (d0, tp, tn)
+        if not (classify and linear):
+            continue
+        p1 = min(max(curve.to_preset(d0), scale.minimum), scale.maximum)
+        if tp == p1:
+            rule[i] = 0 if 0.0 <= tn <= 1.0 and scale.to_preset(tn) == tp else 4
+            continue
+        landed = scale.to_preset(scale.to_normalized(p1))
+        if landed == p1:
+            rule[i] = 4
+        elif tp == landed:
+            rule[i] = 1 if record.to_display(tp) == d0 else 3
+        elif tp == step(p1, math.copysign(math.inf, p1 - landed)):
+            rule[i] = 2
+        else:
+            rule[i] = 4
+    return lo, out, rule
+
+
+def tally(columns, ours, theirs, rule):
+    """Return the counts at or below the floor and above it, and the values the run stops on."""
+    differs = [ours[k] != theirs[k] for k in ROWS[columns]]
+    anything = np.logical_or.reduce(differs)
+    classes = [rule == c for c in range(len(CLASSES))]
+    out = anything | classes[3] | classes[4]
+    flags = (*differs, anything, *classes, out)
+    below = ours[0] <= FLOOR  # a NaN, where P0 was not called, is above
+    rows = [[int(np.count_nonzero(side)), *(int(np.count_nonzero(f & side)) for f in flags)]
+            for side in (below, ~below)]
+    return np.array(rows, dtype=np.int64), np.flatnonzero(out)
+
+
+def spans(first, last):
+    labels = [label for label, _, _ in SPANS]
+    lo = 0 if first is None else labels.index(first)
+    hi = len(SPANS) - 1 if last is None else labels.index(last)
+    return SPANS[lo : hi + 1]
+
+
+def line(label, row):
+    return f"{label:>12} " + " ".join(f"{int(v):>11}" for v in row)
+
+
+def timing(open_pools, sizes, name, five):
+    """Time each tree on 200,000 values: 4 ranges of 50,000, at once, in 4 of its processes."""
+    rng = np.random.default_rng(21)
+    report = {}
+    starts = rng.integers(0x10000000, 0x3F000000, 4, dtype=np.uint32).tolist()
+    for side, pool in open_pools.items():
+        started = time.time()
+        jobs = [pool.apply_async(work, ((name, start, start + 50_000, five, side == "branch"),))
+                for start in starts]
+        for job in jobs:
+            job.get()
+        report[side] = (time.time() - started) / 50_000 * 1e6
+        print(f"  {side}: {report[side]:.1f} us a value, 4 ranges of 50,000 values in 4 processes"
+              " at once")
+    total = 1_065_353_217
+    wall = max(report[s] / sizes[s] for s in sizes) * total / 3.6e9
+    cpu = sum(report.values()) * total / 3.6e9
+    print(f"   every float32 normalized value of {name}, {total:,}: about {cpu:.1f} CPU-hours,"
+          f" {wall:.2f} hours wall on these pools")
+    return wall
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--main", required=True)
+    parser.add_argument("--branch", required=True)
+    parser.add_argument("--record", required=True)
+    parser.add_argument("--columns", choices=("five", "two"), required=True)
+    parser.add_argument("--from", dest="first")
+    parser.add_argument("--to", dest="last")
+    parser.add_argument("--main-processes", type=int, default=6)
+    parser.add_argument("--branch-processes", type=int, default=7)
+    parser.add_argument("--time", action="store_true")
+    parser.add_argument("--control", action="store_true")
+    parser.add_argument("--label", default="")
+    parser.add_argument("--budget", type=float, default=5.0)
+    args = parser.parse_args()
+    five = args.columns == "five"
+    sizes = {"main": args.main_processes, "branch": args.branch_processes}
+    open_pools = pools.open_pools({"main": args.main, "branch": args.branch}, sizes)
+    if args.time:
+        print(f"== timing on {args.record}, --columns {args.columns}")
+        wall = timing(open_pools, sizes, args.record, five)
+        for pool in open_pools.values():
+            pool.close()
+        if wall > args.budget:
+            print(f"   more than the {args.budget} hours a record the owner allowed: stopping")
+            return 3
+        return 0
+    columns = ("n", *COMPARED[args.columns], "ANY", *CLASSES, "OUT")
+    chosen = spans(args.first, args.last)
+    print(f"== {args.record}{args.label}, --columns {args.columns}: binades {chosen[0][0]} to"
+          f" {chosen[-1][0]}, {sum(hi - lo for _, lo, hi in chosen):,} float32 normalized values,"
+          " each through both trees")
+    print(line("binade", ()) + " ".join(f"{c:>11}" for c in columns))
+    started = time.time()
+    total = np.zeros((2, len(columns)), dtype=np.int64)
+    quiet = []
+    kept = columns.index("KEPT")
+    for label, lo, hi in chosen:
+        row = np.zeros((2, len(columns)), dtype=np.int64)
+        jobs = []
+        for start in range(lo, hi, CHUNK):
+            end = min(hi, start + CHUNK)
+            jobs.append((
+                open_pools["main"].apply_async(work, ((args.record, start, end, five, False),)),
+                open_pools["branch"].apply_async(work, ((args.record, start, end, five, True),)),
+            ))
+        for theirs_job, ours_job in jobs:
+            start, theirs, _ = theirs_job.get()
+            _, ours, rule = ours_job.get()
+            counted, stops = tally(args.columns, ours, theirs, rule)
+            row += counted
+            if stops.size and not args.control:
+                print(line(label, row.sum(axis=0)))
+                print(f"== OUT: {stops.size} values in the range from bit pattern {start}; the first:")
+                for i in stops[:5].tolist():
+                    bits = np.array([start + i], dtype=np.uint32).view(np.float32)[0]
+                    print(f"   r {float(bits)!r}: this branch's P0, D0, TP, TN, HN"
+                          f" {[float(v) for v in ours[:, i]]!r}, main's"
+                          f" {[float(v) for v in theirs[:, i]]!r}, the rule"
+                          f" {CLASSES[rule[i]] if rule[i] >= 0 else 'none'}")
+                print("== stopped at once: a difference from main outside the rule's change")
+                for pool in open_pools.values():
+                    pool.terminate()
+                return 1
+        total += row
+        whole = row.sum(axis=0)
+        if whole[kept] == whole[0] and not whole[1:kept].any() and not whole[kept + 1 :].any():
+            quiet.append(label)
+        elif row[0, 0] and row[1, 0]:
+            print(line(label, whole))
+            print(line("<= 2**-43", row[0]))
+            print(line("> 2**-43", row[1]))
+        else:
+            print(line(label, whole))
+        sys.stdout.flush()
+    print(line("total", total.sum(axis=0)))
+    if args.record == "volume":
+        print(line("P0 <= 2**-43", total[0]))
+        print(line("P0 > 2**-43", total[1]))
+    print(f"  every value KEPT and nothing differing from main in {len(quiet)} binades:"
+          f" {', '.join(quiet) if quiet else 'none'}")
+    print(f"  {time.time() - started:.0f} s")
+    for pool in open_pools.values():
+        pool.close()
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
+```
+```python
+"""Issue #16's spec: the envelope records are one group, and which of the count's calls can differ.
+
+Two things the direct count of `env_1_delay` rests on, each read from the shipped source of both
+trees, `main`'s and this branch's, imported by one pool a tree (`pools.py`):
+
+1. The 12 `env_N_delay` and `env_N_hold` records have one group key, every field the map's
+   methods read of a record: the parameter's kind and bounds, the scale's kind and bounds, the
+   curve's kind, multiply and offset. So `env_1_delay`'s count is the group's.
+
+2. Which methods can give another value than `main`'s. `parameters.py` and `float32.py` are
+   parsed in each tree, every docstring dropped, and each function's statements compared between
+   the trees. Then, for each of the five calls the count makes on a value, the functions it can
+   reach are followed through the source: a call of a name, a method or property read off `self`,
+   off a `scale` (NormalizedScale), a `curve` (DisplayCurve) or a `record` (MappedParameter), and
+   a module-level table a function reads. A call whose every reachable function has the same
+   statements in both trees cannot differ from `main`'s; the others are the ones to count. A
+   method-named attribute whose receiver this cannot place is printed, so nothing is passed over;
+   one read off a `parameter` is core's `Parameter`'s own field, outside these two files.
+
+Run from the repository root:
+  uv run --locked python envelope_group.py --main <main's src> --branch <this branch's src>
+"""
+
+import argparse
+import ast
+import sys
+
+import pools
+
+ENVELOPE = [f"env_{n}_{part}" for n in range(1, 7) for part in ("delay", "hold")]
+FIELDS = ("parameter.kind", "parameter.minimum", "parameter.maximum", "scale.kind",
+          "scale.minimum", "scale.maximum", "curve.kind", "curve.multiply", "curve.offset")
+CALLS = {
+    "P0 = scale.to_preset(r)": "NormalizedScale.to_preset",
+    "D0 = record.from_normalized(r)": "MappedParameter.from_normalized",
+    "TP = record.to_preset(D0)": "MappedParameter.to_preset",
+    "TN = record.to_normalized(D0)": "MappedParameter.to_normalized",
+    "HN = scale.to_normalized(P0)": "NormalizedScale.to_normalized",
+}
+RECEIVERS = {"scale": "NormalizedScale", "curve": "DisplayCurve", "record": "MappedParameter"}
+OUTSIDE = {"parameter"}  # core's `Parameter`, a model of patchbay-core: its fields are not these files'
+
+
+def keys(_):
+    """Return each envelope record's group key in this worker's tree."""
+    out = []
+    for name in ENVELOPE:
+        r = pools.record(name)
+        p, s, c = r.parameter, r.scale, r.curve
+        out.append((name, p.kind, p.minimum, p.maximum, s.kind, s.minimum, s.maximum, c.kind,
+                    c.multiply, c.offset))
+    return out
+
+
+def sources(_):
+    """Return this worker's tree's parameters.py and float32.py as text."""
+    return {name: open(pools.TREE[name].__file__, encoding="utf-8").read()
+            for name in ("parameters", "float32")}
+
+
+def without_docstring(node):
+    """Drop a module's, class's or function's docstring, in place."""
+    body = node.body
+    if body and isinstance(body[0], ast.Expr) and isinstance(body[0].value, ast.Constant) \
+            and isinstance(body[0].value.value, str):
+        del body[0]
+    # a string that documents the assignment before it is a docstring too
+    node.body = [s for s in body if not (isinstance(s, ast.Expr) and isinstance(s.value, ast.Constant)
+                                         and isinstance(s.value.value, str))]
+
+
+def parse(text, module):
+    """Return {qualified name: (node, class name)} of a module's functions and its tables."""
+    tree = ast.parse(text)
+    without_docstring(tree)
+    found = {}
+    for node in tree.body:
+        if isinstance(node, ast.ClassDef):
+            without_docstring(node)
+            rest = []
+            for item in node.body:
+                if isinstance(item, ast.FunctionDef):
+                    without_docstring(item)
+                    found[f"{node.name}.{item.name}"] = (item, node.name)
+                else:
+                    rest.append(item)
+            found[f"{node.name}, its fields"] = (ast.Module(body=rest, type_ignores=[]), node.name)
+        elif isinstance(node, ast.FunctionDef):
+            without_docstring(node)
+            found[node.name] = (node, None)
+        elif isinstance(node, (ast.Assign, ast.AnnAssign)):
+            targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+            for target in targets:
+                if isinstance(target, ast.Name):
+                    found[f"{target.id}, a module-level value"] = (node, None)
+    return {(f"float32.{name}" if module == "float32" else name): value
+            for name, value in found.items()}
+
+
+def reaches(name, functions, unplaced):
+    """Return the names a function's statements can reach, one step."""
+    node, owner = functions[name]
+    out = set()
+    for sub in ast.walk(node):
+        if isinstance(sub, ast.Name):
+            for candidate in (sub.id, f"float32.{sub.id}", f"{sub.id}, a module-level value",
+                              f"float32.{sub.id}, a module-level value"):
+                if candidate in functions and candidate != name:
+                    out.add(candidate)
+        elif isinstance(sub, ast.Attribute):
+            methods = [q for q in functions if q.endswith(f".{sub.attr}") and not q.startswith("float32.")]
+            if not methods:
+                continue
+            receiver = ast.unparse(sub.value)
+            last = receiver.rsplit(".", 1)[-1]
+            cls = owner if receiver == "self" else RECEIVERS.get(last)
+            if cls and f"{cls}.{sub.attr}" in functions:
+                out.add(f"{cls}.{sub.attr}")
+            elif cls is None and last not in OUTSIDE:
+                unplaced.add(f"{name}: {receiver}.{sub.attr}")
+    return out
+
+
+def closure(start, functions, unplaced):
+    seen, todo = set(), [start]
+    while todo:
+        name = todo.pop()
+        if name in seen:
+            continue
+        seen.add(name)
+        todo.extend(reaches(name, functions, unplaced))
+    return seen
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--main", required=True)
+    parser.add_argument("--branch", required=True)
+    args = parser.parse_args()
+    open_pools = pools.open_pools({"main": args.main, "branch": args.branch}, {"main": 1, "branch": 1})
+
+    print("== 1. the 12 envelope delay and hold records, every field the map's methods read:")
+    listed = {side: pool.apply(keys, (None,)) for side, pool in open_pools.items()}
+    print("   " + ", ".join(FIELDS))
+    for row in listed["branch"]:
+        print(f"   {row[0]:>12}: {row[1:]!r}")
+    distinct = {row[1:] for row in listed["branch"]}
+    print(f"== distinct keys among them: {len(distinct)}; main's tree lists the same 12:"
+          f" {listed['main'] == listed['branch']}")
+
+    print("== 2. each function's statements, docstrings dropped, main's tree against this branch's")
+    texts = {side: pool.apply(sources, (None,)) for side, pool in open_pools.items()}
+    parsed = {side: {**parse(texts[side]["parameters"], "parameters"),
+                     **parse(texts[side]["float32"], "float32")} for side in texts}
+    ours, theirs = parsed["branch"], parsed["main"]
+    names = sorted(set(ours) | set(theirs))
+    same = {n: n in ours and n in theirs and ast.dump(ours[n][0]) == ast.dump(theirs[n][0])
+            for n in names}
+    print(f"   {len(names)} functions, class bodies and module-level values in parameters.py and"
+          f" float32.py; the same statements in both trees: {sum(same.values())}; different:"
+          f" {[n for n in names if not same[n]]}")
+    unplaced = set()
+    print("== what each of the count's calls can reach, in this branch's tree, and whether any of it"
+          " differs from main's:")
+    verdict = {}
+    for call, start in CALLS.items():
+        reached = sorted(closure(start, ours, unplaced))
+        changed = [n for n in reached if not same[n]]
+        verdict[call] = changed
+        print(f"   {call}")
+        print(f"      reaches {len(reached)}: {', '.join(reached)}")
+        print(f"      of them, with other statements than main's: {changed if changed else 'none'}")
+    print(f"== method-named attributes whose receiver was not placed: {sorted(unplaced) or 'none'}")
+    can = [call for call, changed in verdict.items() if changed]
+    cannot = [call for call, changed in verdict.items() if not changed]
+    print("== so, on any record: the calls that can differ from main's:")
+    for call in can:
+        print(f"      {call}, through {verdict[call]}")
+    print("   and the calls that cannot, every function they reach having main's statements:")
+    for call in cannot:
+        print(f"      {call}")
+    for pool in open_pools.values():
+        pool.close()
+    return 0 if len(distinct) == 1 and not unplaced else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())
+```
+```python
+"""Issue #16's spec: two pools of processes, each importing `patchbay_vital` from one tree.
+
+Nothing is reproduced. A worker puts one tree's `src` first on `sys.path` before its first import
+of the package, so every method it calls is that tree's shipped one: `main`'s, an extract of its
+commit made with `git archive`, or this branch's, the working tree. `open_pools` prints the files
+each pool imported and stops unless they are under the tree asked for.
+"""
+
+import multiprocessing
+import sys
+
+TREE = {}
+
+
+def use(src):
+    """A worker's initializer: import `patchbay_vital` from one tree, before anything else does."""
+    sys.path.insert(0, src)
+    import patchbay  # noqa: PLC0415
+    import patchbay_vital.errors  # noqa: PLC0415
+    import patchbay_vital.float32  # noqa: PLC0415
+    import patchbay_vital.parameters  # noqa: PLC0415
+
+    TREE["parameters"] = patchbay_vital.parameters
+    TREE["float32"] = patchbay_vital.float32
+    TREE["errors"] = patchbay_vital.errors
+    TREE["id"] = patchbay.ParameterId
+
+
+def where():
+    """Return the files this worker's tree was imported from."""
+    return TREE["parameters"].__file__, TREE["float32"].__file__
+
+
+def record(name):
+    """Return this worker's tree's record for an id."""
+    return TREE["parameters"].parameter_map().find(TREE["id"](name))
+
+
+def open_pools(sources, sizes):
+    """Open one pool a tree, `sources` and `sizes` keyed by the tree's name; print what each imports."""
+    context = multiprocessing.get_context("spawn")
+    pools = {
+        side: context.Pool(sizes[side], initializer=use, initargs=(sources[side],)) for side in sources
+    }
+    for side, pool in pools.items():
+        files = pool.apply(where)
+        print(f"== the {side} pool, {sizes[side]} processes, imports {files[0]}")
+        print(f"   and {files[1]}")
+        if not all(f.startswith(sources[side]) for f in files):
+            print("   NOT the tree asked for: stopping")
+            for other in pools.values():
+                other.terminate()
+            raise SystemExit(2)
+    return pools
+```
+```bash
+#!/bin/bash
+# Print the trees a run reads: HEAD, git status in full, and the blob of each file read in each tree.
+# usage: tree.sh <main's extract> <file>...   (run from the repository root)
+# HEAD is main's commit, f533b1b: this branch's change is in the working tree, uncommitted.
+main=$1; shift
+echo "  HEAD $(git rev-parse HEAD)"
+echo "  git status --porcelain=v1 --untracked-files=all, $(git status --porcelain=v1 --untracked-files=all | wc -l | tr -d ' ') lines:"
+git status --porcelain=v1 --untracked-files=all | sed 's/^/    /'
+echo "  this branch's tree, the working tree: git hash-object of each file the run reads, HEAD's blob beside it:"
+for f in "$@"; do
+  head_blob=$(git rev-parse --verify --quiet "HEAD:$f" || echo "not in HEAD")
+  echo "    $(git hash-object "$f")  $f  (HEAD $head_blob)"
+done
+echo "  main's tree, commit $(git rev-parse f533b1b), extracted with git archive: git hash-object of"
+echo "  each extracted file, the blob of main's commit beside it:"
+for f in "$@"; do
+  echo "    $(git hash-object "$main/$f")  <scratchpad>/r16/main/$f  (main $(git rev-parse "f533b1b:$f"))"
+done
+```
+
+== 1. the cost, before anything is counted (stop past 5 hours a record)
+== the main pool, 6 processes, imports <scratchpad>/r16/main/src/patchbay_vital/parameters.py
+   and <scratchpad>/r16/main/src/patchbay_vital/float32.py
+== the branch pool, 7 processes, imports src/patchbay_vital/parameters.py
+   and src/patchbay_vital/float32.py
+== timing on volume, --columns five
+  main: 86.1 us a value, 4 ranges of 50,000 values in 4 processes at once
+  branch: 96.8 us a value, 4 ranges of 50,000 values in 4 processes at once
+   every float32 normalized value of volume, 1,065,353,217: about 54.1 CPU-hours, 4.25 hours wall on these pools
+exit=0
+== the main pool, 6 processes, imports <scratchpad>/r16/main/src/patchbay_vital/parameters.py
+   and <scratchpad>/r16/main/src/patchbay_vital/float32.py
+== the branch pool, 7 processes, imports src/patchbay_vital/parameters.py
+   and src/patchbay_vital/float32.py
+== timing on env_1_delay, --columns two
+  main: 61.4 us a value, 4 ranges of 50,000 values in 4 processes at once
+  branch: 75.4 us a value, 4 ranges of 50,000 values in 4 processes at once
+   every float32 normalized value of env_1_delay, 1,065,353,217: about 40.5 CPU-hours, 3.19 hours wall on these pools
+exit=0
+
+== 2. volume, the floor binades first: -96 to -55, the binades where the fifth review's count found a value leaving KEPT (-95 to -56) and one either side
+== the main pool, 6 processes, imports <scratchpad>/r16/main/src/patchbay_vital/parameters.py
+   and <scratchpad>/r16/main/src/patchbay_vital/float32.py
+== the branch pool, 7 processes, imports src/patchbay_vital/parameters.py
+   and src/patchbay_vital/float32.py
+== volume, --columns five: binades -96 to -55, 352,321,536 float32 normalized values, each through both trees
+      binade           n         S!=         D!=      PRESET        NORM    HELDNORM         ANY        KEPT      PLUGIN       OTHER        FELL     UNKNOWN         OUT
+         -95     8388608           0           0           0           0           0           0     7826303      562305           0           0           0           0
+         -94     8388608           0           0           0           0           0           0     7980483      408125           0           0           0           0
+         -93     8388608           0           0           0           0           0           0     8107454      281154           0           0           0           0
+         -92     8388608           0           0           0           0           0           0     7785490      603118           0           0           0           0
+         -91     8388608           0           0           0           0           0           0     8104054      284554           0           0           0           0
+         -90     8388608           0           0           0           0           0           0     7887521      501087           0           0           0           0
+         -89     8388608           0           0           0           0           0           0     8104054      284554           0           0           0           0
+         -88     8388608           0           0           0           0           0           0     7887662      500946           0           0           0           0
+         -87     8388608           0           0           0           0           0           0     7997277      391331           0           0           0           0
+         -86     8388608           0           0           0           0           0           0     7889009      499599           0           0           0           0
+         -85     8388608           0           0           0           0           0           0     7963637      424971           0           0           0           0
+         -84     8388608           0           0           0           0           0           0     8012979      375629           0           0           0           0
+         -83     8388608           0           0           0           0           0           0     7970447      418161           0           0           0           0
+         -82     8388608           0           0           0           0           0           0     8013952      374656           0           0           0           0
+         -81     8388608           0           0           0           0           0           0     7990522      398086           0           0           0           0
+         -80     8388608           0           0           0           0           0           0     8004445      384163           0           0           0           0
+         -79     8388608           0           0           0           0           0           0     8016839      371769           0           0           0           0
+         -78     8388608           0           0           0           0           0           0     7998092      390516           0           0           0           0
+         -77     8388608           0           0           0           0           0           0     8003772      384836           0           0           0           0
+         -76     8388608           0           0           0           0           0           0     7984261      404347           0           0           0           0
+         -75     8388608           0           0           0           0           0           0     8000137      388471           0           0           0           0
+         -74     8388608           0           0           0           0           0           0     7987636      400972           0           0           0           0
+         -73     8388608           0           0           0           0           0           0     7986448      402160           0           0           0           0
+         -72     8388608           0           0           0           0           0           0     7981392      407216           0           0           0           0
+         -71     8388608           0           0           0           0           0           0     7992605      396003           0           0           0           0
+         -70     8388608           0           0           0           0           0           0     7987429      401179           0           0           0           0
+         -69     8388608           0           0           0           0           0           0     7986752      401856           0           0           0           0
+         -68     8388608           0           0           0           0           0           0     7986545      402063           0           0           0           0
+         -67     8388608           0           0           0           0           0           0     7983830      404778           0           0           0           0
+         -66     8388608           0           0           0           0           0           0     7984117      404491           0           0           0           0
+         -65     8388608           0           0           0           0           0           0     7983320      405288           0           0           0           0
+         -64     8388608           0           0           0           0           0           0     7988201      400407           0           0           0           0
+         -63     8388608           0           0           0           0           0           0     7987425      401183           0           0           0           0
+         -62     8388608           0           0           0           0           0           0     7992925      395683           0           0           0           0
+         -61     8388608           0           0           0           0           0           0     7979853      408755           0           0           0           0
+         -60     8388608           0           0           0           0           0           0     8011101      377507           0           0           0           0
+         -59     8388608           0           0           0           0           0           0     7975908      412700           0           0           0           0
+         -58     8388608           0           0           0           0           0           0     7926427      430302       31879           0           0           0
+         -57     8388608           0           0           0           0           0           0     8034982      176915      176711           0           0           0
+         -56     8388608           0           0           0           0           0           0     8189176       99636       99796           0           0           0
+   <= 2**-43      898511           0           0           0           0           0           0      699079       99636       99796           0           0           0
+    > 2**-43     7490097           0           0           0           0           0           0     7490097           0           0           0           0           0
+       total   352321536           0           0           0           0           0           0   336251678    15761472      308386           0           0           0
+P0 <= 2**-43   336442831           0           0           0           0           0           0   320372973    15761472      308386           0           0           0
+ P0 > 2**-43    15878705           0           0           0           0           0           0    15878705           0           0           0           0           0
+  every value KEPT and nothing differing from main in 2 binades: -96, -55
+  6932 s
+exit=0
+== the floor binades are done, at 2026-11-14 20:37 EST: the table above is their whole result, readable before the rest completes
+
+== 3. a control: the same pass over binade -56 with the rule's exception removed in a scratch copy of this branch's src. It counts and does not stop.
+   (the copy's diff from the tree:)
+   332,335d331
+   <         if held != preset and curve.to_display(held) != display:
+   <             other = next_float32(preset, math.copysign(math.inf, preset - held))
+   <             if curve.to_display(other) == display and scale.holds(other):
+   <                 return other
+== the main pool, 6 processes, imports <scratchpad>/r16/main/src/patchbay_vital/parameters.py
+   and <scratchpad>/r16/main/src/patchbay_vital/float32.py
+== the branch pool, 7 processes, imports <scratchpad>/r16/control/src/patchbay_vital/parameters.py
+   and <scratchpad>/r16/control/src/patchbay_vital/float32.py
+== volume, the control, the exception removed, --columns five: binades -56 to -56, 8,388,608 float32 normalized values, each through both trees
+      binade           n         S!=         D!=      PRESET        NORM    HELDNORM         ANY        KEPT      PLUGIN       OTHER        FELL     UNKNOWN         OUT
+         -56     8388608           0           0       99796       99796           0       99796     8189176       99636           0       99796           0       99796
+   <= 2**-43      898511           0           0       99796       99796           0       99796      699079       99636           0       99796           0       99796
+    > 2**-43     7490097           0           0           0           0           0           0     7490097           0           0           0           0           0
+       total     8388608           0           0       99796       99796           0       99796     8189176       99636           0       99796           0       99796
+P0 <= 2**-43      898511           0           0       99796       99796           0       99796      699079       99636           0       99796           0       99796
+ P0 > 2**-43     7490097           0           0           0           0           0           0     7490097           0           0           0           0           0
+  every value KEPT and nothing differing from main in 0 binades: none
+  160 s
+exit=0
+
+== 4. volume, every binade below -96
+== the main pool, 6 processes, imports <scratchpad>/r16/main/src/patchbay_vital/parameters.py
+   and <scratchpad>/r16/main/src/patchbay_vital/float32.py
+== the branch pool, 7 processes, imports src/patchbay_vital/parameters.py
+   and src/patchbay_vital/float32.py
+== volume, --columns five: binades zero to -97, 260,046,848 float32 normalized values, each through both trees
+      binade           n         S!=         D!=      PRESET        NORM    HELDNORM         ANY        KEPT      PLUGIN       OTHER        FELL     UNKNOWN         OUT
+       total   260046848           0           0           0           0           0           0   260046848           0           0           0           0           0
+P0 <= 2**-43   260046848           0           0           0           0           0           0   260046848           0           0           0           0           0
+ P0 > 2**-43           0           0           0           0           0           0           0           0           0           0           0           0           0
+  every value KEPT and nothing differing from main in 32 binades: zero, sub, -126, -125, -124, -123, -122, -121, -120, -119, -118, -117, -116, -115, -114, -113, -112, -111, -110, -109, -108, -107, -106, -105, -104, -103, -102, -101, -100, -99, -98, -97
+  3466 s
+exit=0
+
+== 5. volume, every binade above -55
+== the main pool, 6 processes, imports <scratchpad>/r16/main/src/patchbay_vital/parameters.py
+   and <scratchpad>/r16/main/src/patchbay_vital/float32.py
+== the branch pool, 7 processes, imports src/patchbay_vital/parameters.py
+   and src/patchbay_vital/float32.py
+== volume, --columns five: binades -54 to one, 452,984,833 float32 normalized values, each through both trees
+      binade           n         S!=         D!=      PRESET        NORM    HELDNORM         ANY        KEPT      PLUGIN       OTHER        FELL     UNKNOWN         OUT
+       total   452984833           0           0           0           0           0           0   452984833           0           0           0           0           0
+P0 <= 2**-43           0           0           0           0           0           0           0           0           0           0           0           0           0
+ P0 > 2**-43   452984833           0           0           0           0           0           0   452984833           0           0           0           0           0
+  every value KEPT and nothing differing from main in 55 binades: -54, -53, -52, -51, -50, -49, -48, -47, -46, -45, -44, -43, -42, -41, -40, -39, -38, -37, -36, -35, -34, -33, -32, -31, -30, -29, -28, -27, -26, -25, -24, -23, -22, -21, -20, -19, -18, -17, -16, -15, -14, -13, -12, -11, -10, -9, -8, -7, -6, -5, -4, -3, -2, -1, one
+  8340 s
+exit=0
+
+== 6. the 12 envelope records are one group, and which of the count's calls can differ from main's
+== the main pool, 1 processes, imports <scratchpad>/r16/main/src/patchbay_vital/parameters.py
+   and <scratchpad>/r16/main/src/patchbay_vital/float32.py
+== the branch pool, 1 processes, imports src/patchbay_vital/parameters.py
+   and src/patchbay_vital/float32.py
+== 1. the 12 envelope delay and hold records, every field the map's methods read:
+   parameter.kind, parameter.minimum, parameter.maximum, scale.kind, scale.minimum, scale.maximum, curve.kind, curve.multiply, curve.offset
+    env_1_delay: ('continuous', 0.0, 3.9999997261716707, 'linear', 0.0, 1.4142135381698608, 'quartic', 1.0, 0.0)
+     env_1_hold: ('continuous', 0.0, 3.9999997261716707, 'linear', 0.0, 1.4142135381698608, 'quartic', 1.0, 0.0)
+    env_2_delay: ('continuous', 0.0, 3.9999997261716707, 'linear', 0.0, 1.4142135381698608, 'quartic', 1.0, 0.0)
+     env_2_hold: ('continuous', 0.0, 3.9999997261716707, 'linear', 0.0, 1.4142135381698608, 'quartic', 1.0, 0.0)
+    env_3_delay: ('continuous', 0.0, 3.9999997261716707, 'linear', 0.0, 1.4142135381698608, 'quartic', 1.0, 0.0)
+     env_3_hold: ('continuous', 0.0, 3.9999997261716707, 'linear', 0.0, 1.4142135381698608, 'quartic', 1.0, 0.0)
+    env_4_delay: ('continuous', 0.0, 3.9999997261716707, 'linear', 0.0, 1.4142135381698608, 'quartic', 1.0, 0.0)
+     env_4_hold: ('continuous', 0.0, 3.9999997261716707, 'linear', 0.0, 1.4142135381698608, 'quartic', 1.0, 0.0)
+    env_5_delay: ('continuous', 0.0, 3.9999997261716707, 'linear', 0.0, 1.4142135381698608, 'quartic', 1.0, 0.0)
+     env_5_hold: ('continuous', 0.0, 3.9999997261716707, 'linear', 0.0, 1.4142135381698608, 'quartic', 1.0, 0.0)
+    env_6_delay: ('continuous', 0.0, 3.9999997261716707, 'linear', 0.0, 1.4142135381698608, 'quartic', 1.0, 0.0)
+     env_6_hold: ('continuous', 0.0, 3.9999997261716707, 'linear', 0.0, 1.4142135381698608, 'quartic', 1.0, 0.0)
+== distinct keys among them: 1; main's tree lists the same 12: True
+== 2. each function's statements, docstrings dropped, main's tree against this branch's
+   48 functions, class bodies and module-level values in parameters.py and float32.py; the same statements in both trees: 46; different: ['MappedParameter.to_preset', 'NormalizedScale.holds']
+== what each of the count's calls can reach, in this branch's tree, and whether any of it differs from main's:
+   P0 = scale.to_preset(r)
+      reaches 11: NormalizedScale.span, NormalizedScale.to_preset, _round_half_away, _span, float32._MANTISSA_BITS, a module-level value, float32._MIN_NORMAL_EXPONENT, a module-level value, float32._OVERFLOW, a module-level value, float32._SUBNORMAL_QUANTUM, a module-level value, float32.fma32, float32.round_to_float32, float32.to_float32
+      of them, with other statements than main's: none
+   D0 = record.from_normalized(r)
+      reaches 20: DisplayCurve.to_display, MappedParameter.from_normalized, MappedParameter.id, MappedParameter.to_display, NormalizedScale.span, NormalizedScale.to_preset, _SKEWS, a module-level value, _log2, _power_of_two, _root, _round_half_away, _span, _square, float32._MANTISSA_BITS, a module-level value, float32._MIN_NORMAL_EXPONENT, a module-level value, float32._OVERFLOW, a module-level value, float32._SUBNORMAL_QUANTUM, a module-level value, float32.fma32, float32.round_to_float32, float32.to_float32
+      of them, with other statements than main's: none
+   TP = record.to_preset(D0)
+      reaches 27: DisplayCurve.to_display, DisplayCurve.to_preset, MappedParameter.id, MappedParameter.to_preset, NormalizedScale.holds, NormalizedScale.span, NormalizedScale.to_preset, _SKEWS, a module-level value, _displayed_ends, _landing, _log2, _power_of_two, _root, _round_half_away, _span, _square, displayed_ends, float32._BITS, a module-level value, float32._FLOAT32, a module-level value, float32._MANTISSA_BITS, a module-level value, float32._MIN_NORMAL_EXPONENT, a module-level value, float32._OVERFLOW, a module-level value, float32._SUBNORMAL_QUANTUM, a module-level value, float32.fma32, float32.next_float32, float32.round_to_float32, float32.to_float32
+      of them, with other statements than main's: ['MappedParameter.to_preset', 'NormalizedScale.holds']
+   TN = record.to_normalized(D0)
+      reaches 29: DisplayCurve.to_display, DisplayCurve.to_preset, MappedParameter.id, MappedParameter.to_normalized, MappedParameter.to_preset, NormalizedScale.holds, NormalizedScale.span, NormalizedScale.to_normalized, NormalizedScale.to_preset, _SKEWS, a module-level value, _displayed_ends, _landing, _log2, _power_of_two, _root, _round_half_away, _span, _square, displayed_ends, float32._BITS, a module-level value, float32._FLOAT32, a module-level value, float32._MANTISSA_BITS, a module-level value, float32._MIN_NORMAL_EXPONENT, a module-level value, float32._OVERFLOW, a module-level value, float32._SUBNORMAL_QUANTUM, a module-level value, float32.fma32, float32.next_float32, float32.round_to_float32, float32.to_float32
+      of them, with other statements than main's: ['MappedParameter.to_preset', 'NormalizedScale.holds']
+   HN = scale.to_normalized(P0)
+      reaches 16: NormalizedScale.span, NormalizedScale.to_normalized, NormalizedScale.to_preset, _landing, _round_half_away, _span, float32._BITS, a module-level value, float32._FLOAT32, a module-level value, float32._MANTISSA_BITS, a module-level value, float32._MIN_NORMAL_EXPONENT, a module-level value, float32._OVERFLOW, a module-level value, float32._SUBNORMAL_QUANTUM, a module-level value, float32.fma32, float32.next_float32, float32.round_to_float32, float32.to_float32
+      of them, with other statements than main's: none
+== method-named attributes whose receiver was not placed: none
+== so, on any record: the calls that can differ from main's:
+      TP = record.to_preset(D0), through ['MappedParameter.to_preset', 'NormalizedScale.holds']
+      TN = record.to_normalized(D0), through ['MappedParameter.to_preset', 'NormalizedScale.holds']
+   and the calls that cannot, every function they reach having main's statements:
+      P0 = scale.to_preset(r)
+      D0 = record.from_normalized(r)
+      HN = scale.to_normalized(P0)
+exit=0
+
+== 7. env_1_delay, every float32 normalized value, the two methods that can differ
+== the main pool, 6 processes, imports <scratchpad>/r16/main/src/patchbay_vital/parameters.py
+   and <scratchpad>/r16/main/src/patchbay_vital/float32.py
+== the branch pool, 7 processes, imports src/patchbay_vital/parameters.py
+   and src/patchbay_vital/float32.py
+== env_1_delay, --columns two: binades zero to one, 1,065,353,217 float32 normalized values, each through both trees
+      binade           n         D!=      PRESET        NORM         ANY        KEPT      PLUGIN       OTHER        FELL     UNKNOWN         OUT
+       total  1065353217           0           0           0           0  1065353217           0           0           0           0           0
+  every value KEPT and nothing differing from main in 129 binades: zero, sub, -126, -125, -124, -123, -122, -121, -120, -119, -118, -117, -116, -115, -114, -113, -112, -111, -110, -109, -108, -107, -106, -105, -104, -103, -102, -101, -100, -99, -98, -97, -96, -95, -94, -93, -92, -91, -90, -89, -88, -87, -86, -85, -84, -83, -82, -81, -80, -79, -78, -77, -76, -75, -74, -73, -72, -71, -70, -69, -68, -67, -66, -65, -64, -63, -62, -61, -60, -59, -58, -57, -56, -55, -54, -53, -52, -51, -50, -49, -48, -47, -46, -45, -44, -43, -42, -41, -40, -39, -38, -37, -36, -35, -34, -33, -32, -31, -30, -29, -28, -27, -26, -25, -24, -23, -22, -21, -20, -19, -18, -17, -16, -15, -14, -13, -12, -11, -10, -9, -8, -7, -6, -5, -4, -3, -2, -1, one
+  15479 s
+exit=0
+
+the trees after the run:
+  HEAD f533b1b0a362373613471993c86f2df8ab0ed111
+  git status --porcelain=v1 --untracked-files=all, 13 lines:
+     M src/patchbay_vital/parameters.py
+     M tests/data/pinned-values.txt
+     M tests/integration/test_vital_plugin.py
+     M tests/unit/test_parameters.py
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/plan.md
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/references.md
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/shape.md
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/standards.md
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/verification/arbitrary-displays.txt
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/verification/cost.txt
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/verification/indexed-count.txt
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/verification/mutation.txt
+    ?? agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/verification/plugin-probe.txt
+  this branch's tree, the working tree: git hash-object of each file the run reads, HEAD's blob beside it:
+    50fe09b3c3b285b3d569a8b7eb2f76981c7d6164  src/patchbay_vital/__init__.py  (HEAD 50fe09b3c3b285b3d569a8b7eb2f76981c7d6164)
+    5bf2ff80237d4dde75a3fa3b5e45728daf2dbb46  src/patchbay_vital/census.py  (HEAD 5bf2ff80237d4dde75a3fa3b5e45728daf2dbb46)
+    109ae1887be396e43ce7939b7115ec9745b6c6ca  src/patchbay_vital/data/parameters.json  (HEAD 109ae1887be396e43ce7939b7115ec9745b6c6ca)
+    d8265cd5668a70b1802e3d7b1917104935e292ff  src/patchbay_vital/errors.py  (HEAD d8265cd5668a70b1802e3d7b1917104935e292ff)
+    ddf88f5cf88bc3bfd23301f0968ca3bcd65533ac  src/patchbay_vital/files.py  (HEAD ddf88f5cf88bc3bfd23301f0968ca3bcd65533ac)
+    27a1e91bd4483e2fbdebf444799b51f78617ab0e  src/patchbay_vital/float32.py  (HEAD 27a1e91bd4483e2fbdebf444799b51f78617ab0e)
+    4296bf4d4d4ef0280ae6ae4d16810a8bce8c9b75  src/patchbay_vital/format.py  (HEAD 4296bf4d4d4ef0280ae6ae4d16810a8bce8c9b75)
+    e72737ee0f4a1d68ae1d8374390c2fa9b0d02692  src/patchbay_vital/grisu2.py  (HEAD e72737ee0f4a1d68ae1d8374390c2fa9b0d02692)
+    b8f0e11938028b0f7ddb9b079cb36b421026fd9c  src/patchbay_vital/host.py  (HEAD b8f0e11938028b0f7ddb9b079cb36b421026fd9c)
+    51ac5eef0a8cf43c38d972323fb508db3a2a4456  src/patchbay_vital/parameters.py  (HEAD 25b1a378e0d633bf4deede60d3173e976059a2a7)
+    f75e2e85d570f3db4bf5ec206bf9143f1ca4922f  src/patchbay_vital/preset.py  (HEAD f75e2e85d570f3db4bf5ec206bf9143f1ca4922f)
+    e69de29bb2d1d6434b8b29ae775ad8c2e48c5391  src/patchbay_vital/py.typed  (HEAD e69de29bb2d1d6434b8b29ae775ad8c2e48c5391)
+    f3dc277612d28632cba39cf37fa7cd42cdaa4ef6  src/patchbay_vital/settings_keys.txt  (HEAD f3dc277612d28632cba39cf37fa7cd42cdaa4ef6)
+    4ea00da21a7666f2867cf8aba41593f928755b3e  src/patchbay_vital/state.py  (HEAD 4ea00da21a7666f2867cf8aba41593f928755b3e)
+  main's tree, commit f533b1b0a362373613471993c86f2df8ab0ed111, extracted with git archive: git hash-object of
+  each extracted file, the blob of main's commit beside it:
+    50fe09b3c3b285b3d569a8b7eb2f76981c7d6164  <scratchpad>/r16/main/src/patchbay_vital/__init__.py  (main 50fe09b3c3b285b3d569a8b7eb2f76981c7d6164)
+    5bf2ff80237d4dde75a3fa3b5e45728daf2dbb46  <scratchpad>/r16/main/src/patchbay_vital/census.py  (main 5bf2ff80237d4dde75a3fa3b5e45728daf2dbb46)
+    109ae1887be396e43ce7939b7115ec9745b6c6ca  <scratchpad>/r16/main/src/patchbay_vital/data/parameters.json  (main 109ae1887be396e43ce7939b7115ec9745b6c6ca)
+    d8265cd5668a70b1802e3d7b1917104935e292ff  <scratchpad>/r16/main/src/patchbay_vital/errors.py  (main d8265cd5668a70b1802e3d7b1917104935e292ff)
+    ddf88f5cf88bc3bfd23301f0968ca3bcd65533ac  <scratchpad>/r16/main/src/patchbay_vital/files.py  (main ddf88f5cf88bc3bfd23301f0968ca3bcd65533ac)
+    27a1e91bd4483e2fbdebf444799b51f78617ab0e  <scratchpad>/r16/main/src/patchbay_vital/float32.py  (main 27a1e91bd4483e2fbdebf444799b51f78617ab0e)
+    4296bf4d4d4ef0280ae6ae4d16810a8bce8c9b75  <scratchpad>/r16/main/src/patchbay_vital/format.py  (main 4296bf4d4d4ef0280ae6ae4d16810a8bce8c9b75)
+    e72737ee0f4a1d68ae1d8374390c2fa9b0d02692  <scratchpad>/r16/main/src/patchbay_vital/grisu2.py  (main e72737ee0f4a1d68ae1d8374390c2fa9b0d02692)
+    b8f0e11938028b0f7ddb9b079cb36b421026fd9c  <scratchpad>/r16/main/src/patchbay_vital/host.py  (main b8f0e11938028b0f7ddb9b079cb36b421026fd9c)
+    25b1a378e0d633bf4deede60d3173e976059a2a7  <scratchpad>/r16/main/src/patchbay_vital/parameters.py  (main 25b1a378e0d633bf4deede60d3173e976059a2a7)
+    f75e2e85d570f3db4bf5ec206bf9143f1ca4922f  <scratchpad>/r16/main/src/patchbay_vital/preset.py  (main f75e2e85d570f3db4bf5ec206bf9143f1ca4922f)
+    e69de29bb2d1d6434b8b29ae775ad8c2e48c5391  <scratchpad>/r16/main/src/patchbay_vital/py.typed  (main e69de29bb2d1d6434b8b29ae775ad8c2e48c5391)
+    f3dc277612d28632cba39cf37fa7cd42cdaa4ef6  <scratchpad>/r16/main/src/patchbay_vital/settings_keys.txt  (main f3dc277612d28632cba39cf37fa7cd42cdaa4ef6)
+    4ea00da21a7666f2867cf8aba41593f928755b3e  <scratchpad>/r16/main/src/patchbay_vital/state.py  (main 4ea00da21a7666f2867cf8aba41593f928755b3e)
+cmp: the trees before and after are the same
+the machine after the run: arm64, Apple M4 Pro, 14 cores, macOS 26.6.2 (25G83), Python 3.12.16, load 15.92 20.37 30.85, at 2026-11-15 04:15 EST
