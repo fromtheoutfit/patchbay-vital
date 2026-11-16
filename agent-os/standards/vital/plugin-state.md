@@ -228,14 +228,24 @@ the spec of issue #8 (`agent-os/specs/2026-11-15-1448-the-instrument/`): `probes
   Pro, macOS 26.6.2). Verified against `probes.txt` section 1, `midi.py` and
   `test_a_note_lands_on_the_sample_core_s_rule_gives_it`.
 - **On one channel, a note-off releases every voice of its pitch; on another channel a note keeps
-  its own.** Vital voices two notes of one pitch on one channel, and the first note-off ends both:
-  of C4 from 0 to 1 s and C4 from 0.5 to 1.5 s, the render falls silent at 1.015 s, where the
-  second alone ends at 1.510 s, and two struck on one sample both stop at the first end. On two
-  channels each keeps its own length and its own velocity, and three overlapping on three channels
-  each end at their own. A note alone sounds the same on any channel, its level and centroid to
-  the digits printed, with the `mpe_enabled` setting off and on; two voices of one pitch sum to a
-  different level with MPE on, on one channel or two alike, an observation with no cause claimed.
-  On the start preset velocity sets no level, `velocity_track` being 0 %. Measured on Vital 1.6.4
+  its own.** On one channel the first note-off of a pitch ends every note of it: of C4 from 0 to
+  1 s and C4 from 0.5 to 1.5 s, the render falls silent at 1.015 s, where the second alone ends at
+  1.510 s, and two struck on one sample both stop at the first end. On two channels each keeps its
+  own length, and three overlapping on three channels each end at their own, where on one channel
+  all three stop at the first end. A note alone sounds the same on any channel, its level within
+  0.000002 and its centroid to the digits printed. The second probe measured these with the
+  `mpe_enabled` setting off and on, but for the two-note overlap, which the first measured with it
+  off. Two things are measured with it off alone, and are not claimed with it on:
+  - that Vital voices two notes of one pitch on one channel as two voices until the note-off. With
+    MPE off their overlap measures 0.2122 against one note's 0.1439; with it on it measures 0.1435,
+    about the level of one, and two on two channels sum to another level than with it off,
+    observations with no cause claimed;
+  - that a note on a channel of its own keeps its own velocity, measured with `velocity_track` at
+    100 %: 0.0892 for velocity 100 and 0.0223 for velocity 50 alone, and 0.0223 where the second
+    sounds on after the first. On the start preset velocity sets no level, `velocity_track` being
+    0 %, and the MPE-on runs were made there.
+
+  Measured on Vital 1.6.4
   through pedalboard 0.9.26 on arm64 (Apple M4 Pro, macOS 26.6.2). Verified against
   the revision after PR 23's review (`agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/`)'s `overlap-probe.txt` and `overlap-probe-2.txt`, `midi.py` and
   `test_two_notes_of_one_pitch_that_overlap_each_sound_for_their_own_length`.

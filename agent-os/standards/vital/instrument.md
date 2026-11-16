@@ -9,7 +9,9 @@ and `start.py`; the evidence is the `verification/` of the spec of issue #8
 through pedalboard 0.9.26 on arm64 (Apple M4 Pro, macOS 26.6.2): `probes.txt`, `probes-2.txt`,
 `contract-run.txt`, `carrying-count.txt`, `off-grid-count.txt` and `mutation.txt`, and of
 the revision after PR 23's review (`agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/`): `overlap-probe.txt`, `overlap-probe-2.txt`, `carrying-count.txt`, `load-and-set-sample.txt`,
-`check-cost.txt`, `contract-run.txt` and `mutation.txt`. Each rule names
+`check-cost.txt`, `contract-run.txt` and `mutation.txt`, and of the revision after its second
+review (`agent-os/specs/2026-11-16-1509-revision-after-pr-23-second-review/`):
+`upgraded-set-count.txt`, `mutation.txt` and `contract-run.txt`. Each rule names
 the test that holds it; a unit test runs over a fake plugin, so CI holds it, and a test of
 `tests/integration/test_vital_instrument.py` runs against the installed Vital.
 
@@ -57,12 +59,36 @@ the test that holds it; a unit test runs over a fake plugin, so CI holds it, and
   set lands on,** in the model and the plugin, and is still published, `old` equal to `new`. A preset
   holds such floats, 22 of the 903 defaults and 2,201 of the 57,671 floats of the installed presets,
   and a set of such a float's own display would hold a neighbour. Any other set reaches the plugin,
-  one of the value shown on a float a set lands on among them: so where Vital upgraded a preset's
-  float as it loaded it (issue #22), a set of the value `get` shows sets Vital back to the model's.
+  one of the value shown on a float a set lands on among them.
   Verified against `test_a_set_of_the_value_already_shown_keeps_what_is_held`, 22 counted,
-  `off-grid-count.txt`, `test_a_set_of_the_value_already_shown_on_a_float_a_set_lands_on_reaches_the_plugin`,
+  `off-grid-count.txt`, `test_a_set_of_the_value_already_shown_on_a_float_a_set_lands_on_reaches_the_plugin`
+  and MK1 to MK3 of the first revision's `mutation.txt`.
+- **What a set of the value shown does to a float Vital upgraded is counted, and is not a rule.**
+  Where Vital upgraded a preset's float as it loaded it (issue #22), a set of the value `get` shows
+  puts Vital on the model's float only where the parameter takes that value and the model's float
+  is one a set lands on. Of the 46 such floats on the installed presets, 42 are mended so. 3 are
+  refused, `flanger_center` on Touch Tone, Memory Leak and Oolacile Evil Dubstep Bass, whose file
+  value shows a display outside 8 to 136. 1 is kept, `modulation_10_amount` on Oolacile Evil Dubstep
+  Bass, 0.19999998807907104 in the model and 0.07499999552965164 played: no set can mend it, the
+  plugin taking a float only through a normalized value, and what the model should hold is issue
+  #22's to decide. Measured on Vital 1.6.4 through pedalboard 0.9.26 on arm64 (Apple M4 Pro, macOS
+  26.6.2). A consequence drawn from one float, as this one first was from Ah Eh Ee Oh's, is stated
+  of that float alone until it is counted over the recorded set, the exceptions written out.
+  Verified against
+  `test_a_set_of_the_value_shown_mends_42_of_the_upgraded_floats_is_refused_on_3_and_kept_on_1`,
   `test_a_set_of_the_value_shown_on_an_upgraded_float_sets_vital_to_the_model_s` (Ah Eh Ee Oh's
-  `osc_1_stack_style`, 9 held and 10 played) and MK1 to MK3 of the revision's `mutation.txt`.
+  `osc_1_stack_style`, 9 held and 10 played),
+  `test_a_set_of_the_value_shown_on_an_upgraded_float_no_set_lands_on_leaves_the_plugin_upgraded`,
+  the second revision's `upgraded-set-count.txt` and its MK1.
+- **A test that compares something with a set makes the set from another value, and counts it at
+  the plugin.** A set of the value a parameter already shows can be the keep rule's no-op, and it
+  then agrees with whatever float came before it. So a test of a load against a set sets first, on
+  the start preset, asserts the plugin received each set, and loads afterwards. Its sample holds a
+  display two floats show, where a load could take the wrong one and the no-op hide it: `volume`'s
+  minimum, shown by 0 and by the float32 next above it, which a uniform draw never reaches. Verified against
+  `test_an_arbitrary_display_in_a_patch_holds_what_a_set_of_it_holds` and the second revision's
+  `mutation.txt`, where MD4, a load that takes another float showing the display, passes that
+  test as it was at `64863c6` and fails it as it is.
 - **One case of core's clause is not met, and a characterization test holds it.** A float off the
   grid, once another value has been set, is not got back by a set of the display `get` first
   returned for it: the parameter holds the neighbour. Verified against
@@ -88,10 +114,12 @@ the test that holds it; a unit test runs over a fake plugin, so CI holds it, and
   load restores and a set does not, fromtheoutfit/patchbay#20's case. No second rule beside the
   map's is made for a load: a value no float's display names goes through `to_preset`. Verified
   against `test_a_value_goes_to_the_float_a_set_of_it_holds_unless_it_names_a_float`,
-  `test_an_arbitrary_display_in_a_patch_holds_what_a_set_of_it_holds` (a sample, 55 groups, seed
-  23), `test_a_display_that_is_an_off_grid_float_s_own_is_restored_by_a_load_and_not_by_a_set`,
-  the revision's `carrying-count.txt` (59,442 carried and 59,442 restored, as many as before),
-  `load-and-set-sample.txt` (110,000 displays, 55 groups) and MD1 to MD3.
+  `test_an_arbitrary_display_in_a_patch_holds_what_a_set_of_it_holds` (a sample, 55 groups, 25
+  uniform rounds of seed 23 and each bound, 1,485 displays),
+  `test_a_display_that_is_an_off_grid_float_s_own_is_restored_by_a_load_and_not_by_a_set`,
+  the first revision's `carrying-count.txt` (59,442 carried and 59,442 restored, as many as
+  before), `load-and-set-sample.txt` (110,000 displays, 55 groups) and MD1 to MD3, and the second
+  revision's MD4.
 - **A preset comes back byte for byte,** through a patch and through the patch's JSON, a key it
   lacks staying absent. Verified against
   `test_a_built_preset_comes_back_byte_for_byte_through_a_patch_and_through_json`,
@@ -132,7 +160,7 @@ rules on it.
   shapes, `test_the_guard_passes_what_vital_was_seen_to_load`,
   `test_a_version_is_compared_by_its_numbers_less_trailing_zeros`,
   `test_a_plugin_version_that_is_not_digits_and_dots_refuses_every_preset_by_name`, MG1 to MG4 and
-  the revision's MV1 and MV2.
+  the first revision's MV1 and MV2.
 - **The guard judges a section's shape, never its inside, so a malformed section can still hang the
   process.** The instrument's docstring and the README say so in those words. Measured on Vital
   1.6.4 through pedalboard 0.9.26 on arm64 (Apple M4 Pro, macOS 26.6.2): three texts pass the guard
