@@ -64,8 +64,12 @@ and for the files module the revisions after PR 9's three reviews, the second at
   routing list, its floats as `modulation_<slot>_<field>` scalars**, matched by position.
   `Modulation` holds both, and `settings_keys.txt` holds none of the per-slot keys. Five fields are
   in every file; `ramp_down` and `ramp_up` only from 1.6.4, each `None` where the file lacks its key
-  and written only when present. Verified against `format.py` (`join_modulations`,
-  `split_modulations`) and `test_split_reverses_join_over_arbitrary_slot_contents`.
+  and written only when present. A slot float's key is written and read in one place,
+  `preset.slot_key` and `preset.slot_place` beside `SLOT_KEY`, and no other module takes one apart.
+  Verified against `format.py` (`join_modulations`, `split_modulations`),
+  `test_split_reverses_join_over_arbitrary_slot_contents`,
+  `test_a_set_reaches_a_slot_s_float_and_the_model_stays_a_preset_that_reads_back` and MF2 of the
+  revision after PR 23's review's `mutation.txt`.
 - **A preset has exactly 64 slots, used or not, and every one is kept.** Used slots can have gaps
   between them, so position is the slot, and an empty slot can still hold a non-zero amount, so it
   is not dropped. An empty slot's source and destination are `""` in the file and `None` on the
@@ -116,5 +120,7 @@ and for the files module the revisions after PR 9's three reviews, the second at
   `test_only_a_file_a_later_rename_could_force_back_is_read`,
   `test_a_file_that_cannot_be_read_is_still_replaced`).
 - **Two presets are the same when they write the same bytes**, so `diff` tells `0.0` from `-0.0`,
-  which compare equal. Verified against `format.py` (`_same`) and
-  `test_a_diff_is_empty_exactly_when_the_presets_write_the_same`.
+  which compare equal. One helper says it, `format.writes_same`, which the diff, the patch's
+  carrying check and the instrument's keep rule all use. Verified against `format.py`
+  (`writes_same`), `test_a_diff_is_empty_exactly_when_the_presets_write_the_same` and MF1 of the
+  revision after PR 23's review's `mutation.txt`.

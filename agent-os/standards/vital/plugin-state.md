@@ -87,7 +87,7 @@ the spec of issue #8 (`agent-os/specs/2026-11-15-1448-the-instrument/`): `probes
   So a text is judged before the plugin is given it (`vital/instrument.md`, the guard); a load
   that may not return is run only in a process of its own with a time limit, as a transcript; and
   no test sends one. A load that cannot block is issue #20's to make. Verified against
-  `probes.txt` sections 5 and 5b, `instrument.py` (`check_loadable`) and
+  `probes.txt` sections 5 and 5b, `patch.py` (`check_loadable`) and
   `test_a_preset_the_plugin_was_seen_not_to_load_whole_is_refused_before_it_is_called`.
 - **One load of a text is not enough, and two are: a measured fact, no cause known.** After a set of
   every parameter and a render, on the start preset, the fixture and the 75 installed presets: one
@@ -227,6 +227,18 @@ the spec of issue #8 (`agent-os/specs/2026-11-15-1448-the-instrument/`): `probes
   misses that did not happen. Measured on Vital 1.6.4 through pedalboard 0.9.26 on arm64 (Apple M4
   Pro, macOS 26.6.2). Verified against `probes.txt` section 1, `midi.py` and
   `test_a_note_lands_on_the_sample_core_s_rule_gives_it`.
+- **On one channel, a note-off releases every voice of its pitch; on another channel a note keeps
+  its own.** Vital voices two notes of one pitch on one channel, and the first note-off ends both:
+  of C4 from 0 to 1 s and C4 from 0.5 to 1.5 s, the render falls silent at 1.015 s, where the
+  second alone ends at 1.510 s, and two struck on one sample both stop at the first end. On two
+  channels each keeps its own length and its own velocity, and three overlapping on three channels
+  each end at their own. A note alone sounds the same on any channel, its level and centroid to
+  the digits printed, with the `mpe_enabled` setting off and on; two voices of one pitch sum to a
+  different level with MPE on, on one channel or two alike, an observation with no cause claimed.
+  On the start preset velocity sets no level, `velocity_track` being 0 %. Measured on Vital 1.6.4
+  through pedalboard 0.9.26 on arm64 (Apple M4 Pro, macOS 26.6.2). Verified against
+  the revision after PR 23's review (`agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/`)'s `overlap-probe.txt` and `overlap-probe-2.txt`, `midi.py` and
+  `test_two_notes_of_one_pitch_that_overlap_each_sound_for_their_own_length`.
 - **Vital gives samples past full scale, up to 2.1, and 2 ** 24 samples in one render,** every one
   finite, in 1.3 s, on Vital 1.6.4 through pedalboard 0.9.26 on arm64 (Apple M4 Pro, macOS 26.6.2).
   Verified against `probes.txt` sections 2 and 3,

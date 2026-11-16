@@ -7,7 +7,9 @@ audio `vital/measures.md`'s. Written from `src/patchbay_vital/instrument.py`, `p
 and `start.py`; the evidence is the `verification/` of the spec of issue #8
 (`agent-os/specs/2026-11-15-1448-the-instrument/`), every measurement in it made on Vital 1.6.4
 through pedalboard 0.9.26 on arm64 (Apple M4 Pro, macOS 26.6.2): `probes.txt`, `probes-2.txt`,
-`contract-run.txt`, `carrying-count.txt`, `off-grid-count.txt` and `mutation.txt`. Each rule names
+`contract-run.txt`, `carrying-count.txt`, `off-grid-count.txt` and `mutation.txt`, and of
+the revision after PR 23's review (`agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/`): `overlap-probe.txt`, `overlap-probe-2.txt`, `carrying-count.txt`, `load-and-set-sample.txt`,
+`check-cost.txt`, `contract-run.txt` and `mutation.txt`. Each rule names
 the test that holds it; a unit test runs over a fake plugin, so CI holds it, and a test of
 `tests/integration/test_vital_instrument.py` runs against the installed Vital.
 
@@ -51,29 +53,45 @@ the test that holds it; a unit test runs over a fake plugin, so CI holds it, and
   parameters are stepped, and not all in whole numbers: `chorus_voices` runs in fours and
   `oversampling` in powers of two. Core's `Parameter` does not show a step. Verified against
   `test_a_value_between_steps_is_taken_and_the_nearest_step_held`.
-- **A set of the value a parameter already shows keeps what it holds,** in the model and the plugin,
-  and is still published, `old` equal to `new`. A preset holds floats no set lands on, 22 of the 903
-  defaults and 2,201 of the 57,671 floats of the installed presets, and a set of such a float's own
-  display would hold a neighbour. Verified against
-  `test_a_set_of_the_value_already_shown_keeps_what_is_held`, 22 counted, `off-grid-count.txt` and
-  MK1.
+- **A set of the value a parameter already shows keeps what it holds only where that is a float no
+  set lands on,** in the model and the plugin, and is still published, `old` equal to `new`. A preset
+  holds such floats, 22 of the 903 defaults and 2,201 of the 57,671 floats of the installed presets,
+  and a set of such a float's own display would hold a neighbour. Any other set reaches the plugin,
+  one of the value shown on a float a set lands on among them: so where Vital upgraded a preset's
+  float as it loaded it (issue #22), a set of the value `get` shows sets Vital back to the model's.
+  Verified against `test_a_set_of_the_value_already_shown_keeps_what_is_held`, 22 counted,
+  `off-grid-count.txt`, `test_a_set_of_the_value_already_shown_on_a_float_a_set_lands_on_reaches_the_plugin`,
+  `test_a_set_of_the_value_shown_on_an_upgraded_float_sets_vital_to_the_model_s` (Ah Eh Ee Oh's
+  `osc_1_stack_style`, 9 held and 10 played) and MK1 to MK3 of the revision's `mutation.txt`.
 - **One case of core's clause is not met, and a characterization test holds it.** A float off the
   grid, once another value has been set, is not got back by a set of the display `get` first
   returned for it: the parameter holds the neighbour. Verified against
   `test_an_off_grid_float_set_back_after_another_value_holds_its_neighbour` and, against the
   installed Vital, `test_an_off_grid_float_set_back_after_another_value_holds_its_neighbour_on_vital`,
-  each naming by its title the issue drafted for core; that spec's `shape.md` gives the number it
-  was filed under.
+  each naming by its title the issue filed for core, fromtheoutfit/patchbay#20.
 
 ## A patch
 
 - **A float is carried in exactly one place.** In `values`, as the display that carries it, where
-  the display passes `Parameter.check` and converts back to the very float, checked for that float
-  as the patch is built; otherwise in `opaque["preset"]`, as itself. Never both: a patch that
-  carries one parameter twice is refused by name. So every entry of `values` is one `set` takes.
-  Verified against `test_a_float_is_in_values_or_in_the_entry_and_never_in_both`,
+  the display passes `Parameter.check` and converts back to the very float by the rule below,
+  checked for that float as the patch is built; otherwise in `opaque["preset"]`, as itself. Never
+  both: a patch that carries one parameter twice is refused by name. So every entry of `values` is
+  one `set` takes. Verified against `test_a_float_is_in_values_or_in_the_entry_and_never_in_both`,
   `test_a_float_its_display_cannot_carry_rides_in_the_entry_though_it_is_in_range`,
   `test_a_parameter_carried_in_both_places_is_refused_by_name` and MP1, MP2 and MP3.
+- **A value is taken one way, by `load_patch` and by the carrying check alike.** On a linear scale,
+  the curve's float32 for the display, kept within the scale's ends, where that float's own display
+  is exactly the one given: the display names it, and it is stored. Any other value, and every
+  value on an indexed scale, is taken as `set` takes it, `MappedParameter.to_preset`. So a patch the
+  instrument gave restores every float it carried, and an arbitrary display in a patch holds what a
+  set of it holds; the one difference is a display that is exactly an off-grid float's own, which a
+  load restores and a set does not, fromtheoutfit/patchbay#20's case. No second rule beside the
+  map's is made for a load: a value no float's display names goes through `to_preset`. Verified
+  against `test_a_value_goes_to_the_float_a_set_of_it_holds_unless_it_names_a_float`,
+  `test_an_arbitrary_display_in_a_patch_holds_what_a_set_of_it_holds` (a sample, 55 groups, seed
+  23), `test_a_display_that_is_an_off_grid_float_s_own_is_restored_by_a_load_and_not_by_a_set`,
+  the revision's `carrying-count.txt` (59,442 carried and 59,442 restored, as many as before),
+  `load-and-set-sample.txt` (110,000 displays, 55 groups) and MD1 to MD3.
 - **A preset comes back byte for byte,** through a patch and through the patch's JSON, a key it
   lacks staying absent. Verified against
   `test_a_built_preset_comes_back_byte_for_byte_through_a_patch_and_through_json`,
@@ -105,11 +123,16 @@ What Vital does with a load, measured, is `vital/plugin-state.md`'s. These are t
 rules on it.
 
 - **A preset seen to block, to be ignored or to keep old sections is refused before the plugin is
-  called.** The guard refuses a `synth_version` that is no version or is newer than the plugin's,
-  `wavetables` and `lfos` that are not arrays of three and of eight objects, a `sample` without its
-  four keys, and a float with no finite display. Verified against
+  called.** The guard, `patch.check_loadable`, needs no plugin and judges a preset and the map
+  alone. It refuses a `synth_version` that is no version or is newer than the plugin's, versions
+  compared by their numbers less trailing zeros, and every preset where the plugin's own version
+  is no version; `wavetables` and `lfos` that are not arrays of three and of eight objects; a
+  `sample` without its four keys; and a float with no finite display. Verified against
   `test_a_preset_the_plugin_was_seen_not_to_load_whole_is_refused_before_it_is_called`, fifteen
-  shapes, `test_the_guard_passes_what_vital_was_seen_to_load` and MG1 to MG4.
+  shapes, `test_the_guard_passes_what_vital_was_seen_to_load`,
+  `test_a_version_is_compared_by_its_numbers_less_trailing_zeros`,
+  `test_a_plugin_version_that_is_not_digits_and_dots_refuses_every_preset_by_name`, MG1 to MG4 and
+  the revision's MV1 and MV2.
 - **The guard judges a section's shape, never its inside, so a malformed section can still hang the
   process.** The instrument's docstring and the README say so in those words. Measured on Vital
   1.6.4 through pedalboard 0.9.26 on arm64 (Apple M4 Pro, macOS 26.6.2): three texts pass the guard
@@ -130,6 +153,15 @@ rules on it.
   call is refused as a patch, chained from the host's error, and the plugin holds the model's
   floats. Verified against
   `test_a_load_the_plugin_refuses_puts_the_model_s_text_back_and_is_refused_as_a_patch` and ML1.
+- **When the plugin refuses the model's own text too, the instrument has lost step, and says so.**
+  Its state is unknown, so core's "changing nothing" cannot be claimed: `PluginStateError`, not
+  core's `PatchRejectedError`, names both refusals and says to build a new instrument. Every later
+  `set`, `load_patch` and `render` is refused with it before any other check, the plugin not
+  called and nothing published; `get` and `patch` answer from the model, which the plugin may no
+  longer match. Verified against
+  `test_a_plugin_that_refuses_the_model_s_own_text_too_leaves_the_instrument_out_of_step`,
+  `test_once_out_of_step_every_call_that_reaches_the_plugin_is_refused_before_anything_else`,
+  `test_once_out_of_step_get_and_patch_answer_from_the_model` and MS1 to MS4.
 
 ## Events and errors
 
@@ -173,6 +205,19 @@ rules on it.
   render's length is left out, and a note-off there too. Verified against `tests/unit/test_midi.py`,
   its bytes written out, `test_a_note_lands_on_the_sample_core_s_rule_gives_it`, at a sample where
   the two differ, `probes.txt` section 1 and MM1 to MM4.
+- **Each note sounds for its own length, as core's reference instrument sums a sine per note.** On
+  one channel Vital's first note-off releases every voice of its pitch, so a note whose pitch is
+  already sounding on its channel goes out, on and off, on the lowest channel where it is not; of
+  two struck on one sample the first in the pattern keeps its channel. A pitch sounds from its
+  note-on to its note-off, so one released on a sample is free to a note struck there, and a note
+  too short to last a sample is not. A seventeenth note of one pitch sounding at once is
+  `RenderRefusedError`, naming the pitch and the sample. Where core's protocol leaves a meaning
+  open and its reference instrument shows one, the reference decides, and a probe of Vital shows
+  how to reach it. Measured on Vital 1.6.4 through pedalboard 0.9.26 on arm64 (Apple M4 Pro, macOS
+  26.6.2), with Vital's MPE setting off and on. Verified against `tests/unit/test_midi.py`, its
+  bytes written out,
+  `test_two_notes_of_one_pitch_that_overlap_each_sound_for_their_own_length`, under the probes'
+  window with a named tolerance, `overlap-probe.txt`, `overlap-probe-2.txt` and MM5 to MM10.
 
 ## The contract suite
 
