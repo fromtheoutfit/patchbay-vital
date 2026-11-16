@@ -2,14 +2,18 @@
 
 The package re-exports what a consumer uses and nothing else lives here: the models of a preset
 (`patchbay_vital.preset`), reading, writing and comparing a `.vital` file
-(`patchbay_vital.format`), the parameter map and its scales (`patchbay_vital.parameters`) and the
-errors (`patchbay_vital.errors`). Writing a float as Vital does is `patchbay_vital.grisu2`, float32
-arithmetic `patchbay_vital.float32`, the plugin state's containers `patchbay_vital.state`, and the
+(`patchbay_vital.format`), the parameter map and its scales (`patchbay_vital.parameters`), a
+preset carried in a core `Patch` and back (`patchbay_vital.patch`), the preset the instrument
+starts on (`patchbay_vital.start`) and the errors (`patchbay_vital.errors`). Writing a float as
+Vital does is `patchbay_vital.grisu2`, float32 arithmetic `patchbay_vital.float32`, the plugin
+state's containers `patchbay_vital.state`, a pattern's MIDI `patchbay_vital.midi`, and the
 reversible join of a preset's modulations stays in `patchbay_vital.format`; none is re-exported.
 
-Hosting the plugin, `patchbay_vital.host`, and the map's generator, `patchbay_vital.census`, need
-pedalboard, which is GPLv3 and comes only with the `host` extra: they are imported by name, and
-importing this package never imports them.
+The instrument itself, `patchbay_vital.instrument.VitalInstrument`, hosting the plugin,
+`patchbay_vital.host`, and the map's generator, `patchbay_vital.census`, need pedalboard, which
+is GPLv3 and comes only with the `host` extra: they are imported by name, and importing this
+package never imports them. The instrument is also what the `vital` entry point of the
+`patchbay.instruments` group names.
 
 `__version__` is the one in pyproject.toml, read from the installed distribution's metadata so
 there is one place it is written. Import the package installed (`uv sync`): from a bare src/ on
@@ -24,10 +28,13 @@ from patchbay_vital.errors import (
     MalformedPresetError,
     MapMismatchError,
     ParameterRangeError,
+    ParameterUnitError,
+    PatchRefusedError,
     PluginLoadError,
     PluginRenderError,
     PluginStateError,
     PresetFileError,
+    RenderRefusedError,
     UnknownParameterError,
     UnknownSettingError,
     VitalError,
@@ -43,6 +50,7 @@ from patchbay_vital.parameters import (
     ParameterMap,
     parameter_map,
 )
+from patchbay_vital.patch import patch_of, preset_of
 from patchbay_vital.preset import (
     MetadataChange,
     Modulation,
@@ -53,6 +61,7 @@ from patchbay_vital.preset import (
     VitalPreset,
     VitalSettings,
 )
+from patchbay_vital.start import start_preset
 
 __version__ = _metadata.version("patchbay-vital")
 
@@ -70,11 +79,14 @@ __all__ = [
     "OpaqueChange",
     "ParameterMap",
     "ParameterRangeError",
+    "ParameterUnitError",
+    "PatchRefusedError",
     "PluginLoadError",
     "PluginRenderError",
     "PluginStateError",
     "PresetDiff",
     "PresetFileError",
+    "RenderRefusedError",
     "SettingChange",
     "UnknownParameterError",
     "UnknownSettingError",
@@ -90,4 +102,7 @@ __all__ = [
     "load",
     "loads",
     "parameter_map",
+    "patch_of",
+    "preset_of",
+    "start_preset",
 ]

@@ -1,6 +1,11 @@
-"""The package's surface is __all__, and its distribution carries the license and its ranges."""
+"""The package's surface is __all__, and its distribution carries the license and its ranges.
 
+It also registers the instrument: one entry point, `vital`, in the `patchbay.instruments` group.
+"""
+
+import importlib
 import importlib.metadata
+import inspect
 import subprocess
 import sys
 import types
@@ -12,7 +17,9 @@ import patchbay_vital
 import patchbay_vital.errors
 import patchbay_vital.format
 import patchbay_vital.parameters
+import patchbay_vital.patch
 import patchbay_vital.preset
+import patchbay_vital.start
 
 
 def _is_own_submodule(value: object) -> bool:
@@ -86,14 +93,17 @@ def test_the_host_extra_declares_numpy_which_host_py_imports() -> None:
 def test_importing_the_package_loads_no_pedalboard() -> None:
     """A fresh interpreter with pedalboard made unimportable still imports the package whole.
 
-    The format layer and the map install without the extra; only `patchbay_vital.host` and what
-    imports it need pedalboard, and the root re-exports neither.
+    The format layer, the map, the carrying of a preset in a patch, the start preset and the MIDI
+    builder install without the extra; only `patchbay_vital.host` and what imports it, the census
+    and the instrument, need pedalboard, and the root re-exports none of those.
     """
     code = (
         "import sys\n"
         "sys.modules['pedalboard'] = None\n"
         "import patchbay_vital, patchbay_vital.format, patchbay_vital.parameters\n"
         "import patchbay_vital.state, patchbay_vital.float32, patchbay_vital.grisu2\n"
+        "import patchbay_vital.midi, patchbay_vital.patch, patchbay_vital.start\n"
+        "patchbay_vital.patch_of(patchbay_vital.start_preset())\n"
         "roots = ('pedalboard', 'pedalboard_native')\n"
         "loaded = [n for n, m in sys.modules.items() if n.split('.')[0] in roots and m]\n"
         "assert not loaded, loaded\n"
@@ -121,10 +131,13 @@ def test_the_package_re_exports_what_a_consumer_uses() -> None:
             "MalformedPresetError",
             "MapMismatchError",
             "ParameterRangeError",
+            "ParameterUnitError",
+            "PatchRefusedError",
             "PluginLoadError",
             "PluginRenderError",
             "PluginStateError",
             "PresetFileError",
+            "RenderRefusedError",
             "UnknownParameterError",
             "UnknownSettingError",
             "VitalError",
@@ -140,6 +153,7 @@ def test_the_package_re_exports_what_a_consumer_uses() -> None:
             "ParameterMap",
             "parameter_map",
         ),
+        patchbay_vital.patch: ("patch_of", "preset_of"),
         patchbay_vital.preset: (
             "MetadataChange",
             "Modulation",
@@ -150,7 +164,50 @@ def test_the_package_re_exports_what_a_consumer_uses() -> None:
             "VitalPreset",
             "VitalSettings",
         ),
+        patchbay_vital.start: ("start_preset",),
     }
     for module, names in surface.items():
         for name in names:
             assert getattr(patchbay_vital, name) is getattr(module, name)
+    exported = {name for names in surface.values() for name in names} | {"__version__"}
+    assert exported == set(patchbay_vital.__all__)
+
+
+def test_the_distribution_registers_the_instrument_under_vital() -> None:
+    """One entry point in `patchbay.instruments`: the key `vital`, the instrument's class.
+
+    The object is a callable that takes the bus an instrument publishes on, as core's reference
+    instrument is built. Core reads no entry point yet, so the group's contract is this
+    adapter's reading of it, provisional until core states one.
+    """
+    registered = [
+        point
+        for point in importlib.metadata.entry_points(group="patchbay.instruments")
+        if point.dist is not None and point.dist.name == "patchbay-vital"
+    ]
+    assert [(point.name, point.value) for point in registered] == [
+        ("vital", "patchbay_vital.instrument:VitalInstrument")
+    ]
+    loaded = registered[0].load()
+    module = importlib.import_module("patchbay_vital.instrument")
+    assert loaded is module.VitalInstrument
+    required = [
+        name
+        for name, parameter in inspect.signature(loaded).parameters.items()
+        if parameter.default is inspect.Parameter.empty
+    ]
+    assert required == ["bus"]
+
+
+def test_the_instrument_is_not_among_what_the_root_imports() -> None:
+    """Importing the package binds no `instrument`, `host` or `census`: each needs the extra."""
+    code = (
+        "import sys, patchbay_vital\n"
+        "names = ('instrument', 'host', 'census')\n"
+        "loaded = [n for n in names if f'patchbay_vital.{n}' in sys.modules]\n"
+        "assert not loaded, loaded\n"
+    )
+    result = subprocess.run(  # noqa: S603 - our interpreter and our own code
+        [sys.executable, "-c", code], capture_output=True, text=True, check=False
+    )
+    assert result.returncode == 0, result.stderr

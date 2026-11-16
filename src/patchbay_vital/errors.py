@@ -14,9 +14,13 @@ generator's, naming a parameter it cannot fit. A model built directly refuses as
 `PatchbayValidationError`, as every model on `PatchbayModel` does.
 
 A failure core's protocol names derives from the root and from core's own error for it as well:
-`UnknownParameterError` is a `ParameterNotFoundError`, and `ParameterRangeError` a
-`ValueOutOfRangeError`, so a caller holding core's types, its contract tests among them, catches
-them, and this package's one root still holds.
+`UnknownParameterError` is a `ParameterNotFoundError`, `ParameterRangeError` a
+`ValueOutOfRangeError`, `ParameterUnitError` a `UnitMismatchError`, `PatchRefusedError` a
+`PatchRejectedError` and `RenderRefusedError` a `RenderFailedError`, so a caller holding core's
+types, its contract tests among them, catches them, and this package's one root still holds. Each
+takes core's own fields, in core's order, and core's message. The instrument raises the last three:
+a value in another unit than the parameter's, a patch it does not load, and a render it does not
+give.
 
 Each error takes its fields as arguments, keeps them as attributes and passes them to `Exception`,
 so `args` and pickling carry them, and builds its message from them in `__str__`. The three that
@@ -27,7 +31,14 @@ import it.
 
 from typing import ClassVar
 
-from patchbay import ParameterNotFoundError, PatchbayError, ValueOutOfRangeError
+from patchbay import (
+    ParameterNotFoundError,
+    PatchbayError,
+    PatchRejectedError,
+    RenderFailedError,
+    UnitMismatchError,
+    ValueOutOfRangeError,
+)
 
 
 class VitalError(PatchbayError):
@@ -147,6 +158,29 @@ class UnknownParameterError(VitalError, ParameterNotFoundError):
 
 class ParameterRangeError(VitalError, ValueOutOfRangeError):
     """A value outside what a parameter takes; core's `ValueOutOfRangeError` too."""
+
+
+class ParameterUnitError(VitalError, UnitMismatchError):
+    """A value in another unit than the parameter's own; core's `UnitMismatchError` too.
+
+    `expected` is the parameter's unit and `given` the value's, each the unit's name.
+    """
+
+
+class PatchRefusedError(VitalError, PatchRejectedError):
+    """A patch the instrument does not load, nothing about it changed; a `PatchRejectedError` too.
+
+    `reason` says why and, where one entry of the patch refused it, names that entry's key: the
+    first to refuse, in the order the patch is checked. The error that refused it is the cause.
+    """
+
+
+class RenderRefusedError(VitalError, RenderFailedError):
+    """A render the instrument does not give; core's `RenderFailedError` too.
+
+    `reason` names the limit passed and its value, or says what the plugin gave in place of the
+    render, the host's error then the cause.
+    """
 
 
 class CensusError(VitalError):

@@ -4,17 +4,27 @@ import copy
 import pickle
 
 import pytest
-from patchbay import ParameterNotFoundError, PatchbayError, ValueOutOfRangeError
+from patchbay import (
+    ParameterNotFoundError,
+    PatchbayError,
+    PatchRejectedError,
+    RenderFailedError,
+    UnitMismatchError,
+    ValueOutOfRangeError,
+)
 
 from patchbay_vital.errors import (
     CensusError,
     MalformedPresetError,
     MapMismatchError,
     ParameterRangeError,
+    ParameterUnitError,
+    PatchRefusedError,
     PluginLoadError,
     PluginRenderError,
     PluginStateError,
     PresetFileError,
+    RenderRefusedError,
     UnknownParameterError,
     UnknownSettingError,
     VitalError,
@@ -33,6 +43,9 @@ _ERRORS = (
     UnknownParameterError("nope", "Vital"),
     ParameterRangeError("volume", 0.0, 1.0, 1.5),
     CensusError("Filter 1 Cutoff", "no curve fits"),
+    ParameterUnitError("volume", "db", "percent"),
+    PatchRefusedError("volume: 7.0 is past its maximum"),
+    RenderRefusedError("16777217 samples is past the limit of 16777216"),
 )
 
 
@@ -72,6 +85,28 @@ def test_a_protocol_failure_is_core_s_error_too() -> None:
     assert isinstance(out_of_range, ValueOutOfRangeError)
     fields = (out_of_range.parameter_id, out_of_range.minimum, out_of_range.maximum)
     assert (*fields, out_of_range.given) == ("volume", 0.0, 1.0, 1.5)
+    wrong_unit = ParameterUnitError("volume", "db", "percent")
+    assert isinstance(wrong_unit, UnitMismatchError)
+    assert (wrong_unit.parameter_id, wrong_unit.expected, wrong_unit.given) == (
+        "volume",
+        "db",
+        "percent",
+    )
+    refused = PatchRefusedError("volume: 7.0 is past its maximum")
+    assert isinstance(refused, PatchRejectedError)
+    assert refused.reason == "volume: 7.0 is past its maximum"
+    no_render = RenderRefusedError("16777217 samples is past the limit of 16777216")
+    assert isinstance(no_render, RenderFailedError)
+    assert no_render.reason == "16777217 samples is past the limit of 16777216"
+
+
+def test_a_protocol_failure_says_what_core_s_error_says() -> None:
+    """Each takes core's message, so a caller reading either type's text reads the same."""
+    assert str(ParameterUnitError("volume", "db", "percent")) == str(
+        UnitMismatchError("volume", "db", "percent")
+    )
+    assert str(PatchRefusedError("no such section")) == str(PatchRejectedError("no such section"))
+    assert str(RenderRefusedError("too long")) == str(RenderFailedError("too long"))
 
 
 def test_fields_are_attributes() -> None:

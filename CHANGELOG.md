@@ -165,6 +165,56 @@ writes the entry, in that commit
 
 ### Added
 
+- The instrument, issue #8, the second half of issue #7,
+  `agent-os/specs/2026-11-15-1448-the-instrument/`. The version stays 0.0.1.
+  - `instrument.VitalInstrument`: Vital as a `patchbay.Instrument` over `VitalHost`, needing the
+    `host` extra. `get` and `set` are in the units Vital displays; `load_patch` and `patch` carry a
+    whole preset; `render` plays a pattern as MIDI and returns stereo float32; `ParameterChanged`,
+    `PatchLoaded` and `RenderCompleted` are published once each on the bus it is built with. Core's
+    thirteen contract tests pass against the installed Vital 1.6.4, core at `eddba95`
+    (`verification/contract-run.txt`), and over a fake plugin in the unit suite, which CI runs.
+  - **The entry point `vital` in the `patchbay.instruments` group, provisional.** It names the
+    class, a callable that takes the `EventBus`. Core reads no entry point yet and has not said
+    what the group holds, so the key and the object's shape are this adapter's reading until it
+    does. Loading it imports pedalboard.
+  - The model is the source of truth: the instrument holds a `VitalPreset` and answers from it,
+    and the plugin's state is never read back as its state. It starts on `data/start.vital`, a
+    preset the package ships: Vital's 903 default values with media generated here, a ramp as
+    each wavetable, two-point lines as the LFO and warp shapes and a 16-sample ramp as the
+    sample. It does not start on Vital's own Init, whose media cannot be shipped. The census now
+    writes three files together or none: the map, the key list and the start preset.
+  - A set holds the value Vital holds for the display given, the map's `to_preset`, which need
+    not be the held value nearest it; a bound is held exactly; a value between the steps of one
+    of the 29 stepped continuous parameters is taken and the nearest step held; a set of the
+    value a parameter already shows keeps what it holds and is still published.
+  - `patch.patch_of` and `patch.preset_of`, re-exported at the root: a preset carried in a core
+    `Patch` and back, byte for byte, through JSON too. A float is carried in exactly one place:
+    in `values` where its display can carry it, checked for each float, and otherwise as itself
+    in `opaque`, as the 32 out-of-range floats and three `chorus_damping` of the 75 installed
+    presets are. A patch of values alone is the start preset with those values. A patch is taken
+    whole or refused, naming the first entry to refuse.
+  - `midi.midi_of`: a pattern's notes as note-on and note-off bytes, each at a time half a sample
+    past its sample, since the time of the sample itself lands one sample early on some samples.
+    mido is not used.
+  - `errors`: `ParameterUnitError`, `PatchRefusedError` and `RenderRefusedError`, each under
+    `VitalError` and core's `UnitMismatchError`, `PatchRejectedError` and `RenderFailedError`.
+  - A render is refused past `MAX_SAMPLES`, 2 ** 24, or outside 1,000 to 768,000 Hz, naming the
+    limit; a render of no samples is an empty result; a render that reaches full scale carries
+    one warning saying the peak and where, the audio never clipped by the instrument.
+  - Known limits, each measured (`verification/probes.txt` and `probes-2.txt`) and each waiting
+    on an issue of its own, all three before the first experiment that puts an agent in front of
+    the instrument, in this order:
+    - a malformed preset section can hang the process (#20): Vital answers a preset it cannot
+      read with a modal alert and never returns. `load_patch` refuses every shape seen to do it,
+      and cannot judge a section's inside;
+    - a render of most presets opens with the preset sounding though no note was played (#21);
+    - on a preset older than the plugin, a few parameters can be reported by `get` with the
+      file's value where Vital plays its upgraded one, for a choice a different setting by name
+      (#22): 46 floats on 11 of the 75 installed presets;
+    - every load is made twice, a measured workaround with no known cause: one load leaves 17 to
+      53 of a preset's 903 floats off the text's.
+  - `agent-os/product/mission.md` names the instrument in "What the adapter is".
+
 - The host and the parameter map, the first half of issue #7,
   `agent-os/specs/2026-11-09-1907-the-host-and-the-parameter-map/`; the instrument is issue #8.
   - `patchbay-vital[host]`: pedalboard (GPLv3) as an optional extra, `>=0.9.26,<1`, so the package

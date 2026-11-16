@@ -1,0 +1,1244 @@
+The instrument spec (issue #8): probes of Vital, what the instrument's rules rest on, run 2026-11-15 18:16 EST on branch
+feature/8-the-instrument-vitalinstrument-over-vitalhost-patchvitalpreset-and-cores-contract-tests-against-a-real-vital-spec-b-of-7, Vital at /Library/Audio/Plug-Ins/VST3/Vital.vst3
+the machine before the run: arm64, Apple M4 Pro, 14 cores, macOS 26.6.2 (25G83), Python 3.12.16, load 1.86 1.98 1.73, at 2026-11-15 18:16 EST
+the tree before the run (this transcript is written outside the tree and copied in afterwards):
+  HEAD e3e601781f32d2058f4793895c47c12fe2793385
+  git status --porcelain=v1 --untracked-files=all, 13 lines:
+     M src/patchbay_vital/census.py
+     M src/patchbay_vital/errors.py
+     M tests/integration/test_vital_plugin.py
+     M tests/unit/test_census.py
+     M tests/unit/test_errors.py
+    ?? agent-os/specs/2026-11-15-1448-the-instrument/plan.md
+    ?? agent-os/specs/2026-11-15-1448-the-instrument/references.md
+    ?? agent-os/specs/2026-11-15-1448-the-instrument/shape.md
+    ?? agent-os/specs/2026-11-15-1448-the-instrument/standards.md
+    ?? src/patchbay_vital/data/start.vital
+    ?? src/patchbay_vital/patch.py
+    ?? src/patchbay_vital/start.py
+    ?? tests/unit/test_start.py
+  git hash-object of each of those paths (a deleted one marked so):
+    a3dddc9d28d9bef006b9e54b7e3eff2d176c7880  agent-os/specs/2026-11-15-1448-the-instrument/plan.md
+    db8c75d636b2346f03102ed5287a0d961684ab81  agent-os/specs/2026-11-15-1448-the-instrument/references.md
+    95c5dcfe06527cc0e91122a41cad49f03dada5dc  agent-os/specs/2026-11-15-1448-the-instrument/shape.md
+    6689f2ad25d6eb9c361366cb26f41d8e9a91b663  agent-os/specs/2026-11-15-1448-the-instrument/standards.md
+    ee9ecbb7cc00b4b63612ae74ff8770411b357e8b  src/patchbay_vital/census.py
+    95e8053ccc855bd9ff4ab4405314930244db3127  src/patchbay_vital/data/start.vital
+    d8c0e345a68411ebe2db537802671269fc709cf3  src/patchbay_vital/errors.py
+    1e8bb9c3da7ecc87cff7c6df747672374488ac77  src/patchbay_vital/patch.py
+    8d8f935855cf1f0f807ed820db1242bf910d9886  src/patchbay_vital/start.py
+    05224f6051e761513857cda9fc0cf86323f4c8a7  tests/integration/test_vital_plugin.py
+    5356f56f7be745ddff42ffe2ca20912f2df192b3  tests/unit/test_census.py
+    d82627e9c3095ef6c94232ab633600de5bc0275d  tests/unit/test_errors.py
+    e273b105262f59300906e1623f78abacc62ab467  tests/unit/test_start.py
+
+$ bash <scratchpad>/i8/run_probes.sh
+Vital 1.6.4 at /Library/Audio/Plug-Ins/VST3/Vital.vst3, through pedalboard 0.9.26
+machine arm64, Python 3.12.16, numpy 2.5.4
+the map: Vital 1.6.4, pedalboard 0.9.26, arm64, 903 records
+the start preset: 60875 bytes
+
+== 0. what a call costs
+load_state(start), five times (ms): [4.7, 4.2, 3.8, 3.9, 3.8]
+a get and a set of each of the 903: 55 ms in all
+state(), twenty times: 0.61 ms each
+
+== 1. the sample a MIDI time lands on
+one note-on, the render from a reset on the start preset; the first non-zero sample at or after
+sample 5000 (the transient is over: its last non-zero sample is printed), less the sample n meant.
+no MIDI, 12000 samples at 48000: peak 0.01653, last non-zero sample 4857
+at 48000 Hz, no MIDI: last non-zero sample 4857
+  n=    6000 (int(n/rate*rate) in doubles +0, in float32 +0): (n-0.5)/rate -1, n/rate +0, (n+0.5)/rate +0
+  n=    6005 (int(n/rate*rate) in doubles -1, in float32 +0): (n-0.5)/rate -1, n/rate +0, (n+0.5)/rate +0
+  n=    6006 (int(n/rate*rate) in doubles -1, in float32 +0): (n-0.5)/rate -1, n/rate +0, (n+0.5)/rate +0
+  n=   24000 (int(n/rate*rate) in doubles +0, in float32 +0): (n-0.5)/rate -1, n/rate +0, (n+0.5)/rate +0
+  n=   48000 (int(n/rate*rate) in doubles +0, in float32 +0): (n-0.5)/rate -1, n/rate +0, (n+0.5)/rate +0
+  n=  100003 (int(n/rate*rate) in doubles +0, in float32 -1): (n-0.5)/rate -1, n/rate -1, (n+0.5)/rate +0
+  n= 1000003 (int(n/rate*rate) in doubles +0, in float32 -1): (n-0.5)/rate -1, n/rate -1, (n+0.5)/rate +0
+  n= 4000001 (int(n/rate*rate) in doubles +0, in float32 -1): (n-0.5)/rate -1, n/rate -1, (n+0.5)/rate +0
+  n=16000000 (int(n/rate*rate) in doubles +0, in float32 +0): (n-0.5)/rate -1, n/rate +0, (n+0.5)/rate +0
+at 44100 Hz, no MIDI: last non-zero sample 4722
+  n=    5500 (int(n/rate*rate) in doubles +0, in float32 +0): (n-0.5)/rate -1, n/rate +0, (n+0.5)/rate +0
+  n=    5516 (int(n/rate*rate) in doubles -1, in float32 +0): (n-0.5)/rate -1, n/rate +0, (n+0.5)/rate +0
+  n=    5527 (int(n/rate*rate) in doubles -1, in float32 +0): (n-0.5)/rate -1, n/rate +0, (n+0.5)/rate +0
+  n=   44100 (int(n/rate*rate) in doubles +0, in float32 +0): (n-0.5)/rate -1, n/rate +0, (n+0.5)/rate +0
+  n=12288003, past 2 ** 23, where a float32 of seconds is coarser than a sample: n/rate +0, (n+0.5)/rate +0
+  n=12291154, past 2 ** 23, where a float32 of seconds is coarser than a sample: n/rate +0, (n+0.5)/rate +0
+  n=16769893, past 2 ** 23, where a float32 of seconds is coarser than a sample: n/rate +0, (n+0.5)/rate +0
+  n=16777213, past 2 ** 23, where a float32 of seconds is coarser than a sample: n/rate +0, (n+0.5)/rate +0
+a sample, not a count: 120 values of n drawn from 5000 to 200000 (numpy default_rng(8)), at 48000 Hz; where each time lands, less n:
+  (n-0.5)/rate: -1 on 120
+  n/rate: -1 on 4, +0 on 116
+  (n+0.5)/rate: +0 on 120
+
+== 2. a render of 2 ** 24 samples
+asked for 16777216 samples at 48000 Hz: shape (2, 16777216), float32, 128 MiB, 1.25 s
+every sample finite: True; peak 0.3661; last non-zero sample 79088
+
+== 3. what Vital gives past full scale
+  one C4 at velocity 100, the start preset:
+    peak 0.358342 at sample 13734; samples at or past 1.0: 0; past 1.0: 0; exactly 1.0: 0
+  the same, volume at its maximum:
+    peak 1.433598 at sample 1639; samples at or past 1.0: 950; past 1.0: 950; exactly 1.0: 0
+  eight notes at velocity 127, volume and oscillator 1's level at their maximum:
+    peak 2.100000 at sample 13; samples at or past 1.0: 37756; past 1.0: 37756; exactly 1.0: 0
+  the same with 16 unison voices and all three oscillators on at full level:
+    peak 2.100000 at sample 7; samples at or past 1.0: 47002; past 1.0: 47002; exactly 1.0: 0
+
+== 4. the opening transient, no MIDI, 24000 samples at 48 kHz
+the start preset: peak 0.018740, last non-zero sample 4873
+the start preset, volume at its maximum: peak 0.073704, last non-zero sample 4889
+each of the 75 installed presets: its peak over 0.5 s as it loads and then with volume at its maximum,
+its last non-zero sample of those 24000 as loaded, and, over a render of 4 s as loaded, how long it stays at or above 0.001:
+    as loaded   at maximum   last non-zero   at or above 0.001 for   preset
+     2.100000    2.100000    23999       1.756 s   Mr Bill/Presets/Cursed Steps.vital
+     0.729046    2.100000    23999   4 s or more   Mr Bill/Presets/Super Nice Pluck.vital
+     0.629012    1.603266    23999   4 s or more   Glorkglunk/Presets/Special Glitch Thing.vital
+     0.599903    2.100000    23999       1.628 s   Yuli Yolo/Presets/Factory Presets/DIY.vital
+     0.592580    2.100000    23999   4 s or more   Yuli Yolo/Presets/Factory Presets/Metal Head.vital
+     0.432422    2.100000    23999       2.598 s   Halcyon Future Riddim Vol 1/Presets/Aweminus/Swiss Army Knife.vital
+     0.410418    0.830396    23999       1.128 s   Mr Bill/Presets/E4 One Note Metallophone.vital
+     0.401569    1.643325    23999       3.430 s   Yuli Yolo/Presets/Factory Presets/Keystation.vital
+     0.382944    2.100000    23999       2.132 s   Level 8/Presets/Factory Presets/Smoker's Lounge.vital
+     0.370799    0.624441    23999       1.168 s   Factory/Presets/Plucked String.vital
+     0.356773    2.100000    23999       1.750 s   Level 8/Presets/Factory Presets/FM Mode.vital
+     0.344430    0.721170    23999       1.633 s   Databroth/Presets/Factory Presets/Ceramic.vital
+     0.336554    2.100000    23999   4 s or more   Databroth/Presets/Factory Presets/Fleet.vital
+     0.318783    1.282040    23999       0.721 s   Yuli Yolo/Presets/Factory Presets/Easy Mallet.vital
+     0.302233    1.877213    23999   4 s or more   Level 8/Presets/Factory Presets/Crescendo Bells.vital
+     0.294410    1.233135    23999       3.170 s   Navi Retlav Studio/Presets/Factory Presets/Super Pluck.vital
+     0.288756    0.223056    23999       2.624 s   Yuli Yolo/Presets/Factory Presets/Salomon.vital
+     0.236252    0.976823    23999       0.307 s   Glorkglunk/Presets/Thumpus.vital
+     0.225193    2.100000    23999       3.944 s   Databroth/Presets/Factory Presets/Disrupt.vital
+     0.218492    1.045206    23999       1.174 s   Halcyon Future Riddim Vol 1/Presets/Oolacile/Boot Scre3n.vital
+     0.208725    0.416452    23999       0.610 s   In The Mix/Presets/Moog Pluck.vital
+     0.205613    0.268431    23999   4 s or more   Halcyon Future Riddim Vol 1/Presets/Oolacile/Satellites.vital
+     0.205093    2.100000    23999       0.787 s   inktome/Presets/Piano from the yard sale.vital
+     0.157542    0.284310    23999       1.541 s   Unsystematic Fragmentation/Presets/Factory Presets/A happy ending of the world.vital
+     0.154683    0.491349    23999       0.764 s   Glorkglunk/Presets/Squish Clicker.vital
+     0.152903    0.633344    23999       3.896 s   Billain/Presets/Factory Presets/Cinema Bells.vital
+     0.151283    0.404450    23999   4 s or more   Navi Retlav Studio/Presets/Factory Presets/Drowning Machine.vital
+     0.116446    0.155870    23999       0.172 s   Yuli Yolo/Presets/Factory Presets/Jupiter Bass.vital
+     0.098271    0.380483    23999       0.115 s   Glorkglunk/Presets/Digestive Trauma.vital
+     0.094139    0.305241    23999       0.040 s   Databroth/Presets/Factory Presets/Gorgled.vital
+     0.093644    0.557094    23999   4 s or more   Mr Bill/Presets/Float Chords.vital
+     0.087201    0.362190    23999       0.217 s   Halcyon Future Riddim Vol 1/Presets/Oolacile/Memory Leak.vital
+     0.085523    1.507993    23999       1.047 s   Databroth/Presets/Factory Presets/Feeder.vital
+     0.085363    0.401600    23999       3.891 s   In The Mix/Presets/Distant Majestic Lead.vital
+     0.079944    0.252924    23999       0.450 s   Halcyon Future Riddim Vol 1/Presets/Oolacile/Oolacile Evil Dubstep Bass.vital
+     0.075049    0.191979    23999       2.013 s   In The Mix/Presets/Analog Pad.vital
+     0.061366    0.159534    23999       1.508 s   Mr Bill/Presets/Remedial Shikari.vital
+     0.060649    0.425793    23999       0.165 s   Yuli Yolo/Presets/Factory Presets/Destruction.vital
+     0.051527    0.247003    23999       0.153 s   Mr Bill/Presets/Real Squarepusher Hours.vital
+     0.049098    0.138467    10572       0.037 s   Factory/Presets/Ah Eh Ee Oh.vital
+     0.046277    0.150272    23999       1.595 s   Yuli Yolo/Presets/Factory Presets/A Night in Kalyan.vital
+     0.043956    0.319148    23999       0.611 s   Level 8/Presets/Factory Presets/Horror of Melbourne 1.vital
+     0.039471    0.428094    23999       0.482 s   Factory/Presets/FM Drum Circle.vital
+     0.039071    0.169958    23999       1.606 s   Navi Retlav Studio/Presets/Factory Presets/Physical Tension.vital
+     0.034090    0.112447    23999       1.026 s   Yuli Yolo/Presets/Factory Presets/Synthetic Quartet.vital
+     0.032527    0.265524     9065       0.033 s   Factory/Presets/Staggered Phrases.vital
+     0.025080    0.101949     8657       0.028 s   Glorkglunk/Presets/THUNK.vital
+     0.023425    0.102587    23999       0.402 s   Billain/Presets/Factory Presets/Railgun.vital
+     0.021909    0.055886    23999       0.000 s   Navi Retlav Studio/Presets/Factory Presets/Dispersed Grit.vital
+     0.021367    0.078651     4917       0.026 s   Factory/Presets/Shepard Tone Template.vital
+     0.020102    0.154065    23999       0.131 s   Halcyon Future Riddim Vol 1/Presets/Phonon/Simple Weoum.vital
+     0.017413    0.160610    23999       0.195 s   Level 8/Presets/Factory Presets/Complex Electro 1.vital
+     0.013753    0.057464    23999       0.106 s   Unsystematic Fragmentation/Presets/Factory Presets/Moving Harmonics.vital
+     0.012941    0.035142    23999       0.096 s   Unsystematic Fragmentation/Presets/Factory Presets/Chorusy Keys.vital
+     0.011230    0.137748    23999       1.687 s   Mr Bill/Presets/LORN Style Lead.vital
+     0.011135    0.038732    23999       0.636 s   Halcyon Future Riddim Vol 1/Presets/Oolacile/Space Station.vital
+     0.010093    0.068916    23999       0.260 s   Level 8/Presets/Factory Presets/Damped Horn.vital
+     0.009896    0.032413    23999       0.032 s   Mr Bill/Presets/Honk Wub.vital
+     0.007750    0.010514    23999       0.000 s   Unsystematic Fragmentation/Presets/Factory Presets/Fun Pulse.vital
+     0.006576    0.049462    23999       0.016 s   inktome/Presets/Digital roller.vital
+     0.005743    0.022698    23999       0.011 s   In The Mix/Presets/Growl Bass Sidechain.vital
+     0.005683    0.010079    23999       0.126 s   Navi Retlav Studio/Presets/Factory Presets/Phaser Man.vital
+     0.005237    0.029650    23999       2.496 s   Databroth/Presets/Factory Presets/Snowcrash.vital
+     0.002811    0.006560    23999       0.055 s   Unsystematic Fragmentation/Presets/Factory Presets/corrupted_...+=boot-_.vital
+     0.002103    0.008000     4545       0.003 s   Factory/Presets/Text To Wavetable Template.vital
+     0.001007    0.005887    23999       0.000 s   Afro/Presets/Banana Wob.vital
+     0.000365    0.001461    23999       0.000 s   inktome/Presets/Big Stomp.vital
+     0.000231    0.000781    23999       0.000 s   Afro/Presets/Random Amp Growl.vital
+     0.000174    0.000489    23999       0.000 s   In The Mix/Presets/Strings Section.vital
+     0.000171    0.000834    23999       0.000 s   Unsystematic Fragmentation/Presets/Factory Presets/Phaser Entropy .vital
+     0.000013    0.000068    23999       0.000 s   Yuli Yolo/Presets/Factory Presets/Abbysun.vital
+     0.000000    0.000001    23999       0.000 s   Afro/Presets/Kick Drum 1.vital
+     0.000000    0.000001     5799       0.000 s   Halcyon Future Riddim Vol 1/Presets/Voltra/VLT Future Gun.vital
+     0.000000    0.000000     5425       0.000 s   Navi Retlav Studio/Presets/Factory Presets/Skew Resandal.vital
+     0.000000    0.000000       -1       0.000 s   Factory/Presets/Touch Tone.vital
+the largest peak as loaded: 2.100000; with volume at its maximum: 2.100000
+presets whose render of no MIDI reaches 1.0, as loaded: 1; at maximum volume: 17
+presets still non-zero at the last of 24000 samples as loaded: 67; at or above 0.001 for a second or more: 32; for 4 s or more: 8
+presets whose peak as loaded is above the start preset's 0.02: 51; above 0.1: 28
+
+== 4b. what a render with no MIDI holds, by the preset: a fresh instance, nothing played on it
+peak per 100 ms frame over 2 s, no MIDI:
+  the start preset: ['0.0192', '1.41e-37', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0']
+  Factory/Presets/Plucked String.vital, the first render after the load: ['0.309', '0.0801', '0.0505', '0.0321', '0.0257', '0.0168', '0.0136', '0.0128', '0.00504', '0.00456', '0.00328', '0.00168', '0.000767', '0.000697', '0.00057', '0.000378', '0.000333', '0.000141', '0.000135', '9.18e-05']
+  Factory/Presets/Plucked String.vital, a second render straight after:   ['0.31', '0.0742', '0.0408', '0.0238', '0.0156', '0.0127', '0.00965', '0.00868', '0.00435', '0.00314', '0.00241', '0.00162', '0.000747', '0.000625', '0.000526', '0.000408', '0.00028', '0.000128', '0.000123', '7.6e-05']
+  Factory/Presets/Plucked String.vital, a C4 from 1.0 s to 1.5 s:          ['0.266', '0.0993', '0.0595', '0.0218', '0.0171', '0.0135', '0.0135', '0.011', '0.00498', '0.00355', '0.365', '0.286', '0.209', '0.183', '0.134', '0.0681', '0.0329', '0.0276', '0.0162', '0.00999']
+  Mr Bill/Presets/Cursed Steps.vital, the first render after the load: ['1.26', '0.148', '0.101', '0.0536', '0.0506', '0.0375', '0.028', '0.0233', '0.0176', '0.0124', '0.00883', '0.00745', '0.00563', '0.00488', '0.00471', '0.00262', '0.00175', '0.00135', '0.00113', '0.00101']
+  Mr Bill/Presets/Cursed Steps.vital, a second render straight after:   ['1.44', '0.12', '0.0759', '0.0466', '0.0369', '0.0325', '0.0286', '0.0194', '0.0167', '0.0127', '0.00766', '0.00845', '0.0051', '0.00489', '0.00404', '0.00311', '0.0018', '0.00148', '0.00115', '0.000857']
+  Mr Bill/Presets/Cursed Steps.vital, a C4 from 1.0 s to 1.5 s:          ['1.93', '0.103', '0.0494', '0.0388', '0.0328', '0.0233', '0.0219', '0.0146', '0.0165', '0.00973', '0.183', '0.191', '0.869', '0.516', '0.549', '0.439', '0.193', '0.146', '0.163', '0.0938']
+  Mr Bill/Presets/Super Nice Pluck.vital, the first render after the load: ['0.731', '0.405', '0.363', '0.349', '0.295', '0.244', '0.262', '0.293', '0.267', '0.225', '0.245', '0.216', '0.214', '0.206', '0.156', '0.136', '0.109', '0.101', '0.125', '0.123']
+  Mr Bill/Presets/Super Nice Pluck.vital, a second render straight after:   ['0.62', '0.474', '0.453', '0.366', '0.282', '0.261', '0.318', '0.283', '0.273', '0.256', '0.233', '0.209', '0.189', '0.183', '0.151', '0.132', '0.108', '0.117', '0.135', '0.109']
+  Mr Bill/Presets/Super Nice Pluck.vital, a C4 from 1.0 s to 1.5 s:          ['0.713', '0.602', '0.508', '0.473', '0.38', '0.273', '0.317', '0.327', '0.214', '0.173', '0.803', '0.544', '0.336', '0.39', '0.37', '0.265', '0.344', '0.279', '0.197', '0.207']
+with the reset and without it. VitalHost.render always resets, so the render without one reaches past the host,
+to the plugin it holds (host._plugin.process(..., reset=False)) under the host's own floating-point guard: a probe's reach, not the instrument's.
+  Factory/Presets/Plucked String.vital, a fresh instance, 1 s each, no MIDI: without a reset peak 0.012135; then with one 0.213965;
+      then without one again 0.001909 (the tail of the render before it, if any); then with one 0.271534
+  Mr Bill/Presets/Super Nice Pluck.vital, a fresh instance, 1 s each, no MIDI: without a reset peak 0.180772; then with one 0.642683;
+      then without one again 0.262217 (the tail of the render before it, if any); then with one 0.634258
+  the start preset, a fresh instance: without a reset peak 0.010222; then with one 0.020944
+
+== 5. what a load the plugin refuses, or cannot use, leaves in the plugin
+run apart, each load in a process of its own with a time limit: see the second part of this transcript.
+
+== 6. one load against two, after host sets, on the 22 off-grid defaults
+defaults the scale does not hold: 22
+a fresh instance, the start preset loaded once, no set before: floats not the start's 0 of 903
+after a set of all 903 and a render, the start preset loaded once: floats not the start's 22; all of them off-grid defaults: True
+    how many float32 steps each is off: [1, 2]; first four: [('chorus_feedback', 0.40000006556510925, 0.4000000059604645), ('compressor_band_lower_ratio', 0.7999999523162842, 0.800000011920929), ('compressor_high_lower_ratio', 0.7999999523162842, 0.800000011920929), ('compressor_low_lower_ratio', 0.7999999523162842, 0.800000011920929)]
+loaded a second time: floats not the start's 0 []
+sections not the start's after the second load: ['sample']
+
+== 7. the centroid at two cutoffs, with each render's RMS and peak
+filter 1 on, filter_1_cutoff at normalized 0.3 and 0.8, one C4 at velocity 100 from 0 to 1.5 s, 96000 samples at 48 kHz;
+centroid: mean of the channels from sample 7200 on (0.15 s: the opening is over, its last non-zero sample 4928 at most above),
+magnitude of the real FFT, its frequency-weighted mean;
+RMS: of that mean over 0.2 s to 1.4 s, the held note; peak: of either channel, the whole render.
+  normalized 0.3: preset 46.400001525878906, display -13.599998474121094 semitones
+  normalized 0.8: preset 110.4000015258789, display 50.400001525878906 semitones
+  first instance, normalized 0.3:
+      centroid   1797.03 Hz   RMS 0.014135   peak 0.057280
+      centroid   1797.03 Hz   RMS 0.014135   peak 0.058328
+      centroid   1797.03 Hz   RMS 0.014135   peak 0.057767
+      centroid   1797.03 Hz   RMS 0.014135   peak 0.057737
+      centroid    673.51 Hz   RMS 0.014136   peak 0.032592
+      centroid   1797.03 Hz   RMS 0.014135   peak 0.057467
+      centroid   1151.60 Hz   RMS 0.014137   peak 0.034362
+      centroid   1797.03 Hz   RMS 0.014135   peak 0.058328
+      centroid   1797.03 Hz   RMS 0.014135   peak 0.058328
+      centroid   1797.03 Hz   RMS 0.014135   peak 0.058181
+  first instance, normalized 0.8:
+      centroid   2545.65 Hz   RMS 0.072678   peak 0.195578
+      centroid   2390.10 Hz   RMS 0.072679   peak 0.194668
+      centroid   2306.77 Hz   RMS 0.072681   peak 0.198568
+      centroid   2535.21 Hz   RMS 0.072678   peak 0.195264
+      centroid   2545.65 Hz   RMS 0.072678   peak 0.194668
+      centroid   2545.65 Hz   RMS 0.072678   peak 0.195578
+      centroid   2318.25 Hz   RMS 0.072681   peak 0.200029
+      centroid   2321.19 Hz   RMS 0.072680   peak 0.198350
+      centroid   2420.16 Hz   RMS 0.072680   peak 0.194668
+      centroid   2385.42 Hz   RMS 0.072681   peak 0.195640
+  second instance, normalized 0.3:
+      centroid   1797.03 Hz   RMS 0.014135   peak 0.057509
+      centroid   1930.96 Hz   RMS 0.014134   peak 0.042361
+      centroid   1797.03 Hz   RMS 0.014135   peak 0.057471
+      centroid    860.13 Hz   RMS 0.014136   peak 0.033819
+      centroid    857.81 Hz   RMS 0.014136   peak 0.033725
+      centroid   1378.94 Hz   RMS 0.014135   peak 0.037785
+      centroid   1797.03 Hz   RMS 0.014135   peak 0.058328
+      centroid   1797.03 Hz   RMS 0.014135   peak 0.058328
+      centroid   1797.03 Hz   RMS 0.014135   peak 0.058328
+      centroid   1797.03 Hz   RMS 0.014135   peak 0.058328
+  second instance, normalized 0.8:
+      centroid   2545.65 Hz   RMS 0.072678   peak 0.194668
+      centroid   2545.65 Hz   RMS 0.072678   peak 0.195578
+      centroid   2455.01 Hz   RMS 0.072677   peak 0.194668
+      centroid   2545.65 Hz   RMS 0.072678   peak 0.194668
+      centroid   2472.42 Hz   RMS 0.072680   peak 0.197456
+      centroid   2545.65 Hz   RMS 0.072678   peak 0.195578
+      centroid   2304.73 Hz   RMS 0.072681   peak 0.194668
+      centroid   2545.65 Hz   RMS 0.072678   peak 0.194668
+      centroid   2428.11 Hz   RMS 0.072680   peak 0.197065
+      centroid   2545.65 Hz   RMS 0.072678   peak 0.194668
+low cutoff, 20 renders: centroid 673.51 to 1930.96 Hz, RMS 0.014134 to 0.014137
+high cutoff, 20 renders: centroid 2304.73 to 2545.65 Hz, RMS 0.072677 to 0.072681
+the smallest ratio any high render makes with any low one: 1.194 (of 400 pairs); half of it 0.597
+the smallest RMS of the 40 renders: 0.014134; half of it 0.007067
+for comparison, no MIDI on the start preset: RMS 0, peak 0.016528
+
+== 8. a note left sounding at the end of one render, and the next render
+a C4 with no note-off, 24000 samples: peak over the last 100 samples 0.149477
+the next render, no MIDI: peak from sample 7200 on 0; last non-zero sample 4857; peak in all 0.016528
+
+== 9. one load of a text against two and three, after a set of every parameter and a render
+for the start preset, the fixture and each installed preset, on one instance: every parameter set to the end of its
+range farther from the start preset's default, a short render, then the text loaded once, twice and a third time;
+after each, how many of the 903 floats the state holds differ from the model's: the text's own float for a key
+it holds, the parameter's default for one it lacks. Then whether the second and third loads hold the same 903.
+    once  twice  thrice  2nd=3rd   of those after two loads: keys the text lacks / outside the scale / others (most float32 steps off)   text
+      22      0       0  True         0 /  0 /   0 (0)   the start preset
+      22      0       0  True         0 /  0 /   0 (0)   the fixture
+      30      1       1  True         0 /  0 /   1 (1048576)   Factory/Presets/Ah Eh Ee Oh.vital
+      36      0       0  True         0 /  0 /   0 (0)   Factory/Presets/FM Drum Circle.vital
+      31      0       0  True         0 /  0 /   0 (0)   Factory/Presets/Plucked String.vital
+      22      0       0  True         0 /  0 /   0 (0)   Factory/Presets/Shepard Tone Template.vital
+      30      0       0  True         0 /  0 /   0 (0)   Factory/Presets/Staggered Phrases.vital
+      22      0       0  True         0 /  0 /   0 (0)   Factory/Presets/Text To Wavetable Template.vital
+      36     10      10  True         9 /  1 /   0 (0)   Factory/Presets/Touch Tone.vital
+      24      0       0  True         0 /  0 /   0 (0)   Afro/Presets/Banana Wob.vital
+      27      0       0  True         0 /  0 /   0 (0)   Afro/Presets/Kick Drum 1.vital
+      37      0       0  True         0 /  0 /   0 (0)   Afro/Presets/Random Amp Growl.vital
+      34      0       0  True         0 /  0 /   0 (0)   Billain/Presets/Factory Presets/Cinema Bells.vital
+      36      0       0  True         0 /  0 /   0 (0)   Billain/Presets/Factory Presets/Railgun.vital
+      43      0       0  True         0 /  0 /   0 (0)   Databroth/Presets/Factory Presets/Ceramic.vital
+      53      0       0  True         0 /  0 /   0 (0)   Databroth/Presets/Factory Presets/Disrupt.vital
+      42      0       0  True         0 /  0 /   0 (0)   Databroth/Presets/Factory Presets/Feeder.vital
+      45      0       0  True         0 /  0 /   0 (0)   Databroth/Presets/Factory Presets/Fleet.vital
+      51      0       0  True         0 /  0 /   0 (0)   Databroth/Presets/Factory Presets/Gorgled.vital
+      43      1       1  True         0 /  0 /   1 (1065353216)   Databroth/Presets/Factory Presets/Snowcrash.vital
+      28      0       0  True         0 /  0 /   0 (0)   Glorkglunk/Presets/Digestive Trauma.vital
+      21      0       0  True         0 /  0 /   0 (0)   Glorkglunk/Presets/Special Glitch Thing.vital
+      22      0       0  True         0 /  0 /   0 (0)   Glorkglunk/Presets/Squish Clicker.vital
+      25      0       0  True         0 /  0 /   0 (0)   Glorkglunk/Presets/THUNK.vital
+      23      0       0  True         0 /  0 /   0 (0)   Glorkglunk/Presets/Thumpus.vital
+      23      0       0  True         0 /  0 /   0 (0)   Halcyon Future Riddim Vol 1/Presets/Aweminus/Swiss Army Knife.vital
+      30      2       2  True         0 /  0 /   2 (2097152)   Halcyon Future Riddim Vol 1/Presets/Oolacile/Boot Scre3n.vital
+      40     12      12  True        10 /  1 /   1 (4194304)   Halcyon Future Riddim Vol 1/Presets/Oolacile/Memory Leak.vital
+      51     14      14  True        10 /  1 /   3 (12273264)   Halcyon Future Riddim Vol 1/Presets/Oolacile/Oolacile Evil Dubstep Bass.vital
+      32      0       0  True         0 /  0 /   0 (0)   Halcyon Future Riddim Vol 1/Presets/Oolacile/Satellites.vital
+      39      0       0  True         0 /  0 /   0 (0)   Halcyon Future Riddim Vol 1/Presets/Oolacile/Space Station.vital
+      23      0       0  True         0 /  0 /   0 (0)   Halcyon Future Riddim Vol 1/Presets/Phonon/Simple Weoum.vital
+      23      0       0  True         0 /  0 /   0 (0)   Halcyon Future Riddim Vol 1/Presets/Voltra/VLT Future Gun.vital
+      24      0       0  True         0 /  0 /   0 (0)   In The Mix/Presets/Analog Pad.vital
+      27      0       0  True         0 /  0 /   0 (0)   In The Mix/Presets/Distant Majestic Lead.vital
+      22      0       0  True         0 /  0 /   0 (0)   In The Mix/Presets/Growl Bass Sidechain.vital
+      20      0       0  True         0 /  0 /   0 (0)   In The Mix/Presets/Moog Pluck.vital
+      23      0       0  True         0 /  0 /   0 (0)   In The Mix/Presets/Strings Section.vital
+      30      0       0  True         0 /  0 /   0 (0)   Level 8/Presets/Factory Presets/Complex Electro 1.vital
+      42      0       0  True         0 /  0 /   0 (0)   Level 8/Presets/Factory Presets/Crescendo Bells.vital
+      42      0       0  True         0 /  0 /   0 (0)   Level 8/Presets/Factory Presets/Damped Horn.vital
+      44      0       0  True         0 /  0 /   0 (0)   Level 8/Presets/Factory Presets/FM Mode.vital
+      28      0       0  True         0 /  0 /   0 (0)   Level 8/Presets/Factory Presets/Horror of Melbourne 1.vital
+      36      0       0  True         0 /  0 /   0 (0)   Level 8/Presets/Factory Presets/Smoker's Lounge.vital
+      24      0       0  True         0 /  0 /   0 (0)   Mr Bill/Presets/Cursed Steps.vital
+      26      0       0  True         0 /  0 /   0 (0)   Mr Bill/Presets/E4 One Note Metallophone.vital
+      28      0       0  True         0 /  0 /   0 (0)   Mr Bill/Presets/Float Chords.vital
+      26      0       0  True         0 /  0 /   0 (0)   Mr Bill/Presets/Honk Wub.vital
+      28      0       0  True         0 /  0 /   0 (0)   Mr Bill/Presets/LORN Style Lead.vital
+      27      0       0  True         0 /  0 /   0 (0)   Mr Bill/Presets/Real Squarepusher Hours.vital
+      23      0       0  True         0 /  0 /   0 (0)   Mr Bill/Presets/Remedial Shikari.vital
+      23      0       0  True         0 /  0 /   0 (0)   Mr Bill/Presets/Super Nice Pluck.vital
+      30      0       0  True         0 /  0 /   0 (0)   Navi Retlav Studio/Presets/Factory Presets/Dispersed Grit.vital
+      32      0       0  True         0 /  0 /   0 (0)   Navi Retlav Studio/Presets/Factory Presets/Drowning Machine.vital
+      36      0       0  True         0 /  0 /   0 (0)   Navi Retlav Studio/Presets/Factory Presets/Phaser Man.vital
+      25      0       0  True         0 /  0 /   0 (0)   Navi Retlav Studio/Presets/Factory Presets/Physical Tension.vital
+      27      0       0  True         0 /  0 /   0 (0)   Navi Retlav Studio/Presets/Factory Presets/Skew Resandal.vital
+      31      0       0  True         0 /  0 /   0 (0)   Navi Retlav Studio/Presets/Factory Presets/Super Pluck.vital
+      31      2       2  True         0 /  0 /   2 (1048576)   Unsystematic Fragmentation/Presets/Factory Presets/A happy ending of the world.vital
+      37      0       0  True         0 /  0 /   0 (0)   Unsystematic Fragmentation/Presets/Factory Presets/Chorusy Keys.vital
+      30      0       0  True         0 /  0 /   0 (0)   Unsystematic Fragmentation/Presets/Factory Presets/Fun Pulse.vital
+      30      0       0  True         0 /  0 /   0 (0)   Unsystematic Fragmentation/Presets/Factory Presets/Moving Harmonics.vital
+      42      0       0  True         0 /  0 /   0 (0)   Unsystematic Fragmentation/Presets/Factory Presets/Phaser Entropy .vital
+      29      0       0  True         0 /  0 /   0 (0)   Unsystematic Fragmentation/Presets/Factory Presets/corrupted_...+=boot-_.vital
+      21      0       0  True         0 /  0 /   0 (0)   Yuli Yolo/Presets/Factory Presets/A Night in Kalyan.vital
+      25      0       0  True         0 /  0 /   0 (0)   Yuli Yolo/Presets/Factory Presets/Abbysun.vital
+      25      0       0  True         0 /  0 /   0 (0)   Yuli Yolo/Presets/Factory Presets/DIY.vital
+      22      0       0  True         0 /  0 /   0 (0)   Yuli Yolo/Presets/Factory Presets/Destruction.vital
+      27      1       1  True         0 /  0 /   1 (1048576)   Yuli Yolo/Presets/Factory Presets/Easy Mallet.vital
+      36      1       1  True         0 /  0 /   1 (1065353216)   Yuli Yolo/Presets/Factory Presets/Jupiter Bass.vital
+      23      0       0  True         0 /  0 /   0 (0)   Yuli Yolo/Presets/Factory Presets/Keystation.vital
+      33      1       1  True         0 /  0 /   1 (1048576)   Yuli Yolo/Presets/Factory Presets/Metal Head.vital
+      41      0       0  True         0 /  0 /   0 (0)   Yuli Yolo/Presets/Factory Presets/Salomon.vital
+      26      0       0  True         0 /  0 /   0 (0)   Yuli Yolo/Presets/Factory Presets/Synthetic Quartet.vital
+      26      0       0  True         0 /  0 /   0 (0)   inktome/Presets/Big Stomp.vital
+      24      0       0  True         0 /  0 /   0 (0)   inktome/Presets/Digital roller.vital
+      17      1       1  True         0 /  0 /   1 (1048576)   inktome/Presets/Piano from the yard sale.vital
+of 77 texts: no float differing from the model after two loads on 66;
+the second load and the third hold different floats on 0; the first and the second on 77
+a fresh instance, nothing set, each text loaded once: is that what two loads after the sets hold?
+    the start preset: differing from the model 0; the same 903 floats as two loads after the sets: True
+    the fixture: differing from the model 0; the same 903 floats as two loads after the sets: True
+    Factory/Presets/Ah Eh Ee Oh.vital: differing from the model 7; the same 903 floats as two loads after the sets: False
+    Factory/Presets/FM Drum Circle.vital: differing from the model 18; the same 903 floats as two loads after the sets: False
+    Factory/Presets/Plucked String.vital: differing from the model 8; the same 903 floats as two loads after the sets: False
+    Factory/Presets/Shepard Tone Template.vital: differing from the model 0; the same 903 floats as two loads after the sets: True
+    Factory/Presets/Staggered Phrases.vital: differing from the model 11; the same 903 floats as two loads after the sets: False
+    Factory/Presets/Text To Wavetable Template.vital: differing from the model 0; the same 903 floats as two loads after the sets: True
+
+== 9b. the sample section under one load and two of the same text
+the fixture's sample, as the text holds it: [-8000, -7000, -6000, -5000, -4000, -3000, -2000, -1000, 0, 1000, 2000, 3000, 4000, 5000, 6000, 7000]
+after one load of the fixture:  [0, 0, 0, 0, -8000, -7000, -6000, -4999, -4000, -3000, -2000, -1000, 0, 1000, 2000, 3000]
+after a second load of it:      [0, 0, 0, 0, -8000, -7000, -6000, -4999, -4000, -3000, -2000, -1000, 0, 1000, 2000, 3000]
+after a third:                  [0, 0, 0, 0, -8000, -7000, -6000, -4999, -4000, -3000, -2000, -1000, 0, 1000, 2000, 3000]
+after a load of the state read back (not the text): [0, 0, 0, 0, 0, 0, 0, 0, -8000, -7000, -6000, -4999, -4000, -3000, -2000, -1000]
+exit of the main probe: 0
+
+== 5. what a load the plugin cannot use leaves in the plugin, each in a process of its own, 6 s allowed
+before each: a fresh Vital, the start preset loaded twice, filter_1_cutoff set to normalized 0.9 as a marker.
+a load that has not returned after 6 s is killed, by design: Vital has put up a modal alert and the caller would wait for ever.
+beside each text: whether the package's own writer can write it, and what the instrument's guard, as decided, does with it.
+
+-- the start preset rewritten by json.dumps (the control)
+can the package's writer write it: yes
+the guard: passes
+before the load: the marker filter_1_cutoff 123.19999694824219
+returned: no error
+floats changed 1 of 903 ['filter_1_cutoff'], gone 0; the marker -> 60.0; sections changed []
+
+-- no section at all
+can the package's writer write it: yes
+the guard: refuses: wavetables is not an array of 3 objects
+before the load: the marker filter_1_cutoff 123.19999694824219
+DID NOT RETURN within 6 s: the process is waiting, and is killed, by design
+   what it waits on (sample of the process, the frames from Vital's setStateInformation down to AppKit's modal loop):
+      767 juce::JuceVST3Component::setStateInformation(void const*, int)  (in Vital) + 244  [0x10c189f2c]
+      767 SynthProcessor::setStateInformation(void const*, int)  (in Vital) + 2880  [0x10c2dbd68]
+      767 juce::AlertWindow::showNativeDialogBox(juce::String const&, juce::String const&, bool)  (in Vital) + 144  [0x10c2c06cc]
+      767 juce::OSXMessageBox::getRawResult() const  (in Vital) + 272  [0x10c2b3bc0]
+      767 -[NSAlert runModal]  (in AppKit) + 196  [0x18c7a98e8]
+      767 __19-[NSAlert runModal]_block_invoke.195  (in AppKit) + 36  [0x18cce016c]
+      767 __19-[NSAlert runModal]_block_invoke  (in AppKit) + 192  [0x18ccdff0c]
+      767 -[NSApplication runModalForWindow:]  (in AppKit) + 292  [0x18c73c6f0]
+
+-- wavetables an empty array
+can the package's writer write it: yes
+the guard: refuses: wavetables is not an array of 3 objects
+before the load: the marker filter_1_cutoff 123.19999694824219
+returned: no error
+floats changed 1 of 903 ['filter_1_cutoff'], gone 0; the marker -> 60.0; sections changed []
+
+-- wavetables an array of one empty object
+can the package's writer write it: yes
+the guard: refuses: wavetables is not an array of 3 objects
+before the load: the marker filter_1_cutoff 123.19999694824219
+returned: no error
+floats changed 1 of 903 ['filter_1_cutoff'], gone 0; the marker -> 60.0; sections changed ['wavetables']
+
+-- wavetables an object
+can the package's writer write it: yes
+the guard: refuses: wavetables is not an array of 3 objects
+before the load: the marker filter_1_cutoff 123.19999694824219
+DID NOT RETURN within 6 s: the process is waiting, and is killed, by design
+
+-- lfos an empty array
+can the package's writer write it: yes
+the guard: refuses: lfos is not an array of 8 objects
+before the load: the marker filter_1_cutoff 123.19999694824219
+returned: no error
+floats changed 1 of 903 ['filter_1_cutoff'], gone 0; the marker -> 60.0; sections changed []
+
+-- sample an empty object
+can the package's writer write it: yes
+the guard: refuses: sample is not an object holding length, name, sample_rate and samples
+before the load: the marker filter_1_cutoff 123.19999694824219
+DID NOT RETURN within 6 s: the process is waiting, and is killed, by design
+
+-- a routing whose source and destination are no names of Vital's
+can the package's writer write it: yes
+the guard: passes
+before the load: the marker filter_1_cutoff 123.19999694824219
+returned: no error
+floats changed 1 of 903 ['filter_1_cutoff'], gone 0; the marker -> 60.0; sections changed []
+
+-- synth_version 99.0.0
+can the package's writer write it: yes
+the guard: refuses: synth_version 99.0.0 is newer than the plugin's 1.6.4
+before the load: the marker filter_1_cutoff 123.19999694824219
+returned: no error
+floats changed 0 of 903 [], gone 0; the marker -> 123.19999694824219; sections changed []
+
+-- synth_version abc
+can the package's writer write it: yes
+the guard: refuses: synth_version 'abc' is not digits and dots
+before the load: the marker filter_1_cutoff 123.19999694824219
+DID NOT RETURN within 6 s: the process is waiting, and is killed, by design
+
+-- without filter_1_cutoff
+can the package's writer write it: yes
+the guard: passes
+before the load: the marker filter_1_cutoff 123.19999694824219
+returned: no error
+floats changed 1 of 903 ['filter_1_cutoff'], gone 0; the marker -> 60.0; sections changed []
+
+-- volume at 1e30, far outside its scale
+can the package's writer write it: yes
+the guard: passes
+before the load: the marker filter_1_cutoff 123.19999694824219
+returned: no error
+floats changed 2 of 903 ['filter_1_cutoff', 'volume'], gone 0; the marker -> 60.0; sections changed []
+
+-- three wavetables whose groups is a number
+can the package's writer write it: yes
+the guard: passes
+before the load: the marker filter_1_cutoff 123.19999694824219
+DID NOT RETURN within 6 s: the process is waiting, and is killed, by design
+
+-- eight lfos whose points is a string
+can the package's writer write it: yes
+the guard: passes
+before the load: the marker filter_1_cutoff 123.19999694824219
+DID NOT RETURN within 6 s: the process is waiting, and is killed, by design
+
+-- a sample with its four keys, its length a string
+can the package's writer write it: yes
+the guard: passes
+before the load: the marker filter_1_cutoff 123.19999694824219
+DID NOT RETURN within 6 s: the process is waiting, and is killed, by design
+
+-- an empty object
+can the package's writer write it: no: a preset's models require its metadata and settings, so the writer never writes this
+the guard: refuses: synth_version None is not digits and dots
+before the load: the marker filter_1_cutoff 123.19999694824219
+DID NOT RETURN within 6 s: the process is waiting, and is killed, by design
+
+-- settings empty
+can the package's writer write it: no: the format requires the routing list and each slot's floats
+the guard: refuses: synth_version None is not digits and dots
+before the load: the marker filter_1_cutoff 123.19999694824219
+DID NOT RETURN within 6 s: the process is waiting, and is killed, by design
+
+-- a string where a float belongs
+can the package's writer write it: no: a setting is a float in the model
+the guard: passes
+before the load: the marker filter_1_cutoff 123.19999694824219
+DID NOT RETURN within 6 s: the process is waiting, and is killed, by design
+
+-- wavetables a string
+can the package's writer write it: no: a section is the text of a JSON array or object in the model
+the guard: refuses: wavetables is not an array of 3 objects
+before the load: the marker filter_1_cutoff 123.19999694824219
+DID NOT RETURN within 6 s: the process is waiting, and is killed, by design
+
+-- without modulations
+can the package's writer write it: no: the format requires the routing list
+the guard: passes
+before the load: the marker filter_1_cutoff 123.19999694824219
+returned: no error
+floats changed 1 of 903 ['filter_1_cutoff'], gone 0; the marker -> 60.0; sections changed []
+
+== 5b. a key the text lacks: the default, or what the plugin held before?
+Factory/Presets/Ah Eh Ee Oh.vital (synth_version 1.0.0) lacks 132 of the 903 keys; its sections: ['lfos', 'sample', 'wavetables']
+each of those 132 was first set away from its default (132 moved); after the load: at its default 132, still at the value set 0, at another value 0
+    still at the value set (first eight): []
+    at another value (first six): []
+    section custom_warps, which the old preset lacks: in the state after the load True; the start preset's own text False
+    section random_values, which the old preset lacks: in the state after the load True; the start preset's own text True
+then one load of the start preset: floats not the start's 0 []
+exit=0
+
+the tree after the run:
+  HEAD e3e601781f32d2058f4793895c47c12fe2793385
+  git status --porcelain=v1 --untracked-files=all, 13 lines:
+     M src/patchbay_vital/census.py
+     M src/patchbay_vital/errors.py
+     M tests/integration/test_vital_plugin.py
+     M tests/unit/test_census.py
+     M tests/unit/test_errors.py
+    ?? agent-os/specs/2026-11-15-1448-the-instrument/plan.md
+    ?? agent-os/specs/2026-11-15-1448-the-instrument/references.md
+    ?? agent-os/specs/2026-11-15-1448-the-instrument/shape.md
+    ?? agent-os/specs/2026-11-15-1448-the-instrument/standards.md
+    ?? src/patchbay_vital/data/start.vital
+    ?? src/patchbay_vital/patch.py
+    ?? src/patchbay_vital/start.py
+    ?? tests/unit/test_start.py
+  git hash-object of each of those paths (a deleted one marked so):
+    a3dddc9d28d9bef006b9e54b7e3eff2d176c7880  agent-os/specs/2026-11-15-1448-the-instrument/plan.md
+    db8c75d636b2346f03102ed5287a0d961684ab81  agent-os/specs/2026-11-15-1448-the-instrument/references.md
+    95c5dcfe06527cc0e91122a41cad49f03dada5dc  agent-os/specs/2026-11-15-1448-the-instrument/shape.md
+    6689f2ad25d6eb9c361366cb26f41d8e9a91b663  agent-os/specs/2026-11-15-1448-the-instrument/standards.md
+    ee9ecbb7cc00b4b63612ae74ff8770411b357e8b  src/patchbay_vital/census.py
+    95e8053ccc855bd9ff4ab4405314930244db3127  src/patchbay_vital/data/start.vital
+    d8c0e345a68411ebe2db537802671269fc709cf3  src/patchbay_vital/errors.py
+    1e8bb9c3da7ecc87cff7c6df747672374488ac77  src/patchbay_vital/patch.py
+    8d8f935855cf1f0f807ed820db1242bf910d9886  src/patchbay_vital/start.py
+    05224f6051e761513857cda9fc0cf86323f4c8a7  tests/integration/test_vital_plugin.py
+    5356f56f7be745ddff42ffe2ca20912f2df192b3  tests/unit/test_census.py
+    d82627e9c3095ef6c94232ab633600de5bc0275d  tests/unit/test_errors.py
+    e273b105262f59300906e1623f78abacc62ab467  tests/unit/test_start.py
+cmp: the tree after the run is the tree before it
+the machine after the run: arm64, Apple M4 Pro, 14 cores, macOS 26.6.2 (25G83), Python 3.12.16, load 1.14 1.73 2.00, at 2026-11-15 18:33 EST
+
+the scripts this run used, each embedded below with its blob:
+    de8d1f3ef192915991004d4094aa57a24cc31667  <scratchpad>/i8/probe.py
+    74b1c4c29ec39d612c8a69a93e05db0691595b6c  <scratchpad>/i8/probe_load.py
+    45ae9b00f904c192af242f5019388cdc036a2092  <scratchpad>/i8/probe_loads.sh
+    f9096d4e0f13ce7d342ea547cf15ecc74daff204  <scratchpad>/i8/run_probes.sh
+    e4c1a40cc3893ab50df6717e5a18e2a755914efd  <scratchpad>/i8/tree.sh
+    0dde01b338e9dbc221abc7e0d9b87bcf21acf1cf  <scratchpad>/i8/machine.sh
+    f8023912221e095058a44e333af070ed5593e897  <scratchpad>/i8/transcript.sh
+
+--- <scratchpad>/i8/probe.py
+```
+"""Probes of Vital for the instrument spec (issue #8): what the instrument's rules will rest on.
+
+Run from the repository root with the locked interpreter. Everything reaches the plugin through
+VitalHost, as the instrument will. Nothing is written; every number is printed.
+"""
+
+import importlib.metadata
+import json
+import platform
+import sys
+import time
+from pathlib import Path
+
+import numpy as np
+from patchbay import ParameterId
+
+from patchbay_vital import host as host_module
+from patchbay_vital import loads
+from patchbay_vital.errors import VitalError
+from patchbay_vital.format import split_modulations
+from patchbay_vital.host import DEFAULT_PATH, VitalHost, _floats
+from patchbay_vital.parameters import parameter_map
+from patchbay_vital.start import start_text
+
+RATE = 48000
+MAP = parameter_map()
+START = start_text(MAP).encode("utf-8")
+PRESETS = Path.home() / "Music" / "Vital"
+MANIFEST = [
+    line
+    for line in Path("tests/data/factory-manifest.txt").read_text(encoding="utf-8").splitlines()
+    if not line.startswith("#")
+]
+C4_ON, C4_OFF = bytes([0x90, 60, 100]), bytes([0x80, 60, 0])
+
+
+def head(title: str) -> None:
+    print(f"\n== {title}")
+
+
+def pid(name: str) -> ParameterId:
+    return ParameterId(name)
+
+
+def peaks(audio: np.ndarray) -> np.ndarray:
+    return np.abs(audio).max(axis=0)
+
+
+def first_nonzero(audio: np.ndarray, after: int) -> int:
+    found = np.nonzero(peaks(audio)[after:])[0]
+    return int(found[0]) + after if found.size else -1
+
+
+def last_nonzero(audio: np.ndarray) -> int:
+    found = np.nonzero(peaks(audio))[0]
+    return int(found[-1]) if found.size else -1
+
+
+host = VitalHost()
+print(f"Vital {host.version} at {DEFAULT_PATH}, through pedalboard {importlib.metadata.version('pedalboard')}")
+print(f"machine {platform.machine()}, Python {platform.python_version()}, numpy {np.__version__}")
+print(f"the map: {MAP.instrument} {MAP.vital_version}, {MAP.host}, {MAP.machine}, {len(MAP.parameters)} records")
+print(f"the start preset: {len(START)} bytes")
+
+head("0. what a call costs")
+times = []
+for _ in range(5):
+    t = time.perf_counter()
+    host.load_state(START)
+    times.append(time.perf_counter() - t)
+print("load_state(start), five times (ms):", [round(x * 1000, 1) for x in times])
+t = time.perf_counter()
+for record in MAP.parameters:
+    host.set(record.id, host.get(record.id))
+print(f"a get and a set of each of the 903: {(time.perf_counter() - t) * 1000:.0f} ms in all")
+t = time.perf_counter()
+for _ in range(20):
+    host.state()
+print(f"state(), twenty times: {(time.perf_counter() - t) / 20 * 1000:.2f} ms each")
+host.load_state(START)
+host.load_state(START)
+
+head("1. the sample a MIDI time lands on")
+print("one note-on, the render from a reset on the start preset; the first non-zero sample at or after")
+print("sample 5000 (the transient is over: its last non-zero sample is printed), less the sample n meant.")
+silent = host.render([], 12000, RATE)
+print(f"no MIDI, 12000 samples at {RATE}: peak {peaks(silent).max():.4g}, last non-zero sample {last_nonzero(silent)}")
+for rate, counts in ((48000, (6000, 6005, 6006, 24000, 48000, 100003, 1000003, 4000001, 16000000)), (44100, (5500, 5516, 5527, 44100))):
+    quiet = host.render([], 6000, rate)
+    print(f"at {rate} Hz, no MIDI: last non-zero sample {last_nonzero(quiet)}")
+    for n in counts:
+        row = []
+        for label, when in (("(n-0.5)/rate", (n - 0.5) / rate), ("n/rate", n / rate), ("(n+0.5)/rate", (n + 0.5) / rate)):
+            audio = host.render([(C4_ON, when)], n + 2400, rate)
+            landed = first_nonzero(audio, 5000)
+            row.append(f"{label} {landed - n:+d}")
+        single = int(np.float32(n / rate) * np.float32(rate))
+        print(f"  n={n:8d} (int(n/rate*rate) in doubles {int(n / rate * rate) - n:+d}, in float32 {single - n:+d}): " + ", ".join(row))
+rng = np.random.default_rng(8)
+drawn = sorted(int(n) for n in rng.integers(5000, 200000, size=120))
+tally = {"(n-0.5)/rate": {}, "n/rate": {}, "(n+0.5)/rate": {}}
+for n in drawn:
+    for label, when in (("(n-0.5)/rate", (n - 0.5) / RATE), ("n/rate", n / RATE), ("(n+0.5)/rate", (n + 0.5) / RATE)):
+        landed = first_nonzero(host.render([(C4_ON, when)], n + 600, RATE), 5000) - n
+        tally[label][landed] = tally[label].get(landed, 0) + 1
+for n in (12288003, 12291154, 16769893, 16777213):
+    row = []
+    for label, when in (("n/rate", n / RATE), ("(n+0.5)/rate", (n + 0.5) / RATE)):
+        row.append(f"{label} {first_nonzero(host.render([(C4_ON, when)], min(n + 600, 2**24), RATE), 5000) - n:+d}")
+    print(f"  n={n:8d}, past 2 ** 23, where a float32 of seconds is coarser than a sample: " + ", ".join(row))
+print(f"a sample, not a count: {len(drawn)} values of n drawn from 5000 to 200000 (numpy default_rng(8)), at {RATE} Hz; where each time lands, less n:")
+for label, landings in tally.items():
+    print(f"  {label}: " + ", ".join(f"{offset:+d} on {count}" for offset, count in sorted(landings.items())))
+
+head("2. a render of 2 ** 24 samples")
+t = time.perf_counter()
+long = host.render([(C4_ON, 0.0), (C4_OFF, 1.5)], 2**24, RATE)
+elapsed = time.perf_counter() - t
+print(f"asked for {2**24} samples at {RATE} Hz: shape {long.shape}, {long.dtype}, {long.nbytes / 2**20:.0f} MiB, {elapsed:.2f} s")
+print(f"every sample finite: {bool(np.isfinite(long).all())}; peak {peaks(long).max():.4g}; last non-zero sample {last_nonzero(long)}")
+del long
+
+head("3. what Vital gives past full scale")
+chord = [(bytes([0x90, pitch, 127]), 0.0) for pitch in (36, 40, 43, 48, 52, 55, 60, 64)]
+cases = (
+    ("one C4 at velocity 100, the start preset", [(C4_ON, 0.0)], {}),
+    ("the same, volume at its maximum", [(C4_ON, 0.0)], {"volume": 1.0}),
+    ("eight notes at velocity 127, volume and oscillator 1's level at their maximum", chord, {"volume": 1.0, "osc_1_level": 1.0}),
+    ("the same with 16 unison voices and all three oscillators on at full level", chord,
+     {"volume": 1.0, "osc_1_level": 1.0, "osc_1_unison_voices": 1.0, "osc_2_on": 1.0, "osc_2_level": 1.0, "osc_3_on": 1.0, "osc_3_level": 1.0}),
+)
+for label, midi, sets in cases:
+    host.load_state(START)
+    for name, normalized in sets.items():
+        host.set(pid(name), normalized)
+    audio = host.render(midi, RATE, RATE)
+    p = peaks(audio)
+    at = int(np.argmax(p))
+    print(f"  {label}:")
+    print(f"    peak {p.max():.6f} at sample {at}; samples at or past 1.0: {int((p >= 1.0).sum())}; past 1.0: {int((p > 1.0).sum())}; exactly 1.0: {int((np.abs(audio) == 1.0).sum())}")
+
+head("4. the opening transient, no MIDI, 24000 samples at 48 kHz")
+host.load_state(START)
+audio = host.render([], 24000, RATE)
+print(f"the start preset: peak {peaks(audio).max():.6f}, last non-zero sample {last_nonzero(audio)}")
+host.set(pid("volume"), 1.0)
+audio = host.render([], 24000, RATE)
+print(f"the start preset, volume at its maximum: peak {peaks(audio).max():.6f}, last non-zero sample {last_nonzero(audio)}")
+if not PRESETS.is_dir():
+    print(f"no installed presets at {PRESETS}: the 75 are not measured")
+else:
+    rows = []
+    for relative in MANIFEST:
+        text = (PRESETS / relative).read_bytes()
+        host.load_state(text)
+        as_is = host.render([], 24000, RATE)
+        long_one = peaks(host.render([], 4 * RATE, RATE))
+        audible = np.nonzero(long_one >= 1e-3)[0]
+        sounds_for = (int(audible[-1]) + 1) / RATE if audible.size else 0.0
+        host.set(pid("volume"), 1.0)
+        loud = host.render([], 24000, RATE)
+        rows.append((float(peaks(as_is).max()), float(peaks(loud).max()), last_nonzero(as_is), sounds_for, relative))
+    print(f"each of the {len(rows)} installed presets: its peak over 0.5 s as it loads and then with volume at its maximum,")
+    print("its last non-zero sample of those 24000 as loaded, and, over a render of 4 s as loaded, how long it stays at or above 0.001:")
+    print("    as loaded   at maximum   last non-zero   at or above 0.001 for   preset")
+    for as_is_peak, loud_peak, as_is_last, sounds_for, relative in sorted(rows, reverse=True):
+        lasting = "4 s or more" if sounds_for >= 3.99 else f"{sounds_for:6.3f} s"
+        print(f"    {as_is_peak:9.6f}   {loud_peak:9.6f}   {as_is_last:6d}   {lasting:>11}   {relative}")
+    print(f"the largest peak as loaded: {max(r[0] for r in rows):.6f}; with volume at its maximum: {max(r[1] for r in rows):.6f}")
+    print(f"presets whose render of no MIDI reaches 1.0, as loaded: {sum(r[0] >= 1.0 for r in rows)}; at maximum volume: {sum(r[1] >= 1.0 for r in rows)}")
+    print(f"presets still non-zero at the last of 24000 samples as loaded: {sum(r[2] == 23999 for r in rows)}; at or above 0.001 for a second or more: {sum(r[3] >= 1.0 for r in rows)}; for 4 s or more: {sum(r[3] >= 3.99 for r in rows)}")
+    print(f"presets whose peak as loaded is above the start preset's 0.02: {sum(r[0] > 0.02 for r in rows)}; above 0.1: {sum(r[0] > 0.1 for r in rows)}")
+
+head("4b. what a render with no MIDI holds, by the preset: a fresh instance, nothing played on it")
+untouched = VitalHost()
+frames = lambda audio: [f"{x:.3g}" for x in peaks(audio)[: len(peaks(audio)) // 4800 * 4800].reshape(-1, 4800).max(axis=1)]
+untouched.load_state(START)
+print("peak per 100 ms frame over 2 s, no MIDI:")
+print(f"  the start preset: {frames(untouched.render([], 2 * RATE, RATE))}")
+if PRESETS.is_dir():
+    for relative in ("Factory/Presets/Plucked String.vital", "Mr Bill/Presets/Cursed Steps.vital", "Mr Bill/Presets/Super Nice Pluck.vital"):
+        untouched.load_state((PRESETS / relative).read_bytes())
+        first = untouched.render([], 2 * RATE, RATE)
+        second = untouched.render([], 2 * RATE, RATE)
+        print(f"  {relative}, the first render after the load: {frames(first)}")
+        print(f"  {relative}, a second render straight after:   {frames(second)}")
+        with_note = untouched.render([(C4_ON, 1.0), (C4_OFF, 1.5)], 2 * RATE, RATE)
+        print(f"  {relative}, a C4 from 1.0 s to 1.5 s:          {frames(with_note)}")
+print("with the reset and without it. VitalHost.render always resets, so the render without one reaches past the host,")
+print("to the plugin it holds (host._plugin.process(..., reset=False)) under the host's own floating-point guard: a probe's reach, not the instrument's.")
+
+
+def without_reset(instance: VitalHost, samples: int) -> np.ndarray:
+    with host_module._environment_kept():
+        audio = instance._plugin.process([], (samples + 1) / RATE, RATE, reset=False)  # type: ignore[call-arg]
+    return audio[:, :samples]
+
+
+if PRESETS.is_dir():
+    for relative in ("Factory/Presets/Plucked String.vital", "Mr Bill/Presets/Super Nice Pluck.vital"):
+        another = VitalHost()
+        another.load_state((PRESETS / relative).read_bytes())
+        first = without_reset(another, RATE)
+        second = another.render([], RATE, RATE)
+        third = without_reset(another, RATE)
+        fourth = another.render([], RATE, RATE)
+        print(f"  {relative}, a fresh instance, 1 s each, no MIDI: without a reset peak {peaks(first).max():.6f}; then with one {peaks(second).max():.6f};")
+        print(f"      then without one again {peaks(third).max():.6f} (the tail of the render before it, if any); then with one {peaks(fourth).max():.6f}")
+        del another
+another = VitalHost()
+another.load_state(START)
+print(f"  the start preset, a fresh instance: without a reset peak {peaks(without_reset(another, RATE)).max():.6f}; then with one {peaks(another.render([], RATE, RATE)).max():.6f}")
+del another
+del untouched
+
+head("5. what a load the plugin refuses, or cannot use, leaves in the plugin")
+print("run apart, each load in a process of its own with a time limit: see the second part of this transcript.")
+
+head("6. one load against two, after host sets, on the 22 off-grid defaults")
+start_floats = {record.preset_key: record.preset_default for record in MAP.parameters}
+off_grid = [record for record in MAP.parameters if not record.scale.holds(record.preset_default)]
+print(f"defaults the scale does not hold: {len(off_grid)}")
+fresh = VitalHost()
+fresh.load_state(START)
+state = _floats(fresh.state())
+print(f"a fresh instance, the start preset loaded once, no set before: floats not the start's {sum(state[k] != v for k, v in start_floats.items())} of {len(start_floats)}")
+for record in MAP.parameters:
+    fresh.set(record.id, 1.0 if record.scale.to_normalized(record.preset_default) < 0.5 else 0.0)
+fresh.render([(C4_ON, 0.0)], 4800, RATE)
+fresh.load_state(START)
+once = _floats(fresh.state())
+wrong_once = sorted(k for k, v in start_floats.items() if once[k] != v)
+fresh.load_state(START)
+twice = _floats(fresh.state())
+wrong_twice = sorted(k for k, v in start_floats.items() if twice[k] != v)
+print(f"after a set of all 903 and a render, the start preset loaded once: floats not the start's {len(wrong_once)}; all of them off-grid defaults: {set(wrong_once) <= {r.preset_key for r in off_grid}}")
+steps = sorted({abs(int(np.float32(once[k]).view(np.int32)) - int(np.float32(start_floats[k]).view(np.int32))) for k in wrong_once})
+print(f"    how many float32 steps each is off: {steps}; first four: {[(k, once[k], start_floats[k]) for k in wrong_once[:4]]}")
+print(f"loaded a second time: floats not the start's {len(wrong_twice)} {wrong_twice[:4]}")
+sections_start = {k: v for k, v in json.loads(START)["settings"].items() if not isinstance(v, float)}
+sections_now = {k: v for k, v in json.loads(fresh.state())["settings"].items() if not isinstance(v, float)}
+print(f"sections not the start's after the second load: {sorted(k for k in sections_start if sections_now.get(k) != sections_start[k])}")
+
+head("7. the centroid at two cutoffs, with each render's RMS and peak")
+print("filter 1 on, filter_1_cutoff at normalized 0.3 and 0.8, one C4 at velocity 100 from 0 to 1.5 s, 96000 samples at 48 kHz;")
+print("centroid: mean of the channels from sample 7200 on (0.15 s: the opening is over, its last non-zero sample 4928 at most above),")
+print("magnitude of the real FFT, its frequency-weighted mean;")
+print("RMS: of that mean over 0.2 s to 1.4 s, the held note; peak: of either channel, the whole render.")
+cutoff = MAP.find(pid("filter_1_cutoff"))
+for r in (0.3, 0.8):
+    print(f"  normalized {r}: preset {cutoff.scale.to_preset(r)!r}, display {cutoff.from_normalized(r)!r} semitones")
+
+
+def centroid(audio: np.ndarray) -> float:
+    mono = audio.mean(axis=0)[7200:]
+    magnitude = np.abs(np.fft.rfft(mono))
+    return float((np.fft.rfftfreq(len(mono), 1 / RATE) * magnitude).sum() / magnitude.sum())
+
+
+def rms(audio: np.ndarray) -> float:
+    held = audio.mean(axis=0)[int(0.2 * RATE) : int(1.4 * RATE)]
+    return float(np.sqrt((held**2).mean()))
+
+
+note = [(C4_ON, 0.0), (C4_OFF, 1.5)]
+measured: dict[tuple[str, float], list[tuple[float, float, float]]] = {}
+for name, instance in (("first instance", host), ("second instance", fresh)):
+    for r in (0.3, 0.8):
+        rows = []
+        for _ in range(10):
+            instance.load_state(START)
+            instance.load_state(START)
+            instance.set(pid("filter_1_on"), 1.0)
+            instance.set(pid("filter_1_cutoff"), r)
+            audio = instance.render(note, 2 * RATE, RATE)
+            rows.append((centroid(audio), rms(audio), float(peaks(audio).max())))
+        measured[name, r] = rows
+        print(f"  {name}, normalized {r}:")
+        for c, level, peak in rows:
+            print(f"      centroid {c:9.2f} Hz   RMS {level:.6f}   peak {peak:.6f}")
+low = [row for (name, r), rows in measured.items() if r == 0.3 for row in rows]
+high = [row for (name, r), rows in measured.items() if r == 0.8 for row in rows]
+print(f"low cutoff, {len(low)} renders: centroid {min(c for c, _, _ in low):.2f} to {max(c for c, _, _ in low):.2f} Hz, RMS {min(x for _, x, _ in low):.6f} to {max(x for _, x, _ in low):.6f}")
+print(f"high cutoff, {len(high)} renders: centroid {min(c for c, _, _ in high):.2f} to {max(c for c, _, _ in high):.2f} Hz, RMS {min(x for _, x, _ in high):.6f} to {max(x for _, x, _ in high):.6f}")
+smallest = min(c for c, _, _ in high) / max(c for c, _, _ in low)
+print(f"the smallest ratio any high render makes with any low one: {smallest:.3f} (of {len(low) * len(high)} pairs); half of it {smallest / 2:.3f}")
+print(f"the smallest RMS of the {len(low) + len(high)} renders: {min(x for _, x, _ in low + high):.6f}; half of it {min(x for _, x, _ in low + high) / 2:.6f}")
+host.load_state(START)
+silent = host.render([], 2 * RATE, RATE)
+print(f"for comparison, no MIDI on the start preset: RMS {rms(silent):.3g}, peak {peaks(silent).max():.6f}")
+
+head("8. a note left sounding at the end of one render, and the next render")
+host.load_state(START)
+ringing = host.render([(C4_ON, 0.0)], RATE // 2, RATE)
+after_it = host.render([], RATE // 2, RATE)
+print(f"a C4 with no note-off, 24000 samples: peak over the last 100 samples {peaks(ringing)[-100:].max():.6f}")
+print(f"the next render, no MIDI: peak from sample 7200 on {peaks(after_it)[7200:].max():.3g}; last non-zero sample {last_nonzero(after_it)}; peak in all {peaks(after_it).max():.6f}")
+
+head("9. one load of a text against two and three, after a set of every parameter and a render")
+print("for the start preset, the fixture and each installed preset, on one instance: every parameter set to the end of its")
+print("range farther from the start preset's default, a short render, then the text loaded once, twice and a third time;")
+print("after each, how many of the 903 floats the state holds differ from the model's: the text's own float for a key")
+print("it holds, the parameter's default for one it lacks. Then whether the second and third loads hold the same 903.")
+
+
+def model_of(text: bytes) -> tuple[dict[str, float], set[str]]:
+    preset = loads(text.decode("utf-8"))
+    _, slots = split_modulations(preset.modulations)
+    held = {**preset.settings.values, **slots}
+    return {record.preset_key: held.get(record.preset_key, record.preset_default) for record in MAP.parameters}, set(held)
+
+
+def steps(one: float, other: float) -> int:
+    a, b = np.float32(one).view(np.int32), np.float32(other).view(np.int32)
+    return abs(int(a) - int(b)) if (one >= 0) == (other >= 0) else -1
+
+
+texts = [("the start preset", START), ("the fixture", Path("tests/data/init-media-replaced.vital").read_bytes())]
+if PRESETS.is_dir():
+    texts += [(relative, (PRESETS / relative).read_bytes()) for relative in MANIFEST]
+print("    once  twice  thrice  2nd=3rd   of those after two loads: keys the text lacks / outside the scale / others (most float32 steps off)   text")
+totals = {"clean after two": 0, "second differs from third": 0, "once differs from twice": 0}
+kept_states = {}
+for label, text in texts:
+    model, present = model_of(text)
+    for record in MAP.parameters:
+        host.set(record.id, 1.0 if record.scale.to_normalized(record.preset_default) < 0.5 else 0.0)
+    host.render([(C4_ON, 0.0)], 2400, RATE)
+    states = []
+    for _ in range(3):
+        host.load_state(text)
+        states.append(_floats(host.state()))
+    differing = [sorted(k for k in model if state[k] != model[k]) for state in states]
+    after_two = differing[1]
+    lacking = [k for k in after_two if k not in present]
+    outside = [k for k in after_two if k in present and not MAP.find(pid(k)).scale.minimum <= model[k] <= MAP.find(pid(k)).scale.maximum]
+    others = [k for k in after_two if k in present and k not in outside]
+    most = max((steps(states[1][k], model[k]) for k in others), default=0)
+    same = states[1] == states[2]
+    totals["clean after two"] += not after_two
+    totals["second differs from third"] += not same
+    totals["once differs from twice"] += states[0] != states[1]
+    kept_states[label] = (states[1], model)
+    print(f"    {len(differing[0]):4d}  {len(differing[1]):5d}  {len(differing[2]):6d}  {str(same):7}   {len(lacking):4d} / {len(outside):2d} / {len(others):3d} ({most})   {label}")
+print(f"of {len(texts)} texts: no float differing from the model after two loads on {totals['clean after two']};")
+print(f"the second load and the third hold different floats on {totals['second differs from third']}; the first and the second on {totals['once differs from twice']}")
+print("a fresh instance, nothing set, each text loaded once: is that what two loads after the sets hold?")
+for label, text in texts[:2] + texts[2:8]:
+    untouched = VitalHost()
+    untouched.load_state(text)
+    fresh_state = _floats(untouched.state())
+    two_loads, model = kept_states[label]
+    print(f"    {label}: differing from the model {sum(fresh_state[k] != model[k] for k in model)}; the same 903 floats as two loads after the sets: {all(fresh_state[k] == two_loads[k] for k in model)}")
+    del untouched
+
+head("9b. the sample section under one load and two of the same text")
+import base64
+
+
+def sample_of(text: bytes) -> list[int]:
+    return np.frombuffer(base64.b64decode(json.loads(text)["settings"]["sample"]["samples"]), "<i2").tolist()
+
+
+fixture = Path("tests/data/init-media-replaced.vital").read_bytes()
+print(f"the fixture's sample, as the text holds it: {sample_of(fixture)}")
+host.load_state(START)
+host.load_state(START)
+host.load_state(fixture)
+print(f"after one load of the fixture:  {sample_of(host.state())}")
+host.load_state(fixture)
+print(f"after a second load of it:      {sample_of(host.state())}")
+host.load_state(fixture)
+print(f"after a third:                  {sample_of(host.state())}")
+back = host.state()
+host.load_state(back)
+print(f"after a load of the state read back (not the text): {sample_of(host.state())}")
+sys.stdout.flush()
+```
+
+--- <scratchpad>/i8/probe_load.py
+```
+"""One load, in a process of its own: what it leaves in the plugin, or nothing if it never returns.
+
+usage: probe_load.py <case>. Prints one line per fact. The caller gives the process a time limit:
+a load Vital answers with a modal alert does not return.
+"""
+
+import json
+import sys
+from pathlib import Path
+
+from patchbay import ParameterId
+
+from patchbay_vital import loads
+from patchbay_vital.errors import VitalError
+from patchbay_vital.format import split_modulations
+from patchbay_vital.host import VitalHost, _floats
+from patchbay_vital.parameters import parameter_map
+from patchbay_vital.start import start_text
+
+MAP = parameter_map()
+START = start_text(MAP).encode("utf-8")
+PRESETS = Path.home() / "Music" / "Vital"
+
+
+def variant(top: dict[str, object] | None = None, **settings: object) -> bytes:
+    changed = json.loads(START)
+    for key, value in settings.items():
+        if value is None:
+            del changed["settings"][key]
+        else:
+            changed["settings"][key] = value
+    changed.update(top or {})
+    return json.dumps(changed, sort_keys=True, separators=(",", ":")).encode("utf-8")
+
+
+def no_sections() -> bytes:
+    changed = json.loads(START)
+    for name in ("wavetables", "lfos", "sample", "custom_warps", "random_values"):
+        del changed["settings"][name]
+    return json.dumps(changed, sort_keys=True, separators=(",", ":")).encode("utf-8")
+
+
+def routed(source: str, destination: str) -> bytes:
+    changed = json.loads(START)
+    changed["settings"]["modulations"][0] = {"source": source, "destination": destination}
+    return json.dumps(changed, sort_keys=True, separators=(",", ":")).encode("utf-8")
+
+
+CASES = {
+    # texts the package's own writer can write, from a patch someone built
+    "the start preset rewritten by json.dumps (the control)": lambda: variant(),
+    "no section at all": no_sections,
+    "wavetables an empty array": lambda: variant(wavetables=[]),
+    "wavetables an array of one empty object": lambda: variant(wavetables=[{}]),
+    "wavetables an object": lambda: variant(wavetables={"x": 1}),
+    "lfos an empty array": lambda: variant(lfos=[]),
+    "sample an empty object": lambda: variant(sample={}),
+    "a routing whose source and destination are no names of Vital's": lambda: routed("nonsense", "nowhere"),
+    "synth_version 99.0.0": lambda: variant({"synth_version": "99.0.0"}),
+    "synth_version abc": lambda: variant({"synth_version": "abc"}),
+    "without filter_1_cutoff": lambda: variant(filter_1_cutoff=None),
+    "volume at 1e30, far outside its scale": lambda: variant(volume=1e30),
+    # texts that pass the guard below, their fault inside a section, which the package does not read
+    "three wavetables whose groups is a number": lambda: variant(wavetables=[{"groups": 5}] * 3),
+    "eight lfos whose points is a string": lambda: variant(lfos=[{"name": "x", "num_points": 2, "points": "x", "powers": [0.0, 0.0], "smooth": False}] * 8),
+    "a sample with its four keys, its length a string": lambda: variant(sample={"length": "x", "name": "x", "sample_rate": 44100, "samples": ""}),
+    # texts the writer cannot write, for reference
+    "an empty object": lambda: b"{}",
+    "settings empty": lambda: b'{"settings":{}}',
+    "a string where a float belongs": lambda: variant(volume="loud"),
+    "wavetables a string": lambda: variant(wavetables="x"),
+    "without modulations": lambda: variant(modulations=None),
+}
+
+
+WRITABLE = {
+    "an empty object": "no: a preset's models require its metadata and settings, so the writer never writes this",
+    "settings empty": "no: the format requires the routing list and each slot's floats",
+    "a string where a float belongs": "no: a setting is a float in the model",
+    "wavetables a string": "no: a section is the text of a JSON array or object in the model",
+    "without modulations": "no: the format requires the routing list",
+}
+VERSION = tuple(int(part) for part in MAP.vital_version.split("."))
+
+
+def guard(text: bytes) -> str:
+    """Say what the instrument's guard, as decided, does with a text: the reason it refuses, or passes."""
+    preset = json.loads(text)
+    version = preset.get("synth_version")
+    if not isinstance(version, str) or not all(part.isascii() and part.isdigit() for part in version.split(".")):
+        return f"refuses: synth_version {version!r} is not digits and dots"
+    if tuple(int(part) for part in version.split(".")) > VERSION:
+        return f"refuses: synth_version {version} is newer than the plugin's {MAP.vital_version}"
+    settings = preset.get("settings", {})
+    wavetables, lfos, sample = settings.get("wavetables"), settings.get("lfos"), settings.get("sample")
+    if not (isinstance(wavetables, list) and len(wavetables) == 3 and all(isinstance(w, dict) for w in wavetables)):
+        return "refuses: wavetables is not an array of 3 objects"
+    if not (isinstance(lfos, list) and len(lfos) == 8 and all(isinstance(l, dict) for l in lfos)):
+        return "refuses: lfos is not an array of 8 objects"
+    if not (isinstance(sample, dict) and {"length", "name", "sample_rate", "samples"} <= set(sample)):
+        return "refuses: sample is not an object holding length, name, sample_rate and samples"
+    return "passes"
+
+
+def sections_of(text: bytes) -> dict[str, str]:
+    settings = json.loads(text)["settings"]
+    return {k: json.dumps(v, sort_keys=True) for k, v in settings.items() if not isinstance(v, float)}
+
+
+def one_load(label: str) -> None:
+    text = CASES[label]()
+    print(f"can the package's writer write it: {WRITABLE.get(label, 'yes')}")
+    try:
+        print(f"the guard: {guard(text)}", flush=True)
+    except (ValueError, AttributeError) as error:
+        print(f"the guard: is not reached ({type(error).__name__})", flush=True)
+    host = VitalHost()
+    host.load_state(START)
+    host.load_state(START)
+    marker = ParameterId("filter_1_cutoff")
+    host.set(marker, 0.9)
+    before, before_sections = _floats(host.state()), sections_of(host.state())
+    print("before the load: the marker filter_1_cutoff", before[marker], flush=True)
+    raised = "no error"
+    try:
+        host.load_state(text)
+    except VitalError as error:
+        raised = f"{type(error).__name__}: {str(error)[:90]}"
+    after, after_sections = _floats(host.state()), sections_of(host.state())
+    moved = sorted(k for k in before if after.get(k) != before[k])
+    gone = sorted(k for k in before if k not in after)
+    sections_moved = sorted(k for k in before_sections if after_sections.get(k) != before_sections[k])
+    print(f"returned: {raised}")
+    print(f"floats changed {len(moved)} of {len(before)} {moved[:3]}, gone {len(gone)}; the marker -> {after.get(marker)}; sections changed {sections_moved}")
+
+
+def lacking_keys() -> None:
+    manifest = [
+        line
+        for line in Path("tests/data/factory-manifest.txt").read_text(encoding="utf-8").splitlines()
+        if not line.startswith("#")
+    ]
+    old_text = (PRESETS / manifest[0]).read_bytes()
+    old = loads(old_text.decode("utf-8"))
+    _, old_slots = split_modulations(old.modulations)
+    held = {**old.settings.values, **old_slots}
+    lacking = [record for record in MAP.parameters if record.id not in held]
+    print(f"{manifest[0]} (synth_version {old.synth_version}) lacks {len(lacking)} of the 903 keys; its sections: {sorted(old.opaque)}")
+    host = VitalHost()
+    host.load_state(START)
+    host.load_state(START)
+    for record in lacking:
+        host.set(record.id, 1.0 if record.scale.to_normalized(record.preset_default) < 0.5 else 0.0)
+    before = _floats(host.state())
+    away = sum(before[r.preset_key] != r.preset_default for r in lacking)
+    host.load_state(old_text)
+    after = _floats(host.state())
+    kept = [r.id for r in lacking if after[r.preset_key] == before[r.preset_key] and before[r.preset_key] != r.preset_default]
+    default = [r.id for r in lacking if after[r.preset_key] == r.preset_default]
+    other = [r.id for r in lacking if r.id not in kept and r.id not in default]
+    print(f"each of those {len(lacking)} was first set away from its default ({away} moved); after the load: at its default {len(default)}, still at the value set {len(kept)}, at another value {len(other)}")
+    print(f"    still at the value set (first eight): {kept[:8]}")
+    print(f"    at another value (first six): {[(k, before[k], after[k], MAP.find(ParameterId(k)).preset_default) for k in other[:6]]}")
+    start_sections, now = sections_of(START), sections_of(host.state())
+    for name in ("custom_warps", "random_values"):
+        print(f"    section {name}, which the old preset lacks: in the state after the load {name in now}; the start preset's own text {now.get(name) == start_sections[name]}")
+    host.load_state(START)
+    after_start = _floats(host.state())
+    wrong = sorted(r.preset_key for r in MAP.parameters if after_start[r.preset_key] != r.preset_default)
+    print(f"then one load of the start preset: floats not the start's {len(wrong)} {wrong[:4]}")
+
+
+if __name__ == "__main__":
+    if sys.argv[1] == "--list":
+        print("\n".join(CASES))
+    elif sys.argv[1] == "--lacking":
+        lacking_keys()
+    else:
+        one_load(sys.argv[1])
+```
+
+--- <scratchpad>/i8/probe_loads.sh
+```
+#!/usr/bin/env bash
+# usage: probe_loads.sh   (from the repository root)
+# Runs each load of probe_load.py in a process of its own with a time limit. A load that does not
+# return is sampled once, to show what it waits on, and killed.
+set -uo pipefail
+R=$(cd "$(dirname "$0")" && pwd)
+LIMIT=6
+sampled=0
+echo "== 5. what a load the plugin cannot use leaves in the plugin, each in a process of its own, $LIMIT s allowed"
+echo "before each: a fresh Vital, the start preset loaded twice, filter_1_cutoff set to normalized 0.9 as a marker."
+echo "a load that has not returned after $LIMIT s is killed, by design: Vital has put up a modal alert and the caller would wait for ever."
+echo "beside each text: whether the package's own writer can write it, and what the instrument's guard, as decided, does with it."
+uv run --locked python -B "$R/probe_load.py" --list > "$R/out/cases.txt"
+while IFS= read -r label; do
+  echo
+  echo "-- $label"
+  uv run --locked python -u -B "$R/probe_load.py" "$label" > "$R/out/case.txt" 2>&1 &
+  pid=$!
+  waited=0
+  while kill -0 "$pid" 2>/dev/null && [ "$waited" -lt "$LIMIT" ]; do sleep 1; waited=$((waited + 1)); done
+  if kill -0 "$pid" 2>/dev/null; then
+    cat "$R/out/case.txt"
+    echo "DID NOT RETURN within $LIMIT s: the process is waiting, and is killed, by design"
+    child=$(pgrep -P "$pid" | head -1)
+    if [ "$sampled" -eq 0 ] && [ -n "$child" ]; then
+      sampled=1
+      echo "   what it waits on (sample of the process, the frames from Vital's setStateInformation down to AppKit's modal loop):"
+      sample "$child" 1 2>/dev/null | grep -E "setStateInformation|AlertWindow|OSXMessageBox|NSAlert runModal|runModalForWindow" | sed 's/^[ +!:|]*/      /' | cut -c1-170 | head -8
+    fi
+    pkill -P "$pid" 2>/dev/null; kill "$pid" 2>/dev/null; wait "$pid" 2>/dev/null
+  else
+    wait "$pid"; status=$?
+    cat "$R/out/case.txt"
+    [ "$status" -eq 0 ] || echo "exit=$status"
+  fi
+done < "$R/out/cases.txt"
+echo
+echo "== 5b. a key the text lacks: the default, or what the plugin held before?"
+uv run --locked python -u -B "$R/probe_load.py" --lacking 2>&1
+```
+
+--- <scratchpad>/i8/run_probes.sh
+```
+#!/usr/bin/env bash
+# usage: run_probes.sh   (from the repository root): the main probe, then the loads run apart.
+set -uo pipefail
+R=$(cd "$(dirname "$0")" && pwd)
+uv run --locked python -u -B "$R/probe.py"
+echo "exit of the main probe: $?"
+echo
+bash "$R/probe_loads.sh"
+```
+
+--- <scratchpad>/i8/tree.sh
+```
+#!/usr/bin/env bash
+# usage: tree.sh   (run from the repository root)
+# Prints HEAD, git's status of the work tree and the blob of every path that status names, so two
+# calls can be compared with cmp: the tree a run read, and the tree it left.
+set -euo pipefail
+echo "  HEAD $(git rev-parse HEAD)"
+git status --porcelain=v1 --untracked-files=all > "${TMPDIR:-/tmp}/tree.$$"
+echo "  git status --porcelain=v1 --untracked-files=all, $(wc -l < "${TMPDIR:-/tmp}/tree.$$" | tr -d ' ') lines:"
+sed 's/^/    /' "${TMPDIR:-/tmp}/tree.$$"
+echo "  git hash-object of each of those paths (a deleted one marked so):"
+cut -c4- "${TMPDIR:-/tmp}/tree.$$" | LC_ALL=C sort | while IFS= read -r path; do
+  if [ -e "$path" ]; then echo "    $(git hash-object "$path")  $path"; else echo "    (deleted)  $path"; fi
+done
+rm -f "${TMPDIR:-/tmp}/tree.$$"
+```
+
+--- <scratchpad>/i8/machine.sh
+```
+#!/usr/bin/env bash
+# usage: machine.sh   Prints one line: the machine, its system, the locked Python and the load.
+set -euo pipefail
+echo "$(uname -m), $(sysctl -n machdep.cpu.brand_string), $(sysctl -n hw.ncpu) cores, macOS $(sw_vers -productVersion) ($(sw_vers -buildVersion)), Python $(uv run --locked python -c 'import platform; print(platform.python_version())'), load $(sysctl -n vm.loadavg | tr -d '{}' | xargs), at $(date '+%Y-%m-%d %H:%M %Z')"
+```
+
+--- <scratchpad>/i8/transcript.sh
+```
+#!/usr/bin/env bash
+# usage: transcript.sh <out file> <title> <script to embed>... -- <command...>   (from the repository root)
+# Writes one transcript outside the tree: its date and branch, the machine and the tree before,
+# the command's whole output, the tree and the machine after, the two trees compared, and every
+# script it ran, embedded. The caller copies the file into the spec's verification/ afterwards.
+set -uo pipefail
+R=$(cd "$(dirname "$0")" && pwd)
+out=$1; title=$2; shift 2
+scripts=()
+while [ "$1" != "--" ]; do scripts+=("$1"); shift; done
+shift
+{
+  echo "$title, run $(date '+%Y-%m-%d %H:%M %Z') on branch"
+  echo "$(git branch --show-current), Vital at /Library/Audio/Plug-Ins/VST3/Vital.vst3"
+  echo "the machine before the run: $(bash "$R/machine.sh")"
+  echo "the tree before the run (this transcript is written outside the tree and copied in afterwards):"
+  bash "$R/tree.sh" | tee "$R/out/tree-before.txt"
+  echo
+  echo "\$ $*"
+  "$@" 2>&1
+  echo "exit=$?"
+  echo
+  echo "the tree after the run:"
+  bash "$R/tree.sh" | tee "$R/out/tree-after.txt"
+  if cmp -s "$R/out/tree-before.txt" "$R/out/tree-after.txt"; then echo "cmp: the tree after the run is the tree before it"; else echo "cmp: THE TREE CHANGED DURING THE RUN"; fi
+  echo "the machine after the run: $(bash "$R/machine.sh")"
+  echo
+  echo "the scripts this run used, each embedded below with its blob:"
+  for s in "${scripts[@]}" "$R/tree.sh" "$R/machine.sh" "$R/transcript.sh"; do echo "    $(git hash-object "$s")  <scratchpad>/i8/$(basename "$s")"; done
+  for s in "${scripts[@]}" "$R/tree.sh" "$R/machine.sh" "$R/transcript.sh"; do
+    echo; echo "--- <scratchpad>/i8/$(basename "$s")"; echo '```'; cat "$s"; echo '```'
+  done
+} > "$out"
+```

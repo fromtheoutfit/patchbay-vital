@@ -7,8 +7,10 @@ This is an experiment, not a product. The distribution name is `patchbay-vital` 
 is `patchbay_vital`. It reads, writes and compares a `.vital` preset file, maps each of the 903
 parameters Vital's VST3 exposes to its preset key with exact conversions between the host's
 normalized value, the preset's value and the value Vital displays, and, with the `host` extra, hosts
-Vital and loads a preset into it whole. The instrument patchbay drives (issue #8) and the
-sound-design semantics join with the specs that add them (`agent-os/product/mission.md`).
+Vital, loads a preset into it whole and drives it as a `patchbay.Instrument`: parameters read and
+set in the units Vital displays, a preset loaded and given back as a patch, a pattern rendered to
+audio. The sound-design semantics join with the spec that adds them
+(`agent-os/product/mission.md`).
 
 ```python
 from patchbay import ParameterId
@@ -24,12 +26,65 @@ attack.to_normalized(0.5)               # the host's value for half a second
 ```
 
 ```python
+from patchbay import EventBus, Note, ParameterId, Pattern, Quantity, RenderRequest, Unit
+from patchbay_vital.instrument import VitalInstrument   # needs patchbay-vital[host]
+
+vital = VitalInstrument(EventBus())         # Vital at its default path, on the start preset
+vital.set(ParameterId("filter_1_on"), Quantity(value=1.0, unit=Unit.none))
+vital.set(ParameterId("filter_1_cutoff"), Quantity(value=12.0, unit=Unit.semitones))
+vital.get(ParameterId("filter_1_cutoff"))   # what Vital holds for it, in semitones
+patch = vital.patch()                       # the whole preset as a core Patch; load_patch takes it back
+note = Note(pitch=60, velocity=100, start_beats=0.0, duration_beats=3.0, channel=0)
+pattern = Pattern(tempo_bpm=120.0, bars=1, beats_per_bar=4, notes=(note,))
+result = vital.render(pattern, RenderRequest(sample_rate=48000, tail_seconds=0.5))
+result.audio.shape                          # (2, 120000) float32; result.warnings says if it clipped
+```
+
+```python
 from patchbay_vital.host import VitalHost   # needs patchbay-vital[host]
 
 host = VitalHost()                          # /Library/Audio/Plug-Ins/VST3/Vital.vst3, or a path
 host.load_state(open("Plucked String.vital", "rb").read())   # routing, wavetables and all
 audio = host.render([(bytes([0x90, 60, 100]), 0.0)], 48000, 48000)   # (2, 48000) float32
 ```
+
+## The instrument
+
+`patchbay_vital.instrument.VitalInstrument` implements `patchbay-core`'s `Instrument` protocol and
+passes core's thirteen contract tests against the installed Vital. It is registered as the entry
+point `vital` in the `patchbay.instruments` group, a callable that takes the `EventBus` the
+instrument publishes on. **That entry point is provisional:** core reads no entry point yet and has
+not said what the group holds.
+
+- **It starts on a preset this package ships, not on Vital's own Init.** `data/start.vital` holds
+  Vital's default value for each of the 903 parameters, which the parameter map ships already, with
+  media generated here: a plain ramp as each oscillator's wavetable, straight lines as the LFO
+  shapes, a 16-sample ramp as the sample. Vital's own starting state cannot be shipped, its wavetable
+  and its noise sample being Vital's, and is not the same from one instance to the next. So every
+  instrument starts on the same preset on every machine, and a patch that names values and nothing
+  else means that preset with those values. The census writes the file beside the map.
+- **The model is the source of truth.** The instrument holds the preset it was given and answers
+  from it; what the plugin holds is never read back as the instrument's state.
+- **A value is held as Vital holds it.** After `set`, `get` returns the value Vital holds for the one
+  given, which need not be the nearest value it can hold; a bound is held exactly; a value between a
+  stepped parameter's steps is taken and the nearest step held.
+
+Known limits, each measured on Vital 1.6.4 through pedalboard 0.9.26 on arm64 and each waiting on
+an issue of its own. All three come before the first experiment that puts an agent in front of the
+instrument, in this order (`agent-os/specs/2026-11-15-1448-the-instrument/shape.md` holds the
+measurements):
+
+- **A malformed preset section can hang the process** (issue #20). Vital answers a preset it cannot read with a
+  modal alert and never returns to its caller. `load_patch` refuses every shape of preset that was
+  seen to do this before Vital is given it, but the inside of a wavetable, an LFO or a sample
+  section passes through unread, and one Vital cannot read still blocks.
+- **A render of most presets opens with the preset sounding though no note was played** (issue
+  #21). On the start preset this is a transient of about 2% of full scale that is over in about a
+  tenth of a second; on presets Vital installs it reaches full scale and can last seconds.
+- **On a preset older than the plugin, a few parameters can be reported by `get` with the file's
+  value where Vital plays its upgraded one,** and for a choice that can be a different setting by
+  name (issue #22): of the 75 presets Vital installs, 11 hold 46 such values,
+  `osc_1_stack_style` and `filter_1_style` among them.
 
 ## Layout
 
@@ -39,22 +94,29 @@ audio = host.render([(bytes([0x90, 60, 100]), 0.0)], 48000, 48000)   # (2, 48000
   holds the parameter map's models and scales and reads `data/parameters.json`, the map the census
   measured, and `settings_keys.txt` lists every float key Vital has been seen to write, derived from
   the map. `files.py` replaces files whole or not at all, for `format.py` and the census.
-  `state.py` reads and writes the containers around the plugin's state; `host.py` hosts
-  Vital through pedalboard and `census.py` measures it and writes the map, both needing the `host`
-  extra and neither imported by the package itself.
+  `start.py` holds the preset the instrument starts on, `data/start.vital`, and writes it from a
+  map; `patch.py` carries a preset in a core `Patch` and back, byte for byte; `midi.py` builds a
+  pattern's MIDI as bytes. `state.py` reads and writes the containers around the plugin's state;
+  `host.py` hosts Vital through pedalboard, `census.py` measures it and writes the map, the key
+  list and the start preset, and `instrument.py` is the instrument, all three needing the `host`
+  extra and none imported by the package itself.
   `__init__.py` holds the re-exports, `__version__`, read from the installed package's metadata so
   `pyproject.toml` is the one place the version is written, and `__all__`. The package is imported
   installed (`uv sync`): from a bare `src/` on `sys.path` the import fails rather than invent a
   version.
 - `tests/`: pytest's tree. Not a package (no `__init__.py`), so one basename per test file across it,
   which mypy holds. `unit/` mirrors `src/`. `integration/` round-trips every preset Vital installed
-  under `~/Music/Vital` against `data/factory-manifest.txt`, and hosts the installed plugin: the
-  census regenerates the committed map, the presets load as its state, and its renders are measured;
-  each skips, saying so, where what it needs is absent, CI among them. `data/` holds no preset of
-  Vital's, whose license forbids that: its one `.vital` is a 1.6.4 save with the media replaced;
-  `fma-vectors.txt` holds the plugin's own values that `float32.py` is held to, and
-  `pinned-values.txt` the normalized values and the displays both test modules hold the map and
-  Vital at, written once.
+  under `~/Music/Vital` against `data/factory-manifest.txt`, through the file's own writer and
+  through a patch, and hosts the installed plugin: the census regenerates the committed map, the key
+  list and the start preset, the presets load as its state, its renders are measured, and
+  `test_vital_instrument.py` runs core's thirteen contract tests and the instrument's own against
+  it; each skips, saying so, where what it needs is absent, CI among them. CI still runs the
+  contract tests, over a fake plugin in `unit/test_instrument.py`, which is not a pass against
+  Vital. `data/` holds no preset of Vital's, whose license forbids that: its one `.vital` is a 1.6.4
+  save with the media replaced; `fma-vectors.txt` holds the plugin's own values that `float32.py`
+  is held to, `pinned-values.txt` the normalized values and the displays both test modules hold
+  the map and Vital at, written once, and `upgraded-floats.txt` the 46 floats Vital changes as it
+  loads an installed preset older than it.
 - `pyproject.toml`: the one configuration file. Every tool the gate runs is configured under
   `[tool.*]` there and nowhere else, with no `setup.py`, `setup.cfg`, `requirements*.txt`,
   `tox.ini`, `.flake8`, `mypy.ini`, `pytest.ini`, `.ruff.toml` or `uv.toml`. The `[tool.*]` sections
@@ -105,11 +167,17 @@ hypothesis, packaging, pedalboard and pre-commit, each pinned exactly in `pyproj
 repository uv writes only that interpreter and its own cache. Run a tool as `uv run --locked <tool>`,
 as the gate does.
 
-A consumer installs `patchbay-vital` for the format and the map, and `patchbay-vital[host]` to host
+A consumer installs `patchbay-vital` for the format, the map and the carrying of a preset in a
+patch, and `patchbay-vital[host]` for the instrument and to host
 Vital. **Licence:** this package is MIT; pedalboard, the host, is GPLv3, so it comes only with the
 `host` extra, `host.py` is the one module that imports it, and nothing of pedalboard's is in this
 repository. That is the owner's decision, not legal advice, and is revisited before any release to
-PyPI. Vital itself is installed separately and is not redistributed here.
+PyPI. So is shipping the start preset, `data/start.vital`: it holds Vital's default values, which
+the parameter map ships already, and media generated by this package, and none of Vital's presets,
+wavetables, samples or LFO shapes. And so is committing `tests/data/upgraded-floats.txt`
+(2026-11-16), which the package does not ship: the names of 11 presets Vital installs, keys and 46
+measured values, and no preset's content. Vital itself is installed separately and is not
+redistributed here.
 
 ## The gate
 

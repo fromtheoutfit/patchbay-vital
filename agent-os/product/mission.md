@@ -9,6 +9,9 @@ into `patchbay-core`, whose contracts every adapter implements.
 - The `.vital` format: reading, writing and comparing a preset file.
 - The map between Vital's VST3 parameters and a preset's keys, and the unit conversions between
   them, so a value means the same thing on either side.
+- The instrument: Vital hosted and driven through patchbay-core's Instrument contract. Its
+  parameters are read and set in the units Vital displays, a preset is loaded and given back as a
+  patch, and a pattern is rendered to audio.
 - Sound-design semantics as data: what a parameter does to the sound, written down where a program
   can read it.
 
