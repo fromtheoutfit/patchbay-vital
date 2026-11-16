@@ -4,8 +4,10 @@ Measurements here are built the way the plugin reports them (the host spec's
 `verification/probes.txt`): preset values by `fma32` on the census's grid, display texts printed
 to six significant digits with the plugin's suffix. A key list that would forget a key the format
 knows is refused; a run of `main` over a fake host of one parameter knows only that host's keys.
+`main` writes three files, the key list, the map and the start preset, together or not at all.
 """
 
+import json
 import platform
 from collections.abc import Callable, Sequence
 from pathlib import Path
@@ -34,6 +36,7 @@ from patchbay_vital.parameters import (
     ParameterMap,
     parameter_map,
 )
+from patchbay_vital.start import start_text
 
 
 def _measurement(
@@ -331,8 +334,9 @@ def test_the_written_map_reads_back_as_built_one_record_a_line() -> None:
 def test_the_census_names_a_plugin_it_cannot_load_and_writes_nothing(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    """No plugin at the path: exit 1, the reason on stderr, neither output written."""
+    """No plugin at the path: exit 1, the reason on stderr, none of the outputs written."""
     parameters, keys = tmp_path / "parameters.json", tmp_path / "settings_keys.txt"
+    start = tmp_path / "start.vital"
     status = main(
         [
             "--plugin",
@@ -341,12 +345,15 @@ def test_the_census_names_a_plugin_it_cannot_load_and_writes_nothing(
             str(parameters),
             "--settings-keys",
             str(keys),
+            "--start",
+            str(start),
         ]
     )
     assert status == 1
     assert "nothing at the path" in capsys.readouterr().err
     assert not parameters.exists()
     assert not keys.exists()
+    assert not start.exists()
 
 
 @pytest.fixture
@@ -357,15 +364,21 @@ def known_to_one_cutoff(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def _main(tmp_path: Path, keys: Path) -> tuple[int, Path]:
+    """Run the census over the fake host, its map at `map.json` and its start at `start.vital`."""
     arguments = ["--plugin", str(tmp_path), "--parameters", str(tmp_path / "map.json")]
+    arguments += ["--start", str(tmp_path / "start.vital")]
     return main([*arguments, "--settings-keys", str(keys)]), tmp_path / "map.json"
 
 
 @pytest.mark.usefixtures("known_to_one_cutoff")
-def test_the_census_writes_both_files_and_names_a_parameter_it_cannot_fit(
+def test_the_census_writes_its_three_files_and_names_a_parameter_it_cannot_fit(
     tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Both outputs are written from one measured host; a second that cannot fit writes neither."""
+    """The outputs are written from one measured host; a second that cannot fit writes none.
+
+    The start preset is the map's: the one parameter measured, at the default the map records,
+    under the Vital version the map names.
+    """
     good = _measurement("Filter 1 Cutoff", _LINEAR, str)
     monkeypatch.setattr(census, "VitalHost", lambda _path: _host(good))
     status, parameters = _main(tmp_path, tmp_path / "keys.txt")
@@ -374,7 +387,12 @@ def test_the_census_writes_both_files_and_names_a_parameter_it_cannot_fit(
     assert (tmp_path / "keys.txt").read_text(
         encoding="utf-8"
     ) == "chorus_damping\nfilter_1_cutoff\n"
-    assert ParameterMap.model_validate_json(parameters.read_text(encoding="utf-8")).machine
+    written = ParameterMap.model_validate_json(parameters.read_text(encoding="utf-8"))
+    assert written.machine
+    start = json.loads((tmp_path / "start.vital").read_text(encoding="utf-8"))
+    (record,) = written.parameters
+    assert start["settings"][record.id] == record.preset_default
+    assert start["synth_version"] == written.vital_version == "1.6.4"
     bad = good._replace(label="Fortnightly", texts=("1 fortnights",) * len(GRID))
     monkeypatch.setattr(census, "VitalHost", lambda _path: _host(bad))
     status, _ = _main(tmp_path / "second", tmp_path / "second" / "keys.txt")
@@ -429,6 +447,63 @@ def test_a_rename_failing_after_the_key_list_s_puts_the_key_list_back(
     assert sorted(path.name for path in tmp_path.iterdir()) == ["keys.txt", "map.json"]
 
 
+@pytest.mark.usefixtures("known_to_one_cutoff")
+def test_a_rename_failing_at_the_start_preset_puts_the_key_list_and_the_map_back(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The start preset is the third renamed: when it cannot be, all three are as they were."""
+    monkeypatch.setattr(
+        census, "VitalHost", lambda _path: _host(_measurement("Filter 1 Cutoff", _LINEAR, str))
+    )
+    keys, start = tmp_path / "keys.txt", tmp_path / "start.vital"
+    keys.write_text("old keys", encoding="utf-8")
+    (tmp_path / "map.json").write_text("old map", encoding="utf-8")
+    start.write_text("old start", encoding="utf-8")
+    renames: list[str] = []
+    replace = Path.replace
+
+    def failing_third(self: Path, target: Path) -> Path:
+        renames.append(target.name)
+        if len(renames) == 3:  # noqa: PLR2004 - the start preset's rename, after the other two
+            msg = f"cannot rename over {target.name}"
+            raise OSError(msg)
+        return replace(self, target)
+
+    monkeypatch.setattr(Path, "replace", failing_third)
+    status, parameters = _main(tmp_path, keys)
+    assert status == 1
+    assert "census: cannot write: cannot rename over start.vital" in capsys.readouterr().err
+    assert renames[:3] == ["keys.txt", "map.json", "start.vital"]
+    assert keys.read_text(encoding="utf-8") == "old keys"
+    assert parameters.read_text(encoding="utf-8") == "old map"
+    assert start.read_text(encoding="utf-8") == "old start"
+    assert sorted(path.name for path in tmp_path.iterdir()) == [
+        "keys.txt",
+        "map.json",
+        "start.vital",
+    ]
+
+
+def test_the_three_committed_files_are_what_the_census_writes_from_the_committed_map(
+    pytestconfig: pytest.Config,
+) -> None:
+    """The map's text, the key list and the start preset are one census's, byte for byte.
+
+    Checked together and with no plugin, so CI holds it: an edit to one of the three, or to the
+    writer of one, fails here naming the file. With Vital installed the integration module
+    measures the plugin again and holds the same three.
+    """
+    committed = parameter_map()
+    package = pytestconfig.rootpath / "src" / "patchbay_vital"
+    written = {
+        package / "data" / "parameters.json": dump_map(committed),
+        package / "settings_keys.txt": "\n".join(key_list(committed)) + "\n",
+        package / "data" / "start.vital": start_text(committed),
+    }
+    for path, text in written.items():
+        assert path.read_text(encoding="utf-8") == text, path.name
+
+
 def test_the_committed_map_s_key_list_forgets_no_key_the_format_knows() -> None:
     """The key list the census would write from the committed map is the map's, every key kept."""
     assert key_list(parameter_map()) == parameter_map().settings_keys()
@@ -437,7 +512,7 @@ def test_the_committed_map_s_key_list_forgets_no_key_the_format_knows() -> None:
 def test_a_key_list_that_would_forget_a_known_key_is_refused_and_nothing_written(
     tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """A key a newer Vital dropped is named, with where to keep it, and neither output written."""
+    """A key a newer Vital dropped is named, with where to keep it, and no output written."""
     gone = PresetKey("dropped_by_a_newer_vital")
     known = frozenset({PresetKey("filter_1_cutoff"), *PRESET_ONLY_KEYS, gone})
     monkeypatch.setattr(census, "KNOWN_SETTINGS", known)

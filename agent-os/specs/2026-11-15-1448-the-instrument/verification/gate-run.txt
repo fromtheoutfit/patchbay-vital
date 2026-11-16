@@ -1,0 +1,299 @@
+The instrument spec (issue #8): scripts/gate.sh, once, last, run 2026-11-16 09:40 EST on branch
+feature/8-the-instrument-vitalinstrument-over-vitalhost-patchvitalpreset-and-cores-contract-tests-against-a-real-vital-spec-b-of-7, Vital at /Library/Audio/Plug-Ins/VST3/Vital.vst3
+the machine before the run: arm64, Apple M4 Pro, 14 cores, macOS 26.6.2 (25G83), Python 3.12.16, load 2.80 2.85 2.95, at 2026-11-16 09:40 EST
+the tree before the run (this transcript is written outside the tree and copied in afterwards):
+  HEAD e3e601781f32d2058f4793895c47c12fe2793385
+  git status --porcelain=v1 --untracked-files=all, 42 lines:
+     M CHANGELOG.md
+     M README.md
+     M agent-os/product/mission.md
+     M agent-os/standards/index.yml
+     M agent-os/standards/vital/measures.md
+     M agent-os/standards/vital/parameter-map.md
+     M agent-os/standards/vital/plugin-state.md
+     M agent-os/standards/vital/preset-tests.md
+     M pyproject.toml
+     M src/patchbay_vital/__init__.py
+     M src/patchbay_vital/census.py
+     M src/patchbay_vital/errors.py
+     M tests/integration/test_factory_round_trip.py
+     M tests/integration/test_vital_plugin.py
+     M tests/unit/test_census.py
+     M tests/unit/test_errors.py
+     M tests/unit/test_package.py
+    ?? agent-os/specs/2026-11-15-1448-the-instrument/plan.md
+    ?? agent-os/specs/2026-11-15-1448-the-instrument/references.md
+    ?? agent-os/specs/2026-11-15-1448-the-instrument/shape.md
+    ?? agent-os/specs/2026-11-15-1448-the-instrument/standards.md
+    ?? agent-os/specs/2026-11-15-1448-the-instrument/verification/carrying-count.txt
+    ?? agent-os/specs/2026-11-15-1448-the-instrument/verification/ci-negative-test.txt
+    ?? agent-os/specs/2026-11-15-1448-the-instrument/verification/contract-run.txt
+    ?? agent-os/specs/2026-11-15-1448-the-instrument/verification/gate-negative-tests.txt
+    ?? agent-os/specs/2026-11-15-1448-the-instrument/verification/mutation.txt
+    ?? agent-os/specs/2026-11-15-1448-the-instrument/verification/off-grid-count.txt
+    ?? agent-os/specs/2026-11-15-1448-the-instrument/verification/probes-2.txt
+    ?? agent-os/specs/2026-11-15-1448-the-instrument/verification/probes.txt
+    ?? agent-os/specs/2026-11-15-1448-the-instrument/verification/wheel-contents.txt
+    ?? agent-os/standards/vital/instrument.md
+    ?? src/patchbay_vital/data/start.vital
+    ?? src/patchbay_vital/instrument.py
+    ?? src/patchbay_vital/midi.py
+    ?? src/patchbay_vital/patch.py
+    ?? src/patchbay_vital/start.py
+    ?? tests/data/upgraded-floats.txt
+    ?? tests/integration/test_vital_instrument.py
+    ?? tests/unit/test_instrument.py
+    ?? tests/unit/test_midi.py
+    ?? tests/unit/test_patch.py
+    ?? tests/unit/test_start.py
+  git hash-object of each of those paths (a deleted one marked so):
+    7bb917977d9baab41d3ca0c65bdcf266af04d4b4  CHANGELOG.md
+    d58671b909be52a417d16e84b5cb03e20d011794  README.md
+    b15907bd6164e024da3fd658a471f15291db42ba  agent-os/product/mission.md
+    a3dddc9d28d9bef006b9e54b7e3eff2d176c7880  agent-os/specs/2026-11-15-1448-the-instrument/plan.md
+    db8c75d636b2346f03102ed5287a0d961684ab81  agent-os/specs/2026-11-15-1448-the-instrument/references.md
+    5408fb4b0023a9548048e39c656ebfc77ea9f50f  agent-os/specs/2026-11-15-1448-the-instrument/shape.md
+    6689f2ad25d6eb9c361366cb26f41d8e9a91b663  agent-os/specs/2026-11-15-1448-the-instrument/standards.md
+    1ed5e37b9797cf9ba514831a0828a21709cddc23  agent-os/specs/2026-11-15-1448-the-instrument/verification/carrying-count.txt
+    78c2a8e8232f7993171f452558cc4faa27ea827f  agent-os/specs/2026-11-15-1448-the-instrument/verification/ci-negative-test.txt
+    9469ec329eb7b75ed25daf828ef5726dbb03f0bb  agent-os/specs/2026-11-15-1448-the-instrument/verification/contract-run.txt
+    b7e5103112a0954dd3c8ef13428c9666566c5120  agent-os/specs/2026-11-15-1448-the-instrument/verification/gate-negative-tests.txt
+    bd8d06985095606ffaf074d0cdaf4bc16ce634db  agent-os/specs/2026-11-15-1448-the-instrument/verification/mutation.txt
+    060c7448760886e9fc4dc7eff7f8d798e5249e92  agent-os/specs/2026-11-15-1448-the-instrument/verification/off-grid-count.txt
+    b084a1f0d2f34c5f5d6c7c0a3d22d0665f35638b  agent-os/specs/2026-11-15-1448-the-instrument/verification/probes-2.txt
+    86c080df2c0dc6414b3146ebaf8413f8423afabb  agent-os/specs/2026-11-15-1448-the-instrument/verification/probes.txt
+    da6fac95eaf0883703a0e3dd8b24f5cfc59ca398  agent-os/specs/2026-11-15-1448-the-instrument/verification/wheel-contents.txt
+    93cf8717cec6326aeb657cad144a0da7eb41f94c  agent-os/standards/index.yml
+    a6d96755ce702b8c4d2c74156149c376e51ae556  agent-os/standards/vital/instrument.md
+    dc7f40608620feadb0ed2e1dba9c4872b8426360  agent-os/standards/vital/measures.md
+    20e584e2e5b046a30488d097b7019294c4f4c943  agent-os/standards/vital/parameter-map.md
+    1c3eb42e211b13cf89ad0bcef3bdec06bb12cf1e  agent-os/standards/vital/plugin-state.md
+    825a937c2378cf556458182c3052eb02e9925214  agent-os/standards/vital/preset-tests.md
+    4c644450b7d9c61d26001191cd7ad091da89ad94  pyproject.toml
+    ae306f8a4ab8ebcc1e206ba17226fadf0ddf4add  src/patchbay_vital/__init__.py
+    ee9ecbb7cc00b4b63612ae74ff8770411b357e8b  src/patchbay_vital/census.py
+    95e8053ccc855bd9ff4ab4405314930244db3127  src/patchbay_vital/data/start.vital
+    d8c0e345a68411ebe2db537802671269fc709cf3  src/patchbay_vital/errors.py
+    186260668d85ae8a76d3496ebf7f193a4428ce38  src/patchbay_vital/instrument.py
+    d9097431e624deb685e71b4e262b5d8c074e7da3  src/patchbay_vital/midi.py
+    1e8bb9c3da7ecc87cff7c6df747672374488ac77  src/patchbay_vital/patch.py
+    8d8f935855cf1f0f807ed820db1242bf910d9886  src/patchbay_vital/start.py
+    1be64823e7837e6001447e992be89206151618ee  tests/data/upgraded-floats.txt
+    1cc2b8444e9c39b50ebe3781121a1f53c22eef60  tests/integration/test_factory_round_trip.py
+    79afbfdd831585dff450d02a2e309a5238084d02  tests/integration/test_vital_instrument.py
+    05224f6051e761513857cda9fc0cf86323f4c8a7  tests/integration/test_vital_plugin.py
+    5356f56f7be745ddff42ffe2ca20912f2df192b3  tests/unit/test_census.py
+    d82627e9c3095ef6c94232ab633600de5bc0275d  tests/unit/test_errors.py
+    b0119dae1a32c93ee496932ce69e5535a6877508  tests/unit/test_instrument.py
+    2b71e30fb68964d45dfe312a0fb6f1bbc37f8642  tests/unit/test_midi.py
+    cd8ca88fdbd9f54335fa70731387ff1502bcab2b  tests/unit/test_package.py
+    8f0a92f5b84409802e470a7bab19cf2053cb35d0  tests/unit/test_patch.py
+    e273b105262f59300906e1623f78abacc62ab467  tests/unit/test_start.py
+
+$ scripts/gate.sh
+
+== 1/6  bash -n on every shell script under scripts/ (tracked or untracked, not ignored), in a tree with no tracked file a .gitignore ignores
+ok   scripts/gate-negative-tests.sh
+ok   scripts/gate.sh
+ok   scripts/sync-standards.sh
+
+== 2/6  uv sync --locked, then uv run --locked ruff format --check over the .py and .pyi files git lists (the locked toolchain; the formatter)
+Resolved 33 packages in 2ms
+Checked 32 packages in 0.54ms
+ok   the locked toolchain synced
+35 files already formatted
+ok   35 file(s) formatted
+
+== 3/6  uv run --locked ruff check over the same files (the linter: [tool.ruff.lint] of pyproject.toml)
+All checks passed!
+ok   no violation
+
+== 4/6  uv run --locked mypy over the .py and .pyi files git lists under src/ and tests/ ([tool.mypy] of pyproject.toml: strict)
+Success: no issues found in 35 source files
+ok   no type error
+
+== 5/6  uv run --locked pytest -c pyproject.toml -p no:doctest ([tool.pytest.ini_options] of pyproject.toml, over tests/, once nothing pytest would read is one git ignores)
+........................................................................ [  9%]
+........................................................................ [ 18%]
+........................................................................ [ 27%]
+........................................................................ [ 37%]
+........................................................................ [ 46%]
+........................................................................ [ 55%]
+........................................................................ [ 64%]
+........................................................................ [ 74%]
+........................................................................ [ 83%]
+........................................................................ [ 92%]
+.........................................................                [100%]
+777 passed in 77.46s (0:01:17)
+ok   every test passed
+
+== 6/6  scripts/sync-standards.sh --check: agent-os/standards/base/, the base: section and the script match patchbay-standards at the commit in .version (../patchbay-standards)
+check base standards against e31f7dbfb474752339a43fe08a37ab26c7956f5c  (~/Code/Audio/patchbay-standards)
+  index    base: section identical
+  script   scripts/sync-standards.sh matches
+{"mode":"check","upstream":"~/Code/Audio/patchbay-standards","commit":"e31f7dbfb474752339a43fe08a37ab26c7956f5c","missing":[],"extra":[],"changed":[],"index":"identical","script":"matches","ok":true}
+ok   agent-os/standards/base and the base: section of agent-os/standards/index.yml match patchbay-standards at e31f7dbfb474752339a43fe08a37ab26c7956f5c
+
+Gate steps 1-6 passed. Steps 7-9 are judgment, recorded in shape.md: Docs, Version, the standards retrospective.
+exit=0
+
+the tree after the run:
+  HEAD e3e601781f32d2058f4793895c47c12fe2793385
+  git status --porcelain=v1 --untracked-files=all, 42 lines:
+     M CHANGELOG.md
+     M README.md
+     M agent-os/product/mission.md
+     M agent-os/standards/index.yml
+     M agent-os/standards/vital/measures.md
+     M agent-os/standards/vital/parameter-map.md
+     M agent-os/standards/vital/plugin-state.md
+     M agent-os/standards/vital/preset-tests.md
+     M pyproject.toml
+     M src/patchbay_vital/__init__.py
+     M src/patchbay_vital/census.py
+     M src/patchbay_vital/errors.py
+     M tests/integration/test_factory_round_trip.py
+     M tests/integration/test_vital_plugin.py
+     M tests/unit/test_census.py
+     M tests/unit/test_errors.py
+     M tests/unit/test_package.py
+    ?? agent-os/specs/2026-11-15-1448-the-instrument/plan.md
+    ?? agent-os/specs/2026-11-15-1448-the-instrument/references.md
+    ?? agent-os/specs/2026-11-15-1448-the-instrument/shape.md
+    ?? agent-os/specs/2026-11-15-1448-the-instrument/standards.md
+    ?? agent-os/specs/2026-11-15-1448-the-instrument/verification/carrying-count.txt
+    ?? agent-os/specs/2026-11-15-1448-the-instrument/verification/ci-negative-test.txt
+    ?? agent-os/specs/2026-11-15-1448-the-instrument/verification/contract-run.txt
+    ?? agent-os/specs/2026-11-15-1448-the-instrument/verification/gate-negative-tests.txt
+    ?? agent-os/specs/2026-11-15-1448-the-instrument/verification/mutation.txt
+    ?? agent-os/specs/2026-11-15-1448-the-instrument/verification/off-grid-count.txt
+    ?? agent-os/specs/2026-11-15-1448-the-instrument/verification/probes-2.txt
+    ?? agent-os/specs/2026-11-15-1448-the-instrument/verification/probes.txt
+    ?? agent-os/specs/2026-11-15-1448-the-instrument/verification/wheel-contents.txt
+    ?? agent-os/standards/vital/instrument.md
+    ?? src/patchbay_vital/data/start.vital
+    ?? src/patchbay_vital/instrument.py
+    ?? src/patchbay_vital/midi.py
+    ?? src/patchbay_vital/patch.py
+    ?? src/patchbay_vital/start.py
+    ?? tests/data/upgraded-floats.txt
+    ?? tests/integration/test_vital_instrument.py
+    ?? tests/unit/test_instrument.py
+    ?? tests/unit/test_midi.py
+    ?? tests/unit/test_patch.py
+    ?? tests/unit/test_start.py
+  git hash-object of each of those paths (a deleted one marked so):
+    7bb917977d9baab41d3ca0c65bdcf266af04d4b4  CHANGELOG.md
+    d58671b909be52a417d16e84b5cb03e20d011794  README.md
+    b15907bd6164e024da3fd658a471f15291db42ba  agent-os/product/mission.md
+    a3dddc9d28d9bef006b9e54b7e3eff2d176c7880  agent-os/specs/2026-11-15-1448-the-instrument/plan.md
+    db8c75d636b2346f03102ed5287a0d961684ab81  agent-os/specs/2026-11-15-1448-the-instrument/references.md
+    5408fb4b0023a9548048e39c656ebfc77ea9f50f  agent-os/specs/2026-11-15-1448-the-instrument/shape.md
+    6689f2ad25d6eb9c361366cb26f41d8e9a91b663  agent-os/specs/2026-11-15-1448-the-instrument/standards.md
+    1ed5e37b9797cf9ba514831a0828a21709cddc23  agent-os/specs/2026-11-15-1448-the-instrument/verification/carrying-count.txt
+    78c2a8e8232f7993171f452558cc4faa27ea827f  agent-os/specs/2026-11-15-1448-the-instrument/verification/ci-negative-test.txt
+    9469ec329eb7b75ed25daf828ef5726dbb03f0bb  agent-os/specs/2026-11-15-1448-the-instrument/verification/contract-run.txt
+    b7e5103112a0954dd3c8ef13428c9666566c5120  agent-os/specs/2026-11-15-1448-the-instrument/verification/gate-negative-tests.txt
+    bd8d06985095606ffaf074d0cdaf4bc16ce634db  agent-os/specs/2026-11-15-1448-the-instrument/verification/mutation.txt
+    060c7448760886e9fc4dc7eff7f8d798e5249e92  agent-os/specs/2026-11-15-1448-the-instrument/verification/off-grid-count.txt
+    b084a1f0d2f34c5f5d6c7c0a3d22d0665f35638b  agent-os/specs/2026-11-15-1448-the-instrument/verification/probes-2.txt
+    86c080df2c0dc6414b3146ebaf8413f8423afabb  agent-os/specs/2026-11-15-1448-the-instrument/verification/probes.txt
+    da6fac95eaf0883703a0e3dd8b24f5cfc59ca398  agent-os/specs/2026-11-15-1448-the-instrument/verification/wheel-contents.txt
+    93cf8717cec6326aeb657cad144a0da7eb41f94c  agent-os/standards/index.yml
+    a6d96755ce702b8c4d2c74156149c376e51ae556  agent-os/standards/vital/instrument.md
+    dc7f40608620feadb0ed2e1dba9c4872b8426360  agent-os/standards/vital/measures.md
+    20e584e2e5b046a30488d097b7019294c4f4c943  agent-os/standards/vital/parameter-map.md
+    1c3eb42e211b13cf89ad0bcef3bdec06bb12cf1e  agent-os/standards/vital/plugin-state.md
+    825a937c2378cf556458182c3052eb02e9925214  agent-os/standards/vital/preset-tests.md
+    4c644450b7d9c61d26001191cd7ad091da89ad94  pyproject.toml
+    ae306f8a4ab8ebcc1e206ba17226fadf0ddf4add  src/patchbay_vital/__init__.py
+    ee9ecbb7cc00b4b63612ae74ff8770411b357e8b  src/patchbay_vital/census.py
+    95e8053ccc855bd9ff4ab4405314930244db3127  src/patchbay_vital/data/start.vital
+    d8c0e345a68411ebe2db537802671269fc709cf3  src/patchbay_vital/errors.py
+    186260668d85ae8a76d3496ebf7f193a4428ce38  src/patchbay_vital/instrument.py
+    d9097431e624deb685e71b4e262b5d8c074e7da3  src/patchbay_vital/midi.py
+    1e8bb9c3da7ecc87cff7c6df747672374488ac77  src/patchbay_vital/patch.py
+    8d8f935855cf1f0f807ed820db1242bf910d9886  src/patchbay_vital/start.py
+    1be64823e7837e6001447e992be89206151618ee  tests/data/upgraded-floats.txt
+    1cc2b8444e9c39b50ebe3781121a1f53c22eef60  tests/integration/test_factory_round_trip.py
+    79afbfdd831585dff450d02a2e309a5238084d02  tests/integration/test_vital_instrument.py
+    05224f6051e761513857cda9fc0cf86323f4c8a7  tests/integration/test_vital_plugin.py
+    5356f56f7be745ddff42ffe2ca20912f2df192b3  tests/unit/test_census.py
+    d82627e9c3095ef6c94232ab633600de5bc0275d  tests/unit/test_errors.py
+    b0119dae1a32c93ee496932ce69e5535a6877508  tests/unit/test_instrument.py
+    2b71e30fb68964d45dfe312a0fb6f1bbc37f8642  tests/unit/test_midi.py
+    cd8ca88fdbd9f54335fa70731387ff1502bcab2b  tests/unit/test_package.py
+    8f0a92f5b84409802e470a7bab19cf2053cb35d0  tests/unit/test_patch.py
+    e273b105262f59300906e1623f78abacc62ab467  tests/unit/test_start.py
+cmp: the tree after the run is the tree before it
+the machine after the run: arm64, Apple M4 Pro, 14 cores, macOS 26.6.2 (25G83), Python 3.12.16, load 3.31 2.93 2.96, at 2026-11-16 09:41 EST
+
+the scripts this run used, each embedded below with its blob:
+    e4c1a40cc3893ab50df6717e5a18e2a755914efd  <scratchpad>/i8/tree.sh
+    0dde01b338e9dbc221abc7e0d9b87bcf21acf1cf  <scratchpad>/i8/machine.sh
+    9371063435a0e6494982917c98ae3046422c5f0d  <scratchpad>/i8/transcript.sh
+
+--- <scratchpad>/i8/tree.sh
+```
+#!/usr/bin/env bash
+# usage: tree.sh   (run from the repository root)
+# Prints HEAD, git's status of the work tree and the blob of every path that status names, so two
+# calls can be compared with cmp: the tree a run read, and the tree it left.
+set -euo pipefail
+echo "  HEAD $(git rev-parse HEAD)"
+git status --porcelain=v1 --untracked-files=all > "${TMPDIR:-/tmp}/tree.$$"
+echo "  git status --porcelain=v1 --untracked-files=all, $(wc -l < "${TMPDIR:-/tmp}/tree.$$" | tr -d ' ') lines:"
+sed 's/^/    /' "${TMPDIR:-/tmp}/tree.$$"
+echo "  git hash-object of each of those paths (a deleted one marked so):"
+cut -c4- "${TMPDIR:-/tmp}/tree.$$" | LC_ALL=C sort | while IFS= read -r path; do
+  if [ -e "$path" ]; then echo "    $(git hash-object "$path")  $path"; else echo "    (deleted)  $path"; fi
+done
+rm -f "${TMPDIR:-/tmp}/tree.$$"
+```
+
+--- <scratchpad>/i8/machine.sh
+```
+#!/usr/bin/env bash
+# usage: machine.sh   Prints one line: the machine, its system, the locked Python and the load.
+set -euo pipefail
+echo "$(uname -m), $(sysctl -n machdep.cpu.brand_string), $(sysctl -n hw.ncpu) cores, macOS $(sw_vers -productVersion) ($(sw_vers -buildVersion)), Python $(uv run --locked python -c 'import platform; print(platform.python_version())'), load $(sysctl -n vm.loadavg | tr -d '{}' | xargs), at $(date '+%Y-%m-%d %H:%M %Z')"
+```
+
+--- <scratchpad>/i8/transcript.sh
+```
+#!/usr/bin/env bash
+# usage: transcript.sh <out file> <title> <script to embed>... -- <command...>   (from the repository root)
+# Writes one transcript outside the tree: its date and branch, the machine and the tree before,
+# the command's whole output, the tree and the machine after, the two trees compared, and every
+# script it ran, embedded. The caller copies the file into the spec's verification/ afterwards.
+# With no script to embed the list is empty, which bash 3.2 under set -u refuses unless it is
+# expanded as below: the harness's transcript of 2026-11-16 08:53 stopped there, and says so.
+set -uo pipefail
+R=$(cd "$(dirname "$0")" && pwd)
+out=$1; title=$2; shift 2
+scripts=()
+while [ "$1" != "--" ]; do scripts+=("$1"); shift; done
+shift
+{
+  echo "$title, run $(date '+%Y-%m-%d %H:%M %Z') on branch"
+  echo "$(git branch --show-current), Vital at /Library/Audio/Plug-Ins/VST3/Vital.vst3"
+  echo "the machine before the run: $(bash "$R/machine.sh")"
+  echo "the tree before the run (this transcript is written outside the tree and copied in afterwards):"
+  bash "$R/tree.sh" | tee "$R/out/tree-before.txt"
+  echo
+  echo "\$ $*"
+  "$@" 2>&1
+  echo "exit=$?"
+  echo
+  echo "the tree after the run:"
+  bash "$R/tree.sh" | tee "$R/out/tree-after.txt"
+  if cmp -s "$R/out/tree-before.txt" "$R/out/tree-after.txt"; then echo "cmp: the tree after the run is the tree before it"; else echo "cmp: THE TREE CHANGED DURING THE RUN"; fi
+  echo "the machine after the run: $(bash "$R/machine.sh")"
+  echo
+  echo "the scripts this run used, each embedded below with its blob:"
+  for s in ${scripts[@]+"${scripts[@]}"} "$R/tree.sh" "$R/machine.sh" "$R/transcript.sh"; do echo "    $(git hash-object "$s")  <scratchpad>/i8/$(basename "$s")"; done
+  for s in ${scripts[@]+"${scripts[@]}"} "$R/tree.sh" "$R/machine.sh" "$R/transcript.sh"; do
+    echo; echo "--- <scratchpad>/i8/$(basename "$s")"; echo '```'; cat "$s"; echo '```'
+  done
+} > "$out"
+```

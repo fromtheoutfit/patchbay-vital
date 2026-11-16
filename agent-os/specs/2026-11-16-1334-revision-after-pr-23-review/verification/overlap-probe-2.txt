@@ -1,0 +1,455 @@
+The revision after PR 23's review: a second probe, notes of one pitch on channels of their own, with Vital's MPE setting off and on, run 2026-11-16 13:43 EST on branch
+feature/8-the-instrument-vitalinstrument-over-vitalhost-patchvitalpreset-and-cores-contract-tests-against-a-real-vital-spec-b-of-7, Vital at /Library/Audio/Plug-Ins/VST3/Vital.vst3
+the machine before the run: arm64, Apple M4 Pro, 14 cores, macOS 26.6.2 (25G83), Python 3.12.16, load 1.82 2.05 2.46, at 2026-11-16 13:43 EST
+the tree before the run (this transcript is written outside the tree and copied in afterwards):
+  HEAD 63ad5ae788cba91fa55104be07fce8a209fa3da5
+  git status --porcelain=v1 --untracked-files=all, 5 lines:
+    ?? agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/plan.md
+    ?? agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/references.md
+    ?? agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/shape.md
+    ?? agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/standards.md
+    ?? agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/verification/overlap-probe.txt
+  git hash-object of each of those paths (a deleted one marked so):
+    3e1b682af98475b06109a7e8868c6d084d5726d5  agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/plan.md
+    1c13a47fd8f6b2eed83d3424e99f2aa2aae94f5d  agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/references.md
+    6ecb404d4691131ffadcd8a9c44c68233473fb6b  agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/shape.md
+    25302c4bf0e78c403dc8cd826ec3b2abe68eb2a3  agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/standards.md
+    919d74b182a226642328833cb18f1a5649c99016  agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/verification/overlap-probe.txt
+
+$ uv run --locked python -u -B <scratchpad>/r23/overlap2.py
+Vital 1.6.4 at /Library/Audio/Plug-Ins/VST3/Vital.vst3, through pedalboard 0.9.26
+machine arm64, numpy 2.5.4
+window: Hann 0.02 s every 0.005 s; an end is the last centre at or above 0.5 of one note's level; centroid over 0.65 to 0.95 s
+
+#### as the start preset holds them (mpe_enabled off, velocity_track 0 %)
+
+== B alone, channel 0: 60 beats 1 to 3
+  midi 90 3c 64 at sample 24000
+  midi 80 3c 00 at sample 72000
+  levels: 0.15-0.45 s 0.000000, 0.55-0.95 s 0.143941, 1.05-1.45 s 0.143940, 1.55-1.95 s 0.000000, 2.05-2.45 s 0.000000, 2.55-2.95 s 0.000000
+  centroid 815.96 Hz
+
+== B alone, channel 1
+  midi 91 3c 64 at sample 24000
+  midi 81 3c 00 at sample 72000
+  levels: 0.15-0.45 s 0.000000, 0.55-0.95 s 0.143940, 1.05-1.45 s 0.143940, 1.55-1.95 s 0.000000, 2.05-2.45 s 0.000000, 2.55-2.95 s 0.000000
+  centroid 815.96 Hz
+
+== B alone, channel 2
+  midi 92 3c 64 at sample 24000
+  midi 82 3c 00 at sample 72000
+  levels: 0.15-0.45 s 0.000000, 0.55-0.95 s 0.143940, 1.05-1.45 s 0.143940, 1.55-1.95 s 0.000000, 2.05-2.45 s 0.000000, 2.55-2.95 s 0.000000
+  centroid 815.96 Hz
+
+== three of 60 overlapping on channel 0 (today): A beats 0-3, B 1-4, C 2-5
+  midi 90 3c 64 at sample 0
+  midi 90 3c 64 at sample 24000
+  midi 90 3c 64 at sample 48000
+  midi 80 3c 00 at sample 72000
+  midi 80 3c 00 at sample 96000
+  midi 80 3c 00 at sample 120000
+  levels: 0.15-0.45 s 0.143940, 0.55-0.95 s 0.212229, 1.05-1.45 s 0.176531, 1.55-1.95 s 0.000000, 2.05-2.45 s 0.000000, 2.55-2.95 s 0.000000
+  centroid 736.32 Hz
+
+== three of 60 overlapping on channels 0, 1, 2 (the rule's)
+  midi 90 3c 64 at sample 0
+  midi 91 3c 64 at sample 24000
+  midi 92 3c 64 at sample 48000
+  midi 80 3c 00 at sample 72000
+  midi 81 3c 00 at sample 96000
+  midi 82 3c 00 at sample 120000
+  levels: 0.15-0.45 s 0.143940, 0.55-0.95 s 0.212294, 1.05-1.45 s 0.227095, 1.55-1.95 s 0.210705, 2.05-2.45 s 0.143943, 2.55-2.95 s 0.000000
+  centroid 735.90 Hz
+
+== C alone, channel 0: 60 beats 2 to 5
+  midi 90 3c 64 at sample 48000
+  midi 80 3c 00 at sample 120000
+  levels: 0.15-0.45 s 0.000000, 0.55-0.95 s 0.000000, 1.05-1.45 s 0.143940, 1.55-1.95 s 0.143940, 2.05-2.45 s 0.143941, 2.55-2.95 s 0.000000
+  centroid nan Hz
+
+== two of 60 on one sample, channel 0 (today): velocity 100 for 1 beat, 50 for 3
+  midi 90 3c 64 at sample 0
+  midi 90 3c 32 at sample 0
+  midi 80 3c 00 at sample 24000
+  midi 80 3c 00 at sample 72000
+  levels: 0.15-0.45 s 0.235966, 0.55-0.95 s 0.000000, 1.05-1.45 s 0.000000, 1.55-1.95 s 0.000000, 2.05-2.45 s 0.000000, 2.55-2.95 s 0.000000
+  centroid nan Hz
+
+== two of 60 on one sample, channels 0 and 1 (the rule's): velocity 100 for 1 beat, 50 for 3
+  midi 90 3c 64 at sample 0
+  midi 91 3c 32 at sample 0
+  midi 80 3c 00 at sample 24000
+  midi 81 3c 00 at sample 72000
+  levels: 0.15-0.45 s 0.287879, 0.55-0.95 s 0.143945, 1.05-1.45 s 0.143941, 1.55-1.95 s 0.000000, 2.05-2.45 s 0.000000, 2.55-2.95 s 0.000000
+  centroid 815.96 Hz
+
+== 60 velocity 100 alone for 1 beat, channel 0
+  midi 90 3c 64 at sample 0
+  midi 80 3c 00 at sample 24000
+  levels: 0.15-0.45 s 0.143940, 0.55-0.95 s 0.000000, 1.05-1.45 s 0.000000, 1.55-1.95 s 0.000000, 2.05-2.45 s 0.000000, 2.55-2.95 s 0.000000
+  centroid nan Hz
+
+== 60 velocity 50 alone for 3 beats, channel 1
+  midi 91 3c 32 at sample 0
+  midi 81 3c 00 at sample 72000
+  levels: 0.15-0.45 s 0.143938, 0.55-0.95 s 0.143942, 1.05-1.45 s 0.143940, 1.55-1.95 s 0.000000, 2.05-2.45 s 0.000000, 2.55-2.95 s 0.000000
+  centroid 815.96 Hz
+
+== ends, against the quietest note alone in this setting, 0.143940
+  1.510 s  B alone, channel 0: 60 beats 1 to 3
+  1.510 s  B alone, channel 1
+  1.510 s  B alone, channel 2
+  1.515 s  three of 60 overlapping on channel 0 (today): A beats 0-3, B 1-4, C 2-5
+  2.510 s  three of 60 overlapping on channels 0, 1, 2 (the rule's)
+  2.510 s  C alone, channel 0: 60 beats 2 to 5
+  0.520 s  two of 60 on one sample, channel 0 (today): velocity 100 for 1 beat, 50 for 3
+  1.510 s  two of 60 on one sample, channels 0 and 1 (the rule's): velocity 100 for 1 beat, 50 for 3
+  0.510 s  60 velocity 100 alone for 1 beat, channel 0
+  1.510 s  60 velocity 50 alone for 3 beats, channel 1
+
+#### mpe_enabled on: mpe_enabled set to Quantity(value=1.0, unit=<Unit.none: 'none'>)
+
+== B alone, channel 0: 60 beats 1 to 3
+  midi 90 3c 64 at sample 24000
+  midi 80 3c 00 at sample 72000
+  levels: 0.15-0.45 s 0.000000, 0.55-0.95 s 0.143940, 1.05-1.45 s 0.143940, 1.55-1.95 s 0.000000, 2.05-2.45 s 0.000000, 2.55-2.95 s 0.000000
+  centroid 815.96 Hz
+
+== B alone, channel 1
+  midi 91 3c 64 at sample 24000
+  midi 81 3c 00 at sample 72000
+  levels: 0.15-0.45 s 0.000000, 0.55-0.95 s 0.143940, 1.05-1.45 s 0.143940, 1.55-1.95 s 0.000000, 2.05-2.45 s 0.000000, 2.55-2.95 s 0.000000
+  centroid 815.96 Hz
+
+== B alone, channel 2
+  midi 92 3c 64 at sample 24000
+  midi 82 3c 00 at sample 72000
+  levels: 0.15-0.45 s 0.000000, 0.55-0.95 s 0.143940, 1.05-1.45 s 0.143940, 1.55-1.95 s 0.000000, 2.05-2.45 s 0.000000, 2.55-2.95 s 0.000000
+  centroid 815.96 Hz
+
+== three of 60 overlapping on channel 0 (today): A beats 0-3, B 1-4, C 2-5
+  midi 90 3c 64 at sample 0
+  midi 90 3c 64 at sample 24000
+  midi 90 3c 64 at sample 48000
+  midi 80 3c 00 at sample 72000
+  midi 80 3c 00 at sample 96000
+  midi 80 3c 00 at sample 120000
+  levels: 0.15-0.45 s 0.143940, 0.55-0.95 s 0.143549, 1.05-1.45 s 0.191703, 1.55-1.95 s 0.000000, 2.05-2.45 s 0.000000, 2.55-2.95 s 0.000000
+  centroid 1416.32 Hz
+
+== three of 60 overlapping on channels 0, 1, 2 (the rule's)
+  midi 90 3c 64 at sample 0
+  midi 91 3c 64 at sample 24000
+  midi 92 3c 64 at sample 48000
+  midi 80 3c 00 at sample 72000
+  midi 81 3c 00 at sample 96000
+  midi 82 3c 00 at sample 120000
+  levels: 0.15-0.45 s 0.143942, 0.55-0.95 s 0.255291, 1.05-1.45 s 0.287184, 1.55-1.95 s 0.212298, 2.05-2.45 s 0.143943, 2.55-2.95 s 0.000000
+  centroid 594.13 Hz
+
+== C alone, channel 0: 60 beats 2 to 5
+  midi 90 3c 64 at sample 48000
+  midi 80 3c 00 at sample 120000
+  levels: 0.15-0.45 s 0.000000, 0.55-0.95 s 0.000000, 1.05-1.45 s 0.143939, 1.55-1.95 s 0.143942, 2.05-2.45 s 0.143939, 2.55-2.95 s 0.000000
+  centroid nan Hz
+
+== two of 60 on one sample, channel 0 (today): velocity 100 for 1 beat, 50 for 3
+  midi 90 3c 64 at sample 0
+  midi 90 3c 32 at sample 0
+  midi 80 3c 00 at sample 24000
+  midi 80 3c 00 at sample 72000
+  levels: 0.15-0.45 s 0.145788, 0.55-0.95 s 0.000000, 1.05-1.45 s 0.000000, 1.55-1.95 s 0.000000, 2.05-2.45 s 0.000000, 2.55-2.95 s 0.000000
+  centroid nan Hz
+
+== two of 60 on one sample, channels 0 and 1 (the rule's): velocity 100 for 1 beat, 50 for 3
+  midi 90 3c 64 at sample 0
+  midi 91 3c 32 at sample 0
+  midi 80 3c 00 at sample 24000
+  midi 81 3c 00 at sample 72000
+  levels: 0.15-0.45 s 0.160817, 0.55-0.95 s 0.143937, 1.05-1.45 s 0.143941, 1.55-1.95 s 0.000000, 2.05-2.45 s 0.000000, 2.55-2.95 s 0.000000
+  centroid 815.96 Hz
+
+== 60 velocity 100 alone for 1 beat, channel 0
+  midi 90 3c 64 at sample 0
+  midi 80 3c 00 at sample 24000
+  levels: 0.15-0.45 s 0.143942, 0.55-0.95 s 0.000000, 1.05-1.45 s 0.000000, 1.55-1.95 s 0.000000, 2.05-2.45 s 0.000000, 2.55-2.95 s 0.000000
+  centroid nan Hz
+
+== 60 velocity 50 alone for 3 beats, channel 1
+  midi 91 3c 32 at sample 0
+  midi 81 3c 00 at sample 72000
+  levels: 0.15-0.45 s 0.143938, 0.55-0.95 s 0.143942, 1.05-1.45 s 0.143940, 1.55-1.95 s 0.000000, 2.05-2.45 s 0.000000, 2.55-2.95 s 0.000000
+  centroid 815.96 Hz
+
+== ends, against the quietest note alone in this setting, 0.143940
+  1.510 s  B alone, channel 0: 60 beats 1 to 3
+  1.510 s  B alone, channel 1
+  1.510 s  B alone, channel 2
+  1.515 s  three of 60 overlapping on channel 0 (today): A beats 0-3, B 1-4, C 2-5
+  2.510 s  three of 60 overlapping on channels 0, 1, 2 (the rule's)
+  2.510 s  C alone, channel 0: 60 beats 2 to 5
+  0.510 s  two of 60 on one sample, channel 0 (today): velocity 100 for 1 beat, 50 for 3
+  1.510 s  two of 60 on one sample, channels 0 and 1 (the rule's): velocity 100 for 1 beat, 50 for 3
+  0.510 s  60 velocity 100 alone for 1 beat, channel 0
+  1.510 s  60 velocity 50 alone for 3 beats, channel 1
+
+#### velocity_track 100 %, mpe_enabled off: velocity_track set to Quantity(value=100.0, unit=<Unit.percent: 'percent'>)
+
+== B alone, channel 0: 60 beats 1 to 3
+  midi 90 3c 64 at sample 24000
+  midi 80 3c 00 at sample 72000
+  levels: 0.15-0.45 s 0.000000, 0.55-0.95 s 0.089243, 1.05-1.45 s 0.089243, 1.55-1.95 s 0.000000, 2.05-2.45 s 0.000000, 2.55-2.95 s 0.000000
+  centroid 815.96 Hz
+
+== B alone, channel 1
+  midi 91 3c 64 at sample 24000
+  midi 81 3c 00 at sample 72000
+  levels: 0.15-0.45 s 0.000000, 0.55-0.95 s 0.089244, 1.05-1.45 s 0.089242, 1.55-1.95 s 0.000000, 2.05-2.45 s 0.000000, 2.55-2.95 s 0.000000
+  centroid 815.96 Hz
+
+== B alone, channel 2
+  midi 92 3c 64 at sample 24000
+  midi 82 3c 00 at sample 72000
+  levels: 0.15-0.45 s 0.000000, 0.55-0.95 s 0.089243, 1.05-1.45 s 0.089243, 1.55-1.95 s 0.000000, 2.05-2.45 s 0.000000, 2.55-2.95 s 0.000000
+  centroid 815.96 Hz
+
+== three of 60 overlapping on channel 0 (today): A beats 0-3, B 1-4, C 2-5
+  midi 90 3c 64 at sample 0
+  midi 90 3c 64 at sample 24000
+  midi 90 3c 64 at sample 48000
+  midi 80 3c 00 at sample 72000
+  midi 80 3c 00 at sample 96000
+  midi 80 3c 00 at sample 120000
+  levels: 0.15-0.45 s 0.089243, 0.55-0.95 s 0.118893, 1.05-1.45 s 0.101779, 1.55-1.95 s 0.000000, 2.05-2.45 s 0.000000, 2.55-2.95 s 0.000000
+  centroid 859.71 Hz
+
+== three of 60 overlapping on channels 0, 1, 2 (the rule's)
+  midi 90 3c 64 at sample 0
+  midi 91 3c 64 at sample 24000
+  midi 92 3c 64 at sample 48000
+  midi 80 3c 00 at sample 72000
+  midi 81 3c 00 at sample 96000
+  midi 82 3c 00 at sample 120000
+  levels: 0.15-0.45 s 0.089243, 0.55-0.95 s 0.091762, 1.05-1.45 s 0.145251, 1.55-1.95 s 0.164746, 2.05-2.45 s 0.089245, 2.55-2.95 s 0.000000
+  centroid 1342.50 Hz
+
+== C alone, channel 0: 60 beats 2 to 5
+  midi 90 3c 64 at sample 48000
+  midi 80 3c 00 at sample 120000
+  levels: 0.15-0.45 s 0.000000, 0.55-0.95 s 0.000000, 1.05-1.45 s 0.089243, 1.55-1.95 s 0.089243, 2.05-2.45 s 0.089242, 2.55-2.95 s 0.000000
+  centroid nan Hz
+
+== two of 60 on one sample, channel 0 (today): velocity 100 for 1 beat, 50 for 3
+  midi 90 3c 64 at sample 0
+  midi 90 3c 32 at sample 0
+  midi 80 3c 00 at sample 24000
+  midi 80 3c 00 at sample 72000
+  levels: 0.15-0.45 s 0.096977, 0.55-0.95 s 0.000000, 1.05-1.45 s 0.000000, 1.55-1.95 s 0.000000, 2.05-2.45 s 0.000000, 2.55-2.95 s 0.000000
+  centroid nan Hz
+
+== two of 60 on one sample, channels 0 and 1 (the rule's): velocity 100 for 1 beat, 50 for 3
+  midi 90 3c 64 at sample 0
+  midi 91 3c 32 at sample 0
+  midi 80 3c 00 at sample 24000
+  midi 81 3c 00 at sample 72000
+  levels: 0.15-0.45 s 0.088192, 0.55-0.95 s 0.022310, 1.05-1.45 s 0.022311, 1.55-1.95 s 0.000000, 2.05-2.45 s 0.000000, 2.55-2.95 s 0.000000
+  centroid 815.96 Hz
+
+== 60 velocity 100 alone for 1 beat, channel 0
+  midi 90 3c 64 at sample 0
+  midi 80 3c 00 at sample 24000
+  levels: 0.15-0.45 s 0.089243, 0.55-0.95 s 0.000000, 1.05-1.45 s 0.000000, 1.55-1.95 s 0.000000, 2.05-2.45 s 0.000000, 2.55-2.95 s 0.000000
+  centroid nan Hz
+
+== 60 velocity 50 alone for 3 beats, channel 1
+  midi 91 3c 32 at sample 0
+  midi 81 3c 00 at sample 72000
+  levels: 0.15-0.45 s 0.022311, 0.55-0.95 s 0.022311, 1.05-1.45 s 0.022311, 1.55-1.95 s 0.000000, 2.05-2.45 s 0.000000, 2.55-2.95 s 0.000000
+  centroid 815.96 Hz
+
+== ends, against the quietest note alone in this setting, 0.022311
+  1.535 s  B alone, channel 0: 60 beats 1 to 3
+  1.535 s  B alone, channel 1
+  1.535 s  B alone, channel 2
+  1.535 s  three of 60 overlapping on channel 0 (today): A beats 0-3, B 1-4, C 2-5
+  2.535 s  three of 60 overlapping on channels 0, 1, 2 (the rule's)
+  2.535 s  C alone, channel 0: 60 beats 2 to 5
+  0.535 s  two of 60 on one sample, channel 0 (today): velocity 100 for 1 beat, 50 for 3
+  1.510 s  two of 60 on one sample, channels 0 and 1 (the rule's): velocity 100 for 1 beat, 50 for 3
+  0.535 s  60 velocity 100 alone for 1 beat, channel 0
+  1.510 s  60 velocity 50 alone for 3 beats, channel 1
+exit=0
+
+the machine after the run: arm64, Apple M4 Pro, 14 cores, macOS 26.6.2 (25G83), Python 3.12.16, load 1.83 2.05 2.46, at 2026-11-16 13:43 EST
+the tree after the run:
+  HEAD 63ad5ae788cba91fa55104be07fce8a209fa3da5
+  git status --porcelain=v1 --untracked-files=all, 5 lines:
+    ?? agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/plan.md
+    ?? agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/references.md
+    ?? agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/shape.md
+    ?? agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/standards.md
+    ?? agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/verification/overlap-probe.txt
+  git hash-object of each of those paths (a deleted one marked so):
+    3e1b682af98475b06109a7e8868c6d084d5726d5  agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/plan.md
+    1c13a47fd8f6b2eed83d3424e99f2aa2aae94f5d  agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/references.md
+    6ecb404d4691131ffadcd8a9c44c68233473fb6b  agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/shape.md
+    25302c4bf0e78c403dc8cd826ec3b2abe68eb2a3  agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/standards.md
+    919d74b182a226642328833cb18f1a5649c99016  agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/verification/overlap-probe.txt
+
+---- the script overlap2.py, as run ----
+"""Probe: notes of one pitch on channels of their own, with Vital's MPE setting off and on.
+
+The bytes the rule proposed for finding 5 would send: a note struck while its pitch already
+sounds on its channel goes out on the lowest channel where that pitch does not. Each case below
+gives the channels explicitly, so `VitalInstrument.render` as it stands sends exactly those bytes,
+and the one-channel form beside it is today's.
+
+On the start preset at 48 kHz, 120 bpm (a beat is 0.5 s), two bars. Each render's envelope is its
+RMS under a Hann window of `WINDOW` s every `HOP` s, both channels; a level is the envelope's
+median over a span; an end is the last window centre at or above `END_FRACTION` of the quietest
+level of a note alone in the same setting (each single's level over the span it alone sounds). A centroid is taken over `HELD` under one Hann window, both channels summed, as
+the instrument spec's centroid test takes it. Every span starts past the opening, over by 0.102 s.
+
+Three settings: as the start preset holds them; `mpe_enabled` on (1); and `velocity_track` at
+100 % with MPE off, so velocity sets level and two notes on one sample can be told apart by it.
+
+Run from the repository root with the locked interpreter, Vital installed.
+"""
+
+import numpy as np
+import pedalboard
+from patchbay import EventBus, Note, ParameterId, Pattern, Quantity, RenderRequest, Unit
+
+from patchbay_vital.host import DEFAULT_PATH
+from patchbay_vital.instrument import VitalInstrument
+from patchbay_vital.midi import midi_of
+from patchbay_vital.parameters import parameter_map
+
+RATE = 48_000
+WINDOW = 0.02  # s
+HOP = 0.005  # s
+END_FRACTION = 0.5
+HELD = (0.65, 0.95)  # s: B alone below sounds from 0.5 s, so this is its steady part
+REQUEST = RenderRequest(sample_rate=RATE, tail_seconds=0.0)
+SPANS = ((0.15, 0.45), (0.55, 0.95), (1.05, 1.45), (1.55, 1.95), (2.05, 2.45), (2.55, 2.95))
+
+
+def pattern(*notes: tuple[int, int, float, float, int]) -> Pattern:
+    """Two bars of four beats, from (pitch, velocity, start, duration, channel)."""
+    return Pattern(
+        tempo_bpm=120.0,
+        bars=2,
+        beats_per_bar=4,
+        notes=tuple(
+            Note(pitch=p, velocity=v, start_beats=s, duration_beats=d, channel=c)
+            for p, v, s, d, c in notes
+        ),
+    )
+
+
+def envelope(audio: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    size, hop = round(WINDOW * RATE), round(HOP * RATE)
+    window = np.hanning(size)
+    norm = np.sqrt(np.mean(window**2))
+    starts = np.arange(0, audio.shape[1] - size, hop)
+    values = np.array(
+        [np.sqrt(np.mean((audio[:, s : s + size] * window) ** 2)) / norm for s in starts]
+    )
+    return (starts + size / 2) / RATE, values
+
+
+def level(times: np.ndarray, values: np.ndarray, start: float, end: float) -> float:
+    inside = (times >= start) & (times <= end)
+    return float(np.median(values[inside]))
+
+
+def ended(times: np.ndarray, values: np.ndarray, reference: float) -> float:
+    loud = np.nonzero(values >= END_FRACTION * reference)[0]
+    return float(times[loud[-1]]) if loud.size else float("nan")
+
+
+def centroid(audio: np.ndarray) -> float:
+    start, end = (round(t * RATE) for t in HELD)
+    mono = audio[:, start:end].sum(axis=0) * np.hanning(end - start)
+    power = np.abs(np.fft.rfft(mono)) ** 2
+    frequencies = np.fft.rfftfreq(end - start, 1 / RATE)
+    total = float(power.sum())
+    return float((frequencies * power).sum() / total) if total > 0 else float("nan")
+
+
+CASES = {
+    "B alone, channel 0: 60 beats 1 to 3": pattern((60, 100, 1.0, 2.0, 0)),
+    "B alone, channel 1": pattern((60, 100, 1.0, 2.0, 1)),
+    "B alone, channel 2": pattern((60, 100, 1.0, 2.0, 2)),
+    "three of 60 overlapping on channel 0 (today): A beats 0-3, B 1-4, C 2-5": pattern(
+        (60, 100, 0.0, 3.0, 0), (60, 100, 1.0, 3.0, 0), (60, 100, 2.0, 3.0, 0)
+    ),
+    "three of 60 overlapping on channels 0, 1, 2 (the rule's)": pattern(
+        (60, 100, 0.0, 3.0, 0), (60, 100, 1.0, 3.0, 1), (60, 100, 2.0, 3.0, 2)
+    ),
+    "C alone, channel 0: 60 beats 2 to 5": pattern((60, 100, 2.0, 3.0, 0)),
+    "two of 60 on one sample, channel 0 (today): velocity 100 for 1 beat, 50 for 3": pattern(
+        (60, 100, 0.0, 1.0, 0), (60, 50, 0.0, 3.0, 0)
+    ),
+    "two of 60 on one sample, channels 0 and 1 (the rule's): velocity 100 for 1 beat, 50 for 3": (
+        pattern((60, 100, 0.0, 1.0, 0), (60, 50, 0.0, 3.0, 1))
+    ),
+    "60 velocity 100 alone for 1 beat, channel 0": pattern((60, 100, 0.0, 1.0, 0)),
+    "60 velocity 50 alone for 3 beats, channel 1": pattern((60, 50, 0.0, 3.0, 1)),
+}
+
+SINGLES = {
+    "B alone, channel 0: 60 beats 1 to 3": (0.55, 0.95),
+    "B alone, channel 1": (0.55, 0.95),
+    "B alone, channel 2": (0.55, 0.95),
+    "C alone, channel 0: 60 beats 2 to 5": (1.05, 2.45),
+    "60 velocity 100 alone for 1 beat, channel 0": (0.15, 0.45),
+    "60 velocity 50 alone for 3 beats, channel 1": (0.15, 1.45),
+}
+"""Each note alone, with the span it sounds over steadily."""
+
+SETTINGS = {
+    "as the start preset holds them (mpe_enabled off, velocity_track 0 %)": {},
+    "mpe_enabled on": {"mpe_enabled": Quantity(value=1.0, unit=Unit.none)},
+    "velocity_track 100 %, mpe_enabled off": {
+        "velocity_track": Quantity(value=100.0, unit=Unit.percent)
+    },
+}
+
+
+def main() -> None:
+    found = parameter_map()
+    print(f"Vital {found.vital_version} at {DEFAULT_PATH}, through pedalboard {pedalboard.__version__}")
+    print(f"machine {found.machine}, numpy {np.__version__}")
+    print(
+        f"window: Hann {WINDOW} s every {HOP} s; an end is the last centre at or above "
+        f"{END_FRACTION} of one note's level; centroid over {HELD[0]} to {HELD[1]} s"
+    )
+    for setting, values in SETTINGS.items():
+        instrument = VitalInstrument(EventBus())
+        for key, value in values.items():
+            instrument.set(ParameterId(key), value)
+            print(f"\n#### {setting}: {key} set to {instrument.get(ParameterId(key))!r}")
+        if not values:
+            print(f"\n#### {setting}")
+        renders = {}
+        for name, case in CASES.items():
+            audio = np.asarray(instrument.render(case, REQUEST).audio, dtype=np.float64)
+            renders[name] = (envelope(audio), centroid(audio))
+            print(f"\n== {name}")
+            for message, time in midi_of(case, REQUEST):
+                print(f"  midi {message.hex(' ')} at sample {round(time * RATE - 0.5)}")
+            (times, env), cen = renders[name]
+            spans = ", ".join(f"{a:.2f}-{b:.2f} s {level(times, env, a, b):.6f}" for a, b in SPANS)
+            print(f"  levels: {spans}")
+            print(f"  centroid {cen:.2f} Hz")
+        singles = {name: span for name, span in SINGLES.items()}
+        one = min(level(*renders[name][0], *span) for name, span in singles.items())
+        print(f"\n== ends, against the quietest note alone in this setting, {one:.6f}")
+        for name, ((times, env), _) in renders.items():
+            print(f"  {ended(times, env, one):.3f} s  {name}")
+
+
+if __name__ == "__main__":
+    main()
+

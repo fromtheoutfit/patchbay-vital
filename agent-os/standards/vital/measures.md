@@ -12,7 +12,9 @@ and `agent-os/specs/2026-11-11-2044-revision-after-pr-14-second-review/`), of th
 after PR 14's fourth review (`agent-os/specs/2026-11-12-1319-revision-after-pr-14-fourth-review/`);
 the pinned values' file is the revision after its sixth review's
 (`agent-os/specs/2026-11-13-0853-revision-after-pr-14-sixth-review/`), and its set of displays
-the spec of issue #16's (`agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/`).
+the spec of issue #16's (`agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/`); the
+instrument's measures are the spec of issue #8's (`agent-os/specs/2026-11-15-1448-the-instrument/`),
+`verification/probes.txt` and `verification/probes-2.txt`.
 
 - **Vital's audio is not sample-reproducible**, so no test compares samples: two renders in a row
   differ, and so do two instances in one state (spectral centroids 4657 and 4610 Hz). Verified
@@ -27,6 +29,28 @@ the spec of issue #16's (`agent-os/specs/2026-11-14-1509-to-preset-returns-a-hel
   did: `_variation` is the probes' 20 ms RMS coefficient of variation over 0.2-1.4 s. Verified
   against `tests/integration/test_vital_plugin.py` (`_variation`) and `verification/probes.txt`
   (`variation`).
+- **A measure over part of a render is taken under a window, never by a bare cut.** A segment cut
+  out of a sounding note starts and ends on a step, and the step's own spectrum is in the measure:
+  cut at sample 7,200 with no window, the low cutoff's centroid ran from 674 to 1,931 Hz over 20
+  renders and its ratio to the high cutoff's fell to 1.19. Over the held note under a Hann window it
+  is 320.56 Hz on all 20, and the ratio 7.331. The window's bounds are named constants beside the
+  tolerance, with a comment saying why they sit inside the held note and clear of its start and end.
+  Verified against `tests/integration/test_vital_instrument.py` (`_centroid`, `_held`, `_HELD_FROM`,
+  `_HELD_TO`, `_CENTROID_RATIO`), `test_the_spectral_centroid_moves_with_the_cutoff`, `probes.txt`
+  section 7 of the spec of issue #8, the bare cut, and `probes-2.txt` section 7b, the window.
+- **A render is held to be audible before its spectrum is measured, and a measure guards its own
+  division.** Each render's RMS over the held note is first above a named floor, so a silent render
+  fails by name as silence and not as a centroid; and a measure that divides by a sum fails by name
+  where the sum is nothing. Verified against `_rms`, `_AUDIBLE` and `_centroid`.
+- **Where an event lands is an index, and is measured exactly.** A test that holds the time a note
+  is sent at asserts the first sample that is not zero, after the opening is over, at a sample where
+  the rule under test and the one it replaced differ: 100,003 at 48 kHz. Verified against
+  `test_a_note_lands_on_the_sample_core_s_rule_gives_it` and MM1 in the `verification/mutation.txt`
+  of the spec of issue #8.
+- **What a render holds with no MIDI is measured against the preset it is on.** The opening sound is
+  the preset's (`vital/plugin-state.md`), so a tolerance for quiet is taken past its measured end on
+  the start preset, and a test of the opening itself names the preset it measured. Verified against
+  `_OPENING_ENDS`, `_QUIET`, `_TRANSIENT`, `_OPENING_SOUND` and the tests that use them.
 - **What Vital holds after a set is compared exactly with the value the map computes, and its
   display with the display set.** The map gives the preset a set holds, the scale's value at
   `to_normalized`'s result, and the test asserts that the state's float is that value, with no

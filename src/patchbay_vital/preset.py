@@ -47,8 +47,24 @@ SLOT_FIELDS = ("amount", "bipolar", "bypass", "power", "stereo")
 NEWER_SLOT_FIELDS = ("ramp_down", "ramp_up")
 """The per-slot floats only newer files hold: 1.6.4 has them, 1.0.0 and earlier do not."""
 
-SLOT_KEY = re.compile(f"modulation_[1-9][0-9]*_({'|'.join((*SLOT_FIELDS, *NEWER_SLOT_FIELDS))})")
-"""A per-slot float's key in `settings`; `Modulation` holds these, so `VitalSettings` does not."""
+SLOT_KEY = re.compile(
+    f"modulation_(?P<slot>[1-9][0-9]*)_(?P<field>{'|'.join((*SLOT_FIELDS, *NEWER_SLOT_FIELDS))})"
+)
+"""A per-slot float's key in `settings`; `Modulation` holds these, so `VitalSettings` does not.
+
+`slot_key` writes one and `slot_place` reads one: no other module takes a key apart."""
+
+
+def slot_key(slot: int, field: str) -> PresetKey:
+    """Return the `settings` key of a slot's float: its slot, counted from 1, and its field."""
+    return PresetKey(f"modulation_{slot}_{field}")
+
+
+def slot_place(key: str) -> tuple[int, str] | None:
+    """Return the slot, counted from 1, and the field a slot float's key names; None for another."""
+    match = SLOT_KEY.fullmatch(key)
+    return None if match is None else (int(match["slot"]), match["field"])
+
 
 KNOWN_SETTINGS = frozenset(
     PresetKey(line)

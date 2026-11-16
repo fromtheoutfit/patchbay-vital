@@ -1,0 +1,410 @@
+The revision after PR 23's review: one mutant per rule the revision changed, each on a scratch copy, run 2026-11-16 14:01 EST on branch
+feature/8-the-instrument-vitalinstrument-over-vitalhost-patchvitalpreset-and-cores-contract-tests-against-a-real-vital-spec-b-of-7, Vital at /Library/Audio/Plug-Ins/VST3/Vital.vst3
+the machine before the run: arm64, Apple M4 Pro, 14 cores, macOS 26.6.2 (25G83), Python 3.12.16, load 3.25 3.06 2.90, at 2026-11-16 14:01 EST
+the tree before the run (this transcript is written outside the tree and copied in afterwards):
+  HEAD 63ad5ae788cba91fa55104be07fce8a209fa3da5
+  git status --porcelain=v1 --untracked-files=all, 23 lines:
+     M CHANGELOG.md
+     M README.md
+     M src/patchbay_vital/__init__.py
+     M src/patchbay_vital/errors.py
+     M src/patchbay_vital/files.py
+     M src/patchbay_vital/format.py
+     M src/patchbay_vital/instrument.py
+     M src/patchbay_vital/midi.py
+     M src/patchbay_vital/patch.py
+     M src/patchbay_vital/preset.py
+     M src/patchbay_vital/start.py
+     M tests/integration/test_vital_instrument.py
+     M tests/unit/builders.py
+     M tests/unit/test_instrument.py
+     M tests/unit/test_midi.py
+     M tests/unit/test_package.py
+     M tests/unit/test_patch.py
+    ?? agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/plan.md
+    ?? agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/references.md
+    ?? agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/shape.md
+    ?? agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/standards.md
+    ?? agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/verification/overlap-probe-2.txt
+    ?? agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/verification/overlap-probe.txt
+  git hash-object of each of those paths (a deleted one marked so):
+    2031646b4631653e138652adfbbd3ef8723c3165  CHANGELOG.md
+    ce1c64621a9343e66d5a218bd7cb0f5dcde43140  README.md
+    18e34edbd5c9d90809b4ffc840482b16ad4c9491  src/patchbay_vital/__init__.py
+    145eb826c6859888c22999de5e4876ef5ebd2234  src/patchbay_vital/errors.py
+    b2f644c9779f59519da2f5e60a4f57e000a81969  src/patchbay_vital/files.py
+    ad7a9a78bd1ca8275bb92e10ec8d8503f40bb339  src/patchbay_vital/format.py
+    fd816beba50661577c2ee66f4f85a2eeaa78c6f4  src/patchbay_vital/instrument.py
+    ab8ae0ec4a6d9c7889d6f136f7e6d322421e65a9  src/patchbay_vital/midi.py
+    153e25666cd405dfdeaca0f3425d67d5d85307a4  src/patchbay_vital/patch.py
+    f049675b5c61fffad437f008b72e378bd531b422  src/patchbay_vital/preset.py
+    318ed4766bbb83a87a45118a3c86dcafeeb1f138  src/patchbay_vital/start.py
+    728f952f874e6497f67474f72ba02d27009eae96  tests/integration/test_vital_instrument.py
+    c213879e4803b1766a132c3fa7b57c11d8d5850f  tests/unit/builders.py
+    9dda9f2725d8df27481d763aa8a1a135d630af8a  tests/unit/test_instrument.py
+    29373875bcecb57b70493f2445d21829e9e9df73  tests/unit/test_midi.py
+    091ab87c1c4bf715e9e7214ae1305db4056682d1  tests/unit/test_package.py
+    72e01c7f0fd307cc7cf46a859d0b8fbdeb20b7f3  tests/unit/test_patch.py
+    3e1b682af98475b06109a7e8868c6d084d5726d5  agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/plan.md
+    1c13a47fd8f6b2eed83d3424e99f2aa2aae94f5d  agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/references.md
+    6ecb404d4691131ffadcd8a9c44c68233473fb6b  agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/shape.md
+    25302c4bf0e78c403dc8cd826ec3b2abe68eb2a3  agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/standards.md
+    03cf6a4567ae55987530677d18b461645d02347f  agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/verification/overlap-probe-2.txt
+    919d74b182a226642328833cb18f1a5649c99016  agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/verification/overlap-probe.txt
+
+$ <scratchpad>/r23/mutate.sh
+the scratch copy holds 355 files, what git lists of the tree; it is outside the tree and nothing in the tree is changed
+ + typing-inspection==0.4.5
+ + virtualenv==21.15.6
+the tree unmutated, in the copy:
+    (633 passed in 49.68s)
+MK1: a set of the value already shown is carried out like any other (the keep rule gone)
+    src/patchbay_vital/instrument.py: 'if value.value != old.value or writes_same(held, self._held(record)):' -> 'if True:'
+    must fail test_a_set_of_the_value_already_shown_keeps_what_is_held: yes; 1 failed (1 failed, 75 passed in 1.72s)
+        test_a_set_of_the_value_already_shown_keeps_what_is_held
+MK2: the keep rule as it was: every set of the value shown kept, on a float a set lands on too
+    src/patchbay_vital/instrument.py: 'if value.value != old.value or writes_same(held, self._held(record)):' -> 'if value.value != old.value:'
+    must fail test_a_set_of_the_value_already_shown_on_a_float_a_set_lands_on_reaches_the_plugin: yes; 1 failed (1 failed, 75 passed in 1.67s)
+        test_a_set_of_the_value_already_shown_on_a_float_a_set_lands_on_reaches_the_plugin
+MK3: MK2, against Vital
+    src/patchbay_vital/instrument.py: 'if value.value != old.value or writes_same(held, self._held(record)):' -> 'if value.value != old.value:'
+    must fail test_a_set_of_the_value_shown_on_an_upgraded_float_sets_vital_to_the_model_s: yes; 1 failed (1 failed, 36 passed in 39.22s)
+        test_a_set_of_the_value_shown_on_an_upgraded_float_sets_vital_to_the_model_s
+MD1: a value is always the curve's float32, as before the revision
+    src/patchbay_vital/patch.py: 'return named if record.to_display(named) == display else record.to_preset(display)' -> 'return named'
+    must fail test_an_arbitrary_display_in_a_patch_holds_what_a_set_of_it_holds: yes; 2 failed (2 failed, 106 passed in 4.36s)
+        test_a_value_goes_to_the_float_a_set_of_it_holds_unless_it_names_a_float
+        test_an_arbitrary_display_in_a_patch_holds_what_a_set_of_it_holds
+MD2: a value is always what a set holds, the display never naming its float
+    src/patchbay_vital/patch.py: 'return named if record.to_display(named) == display else record.to_preset(display)' -> 'return record.to_preset(display)'
+    must fail test_a_display_that_is_an_off_grid_float_s_own_is_restored_by_a_load_and_not_by_a_set: yes; 10 failed (10 failed, 98 passed in 7.35s)
+        test_the_start_preset_and_the_fixture_come_back_with_all_903_in_values
+        test_a_float_outside_its_bounds_rides_in_the_entry_as_itself
+        test_a_float_its_display_cannot_carry_rides_in_the_entry_though_it_is_in_range
+        test_a_negative_zero_a_value_between_steps_and_a_key_that_is_no_parameter_are_kept
+        test_a_key_the_preset_lacks_is_in_neither_place_and_stays_absent
+        test_a_value_goes_to_the_float_a_set_of_it_holds_unless_it_names_a_float
+        and 4 more
+MD3: on an indexed scale a value is the curve's float32 too, when it shows the display
+    src/patchbay_vital/patch.py: 'if record.scale.kind == "indexed":\n        return record.to_preset(display)' -> ''
+    must fail test_a_value_goes_to_the_float_a_set_of_it_holds_unless_it_names_a_float: yes; 2 failed (2 failed, 106 passed in 3.62s)
+        test_a_negative_zero_a_value_between_steps_and_a_key_that_is_no_parameter_are_kept
+        test_a_value_goes_to_the_float_a_set_of_it_holds_unless_it_names_a_float
+MS1: the instrument that has lost step goes on as if it had not
+    src/patchbay_vital/instrument.py: 'if self._lost is not None:' -> 'if False:'
+    must fail test_once_out_of_step_every_call_that_reaches_the_plugin_is_refused_before_anything_else[set]: yes; 5 failed (5 failed, 71 passed in 1.78s)
+        test_once_out_of_step_every_call_that_reaches_the_plugin_is_refused_before_anything_else[set]
+        test_once_out_of_step_every_call_that_reaches_the_plugin_is_refused_before_anything_else[a set it would refuse]
+        test_once_out_of_step_every_call_that_reaches_the_plugin_is_refused_before_anything_else[load_patch]
+        test_once_out_of_step_every_call_that_reaches_the_plugin_is_refused_before_anything_else[a patch it would refuse]
+        test_once_out_of_step_every_call_that_reaches_the_plugin_is_refused_before_anything_else[render]
+MS2: a refused rollback leaves as the host's error, the instrument not marked
+    src/patchbay_vital/instrument.py: 'try:\n                self._send(self._preset)\n            except PluginStateError as again' -> 'try:\n                self._send(self._preset)\n            except ZeroDivisionError as agai'
+    must fail test_a_plugin_that_refuses_the_model_s_own_text_too_leaves_the_instrument_out_of_step: yes; 6 failed (6 failed, 70 passed in 1.81s)
+        test_a_plugin_that_refuses_the_model_s_own_text_too_leaves_the_instrument_out_of_step
+        test_once_out_of_step_every_call_that_reaches_the_plugin_is_refused_before_anything_else[set]
+        test_once_out_of_step_every_call_that_reaches_the_plugin_is_refused_before_anything_else[a set it would refuse]
+        test_once_out_of_step_every_call_that_reaches_the_plugin_is_refused_before_anything_else[load_patch]
+        test_once_out_of_step_every_call_that_reaches_the_plugin_is_refused_before_anything_else[a patch it would refuse]
+        test_once_out_of_step_every_call_that_reaches_the_plugin_is_refused_before_anything_else[render]
+MS3: a set checks its own value before the lost step
+    src/patchbay_vital/instrument.py: 'self._refuse_once_lost()\n        record = self._map.find(parameter_id)\n        check_value' -> 'record = self._map.find(parameter_id)\n        check_value(record.parameter, value)\n       '
+    must fail test_once_out_of_step_every_call_that_reaches_the_plugin_is_refused_before_anything_else[a set it would refuse]: yes; 1 failed (1 failed, 75 passed in 1.72s)
+        test_once_out_of_step_every_call_that_reaches_the_plugin_is_refused_before_anything_else[a set it would refuse]
+MS4: a render does not ask whether the instrument has lost step
+    src/patchbay_vital/instrument.py: 'self._refuse_once_lost()\n        started = time.perf_counter()' -> 'started = time.perf_counter()'
+    must fail test_once_out_of_step_every_call_that_reaches_the_plugin_is_refused_before_anything_else[render]: yes; 1 failed (1 failed, 75 passed in 1.69s)
+        test_once_out_of_step_every_call_that_reaches_the_plugin_is_refused_before_anything_else[render]
+MC1: the patch built is kept when the model changes
+    src/patchbay_vital/instrument.py: 'self._preset = preset\n        self._patch = None' -> 'self._preset = preset'
+    must fail test_a_patch_is_built_once_for_each_model: yes; 2 failed (2 failed, 74 passed in 1.70s)
+        test_a_preset_holding_a_float_outside_its_bounds_is_shown_refused_on_set_and_carried
+        test_a_patch_is_built_once_for_each_model
+MC2: the patch is built again on every call
+    src/patchbay_vital/instrument.py: 'if self._patch is None:' -> 'if True:'
+    must fail test_a_patch_is_built_once_for_each_model: yes; 1 failed (1 failed, 75 passed in 1.84s)
+        test_a_patch_is_built_once_for_each_model
+MN5: the clipping peak takes the channels' maximum alone, not the magnitude
+    src/patchbay_vital/instrument.py: 'peaks = np.maximum(audio.max(axis=0), -audio.min(axis=0))' -> 'peaks = audio.max(axis=0)'
+    must fail test_a_render_that_reaches_full_scale_carries_one_warning_saying_the_peak_and_where: yes; 2 failed (2 failed, 74 passed in 1.73s)
+        test_a_render_that_reaches_full_scale_carries_one_warning_saying_the_peak_and_where
+        test_a_render_whose_largest_sample_is_exactly_full_scale_carries_the_warning
+MV1: a version's trailing zeros are kept
+    src/patchbay_vital/patch.py: 'while len(numbers) > 1 and numbers[-1] == 0:' -> 'while False:'
+    must fail test_a_version_is_compared_by_its_numbers_less_trailing_zeros: yes; 1 failed (1 failed, 107 passed in 4.72s)
+        test_a_version_is_compared_by_its_numbers_less_trailing_zeros
+MV2: a plugin version that is not digits and dots leaves the comparison out, as before
+    src/patchbay_vital/patch.py: 'if plugin is None:' -> 'if False:'
+    must fail test_a_plugin_version_that_is_not_digits_and_dots_refuses_every_preset_by_name: yes; 1 failed (1 failed, 107 passed in 4.69s)
+        test_a_plugin_version_that_is_not_digits_and_dots_refuses_every_preset_by_name
+MM5: a note keeps its channel whatever sounds there (the channel rule gone)
+    src/patchbay_vital/midi.py: 'channel = _free_channel(note.channel, busy, pitch, start)' -> 'channel = note.channel'
+    must fail test_a_note_struck_while_its_pitch_sounds_on_its_channel_goes_out_on_the_next: yes; 9 failed (9 failed, 91 passed in 1.75s)
+        test_a_note_struck_while_its_pitch_sounds_on_its_channel_goes_out_on_the_next
+        test_two_notes_of_one_pitch_struck_on_one_sample_each_sound_with_their_own_velocity_and_length[the louder first]
+        test_two_notes_of_one_pitch_struck_on_one_sample_each_sound_with_their_own_velocity_and_length[the longer first]
+        test_a_moved_note_takes_the_lowest_channel_free_for_its_pitch
+        test_a_note_too_short_to_last_a_sample_sounds_on_when_its_pitch_is_struck_there
+        test_a_note_the_render_ends_before_it_is_released_holds_its_channel
+        and 3 more
+MM6: MM5, against Vital
+    src/patchbay_vital/midi.py: 'channel = _free_channel(note.channel, busy, pitch, start)' -> 'channel = note.channel'
+    must fail test_two_notes_of_one_pitch_that_overlap_each_sound_for_their_own_length: yes; 1 failed (1 failed, 36 passed in 39.00s)
+        test_two_notes_of_one_pitch_that_overlap_each_sound_for_their_own_length
+MM7: a note released on a sample still holds its channel for a note struck there
+    src/patchbay_vital/midi.py: 'sounding = [held for held in sounding if not (held[1] <= start and held[0] < start)]' -> 'sounding = [held for held in sounding if not (held[1] < start)]'
+    must fail test_a_moved_note_takes_the_lowest_channel_free_for_its_pitch: yes; 2 failed (2 failed, 98 passed in 1.81s)
+        test_a_pitch_repeated_without_a_gap_is_released_before_it_is_struck_again
+        test_a_moved_note_takes_the_lowest_channel_free_for_its_pitch
+MM8: a note too short to last a sample frees its channel before a note struck there
+    src/patchbay_vital/midi.py: 'sounding = [held for held in sounding if not (held[1] <= start and held[0] < start)]' -> 'sounding = [held for held in sounding if not (held[1] <= start)]'
+    must fail test_a_note_too_short_to_last_a_sample_sounds_on_when_its_pitch_is_struck_there: yes; 1 failed (1 failed, 99 passed in 1.77s)
+        test_a_note_too_short_to_last_a_sample_sounds_on_when_its_pitch_is_struck_there
+MM9: a moved note takes the highest free channel
+    src/patchbay_vital/midi.py: 'return free[0]' -> 'return free[-1]'
+    must fail test_a_moved_note_takes_the_lowest_channel_free_for_its_pitch: yes; 7 failed (7 failed, 93 passed in 1.79s)
+        test_a_note_struck_while_its_pitch_sounds_on_its_channel_goes_out_on_the_next
+        test_two_notes_of_one_pitch_struck_on_one_sample_each_sound_with_their_own_velocity_and_length[the louder first]
+        test_two_notes_of_one_pitch_struck_on_one_sample_each_sound_with_their_own_velocity_and_length[the longer first]
+        test_a_moved_note_takes_the_lowest_channel_free_for_its_pitch
+        test_a_note_too_short_to_last_a_sample_sounds_on_when_its_pitch_is_struck_there
+        test_a_note_the_render_ends_before_it_is_released_holds_its_channel
+        and 1 more
+MM10: a seventeenth note is not refused by the package's error
+    src/patchbay_vital/midi.py: 'if not free:' -> 'if False:'
+    must fail test_a_seventeenth_note_of_one_pitch_at_once_is_refused_naming_its_pitch_and_sample: yes; 2 failed (2 failed, 98 passed in 1.75s)
+        test_a_seventeenth_note_of_one_pitch_at_once_is_refused_naming_its_pitch_and_sample
+        test_a_render_with_a_note_no_channel_can_voice_is_refused_and_the_plugin_not_called
+MF1: two floats write the same when equal, a zero's sign aside
+    src/patchbay_vital/format.py: 'return old == new and math.copysign(1.0, old) == math.copysign(1.0, new)' -> 'return old == new'
+    must fail test_a_negative_zero_a_value_between_steps_and_a_key_that_is_no_parameter_are_kept: yes; 4 failed (4 failed, 105 passed in 13.68s)
+        test_a_built_preset_comes_back_byte_for_byte_through_a_patch_and_through_json
+        test_a_negative_zero_a_value_between_steps_and_a_key_that_is_no_parameter_are_kept
+        test_a_diff_is_empty_exactly_when_the_presets_write_the_same
+        test_a_diff_sees_the_sign_of_zero_in_a_slot
+MF2: a slot key's slot is read one off
+    src/patchbay_vital/preset.py: '(int(match["slot"]), match["field"])' -> '(int(match["slot"]) + 1, match["field"])'
+    must fail test_a_set_reaches_a_slot_s_float_and_the_model_stays_a_preset_that_reads_back: yes; 5 failed (5 failed, 215 passed in 2.46s)
+        test_contract_against_a_fake_plugin[get_after_set_returns_what_was_set]
+        test_contract_against_a_fake_plugin[a_patch_refused_part_way_changes_nothing]
+        test_get_is_the_display_of_the_model_s_float_and_a_default_where_the_key_is_absent
+        test_every_bound_of_every_parameter_comes_back_exactly
+        test_a_set_reaches_a_slot_s_float_and_the_model_stays_a_preset_that_reads_back
+the tree unmutated again, in the copy:
+    (596 passed in 7.44s)
+23 mutants, 0 survived
+exit=0
+exit=0
+
+the machine after the run: arm64, Apple M4 Pro, 14 cores, macOS 26.6.2 (25G83), Python 3.12.16, load 3.37 3.22 2.99, at 2026-11-16 14:04 EST
+the tree after the run:
+  HEAD 63ad5ae788cba91fa55104be07fce8a209fa3da5
+  git status --porcelain=v1 --untracked-files=all, 23 lines:
+     M CHANGELOG.md
+     M README.md
+     M src/patchbay_vital/__init__.py
+     M src/patchbay_vital/errors.py
+     M src/patchbay_vital/files.py
+     M src/patchbay_vital/format.py
+     M src/patchbay_vital/instrument.py
+     M src/patchbay_vital/midi.py
+     M src/patchbay_vital/patch.py
+     M src/patchbay_vital/preset.py
+     M src/patchbay_vital/start.py
+     M tests/integration/test_vital_instrument.py
+     M tests/unit/builders.py
+     M tests/unit/test_instrument.py
+     M tests/unit/test_midi.py
+     M tests/unit/test_package.py
+     M tests/unit/test_patch.py
+    ?? agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/plan.md
+    ?? agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/references.md
+    ?? agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/shape.md
+    ?? agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/standards.md
+    ?? agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/verification/overlap-probe-2.txt
+    ?? agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/verification/overlap-probe.txt
+  git hash-object of each of those paths (a deleted one marked so):
+    2031646b4631653e138652adfbbd3ef8723c3165  CHANGELOG.md
+    ce1c64621a9343e66d5a218bd7cb0f5dcde43140  README.md
+    18e34edbd5c9d90809b4ffc840482b16ad4c9491  src/patchbay_vital/__init__.py
+    145eb826c6859888c22999de5e4876ef5ebd2234  src/patchbay_vital/errors.py
+    b2f644c9779f59519da2f5e60a4f57e000a81969  src/patchbay_vital/files.py
+    ad7a9a78bd1ca8275bb92e10ec8d8503f40bb339  src/patchbay_vital/format.py
+    fd816beba50661577c2ee66f4f85a2eeaa78c6f4  src/patchbay_vital/instrument.py
+    ab8ae0ec4a6d9c7889d6f136f7e6d322421e65a9  src/patchbay_vital/midi.py
+    153e25666cd405dfdeaca0f3425d67d5d85307a4  src/patchbay_vital/patch.py
+    f049675b5c61fffad437f008b72e378bd531b422  src/patchbay_vital/preset.py
+    318ed4766bbb83a87a45118a3c86dcafeeb1f138  src/patchbay_vital/start.py
+    728f952f874e6497f67474f72ba02d27009eae96  tests/integration/test_vital_instrument.py
+    c213879e4803b1766a132c3fa7b57c11d8d5850f  tests/unit/builders.py
+    9dda9f2725d8df27481d763aa8a1a135d630af8a  tests/unit/test_instrument.py
+    29373875bcecb57b70493f2445d21829e9e9df73  tests/unit/test_midi.py
+    091ab87c1c4bf715e9e7214ae1305db4056682d1  tests/unit/test_package.py
+    72e01c7f0fd307cc7cf46a859d0b8fbdeb20b7f3  tests/unit/test_patch.py
+    3e1b682af98475b06109a7e8868c6d084d5726d5  agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/plan.md
+    1c13a47fd8f6b2eed83d3424e99f2aa2aae94f5d  agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/references.md
+    6ecb404d4691131ffadcd8a9c44c68233473fb6b  agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/shape.md
+    25302c4bf0e78c403dc8cd826ec3b2abe68eb2a3  agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/standards.md
+    03cf6a4567ae55987530677d18b461645d02347f  agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/verification/overlap-probe-2.txt
+    919d74b182a226642328833cb18f1a5649c99016  agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/verification/overlap-probe.txt
+
+---- the script mutate.sh, as run ----
+#!/usr/bin/env bash
+# usage: mutate.sh   (from the repository root): copy what git lists into a scratch directory, sync it, run the mutants there.
+set -uo pipefail
+R=$(cd "$(dirname "$0")" && pwd)
+COPY="$R/mut/patchbay-vital"
+rm -rf "$R/mut"; mkdir -p "$COPY"
+git ls-files -z --cached --others --exclude-standard | while IFS= read -r -d '' f; do
+  [ -e "$f" ] || continue
+  mkdir -p "$COPY/$(dirname "$f")" && cp -p "$f" "$COPY/$f"
+done
+echo "the scratch copy holds $(find "$COPY" -type f | wc -l | tr -d ' ') files, what git lists of the tree; it is outside the tree and nothing in the tree is changed"
+(cd "$COPY" && uv sync --locked 2>&1 | tail -2)
+uv run --locked python -u -B "$R/mutate.py" "$COPY"
+echo "exit=$?"
+
+---- the script mutate.py, as run ----
+"""One mutant per rule PR 23's revision changed, each on a scratch copy, each failing a named test.
+
+usage: mutate.py <the scratch copy>. Each mutant replaces one piece of text in one file of the
+copy, which must hold that text exactly once, runs the tests named, prints the tests that fail,
+and puts the file back. A mutant that fails none of the tests it must fail is printed as SURVIVED
+and counted. The harness is the instrument spec's, with this revision's mutants.
+"""
+
+import re
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+COPY = Path(sys.argv[1])
+INSTRUMENT = "src/patchbay_vital/instrument.py"
+PATCH = "src/patchbay_vital/patch.py"
+MIDI = "src/patchbay_vital/midi.py"
+FORMAT = "src/patchbay_vital/format.py"
+PRESET = "src/patchbay_vital/preset.py"
+UNIT = ["tests/unit"]
+T_INSTRUMENT = ["tests/unit/test_instrument.py"]
+T_PATCH = ["tests/unit/test_patch.py", "tests/unit/test_instrument.py"]
+T_MIDI = ["tests/unit/test_midi.py", "tests/unit/test_instrument.py"]
+T_FORMAT = ["tests/unit/test_patch.py", "tests/unit/test_format.py"]
+T_PRESET = ["tests/unit/test_instrument.py", "tests/unit/test_preset.py", "tests/unit/test_format.py"]
+VITAL = ["tests/integration/test_vital_instrument.py"]
+
+# (id, what the mutant does, file, the text replaced, the replacement, tests run, a test it must fail)
+MUTANTS = [
+    ("MK1", "a set of the value already shown is carried out like any other (the keep rule gone)", INSTRUMENT,
+     "        if value.value != old.value or writes_same(held, self._held(record)):\n", "        if True:\n", T_INSTRUMENT,
+     "test_a_set_of_the_value_already_shown_keeps_what_is_held"),
+    ("MK2", "the keep rule as it was: every set of the value shown kept, on a float a set lands on too", INSTRUMENT,
+     "        if value.value != old.value or writes_same(held, self._held(record)):\n", "        if value.value != old.value:\n", T_INSTRUMENT,
+     "test_a_set_of_the_value_already_shown_on_a_float_a_set_lands_on_reaches_the_plugin"),
+    ("MK3", "MK2, against Vital", INSTRUMENT,
+     "        if value.value != old.value or writes_same(held, self._held(record)):\n", "        if value.value != old.value:\n", VITAL,
+     "test_a_set_of_the_value_shown_on_an_upgraded_float_sets_vital_to_the_model_s"),
+    ("MD1", "a value is always the curve's float32, as before the revision", PATCH,
+     "    return named if record.to_display(named) == display else record.to_preset(display)\n", "    return named\n", T_PATCH,
+     "test_an_arbitrary_display_in_a_patch_holds_what_a_set_of_it_holds"),
+    ("MD2", "a value is always what a set holds, the display never naming its float", PATCH,
+     "    return named if record.to_display(named) == display else record.to_preset(display)\n", "    return record.to_preset(display)\n", T_PATCH,
+     "test_a_display_that_is_an_off_grid_float_s_own_is_restored_by_a_load_and_not_by_a_set"),
+    ("MD3", "on an indexed scale a value is the curve's float32 too, when it shows the display", PATCH,
+     "    if record.scale.kind == \"indexed\":\n        return record.to_preset(display)\n", "", T_PATCH,
+     "test_a_value_goes_to_the_float_a_set_of_it_holds_unless_it_names_a_float"),
+    ("MS1", "the instrument that has lost step goes on as if it had not", INSTRUMENT,
+     "        if self._lost is not None:\n", "        if False:\n", T_INSTRUMENT,
+     "test_once_out_of_step_every_call_that_reaches_the_plugin_is_refused_before_anything_else[set]"),
+    ("MS2", "a refused rollback leaves as the host's error, the instrument not marked", INSTRUMENT,
+     "            try:\n                self._send(self._preset)\n            except PluginStateError as again:\n",
+     "            try:\n                self._send(self._preset)\n            except ZeroDivisionError as again:\n", T_INSTRUMENT,
+     "test_a_plugin_that_refuses_the_model_s_own_text_too_leaves_the_instrument_out_of_step"),
+    ("MS3", "a set checks its own value before the lost step", INSTRUMENT,
+     "        self._refuse_once_lost()\n        record = self._map.find(parameter_id)\n        check_value(record.parameter, value)\n",
+     "        record = self._map.find(parameter_id)\n        check_value(record.parameter, value)\n        self._refuse_once_lost()\n", T_INSTRUMENT,
+     "test_once_out_of_step_every_call_that_reaches_the_plugin_is_refused_before_anything_else[a set it would refuse]"),
+    ("MS4", "a render does not ask whether the instrument has lost step", INSTRUMENT,
+     "        self._refuse_once_lost()\n        started = time.perf_counter()\n", "        started = time.perf_counter()\n", T_INSTRUMENT,
+     "test_once_out_of_step_every_call_that_reaches_the_plugin_is_refused_before_anything_else[render]"),
+    ("MC1", "the patch built is kept when the model changes", INSTRUMENT,
+     "        self._preset = preset\n        self._patch = None\n", "        self._preset = preset\n", T_INSTRUMENT,
+     "test_a_patch_is_built_once_for_each_model"),
+    ("MC2", "the patch is built again on every call", INSTRUMENT,
+     "        if self._patch is None:\n", "        if True:\n", T_INSTRUMENT,
+     "test_a_patch_is_built_once_for_each_model"),
+    ("MN5", "the clipping peak takes the channels' maximum alone, not the magnitude", INSTRUMENT,
+     "    peaks = np.maximum(audio.max(axis=0), -audio.min(axis=0))\n", "    peaks = audio.max(axis=0)\n", T_INSTRUMENT,
+     "test_a_render_that_reaches_full_scale_carries_one_warning_saying_the_peak_and_where"),
+    ("MV1", "a version's trailing zeros are kept", PATCH,
+     "    while len(numbers) > 1 and numbers[-1] == 0:\n", "    while False:\n", T_PATCH,
+     "test_a_version_is_compared_by_its_numbers_less_trailing_zeros"),
+    ("MV2", "a plugin version that is not digits and dots leaves the comparison out, as before", PATCH,
+     "    if plugin is None:\n", "    if False:\n", T_PATCH,
+     "test_a_plugin_version_that_is_not_digits_and_dots_refuses_every_preset_by_name"),
+    ("MM5", "a note keeps its channel whatever sounds there (the channel rule gone)", MIDI,
+     "        channel = _free_channel(note.channel, busy, pitch, start)\n", "        channel = note.channel\n", T_MIDI,
+     "test_a_note_struck_while_its_pitch_sounds_on_its_channel_goes_out_on_the_next"),
+    ("MM6", "MM5, against Vital", MIDI,
+     "        channel = _free_channel(note.channel, busy, pitch, start)\n", "        channel = note.channel\n", VITAL,
+     "test_two_notes_of_one_pitch_that_overlap_each_sound_for_their_own_length"),
+    ("MM7", "a note released on a sample still holds its channel for a note struck there", MIDI,
+     "        sounding = [held for held in sounding if not (held[1] <= start and held[0] < start)]\n",
+     "        sounding = [held for held in sounding if not (held[1] < start)]\n", T_MIDI,
+     "test_a_moved_note_takes_the_lowest_channel_free_for_its_pitch"),
+    ("MM8", "a note too short to last a sample frees its channel before a note struck there", MIDI,
+     "        sounding = [held for held in sounding if not (held[1] <= start and held[0] < start)]\n",
+     "        sounding = [held for held in sounding if not (held[1] <= start)]\n", T_MIDI,
+     "test_a_note_too_short_to_last_a_sample_sounds_on_when_its_pitch_is_struck_there"),
+    ("MM9", "a moved note takes the highest free channel", MIDI,
+     "    return free[0]\n", "    return free[-1]\n", T_MIDI,
+     "test_a_moved_note_takes_the_lowest_channel_free_for_its_pitch"),
+    ("MM10", "a seventeenth note is not refused by the package's error", MIDI,
+     "    if not free:\n", "    if False:\n", T_MIDI,
+     "test_a_seventeenth_note_of_one_pitch_at_once_is_refused_naming_its_pitch_and_sample"),
+    ("MF1", "two floats write the same when equal, a zero's sign aside", FORMAT,
+     "    return old == new and math.copysign(1.0, old) == math.copysign(1.0, new)\n", "    return old == new\n", T_FORMAT,
+     "test_a_negative_zero_a_value_between_steps_and_a_key_that_is_no_parameter_are_kept"),
+    ("MF2", "a slot key's slot is read one off", PRESET,
+     "(int(match[\"slot\"]), match[\"field\"])", "(int(match[\"slot\"]) + 1, match[\"field\"])", T_PRESET,
+     "test_a_set_reaches_a_slot_s_float_and_the_model_stays_a_preset_that_reads_back"),
+]
+
+
+def run(tests: list[str]) -> list[str]:
+    command = ["uv", "run", "--locked", "pytest", "-c", "pyproject.toml", "-p", "no:doctest", "-p", "no:cacheprovider", "-rfE", "--no-header", *tests]
+    done = subprocess.run(command, cwd=COPY, capture_output=True, text=True, check=False)
+    # a parametrized test's id can hold spaces, so a name runs to the " - " before its reason
+    failed = re.findall(r"^(?:FAILED|ERROR) (.+?)(?: - .*)?$", done.stdout, flags=re.MULTILINE)
+    tail = done.stdout.strip().splitlines()[-1] if done.stdout.strip() else done.stderr.strip()[-200:]
+    return [name.split("::", 1)[1] if "::" in name else name for name in failed] + [f"({tail})"]
+
+
+print("the tree unmutated, in the copy:")
+print("   ", run(UNIT + VITAL)[-1])
+survived = 0
+for name, what, file, old, new, tests, must_fail in MUTANTS:
+    path = COPY / file
+    kept = path.read_bytes()
+    text = kept.decode("utf-8")
+    if text.count(old) != 1:
+        print(f"{name}: THE TEXT TO REPLACE IS THERE {text.count(old)} TIMES, not once: {old!r}")
+        survived += 1
+        continue
+    path.write_text(text.replace(old, new), encoding="utf-8")
+    *failed, tail = run(tests)
+    path.write_bytes(kept)
+    caught = any(must_fail in test for test in failed)
+    survived += not caught
+    print(f"{name}: {what}")
+    print(f"    {file}: {old.strip()[:90]!r} -> {new.strip()[:90]!r}")
+    print(f"    must fail {must_fail}: {'yes' if caught else 'NO, SURVIVED'}; {len(failed)} failed {tail}")
+    for test in failed[:6]:
+        print(f"        {test}")
+    if len(failed) > 6:
+        print(f"        and {len(failed) - 6} more")
+print("the tree unmutated again, in the copy:")
+print("   ", run(UNIT)[-1])
+print(f"{len(MUTANTS)} mutants, {survived} survived")
+shutil.rmtree(COPY / ".venv", ignore_errors=True)
+

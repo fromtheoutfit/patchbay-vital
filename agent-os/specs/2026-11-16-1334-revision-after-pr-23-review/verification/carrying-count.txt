@@ -1,0 +1,262 @@
+The revision after PR 23's review: the carrying counted again under the load rule, every float of every preset on hand, run 2026-11-16 13:59 EST on branch
+feature/8-the-instrument-vitalinstrument-over-vitalhost-patchvitalpreset-and-cores-contract-tests-against-a-real-vital-spec-b-of-7, Vital at /Library/Audio/Plug-Ins/VST3/Vital.vst3
+the machine before the run: arm64, Apple M4 Pro, 14 cores, macOS 26.6.2 (25G83), Python 3.12.16, load 3.33 3.02 2.87, at 2026-11-16 13:59 EST
+the tree before the run (this transcript is written outside the tree and copied in afterwards):
+  HEAD 63ad5ae788cba91fa55104be07fce8a209fa3da5
+  git status --porcelain=v1 --untracked-files=all, 23 lines:
+     M CHANGELOG.md
+     M README.md
+     M src/patchbay_vital/__init__.py
+     M src/patchbay_vital/errors.py
+     M src/patchbay_vital/files.py
+     M src/patchbay_vital/format.py
+     M src/patchbay_vital/instrument.py
+     M src/patchbay_vital/midi.py
+     M src/patchbay_vital/patch.py
+     M src/patchbay_vital/preset.py
+     M src/patchbay_vital/start.py
+     M tests/integration/test_vital_instrument.py
+     M tests/unit/builders.py
+     M tests/unit/test_instrument.py
+     M tests/unit/test_midi.py
+     M tests/unit/test_package.py
+     M tests/unit/test_patch.py
+    ?? agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/plan.md
+    ?? agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/references.md
+    ?? agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/shape.md
+    ?? agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/standards.md
+    ?? agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/verification/overlap-probe-2.txt
+    ?? agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/verification/overlap-probe.txt
+  git hash-object of each of those paths (a deleted one marked so):
+    2031646b4631653e138652adfbbd3ef8723c3165  CHANGELOG.md
+    ce1c64621a9343e66d5a218bd7cb0f5dcde43140  README.md
+    18e34edbd5c9d90809b4ffc840482b16ad4c9491  src/patchbay_vital/__init__.py
+    145eb826c6859888c22999de5e4876ef5ebd2234  src/patchbay_vital/errors.py
+    b2f644c9779f59519da2f5e60a4f57e000a81969  src/patchbay_vital/files.py
+    ad7a9a78bd1ca8275bb92e10ec8d8503f40bb339  src/patchbay_vital/format.py
+    fd816beba50661577c2ee66f4f85a2eeaa78c6f4  src/patchbay_vital/instrument.py
+    ab8ae0ec4a6d9c7889d6f136f7e6d322421e65a9  src/patchbay_vital/midi.py
+    153e25666cd405dfdeaca0f3425d67d5d85307a4  src/patchbay_vital/patch.py
+    f049675b5c61fffad437f008b72e378bd531b422  src/patchbay_vital/preset.py
+    318ed4766bbb83a87a45118a3c86dcafeeb1f138  src/patchbay_vital/start.py
+    728f952f874e6497f67474f72ba02d27009eae96  tests/integration/test_vital_instrument.py
+    c213879e4803b1766a132c3fa7b57c11d8d5850f  tests/unit/builders.py
+    9dda9f2725d8df27481d763aa8a1a135d630af8a  tests/unit/test_instrument.py
+    29373875bcecb57b70493f2445d21829e9e9df73  tests/unit/test_midi.py
+    091ab87c1c4bf715e9e7214ae1305db4056682d1  tests/unit/test_package.py
+    72e01c7f0fd307cc7cf46a859d0b8fbdeb20b7f3  tests/unit/test_patch.py
+    3e1b682af98475b06109a7e8868c6d084d5726d5  agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/plan.md
+    1c13a47fd8f6b2eed83d3424e99f2aa2aae94f5d  agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/references.md
+    6ecb404d4691131ffadcd8a9c44c68233473fb6b  agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/shape.md
+    25302c4bf0e78c403dc8cd826ec3b2abe68eb2a3  agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/standards.md
+    03cf6a4567ae55987530677d18b461645d02347f  agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/verification/overlap-probe-2.txt
+    919d74b182a226642328833cb18f1a5649c99016  agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/verification/overlap-probe.txt
+
+$ uv run --locked python -u -B <scratchpad>/r23/carrying_count.py
+77 texts: the start preset, the fixture and 75 installed presets
+  floats: 59477
+  in values: 59442 (under the rule before this revision: 59442)
+  in the preset entry: 35
+  of those in values, restored exactly by a load of the patch: 59442
+  byte for byte through a patch: 77
+  byte for byte through the patch's JSON: 77
+  in values now and not before: 0
+  in values before and not now: 0
+
+PatchLoaded.parameter_count for each form of patch, on a VitalInstrument over Vital
+  a whole patch of the start preset: 903, its values 903
+  a patch of two values alone: 2
+  a whole patch of Ah Eh Ee Oh, 1 float in its entry: 770, its values 770
+exit=0
+
+the machine after the run: arm64, Apple M4 Pro, 14 cores, macOS 26.6.2 (25G83), Python 3.12.16, load 3.22 3.00 2.86, at 2026-11-16 13:59 EST
+the tree after the run:
+  HEAD 63ad5ae788cba91fa55104be07fce8a209fa3da5
+  git status --porcelain=v1 --untracked-files=all, 23 lines:
+     M CHANGELOG.md
+     M README.md
+     M src/patchbay_vital/__init__.py
+     M src/patchbay_vital/errors.py
+     M src/patchbay_vital/files.py
+     M src/patchbay_vital/format.py
+     M src/patchbay_vital/instrument.py
+     M src/patchbay_vital/midi.py
+     M src/patchbay_vital/patch.py
+     M src/patchbay_vital/preset.py
+     M src/patchbay_vital/start.py
+     M tests/integration/test_vital_instrument.py
+     M tests/unit/builders.py
+     M tests/unit/test_instrument.py
+     M tests/unit/test_midi.py
+     M tests/unit/test_package.py
+     M tests/unit/test_patch.py
+    ?? agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/plan.md
+    ?? agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/references.md
+    ?? agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/shape.md
+    ?? agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/standards.md
+    ?? agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/verification/overlap-probe-2.txt
+    ?? agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/verification/overlap-probe.txt
+  git hash-object of each of those paths (a deleted one marked so):
+    2031646b4631653e138652adfbbd3ef8723c3165  CHANGELOG.md
+    ce1c64621a9343e66d5a218bd7cb0f5dcde43140  README.md
+    18e34edbd5c9d90809b4ffc840482b16ad4c9491  src/patchbay_vital/__init__.py
+    145eb826c6859888c22999de5e4876ef5ebd2234  src/patchbay_vital/errors.py
+    b2f644c9779f59519da2f5e60a4f57e000a81969  src/patchbay_vital/files.py
+    ad7a9a78bd1ca8275bb92e10ec8d8503f40bb339  src/patchbay_vital/format.py
+    fd816beba50661577c2ee66f4f85a2eeaa78c6f4  src/patchbay_vital/instrument.py
+    ab8ae0ec4a6d9c7889d6f136f7e6d322421e65a9  src/patchbay_vital/midi.py
+    153e25666cd405dfdeaca0f3425d67d5d85307a4  src/patchbay_vital/patch.py
+    f049675b5c61fffad437f008b72e378bd531b422  src/patchbay_vital/preset.py
+    318ed4766bbb83a87a45118a3c86dcafeeb1f138  src/patchbay_vital/start.py
+    728f952f874e6497f67474f72ba02d27009eae96  tests/integration/test_vital_instrument.py
+    c213879e4803b1766a132c3fa7b57c11d8d5850f  tests/unit/builders.py
+    9dda9f2725d8df27481d763aa8a1a135d630af8a  tests/unit/test_instrument.py
+    29373875bcecb57b70493f2445d21829e9e9df73  tests/unit/test_midi.py
+    091ab87c1c4bf715e9e7214ae1305db4056682d1  tests/unit/test_package.py
+    72e01c7f0fd307cc7cf46a859d0b8fbdeb20b7f3  tests/unit/test_patch.py
+    3e1b682af98475b06109a7e8868c6d084d5726d5  agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/plan.md
+    1c13a47fd8f6b2eed83d3424e99f2aa2aae94f5d  agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/references.md
+    6ecb404d4691131ffadcd8a9c44c68233473fb6b  agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/shape.md
+    25302c4bf0e78c403dc8cd826ec3b2abe68eb2a3  agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/standards.md
+    03cf6a4567ae55987530677d18b461645d02347f  agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/verification/overlap-probe-2.txt
+    919d74b182a226642328833cb18f1a5649c99016  agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/verification/overlap-probe.txt
+
+---- the script carrying_count.py, as run ----
+"""The carrying, counted again under PR 23's load rule: every float of every preset on hand.
+
+For the start preset, the fixture and the 75 installed presets the manifest lists: how many floats
+`patch_of` carries in `values` and in the preset entry; how many of those in `values` a load of
+the patch restores exactly, by comparing `preset_of(patch)`'s float with the preset's own, the sign
+of a zero included; and the text byte for byte through a patch and through the patch's JSON.
+
+Beside it, the rule before this revision, restated here: on a linear scale the curve's float32
+for the display, kept within the scale's ends, and on an indexed scale `to_preset`. A float in
+`values` under that rule and not under this one would fail the revision's stop; one in `values`
+under this one and not under that is listed by preset and key.
+
+Then `PatchLoaded.parameter_count` for each form of patch, from a real `VitalInstrument` over the
+installed Vital: a whole patch of the start preset, a patch of values alone, and a whole patch of a
+preset carrying floats in the entry.
+
+Run from the repository root with the locked interpreter, Vital and its presets installed.
+"""
+
+import json
+import math
+from pathlib import Path
+
+from patchbay import EventBus, ParameterId, Patch, PatchLoaded, Quantity, Unit
+from patchbay.testing import RecordingSubscriber
+
+from patchbay_vital import dumps, loads, parameter_map, patch_of, preset_of, start_preset
+from patchbay_vital.format import split_modulations
+from patchbay_vital.instrument import VitalInstrument
+from patchbay_vital.patch import PRESET_ENTRY
+
+PRESETS = Path.home() / "Music" / "Vital"
+FIXTURE = Path("tests/data/init-media-replaced.vital")
+MANIFEST = [
+    line
+    for line in Path("tests/data/factory-manifest.txt").read_text(encoding="utf-8").splitlines()
+    if not line.startswith("#")
+]
+found = parameter_map()
+by_id = {record.id: record for record in found.parameters}
+
+
+def same(one: float, other: float) -> bool:
+    return one == other and math.copysign(1.0, one) == math.copysign(1.0, other)
+
+
+def old_back(record, display: float) -> float:
+    """The rule before this revision, as 63ad5ae's `_float_of` had it."""
+    if record.scale.kind == "indexed":
+        return record.to_preset(display)
+    return min(max(record.curve.to_preset(display), record.scale.minimum), record.scale.maximum)
+
+
+def old_carries(key: str, held: float) -> bool:
+    record = by_id.get(key)
+    if record is None:
+        return False
+    try:
+        value = Quantity(value=record.to_display(held), unit=record.parameter.unit)
+        record.parameter.check(value)
+    except Exception:  # noqa: BLE001 - the old check's own refusals, restated
+        return False
+    return same(old_back(record, value.value), held)
+
+
+def floats_of(preset) -> dict[str, float]:
+    _, slots = split_modulations(preset.modulations)
+    return {str(k): v for k, v in (*preset.settings.values.items(), *slots.items())}
+
+
+texts = [("the start preset", dumps(start_preset())), (str(FIXTURE), FIXTURE.read_text("utf-8"))]
+texts += [(name, (PRESETS / name).read_text("utf-8")) for name in MANIFEST]
+total = in_values = in_entry = restored = through_patch = through_json = 0
+old_in_values = 0
+gained: list[tuple[str, str, float]] = []
+lost: list[tuple[str, str, float]] = []
+for name, text in texts:
+    preset = loads(text)
+    floats = floats_of(preset)
+    patch = patch_of(preset)
+    carried = json.loads(patch.opaque[PRESET_ENTRY])["settings"]
+    back = floats_of(preset_of(patch))
+    total += len(floats)
+    in_values += len(patch.values)
+    in_entry += len(carried)
+    assert len(patch.values) + len(carried) == len(floats), name
+    restored += sum(same(back[key], floats[key]) for key in patch.values)
+    through_patch += dumps(preset_of(patch)) == text
+    through_json += dumps(preset_of(Patch.model_validate_json(patch.model_dump_json()))) == text
+    for key, held in floats.items():
+        was, now = old_carries(key, held), key in patch.values
+        old_in_values += was
+        if now and not was:
+            gained.append((name, key, held))
+        if was and not now:
+            lost.append((name, key, held))
+print(f"{len(texts)} texts: the start preset, the fixture and {len(MANIFEST)} installed presets")
+print(f"  floats: {total}")
+print(f"  in values: {in_values} (under the rule before this revision: {old_in_values})")
+print(f"  in the preset entry: {in_entry}")
+print(f"  of those in values, restored exactly by a load of the patch: {restored}")
+print(f"  byte for byte through a patch: {through_patch}")
+print(f"  byte for byte through the patch's JSON: {through_json}")
+print(f"  in values now and not before: {len(gained)}")
+for name, key, held in gained:
+    record = by_id[key]
+    print(f"    {name}: {key} {held!r}, shown as {record.to_display(held)!r}")
+print(f"  in values before and not now: {len(lost)}")
+for name, key, held in lost:
+    print(f"    {name}: {key} {held!r}")
+
+print()
+print("PatchLoaded.parameter_count for each form of patch, on a VitalInstrument over Vital")
+bus = EventBus()
+recorder = RecordingSubscriber()
+bus.subscribe(None, recorder)
+instrument = VitalInstrument(bus)
+whole = instrument.patch()
+instrument.load_patch(whole)
+alone = Patch(
+    instrument="Vital",
+    values={
+        ParameterId("filter_1_on"): Quantity(value=1.0, unit=Unit.none),
+        ParameterId("filter_1_cutoff"): Quantity(value=12.0, unit=Unit.semitones),
+    },
+)
+instrument.load_patch(alone)
+ah_eh = patch_of(loads((PRESETS / "Factory/Presets/Ah Eh Ee Oh.vital").read_text("utf-8")))
+instrument.load_patch(ah_eh)
+counts = [event.parameter_count for event in recorder.of_type(PatchLoaded)]
+entry = len(json.loads(ah_eh.opaque[PRESET_ENTRY])["settings"])
+print(f"  a whole patch of the start preset: {counts[0]}, its values {len(whole.values)}")
+print(f"  a patch of two values alone: {counts[1]}")
+print(
+    f"  a whole patch of Ah Eh Ee Oh, {entry} float in its entry: {counts[2]}, its values "
+    f"{len(ah_eh.values)}"
+)
+

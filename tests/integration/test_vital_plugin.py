@@ -22,7 +22,7 @@ import pytest
 from patchbay import ParameterId
 
 from patchbay_vital import VitalSettings, dumps, loads
-from patchbay_vital.census import build_map
+from patchbay_vital.census import build_map, dump_map, key_list
 from patchbay_vital.errors import ParameterRangeError, PluginRenderError, UnknownParameterError
 from patchbay_vital.float32 import round_to_float32, to_float32
 from patchbay_vital.host import DEFAULT_PATH, VitalHost, _floats
@@ -32,6 +32,7 @@ from patchbay_vital.parameters import (
     NormalizedScale,
     parameter_map,
 )
+from patchbay_vital.start import start_text
 from patchbay_vital.state import unwrap, wrap
 
 pytestmark = pytest.mark.integration
@@ -90,11 +91,26 @@ def _ulps(a: float, b: float) -> int:
     return abs(int(bits[0]) - int(bits[1]))
 
 
-def test_the_census_regenerates_the_committed_map(host: VitalHost) -> None:
-    """Measured again, the plugin gives the map in the repository, record for record."""
+def test_the_census_regenerates_the_three_committed_files(
+    host: VitalHost, pytestconfig: pytest.Config
+) -> None:
+    """Measured again, the plugin gives the map in the repository and the files written from it.
+
+    The map record for record, then the three files the census writes, each byte for byte: the
+    map's text, the key list and the start preset, checked together so none moves alone.
+    """
     committed = parameter_map()
     assert (host.name, host.version) == (committed.instrument, committed.vital_version)
-    assert build_map(host) == committed
+    built = build_map(host)
+    assert built == committed
+    package = pytestconfig.rootpath / "src" / "patchbay_vital"
+    written = {
+        package / "data" / "parameters.json": dump_map(built),
+        package / "settings_keys.txt": "\n".join(key_list(built)) + "\n",
+        package / "data" / "start.vital": start_text(built),
+    }
+    for path, text in written.items():
+        assert path.read_text(encoding="utf-8") == text, path.name
 
 
 def test_every_hosted_parameter_is_mapped_and_every_record_hosted(host: VitalHost) -> None:

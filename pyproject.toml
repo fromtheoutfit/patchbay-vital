@@ -51,6 +51,13 @@ host = [
     "pedalboard>=0.9.26,<1",  # hosts and renders Vital's VST3 (host.py, census.py)
 ]
 
+# Where patchbay finds this adapter's instrument: a callable that takes the EventBus the instrument
+# publishes on and returns a patchbay.Instrument, under a lower-case key. Provisional: core reads
+# no entry point yet and has not said what this group holds (the instrument spec's shape.md,
+# Decision 10). Loading it imports pedalboard, so it needs the `host` extra.
+[project.entry-points."patchbay.instruments"]
+vital = "patchbay_vital.instrument:VitalInstrument"
+
 [build-system]
 requires = ["uv_build>=0.13.7,<0.14.0"]
 build-backend = "uv_build"

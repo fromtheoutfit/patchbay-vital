@@ -1,0 +1,604 @@
+The instrument spec (issue #8): one mutant per decided rule, each on a scratch copy, run 2026-11-16 08:48 EST on branch
+feature/8-the-instrument-vitalinstrument-over-vitalhost-patchvitalpreset-and-cores-contract-tests-against-a-real-vital-spec-b-of-7, Vital at /Library/Audio/Plug-Ins/VST3/Vital.vst3
+the machine before the run: arm64, Apple M4 Pro, 14 cores, macOS 26.6.2 (25G83), Python 3.12.16, load 2.68 2.90 3.06, at 2026-11-16 08:48 EST
+the tree before the run (this transcript is written outside the tree and copied in afterwards):
+  HEAD e3e601781f32d2058f4793895c47c12fe2793385
+  git status --porcelain=v1 --untracked-files=all, 40 lines:
+     M CHANGELOG.md
+     M README.md
+     M agent-os/product/mission.md
+     M agent-os/standards/index.yml
+     M agent-os/standards/vital/measures.md
+     M agent-os/standards/vital/parameter-map.md
+     M agent-os/standards/vital/plugin-state.md
+     M agent-os/standards/vital/preset-tests.md
+     M pyproject.toml
+     M src/patchbay_vital/__init__.py
+     M src/patchbay_vital/census.py
+     M src/patchbay_vital/errors.py
+     M tests/integration/test_factory_round_trip.py
+     M tests/integration/test_vital_plugin.py
+     M tests/unit/test_census.py
+     M tests/unit/test_errors.py
+     M tests/unit/test_package.py
+    ?? agent-os/specs/2026-11-15-1448-the-instrument/plan.md
+    ?? agent-os/specs/2026-11-15-1448-the-instrument/references.md
+    ?? agent-os/specs/2026-11-15-1448-the-instrument/shape.md
+    ?? agent-os/specs/2026-11-15-1448-the-instrument/standards.md
+    ?? agent-os/specs/2026-11-15-1448-the-instrument/verification/carrying-count.txt
+    ?? agent-os/specs/2026-11-15-1448-the-instrument/verification/contract-run.txt
+    ?? agent-os/specs/2026-11-15-1448-the-instrument/verification/mutation.txt
+    ?? agent-os/specs/2026-11-15-1448-the-instrument/verification/off-grid-count.txt
+    ?? agent-os/specs/2026-11-15-1448-the-instrument/verification/probes-2.txt
+    ?? agent-os/specs/2026-11-15-1448-the-instrument/verification/probes.txt
+    ?? agent-os/specs/2026-11-15-1448-the-instrument/verification/wheel-contents.txt
+    ?? agent-os/standards/vital/instrument.md
+    ?? src/patchbay_vital/data/start.vital
+    ?? src/patchbay_vital/instrument.py
+    ?? src/patchbay_vital/midi.py
+    ?? src/patchbay_vital/patch.py
+    ?? src/patchbay_vital/start.py
+    ?? tests/data/upgraded-floats.txt
+    ?? tests/integration/test_vital_instrument.py
+    ?? tests/unit/test_instrument.py
+    ?? tests/unit/test_midi.py
+    ?? tests/unit/test_patch.py
+    ?? tests/unit/test_start.py
+  git hash-object of each of those paths (a deleted one marked so):
+    7bb917977d9baab41d3ca0c65bdcf266af04d4b4  CHANGELOG.md
+    d58671b909be52a417d16e84b5cb03e20d011794  README.md
+    b15907bd6164e024da3fd658a471f15291db42ba  agent-os/product/mission.md
+    a3dddc9d28d9bef006b9e54b7e3eff2d176c7880  agent-os/specs/2026-11-15-1448-the-instrument/plan.md
+    db8c75d636b2346f03102ed5287a0d961684ab81  agent-os/specs/2026-11-15-1448-the-instrument/references.md
+    9eac4cd09d30052aeef99352f356eb07ecc30662  agent-os/specs/2026-11-15-1448-the-instrument/shape.md
+    6689f2ad25d6eb9c361366cb26f41d8e9a91b663  agent-os/specs/2026-11-15-1448-the-instrument/standards.md
+    02d9ff449bddf37ddece41f0df463893d8eb442a  agent-os/specs/2026-11-15-1448-the-instrument/verification/carrying-count.txt
+    7dca88aa007c3828ddfc8400b7cc480771876a8f  agent-os/specs/2026-11-15-1448-the-instrument/verification/contract-run.txt
+    5ed4bad256c956c15812c71b84fa344205089558  agent-os/specs/2026-11-15-1448-the-instrument/verification/mutation.txt
+    7afcdd00049f36ad8c6c82a0308d394826fd1611  agent-os/specs/2026-11-15-1448-the-instrument/verification/off-grid-count.txt
+    b084a1f0d2f34c5f5d6c7c0a3d22d0665f35638b  agent-os/specs/2026-11-15-1448-the-instrument/verification/probes-2.txt
+    86c080df2c0dc6414b3146ebaf8413f8423afabb  agent-os/specs/2026-11-15-1448-the-instrument/verification/probes.txt
+    53d49cd24a05f3fba83c19480614b6400f444c4a  agent-os/specs/2026-11-15-1448-the-instrument/verification/wheel-contents.txt
+    93cf8717cec6326aeb657cad144a0da7eb41f94c  agent-os/standards/index.yml
+    07609985c57af23b50ef29934203f3f8435d77c8  agent-os/standards/vital/instrument.md
+    dc7f40608620feadb0ed2e1dba9c4872b8426360  agent-os/standards/vital/measures.md
+    20e584e2e5b046a30488d097b7019294c4f4c943  agent-os/standards/vital/parameter-map.md
+    1c3eb42e211b13cf89ad0bcef3bdec06bb12cf1e  agent-os/standards/vital/plugin-state.md
+    825a937c2378cf556458182c3052eb02e9925214  agent-os/standards/vital/preset-tests.md
+    4c644450b7d9c61d26001191cd7ad091da89ad94  pyproject.toml
+    ae306f8a4ab8ebcc1e206ba17226fadf0ddf4add  src/patchbay_vital/__init__.py
+    ee9ecbb7cc00b4b63612ae74ff8770411b357e8b  src/patchbay_vital/census.py
+    95e8053ccc855bd9ff4ab4405314930244db3127  src/patchbay_vital/data/start.vital
+    d8c0e345a68411ebe2db537802671269fc709cf3  src/patchbay_vital/errors.py
+    186260668d85ae8a76d3496ebf7f193a4428ce38  src/patchbay_vital/instrument.py
+    d9097431e624deb685e71b4e262b5d8c074e7da3  src/patchbay_vital/midi.py
+    1e8bb9c3da7ecc87cff7c6df747672374488ac77  src/patchbay_vital/patch.py
+    8d8f935855cf1f0f807ed820db1242bf910d9886  src/patchbay_vital/start.py
+    1be64823e7837e6001447e992be89206151618ee  tests/data/upgraded-floats.txt
+    1cc2b8444e9c39b50ebe3781121a1f53c22eef60  tests/integration/test_factory_round_trip.py
+    79afbfdd831585dff450d02a2e309a5238084d02  tests/integration/test_vital_instrument.py
+    05224f6051e761513857cda9fc0cf86323f4c8a7  tests/integration/test_vital_plugin.py
+    5356f56f7be745ddff42ffe2ca20912f2df192b3  tests/unit/test_census.py
+    d82627e9c3095ef6c94232ab633600de5bc0275d  tests/unit/test_errors.py
+    b0119dae1a32c93ee496932ce69e5535a6877508  tests/unit/test_instrument.py
+    2b71e30fb68964d45dfe312a0fb6f1bbc37f8642  tests/unit/test_midi.py
+    cd8ca88fdbd9f54335fa70731387ff1502bcab2b  tests/unit/test_package.py
+    8f0a92f5b84409802e470a7bab19cf2053cb35d0  tests/unit/test_patch.py
+    e273b105262f59300906e1623f78abacc62ab467  tests/unit/test_start.py
+
+$ bash <scratchpad>/i8/mutate.sh
+the scratch copy holds 345 files, what git lists of the tree; it is outside the tree and nothing in the tree is changed
+ + typing-inspection==0.4.5
+ + virtualenv==21.15.6
+the tree unmutated, in the copy:
+    (245 passed in 48.53s)
+MK1: a set of the value already shown is carried out like any other (the keep rule gone)
+    src/patchbay_vital/instrument.py: 'if value.value != old.value:' -> 'if True:'
+    must fail test_a_set_of_the_value_already_shown_keeps_what_is_held: yes; 1 failed (1 failed, 209 passed in 4.81s)
+        test_a_set_of_the_value_already_shown_keeps_what_is_held
+MR1: a set stores the curve's own float32, not what Vital holds for it
+    src/patchbay_vital/instrument.py: 'held = record.to_preset(value.value)' -> 'held = min(max(record.curve.to_preset(value.value), record.scale.minimum), record.scale.ma'
+    must fail test_a_set_holds_the_value_vital_holds_which_need_not_be_the_nearest: yes; 5 failed (5 failed, 205 passed in 4.77s)
+        test_a_set_holds_the_value_vital_holds_which_need_not_be_the_nearest
+        test_a_value_between_steps_is_taken_and_the_nearest_step_held[chorus_voices 6]
+        test_a_value_between_steps_is_taken_and_the_nearest_step_held[chorus_voices 5]
+        test_a_value_between_steps_is_taken_and_the_nearest_step_held[oversampling 3]
+        test_an_off_grid_float_set_back_after_another_value_holds_its_neighbour
+ME1: a set publishes before the model is replaced
+    src/patchbay_vital/instrument.py: 'self._preset = self._holding(record, held)\n        self._bus.publish(' -> 'pending = self._holding(record, held)\n        else:\n            pending = self._preset\n   '
+    must fail test_contract_against_a_fake_plugin[set_emits_parameter_changed_once]: yes; 12 failed (12 failed, 198 passed in 4.69s)
+        test_contract_against_a_fake_plugin[get_after_set_returns_what_was_set]
+        test_contract_against_a_fake_plugin[set_emits_parameter_changed_once]
+        test_every_bound_of_every_parameter_comes_back_exactly
+        test_a_set_holds_the_value_vital_holds_which_need_not_be_the_nearest
+        test_a_value_between_steps_is_taken_and_the_nearest_step_held[chorus_voices 6]
+        test_a_value_between_steps_is_taken_and_the_nearest_step_held[chorus_voices 5]
+        and 6 more
+ML1: a load replaces the model before the plugin has taken the text
+    src/patchbay_vital/instrument.py: 'check_loadable(preset, self._map)\n        try:' -> 'check_loadable(preset, self._map)\n        self._preset = preset\n        try:'
+    must fail test_a_load_the_plugin_refuses_puts_the_model_s_text_back_and_is_refused_as_a_patch: yes; 2 failed (2 failed, 208 passed in 4.77s)
+        test_a_load_the_plugin_refuses_puts_the_model_s_text_back_and_is_refused_as_a_patch
+        test_a_plugin_that_refuses_the_model_s_own_text_too_is_the_host_s_error
+ML2: a load is made once
+    src/patchbay_vital/instrument.py: 'LOADS = 2' -> 'LOADS = 1'
+    must fail test_it_starts_on_the_start_preset_loaded_into_the_plugin_twice: yes; 2 failed (2 failed, 208 passed in 4.70s)
+        test_it_starts_on_the_start_preset_loaded_into_the_plugin_twice
+        test_a_load_the_plugin_refuses_puts_the_model_s_text_back_and_is_refused_as_a_patch
+ML3: PatchLoaded counts the preset's floats, not the patch's values
+    src/patchbay_vital/instrument.py: 'parameter_count=len(patch.values),' -> 'parameter_count=len(patch_of(preset).values),'
+    must fail test_parameter_count_is_the_number_of_values_in_the_patch_given: yes; 2 failed (2 failed, 208 passed in 4.78s)
+        test_a_patch_of_values_alone_loads_as_the_start_preset_with_those_values
+        test_parameter_count_is_the_number_of_values_in_the_patch_given
+MG1: the guard takes any synth_version that is digits and dots, a newer one too
+    src/patchbay_vital/instrument.py: 'if plugin is not None and version > plugin:' -> 'if plugin is not None and version > plugin and False:'
+    must fail test_a_preset_the_plugin_was_seen_not_to_load_whole_is_refused_before_it_is_called[a newer version]: yes; 2 failed (2 failed, 208 passed in 4.77s)
+        test_a_preset_the_plugin_was_seen_not_to_load_whole_is_refused_before_it_is_called[a newer version]
+        test_a_preset_the_plugin_was_seen_not_to_load_whole_is_refused_before_it_is_called[a much newer version]
+MG2: the guard does not count a section's entries
+    src/patchbay_vital/instrument.py: 'and len(section) == count' -> ''
+    must fail test_a_preset_the_plugin_was_seen_not_to_load_whole_is_refused_before_it_is_called[wavetables empty]: yes; 4 failed (4 failed, 206 passed in 4.75s)
+        test_a_preset_the_plugin_was_seen_not_to_load_whole_is_refused_before_it_is_called[wavetables empty]
+        test_a_preset_the_plugin_was_seen_not_to_load_whole_is_refused_before_it_is_called[two wavetables]
+        test_a_preset_the_plugin_was_seen_not_to_load_whole_is_refused_before_it_is_called[lfos empty]
+        test_every_refusal_is_the_package_s_error_and_core_s
+MG3: the guard takes any object as a sample
+    src/patchbay_vital/instrument.py: 'if not (isinstance(sample, dict) and sample.keys() >= _SAMPLE_KEYS):' -> 'if not isinstance(sample, dict):'
+    must fail test_a_preset_the_plugin_was_seen_not_to_load_whole_is_refused_before_it_is_called[a sample lacking a key]: yes; 1 failed (1 failed, 209 passed in 4.69s)
+        test_a_preset_the_plugin_was_seen_not_to_load_whole_is_refused_before_it_is_called[a sample lacking a key]
+MG4: the guard lets through a float whose display is no finite number
+    src/patchbay_vital/instrument.py: 'if held is not None and not math.isfinite(record.to_display(held)):' -> 'if held is not None and False:'
+    must fail test_a_preset_the_plugin_was_seen_not_to_load_whole_is_refused_before_it_is_called[a float whose display is no finite number]: yes; 1 failed (1 failed, 209 passed in 4.76s)
+        test_a_preset_the_plugin_was_seen_not_to_load_whole_is_refused_before_it_is_called[a float whose display is no finite number]
+MN1: a render of no samples is asked of the plugin
+    src/patchbay_vital/instrument.py: 'if samples == 0:' -> 'if samples < 0:'
+    must fail test_a_render_of_no_samples_is_an_empty_result_and_the_plugin_is_not_called: yes; 1 failed (1 failed, 209 passed in 4.72s)
+        test_a_render_of_no_samples_is_an_empty_result_and_the_plugin_is_not_called
+MN2: no limit on a render's length
+    src/patchbay_vital/instrument.py: 'if samples > MAX_SAMPLES:' -> 'if samples > MAX_SAMPLES * 2:'
+    must fail test_a_render_past_a_limit_is_refused_naming_the_limit_and_its_value[too long]: yes; 1 failed (1 failed, 209 passed in 4.69s)
+        test_a_render_past_a_limit_is_refused_naming_the_limit_and_its_value[too long]
+MN3: no limit on a render's rate
+    src/patchbay_vital/instrument.py: 'if not MIN_SAMPLE_RATE <= rate <= MAX_SAMPLE_RATE:' -> 'if rate < 1:'
+    must fail test_a_render_past_a_limit_is_refused_naming_the_limit_and_its_value[too fast a rate]: yes; 3 failed (3 failed, 207 passed in 4.70s)
+        test_a_render_past_a_limit_is_refused_naming_the_limit_and_its_value[too slow a rate]
+        test_a_render_past_a_limit_is_refused_naming_the_limit_and_its_value[too fast a rate]
+        test_every_refusal_is_the_package_s_error_and_core_s
+MN4: the warning is for a sample past full scale, not at it
+    src/patchbay_vital/instrument.py: 'if peak < FULL_SCALE:' -> 'if peak <= FULL_SCALE:'
+    must fail test_a_render_whose_largest_sample_is_exactly_full_scale_carries_the_warning: yes; 1 failed (1 failed, 209 passed in 4.77s)
+        test_a_render_whose_largest_sample_is_exactly_full_scale_carries_the_warning
+MP1: a float is put in values without checking that its display gives it back
+    src/patchbay_vital/patch.py: 'return value if _same(back, held) else None' -> 'return value'
+    must fail test_a_float_its_display_cannot_carry_rides_in_the_entry_though_it_is_in_range: yes; 3 failed (3 failed, 207 passed in 22.92s)
+        test_a_built_preset_comes_back_byte_for_byte_through_a_patch_and_through_json
+        test_a_float_its_display_cannot_carry_rides_in_the_entry_though_it_is_in_range
+        test_a_negative_zero_a_value_between_steps_and_a_key_that_is_no_parameter_are_kept
+MP2: a float outside its bounds is put in values
+    src/patchbay_vital/patch.py: 'check_value(record.parameter, value)\n        back = _float_of(record, value.value)' -> 'back = held if not record.scale.minimum <= held <= record.scale.maximum else _float_of(rec'
+    must fail test_a_float_outside_its_bounds_rides_in_the_entry_as_itself: yes; 6 failed (6 failed, 204 passed in 10.44s)
+        test_a_preset_holding_a_float_outside_its_bounds_is_shown_refused_on_set_and_carried
+        test_parameter_count_is_the_number_of_values_in_the_patch_given
+        test_a_built_preset_comes_back_byte_for_byte_through_a_patch_and_through_json
+        test_a_float_is_in_values_or_in_the_entry_and_never_in_both
+        test_a_float_outside_its_bounds_rides_in_the_entry_as_itself
+        test_a_parameter_carried_in_both_places_is_refused_by_name
+MP3: a parameter carried in both places is taken, the value winning
+    src/patchbay_vital/patch.py: 'if parameter_id in carried:' -> 'if parameter_id in carried and False:'
+    must fail test_a_parameter_carried_in_both_places_is_refused_by_name: yes; 1 failed (1 failed, 209 passed in 4.64s)
+        test_a_parameter_carried_in_both_places_is_refused_by_name
+MP4: a value between an indexed scale's steps is kept as the curve gives it
+    src/patchbay_vital/patch.py: 'if record.scale.kind == "indexed":' -> 'if record.scale.kind == "indexed" and False:'
+    must fail test_a_value_goes_to_the_float_a_preset_holds_for_it: yes; 2 failed (2 failed, 208 passed in 3.58s)
+        test_a_negative_zero_a_value_between_steps_and_a_key_that_is_no_parameter_are_kept
+        test_a_value_goes_to_the_float_a_preset_holds_for_it
+MP5: entries with no preset entry are taken as part of the start preset
+    src/patchbay_vital/patch.py: 'if entry is None and patch.opaque:' -> 'if entry is None and patch.opaque and False:'
+    must fail test_an_entry_without_the_preset_entry_it_belongs_to_is_refused: yes; 3 failed (3 failed, 207 passed in 4.70s)
+        test_an_entry_without_the_preset_entry_it_belongs_to_is_refused[settings.wavetables]
+        test_an_entry_without_the_preset_entry_it_belongs_to_is_refused[tuning]
+        test_an_entry_without_the_preset_entry_it_belongs_to_is_refused[line_mapping.1]
+MP6: the values are checked last id first
+    src/patchbay_vital/patch.py: 'for parameter_id, value in patch.values.items():' -> 'for parameter_id, value in reversed(patch.values.items()):'
+    must fail test_the_first_value_to_refuse_is_the_first_by_id: yes; 1 failed (1 failed, 209 passed in 4.55s)
+        test_the_first_value_to_refuse_is_the_first_by_id
+MP7: a wrong unit leaves as core's own error, not the package's
+    src/patchbay_vital/patch.py: 'raise ParameterUnitError(error.parameter_id, error.expected, error.given) from error' -> 'raise'
+    must fail test_a_value_is_checked_by_core_s_rule_and_refused_as_the_package_with_core_s_fields: yes; 6 failed (6 failed, 204 passed in 4.61s)
+        test_contract_against_a_fake_plugin[a_patch_refused_part_way_changes_nothing]
+        test_a_set_it_refuses_is_the_package_s_error_with_core_s_fields_and_core_s_error_its_cause
+        test_a_patch_refused_part_way_leaves_the_model_the_plugin_and_the_bus_as_they_were
+        test_every_refusal_is_the_package_s_error_and_core_s
+        test_a_value_that_refuses_names_its_key_and_is_chained_from_what_refused_it
+        test_a_value_is_checked_by_core_s_rule_and_refused_as_the_package_with_core_s_fields
+MM1: a MIDI time is the sample's own, not half a sample past
+    src/patchbay_vital/midi.py: '(2 * sample + 1) / doubled' -> '(2 * sample) / doubled'
+    must fail test_a_note_lands_on_the_sample_core_s_rule_gives_it: yes; 10 failed (10 failed, 235 passed in 43.91s)
+        test_a_render_sends_the_pattern_s_midi_and_gives_the_length_asked_for
+        test_a_note_is_a_note_on_and_a_note_off_of_three_bytes_each
+        test_a_time_is_half_a_sample_past_the_sample_core_s_rule_gives
+        test_events_come_in_time_order_whatever_order_the_notes_are_in
+        test_a_pitch_repeated_without_a_gap_is_released_before_it_is_struck_again
+        test_a_note_too_short_to_last_a_sample_is_struck_and_then_released
+        and 4 more
+MM2: events on one sample come in the pattern's order, ons and offs alike
+    src/patchbay_vital/midi.py: 'events.sort(key=lambda event: event[:3])' -> 'events.sort(key=lambda event: (event[0], event[2]))'
+    must fail test_a_pitch_repeated_without_a_gap_is_released_before_it_is_struck_again: yes; 2 failed (2 failed, 208 passed in 4.65s)
+        test_a_pitch_repeated_without_a_gap_is_released_before_it_is_struck_again
+        test_a_note_too_short_to_last_a_sample_is_struck_and_then_released
+MM3: a note that starts at the render's length is sent
+    src/patchbay_vital/midi.py: 'if start >= length:' -> 'if start > length:'
+    must fail test_a_note_that_starts_at_the_render_s_length_is_left_out_whole: yes; 2 failed (2 failed, 208 passed in 4.65s)
+        test_a_note_that_starts_at_the_render_s_length_is_left_out_whole
+        test_a_pattern_of_no_notes_and_a_render_of_no_samples_give_no_midi
+MM4: a note-off at the render's length is sent
+    src/patchbay_vital/midi.py: 'if end < length:' -> 'if end <= length:'
+    must fail test_a_note_off_at_the_render_s_length_is_left_out_and_the_note_on_kept: yes; 1 failed (1 failed, 209 passed in 4.64s)
+        test_a_note_off_at_the_render_s_length_is_left_out_and_the_note_on_kept
+MS1: the committed start preset holds one float that is not the map's default
+    src/patchbay_vital/data/start.vital: '"beats_per_minute":2.0,' -> '"beats_per_minute":2.5,'
+    must fail test_the_committed_file_is_what_the_package_writes_from_the_committed_map: yes; 4 failed (4 failed, 206 passed in 4.66s)
+        test_get_is_the_display_of_the_model_s_float_and_a_default_where_the_key_is_absent
+        test_the_committed_file_is_what_the_package_writes_from_the_committed_map
+        test_every_float_is_the_map_s_default
+        test_the_three_committed_files_are_what_the_census_writes_from_the_committed_map
+MS2: the generator writes a wavetable that is not the ramp
+    src/patchbay_vital/start.py: 'samples = (index / 1024 - 1 for index in range(WAVETABLE_SAMPLES))' -> 'samples = (index / 2048 - 0.5 for index in range(WAVETABLE_SAMPLES))'
+    must fail test_the_committed_file_is_what_the_package_writes_from_the_committed_map: yes; 2 failed (2 failed, 208 passed in 4.63s)
+        test_the_committed_file_is_what_the_package_writes_from_the_committed_map
+        test_the_three_committed_files_are_what_the_census_writes_from_the_committed_map
+MC1: the census writes the key list and the map and not the start preset
+    src/patchbay_vital/census.py: 'arguments.start: start_text(built).encode("utf-8"),' -> ''
+    must fail test_the_census_writes_its_three_files_and_names_a_parameter_it_cannot_fit: yes; 2 failed (2 failed, 208 passed in 4.63s)
+        test_the_census_writes_its_three_files_and_names_a_parameter_it_cannot_fit
+        test_a_rename_failing_at_the_start_preset_puts_the_key_list_and_the_map_back
+MX1: the entry point names another object
+    pyproject.toml: 'vital = "patchbay_vital.instrument:VitalInstrument"' -> 'vital = "patchbay_vital.host:VitalHost"'
+    must fail test_the_distribution_registers_the_instrument_under_vital: yes; 1 failed (1 failed, 209 passed in 4.62s)
+        test_the_distribution_registers_the_instrument_under_vital
+MV1: a load is made once, against the installed Vital
+    src/patchbay_vital/instrument.py: 'LOADS = 2' -> 'LOADS = 1'
+    must fail test_the_next_instrument_starts_clean: yes; 3 failed (3 failed, 32 passed in 17.90s)
+        test_the_next_instrument_starts_clean
+        test_one_load_after_a_set_leaves_the_off_grid_floats_off_and_a_second_holds_them
+        test_two_loads_leave_only_what_vital_makes_of_an_older_preset_and_a_third_changes_none
+the tree unmutated again, in the copy:
+    (210 passed in 4.58s)
+30 mutants, 0 survived
+exit=0
+exit=0
+
+the tree after the run:
+  HEAD e3e601781f32d2058f4793895c47c12fe2793385
+  git status --porcelain=v1 --untracked-files=all, 40 lines:
+     M CHANGELOG.md
+     M README.md
+     M agent-os/product/mission.md
+     M agent-os/standards/index.yml
+     M agent-os/standards/vital/measures.md
+     M agent-os/standards/vital/parameter-map.md
+     M agent-os/standards/vital/plugin-state.md
+     M agent-os/standards/vital/preset-tests.md
+     M pyproject.toml
+     M src/patchbay_vital/__init__.py
+     M src/patchbay_vital/census.py
+     M src/patchbay_vital/errors.py
+     M tests/integration/test_factory_round_trip.py
+     M tests/integration/test_vital_plugin.py
+     M tests/unit/test_census.py
+     M tests/unit/test_errors.py
+     M tests/unit/test_package.py
+    ?? agent-os/specs/2026-11-15-1448-the-instrument/plan.md
+    ?? agent-os/specs/2026-11-15-1448-the-instrument/references.md
+    ?? agent-os/specs/2026-11-15-1448-the-instrument/shape.md
+    ?? agent-os/specs/2026-11-15-1448-the-instrument/standards.md
+    ?? agent-os/specs/2026-11-15-1448-the-instrument/verification/carrying-count.txt
+    ?? agent-os/specs/2026-11-15-1448-the-instrument/verification/contract-run.txt
+    ?? agent-os/specs/2026-11-15-1448-the-instrument/verification/mutation.txt
+    ?? agent-os/specs/2026-11-15-1448-the-instrument/verification/off-grid-count.txt
+    ?? agent-os/specs/2026-11-15-1448-the-instrument/verification/probes-2.txt
+    ?? agent-os/specs/2026-11-15-1448-the-instrument/verification/probes.txt
+    ?? agent-os/specs/2026-11-15-1448-the-instrument/verification/wheel-contents.txt
+    ?? agent-os/standards/vital/instrument.md
+    ?? src/patchbay_vital/data/start.vital
+    ?? src/patchbay_vital/instrument.py
+    ?? src/patchbay_vital/midi.py
+    ?? src/patchbay_vital/patch.py
+    ?? src/patchbay_vital/start.py
+    ?? tests/data/upgraded-floats.txt
+    ?? tests/integration/test_vital_instrument.py
+    ?? tests/unit/test_instrument.py
+    ?? tests/unit/test_midi.py
+    ?? tests/unit/test_patch.py
+    ?? tests/unit/test_start.py
+  git hash-object of each of those paths (a deleted one marked so):
+    7bb917977d9baab41d3ca0c65bdcf266af04d4b4  CHANGELOG.md
+    d58671b909be52a417d16e84b5cb03e20d011794  README.md
+    b15907bd6164e024da3fd658a471f15291db42ba  agent-os/product/mission.md
+    a3dddc9d28d9bef006b9e54b7e3eff2d176c7880  agent-os/specs/2026-11-15-1448-the-instrument/plan.md
+    db8c75d636b2346f03102ed5287a0d961684ab81  agent-os/specs/2026-11-15-1448-the-instrument/references.md
+    9eac4cd09d30052aeef99352f356eb07ecc30662  agent-os/specs/2026-11-15-1448-the-instrument/shape.md
+    6689f2ad25d6eb9c361366cb26f41d8e9a91b663  agent-os/specs/2026-11-15-1448-the-instrument/standards.md
+    02d9ff449bddf37ddece41f0df463893d8eb442a  agent-os/specs/2026-11-15-1448-the-instrument/verification/carrying-count.txt
+    7dca88aa007c3828ddfc8400b7cc480771876a8f  agent-os/specs/2026-11-15-1448-the-instrument/verification/contract-run.txt
+    5ed4bad256c956c15812c71b84fa344205089558  agent-os/specs/2026-11-15-1448-the-instrument/verification/mutation.txt
+    7afcdd00049f36ad8c6c82a0308d394826fd1611  agent-os/specs/2026-11-15-1448-the-instrument/verification/off-grid-count.txt
+    b084a1f0d2f34c5f5d6c7c0a3d22d0665f35638b  agent-os/specs/2026-11-15-1448-the-instrument/verification/probes-2.txt
+    86c080df2c0dc6414b3146ebaf8413f8423afabb  agent-os/specs/2026-11-15-1448-the-instrument/verification/probes.txt
+    53d49cd24a05f3fba83c19480614b6400f444c4a  agent-os/specs/2026-11-15-1448-the-instrument/verification/wheel-contents.txt
+    93cf8717cec6326aeb657cad144a0da7eb41f94c  agent-os/standards/index.yml
+    07609985c57af23b50ef29934203f3f8435d77c8  agent-os/standards/vital/instrument.md
+    dc7f40608620feadb0ed2e1dba9c4872b8426360  agent-os/standards/vital/measures.md
+    20e584e2e5b046a30488d097b7019294c4f4c943  agent-os/standards/vital/parameter-map.md
+    1c3eb42e211b13cf89ad0bcef3bdec06bb12cf1e  agent-os/standards/vital/plugin-state.md
+    825a937c2378cf556458182c3052eb02e9925214  agent-os/standards/vital/preset-tests.md
+    4c644450b7d9c61d26001191cd7ad091da89ad94  pyproject.toml
+    ae306f8a4ab8ebcc1e206ba17226fadf0ddf4add  src/patchbay_vital/__init__.py
+    ee9ecbb7cc00b4b63612ae74ff8770411b357e8b  src/patchbay_vital/census.py
+    95e8053ccc855bd9ff4ab4405314930244db3127  src/patchbay_vital/data/start.vital
+    d8c0e345a68411ebe2db537802671269fc709cf3  src/patchbay_vital/errors.py
+    186260668d85ae8a76d3496ebf7f193a4428ce38  src/patchbay_vital/instrument.py
+    d9097431e624deb685e71b4e262b5d8c074e7da3  src/patchbay_vital/midi.py
+    1e8bb9c3da7ecc87cff7c6df747672374488ac77  src/patchbay_vital/patch.py
+    8d8f935855cf1f0f807ed820db1242bf910d9886  src/patchbay_vital/start.py
+    1be64823e7837e6001447e992be89206151618ee  tests/data/upgraded-floats.txt
+    1cc2b8444e9c39b50ebe3781121a1f53c22eef60  tests/integration/test_factory_round_trip.py
+    79afbfdd831585dff450d02a2e309a5238084d02  tests/integration/test_vital_instrument.py
+    05224f6051e761513857cda9fc0cf86323f4c8a7  tests/integration/test_vital_plugin.py
+    5356f56f7be745ddff42ffe2ca20912f2df192b3  tests/unit/test_census.py
+    d82627e9c3095ef6c94232ab633600de5bc0275d  tests/unit/test_errors.py
+    b0119dae1a32c93ee496932ce69e5535a6877508  tests/unit/test_instrument.py
+    2b71e30fb68964d45dfe312a0fb6f1bbc37f8642  tests/unit/test_midi.py
+    cd8ca88fdbd9f54335fa70731387ff1502bcab2b  tests/unit/test_package.py
+    8f0a92f5b84409802e470a7bab19cf2053cb35d0  tests/unit/test_patch.py
+    e273b105262f59300906e1623f78abacc62ab467  tests/unit/test_start.py
+cmp: the tree after the run is the tree before it
+the machine after the run: arm64, Apple M4 Pro, 14 cores, macOS 26.6.2 (25G83), Python 3.12.16, load 3.31 3.43 3.28, at 2026-11-16 08:53 EST
+
+the scripts this run used, each embedded below with its blob:
+    3e35c4afeb87606d6ea9dbed8a2e77161d636cd2  <scratchpad>/i8/mutate.sh
+    e73009bf0a12978c30fe4f75ec52b5d6067ad5f3  <scratchpad>/i8/mutate.py
+    e4c1a40cc3893ab50df6717e5a18e2a755914efd  <scratchpad>/i8/tree.sh
+    0dde01b338e9dbc221abc7e0d9b87bcf21acf1cf  <scratchpad>/i8/machine.sh
+    f8023912221e095058a44e333af070ed5593e897  <scratchpad>/i8/transcript.sh
+
+--- <scratchpad>/i8/mutate.sh
+```
+#!/usr/bin/env bash
+# usage: mutate.sh   (from the repository root): copy what git lists into a scratch directory, sync it, run the mutants there.
+set -uo pipefail
+R=$(cd "$(dirname "$0")" && pwd)
+COPY="$R/mut/patchbay-vital"
+rm -rf "$R/mut"; mkdir -p "$COPY"
+git ls-files -z --cached --others --exclude-standard | while IFS= read -r -d '' f; do
+  [ -e "$f" ] || continue
+  mkdir -p "$COPY/$(dirname "$f")" && cp -p "$f" "$COPY/$f"
+done
+echo "the scratch copy holds $(find "$COPY" -type f | wc -l | tr -d ' ') files, what git lists of the tree; it is outside the tree and nothing in the tree is changed"
+(cd "$COPY" && uv sync --locked 2>&1 | tail -2)
+uv run --locked python -u -B "$R/mutate.py" "$COPY"
+echo "exit=$?"
+```
+
+--- <scratchpad>/i8/mutate.py
+```
+"""One mutant per decided rule, each on a scratch copy of the tree, each failing a test by name.
+
+usage: mutate.py <the scratch copy>. Each mutant replaces one piece of text in one file of the
+copy, which must hold that text exactly once, runs the tests named, prints the tests that fail,
+and puts the file back. A mutant that fails no test, or fails none of the tests it names, is
+printed as SURVIVED and counted.
+"""
+
+import re
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+COPY = Path(sys.argv[1])
+INSTRUMENT = "src/patchbay_vital/instrument.py"
+PATCH = "src/patchbay_vital/patch.py"
+MIDI = "src/patchbay_vital/midi.py"
+UNIT = ["tests/unit/test_instrument.py", "tests/unit/test_patch.py", "tests/unit/test_midi.py", "tests/unit/test_start.py", "tests/unit/test_census.py", "tests/unit/test_package.py", "tests/unit/test_errors.py"]
+VITAL = ["tests/integration/test_vital_instrument.py"]
+
+# (id, what the mutant does, file, the text replaced, the replacement, tests run, a test it must fail)
+MUTANTS = [
+    ("MK1", "a set of the value already shown is carried out like any other (the keep rule gone)", INSTRUMENT,
+     "        if value.value != old.value:\n", "        if True:\n", UNIT,
+     "test_a_set_of_the_value_already_shown_keeps_what_is_held"),
+    ("MR1", "a set stores the curve's own float32, not what Vital holds for it", INSTRUMENT,
+     "            held = record.to_preset(value.value)\n",
+     "            held = min(max(record.curve.to_preset(value.value), record.scale.minimum), record.scale.maximum)\n", UNIT,
+     "test_a_set_holds_the_value_vital_holds_which_need_not_be_the_nearest"),
+    ("ME1", "a set publishes before the model is replaced", INSTRUMENT,
+     "            self._preset = self._holding(record, held)\n        self._bus.publish(",
+     "            pending = self._holding(record, held)\n        else:\n            pending = self._preset\n        self._bus.publish(", UNIT,
+     "test_contract_against_a_fake_plugin[set_emits_parameter_changed_once]"),
+    ("ML1", "a load replaces the model before the plugin has taken the text", INSTRUMENT,
+     "        check_loadable(preset, self._map)\n        try:\n", "        check_loadable(preset, self._map)\n        self._preset = preset\n        try:\n", UNIT,
+     "test_a_load_the_plugin_refuses_puts_the_model_s_text_back_and_is_refused_as_a_patch"),
+    ("ML2", "a load is made once", INSTRUMENT, "LOADS = 2\n", "LOADS = 1\n", UNIT,
+     "test_it_starts_on_the_start_preset_loaded_into_the_plugin_twice"),
+    ("ML3", "PatchLoaded counts the preset's floats, not the patch's values", INSTRUMENT,
+     "                parameter_count=len(patch.values),\n", "                parameter_count=len(patch_of(preset).values),\n", UNIT,
+     "test_parameter_count_is_the_number_of_values_in_the_patch_given"),
+    ("MG1", "the guard takes any synth_version that is digits and dots, a newer one too", INSTRUMENT,
+     "    if plugin is not None and version > plugin:\n", "    if plugin is not None and version > plugin and False:\n", UNIT,
+     "test_a_preset_the_plugin_was_seen_not_to_load_whole_is_refused_before_it_is_called[a newer version]"),
+    ("MG2", "the guard does not count a section's entries", INSTRUMENT,
+     "            and len(section) == count\n", "", UNIT,
+     "test_a_preset_the_plugin_was_seen_not_to_load_whole_is_refused_before_it_is_called[wavetables empty]"),
+    ("MG3", "the guard takes any object as a sample", INSTRUMENT,
+     "    if not (isinstance(sample, dict) and sample.keys() >= _SAMPLE_KEYS):\n", "    if not isinstance(sample, dict):\n", UNIT,
+     "test_a_preset_the_plugin_was_seen_not_to_load_whole_is_refused_before_it_is_called[a sample lacking a key]"),
+    ("MG4", "the guard lets through a float whose display is no finite number", INSTRUMENT,
+     "        if held is not None and not math.isfinite(record.to_display(held)):\n", "        if held is not None and False:\n", UNIT,
+     "test_a_preset_the_plugin_was_seen_not_to_load_whole_is_refused_before_it_is_called[a float whose display is no finite number]"),
+    ("MN1", "a render of no samples is asked of the plugin", INSTRUMENT,
+     "        if samples == 0:\n", "        if samples < 0:\n", UNIT,
+     "test_a_render_of_no_samples_is_an_empty_result_and_the_plugin_is_not_called"),
+    ("MN2", "no limit on a render's length", INSTRUMENT,
+     "        if samples > MAX_SAMPLES:\n", "        if samples > MAX_SAMPLES * 2:\n", UNIT,
+     "test_a_render_past_a_limit_is_refused_naming_the_limit_and_its_value[too long]"),
+    ("MN3", "no limit on a render's rate", INSTRUMENT,
+     "        if not MIN_SAMPLE_RATE <= rate <= MAX_SAMPLE_RATE:\n", "        if rate < 1:\n", UNIT,
+     "test_a_render_past_a_limit_is_refused_naming_the_limit_and_its_value[too fast a rate]"),
+    ("MN4", "the warning is for a sample past full scale, not at it", INSTRUMENT,
+     "    if peak < FULL_SCALE:\n", "    if peak <= FULL_SCALE:\n", UNIT,
+     "test_a_render_whose_largest_sample_is_exactly_full_scale_carries_the_warning"),
+    ("MP1", "a float is put in values without checking that its display gives it back", PATCH,
+     "    return value if _same(back, held) else None\n", "    return value\n", UNIT,
+     "test_a_float_its_display_cannot_carry_rides_in_the_entry_though_it_is_in_range"),
+    ("MP2", "a float outside its bounds is put in values", PATCH,
+     "        check_value(record.parameter, value)\n        back = _float_of(record, value.value)\n",
+     "        back = held if not record.scale.minimum <= held <= record.scale.maximum else _float_of(record, value.value)\n", UNIT,
+     "test_a_float_outside_its_bounds_rides_in_the_entry_as_itself"),
+    ("MP3", "a parameter carried in both places is taken, the value winning", PATCH,
+     "            if parameter_id in carried:\n", "            if parameter_id in carried and False:\n", UNIT,
+     "test_a_parameter_carried_in_both_places_is_refused_by_name"),
+    ("MP4", "a value between an indexed scale's steps is kept as the curve gives it", PATCH,
+     "    if record.scale.kind == \"indexed\":\n", "    if record.scale.kind == \"indexed\" and False:\n", UNIT,
+     "test_a_value_goes_to_the_float_a_preset_holds_for_it"),
+    ("MP5", "entries with no preset entry are taken as part of the start preset", PATCH,
+     "    if entry is None and patch.opaque:\n", "    if entry is None and patch.opaque and False:\n", UNIT,
+     "test_an_entry_without_the_preset_entry_it_belongs_to_is_refused"),
+    ("MP6", "the values are checked last id first", PATCH,
+     "    for parameter_id, value in patch.values.items():\n", "    for parameter_id, value in reversed(patch.values.items()):\n", UNIT,
+     "test_the_first_value_to_refuse_is_the_first_by_id"),
+    ("MP7", "a wrong unit leaves as core's own error, not the package's", PATCH,
+     "        raise ParameterUnitError(error.parameter_id, error.expected, error.given) from error\n", "        raise\n", UNIT,
+     "test_a_value_is_checked_by_core_s_rule_and_refused_as_the_package_with_core_s_fields"),
+    ("MM1", "a MIDI time is the sample's own, not half a sample past", MIDI,
+     "(2 * sample + 1) / doubled", "(2 * sample) / doubled", UNIT + VITAL,
+     "test_a_note_lands_on_the_sample_core_s_rule_gives_it"),
+    ("MM2", "events on one sample come in the pattern's order, ons and offs alike", MIDI,
+     "    events.sort(key=lambda event: event[:3])\n", "    events.sort(key=lambda event: (event[0], event[2]))\n", UNIT,
+     "test_a_pitch_repeated_without_a_gap_is_released_before_it_is_struck_again"),
+    ("MM3", "a note that starts at the render's length is sent", MIDI,
+     "        if start >= length:\n", "        if start > length:\n", UNIT,
+     "test_a_note_that_starts_at_the_render_s_length_is_left_out_whole"),
+    ("MM4", "a note-off at the render's length is sent", MIDI,
+     "        if end < length:\n", "        if end <= length:\n", UNIT,
+     "test_a_note_off_at_the_render_s_length_is_left_out_and_the_note_on_kept"),
+    ("MS1", "the committed start preset holds one float that is not the map's default", "src/patchbay_vital/data/start.vital",
+     '"beats_per_minute":2.0,', '"beats_per_minute":2.5,', UNIT,
+     "test_the_committed_file_is_what_the_package_writes_from_the_committed_map"),
+    ("MS2", "the generator writes a wavetable that is not the ramp", "src/patchbay_vital/start.py",
+     "    samples = (index / 1024 - 1 for index in range(WAVETABLE_SAMPLES))\n", "    samples = (index / 2048 - 0.5 for index in range(WAVETABLE_SAMPLES))\n", UNIT,
+     "test_the_committed_file_is_what_the_package_writes_from_the_committed_map"),
+    ("MC1", "the census writes the key list and the map and not the start preset", "src/patchbay_vital/census.py",
+     '                arguments.start: start_text(built).encode("utf-8"),\n', "", UNIT,
+     "test_the_census_writes_its_three_files_and_names_a_parameter_it_cannot_fit"),
+    ("MX1", "the entry point names another object", "pyproject.toml",
+     'vital = "patchbay_vital.instrument:VitalInstrument"', 'vital = "patchbay_vital.host:VitalHost"', UNIT,
+     "test_the_distribution_registers_the_instrument_under_vital"),
+    ("MV1", "a load is made once, against the installed Vital", INSTRUMENT, "LOADS = 2\n", "LOADS = 1\n", VITAL,
+     "test_the_next_instrument_starts_clean"),
+]
+
+
+def run(tests: list[str]) -> list[str]:
+    command = ["uv", "run", "--locked", "pytest", "-c", "pyproject.toml", "-p", "no:doctest", "-p", "no:cacheprovider", "-rfE", "--no-header", *tests]
+    done = subprocess.run(command, cwd=COPY, capture_output=True, text=True, check=False)
+    # a parametrized test's id can hold spaces, so a name runs to the " - " before its reason
+    failed = re.findall(r"^(?:FAILED|ERROR) (.+?)(?: - .*)?$", done.stdout, flags=re.MULTILINE)
+    tail = done.stdout.strip().splitlines()[-1] if done.stdout.strip() else done.stderr.strip()[-200:]
+    return [name.split("::", 1)[1] if "::" in name else name for name in failed] + [f"({tail})"]
+
+
+print("the tree unmutated, in the copy:")
+print("   ", run(UNIT + VITAL)[-1])
+survived = 0
+for name, what, file, old, new, tests, must_fail in MUTANTS:
+    path = COPY / file
+    kept = path.read_bytes()
+    text = kept.decode("utf-8")
+    if text.count(old) != 1:
+        print(f"{name}: THE TEXT TO REPLACE IS THERE {text.count(old)} TIMES, not once: {old!r}")
+        survived += 1
+        continue
+    path.write_text(text.replace(old, new), encoding="utf-8")
+    if file == "pyproject.toml":
+        subprocess.run(["uv", "sync", "--locked"], cwd=COPY, capture_output=True, check=False)
+    *failed, tail = run(tests)
+    path.write_bytes(kept)
+    if file == "pyproject.toml":
+        subprocess.run(["uv", "sync", "--locked"], cwd=COPY, capture_output=True, check=False)
+    caught = any(must_fail in test for test in failed)
+    survived += not caught
+    print(f"{name}: {what}")
+    print(f"    {file}: {old.strip()[:90]!r} -> {new.strip()[:90]!r}")
+    print(f"    must fail {must_fail}: {'yes' if caught else 'NO, SURVIVED'}; {len(failed)} failed {tail}")
+    for test in failed[:6]:
+        print(f"        {test}")
+    if len(failed) > 6:
+        print(f"        and {len(failed) - 6} more")
+print("the tree unmutated again, in the copy:")
+print("   ", run(UNIT)[-1])
+print(f"{len(MUTANTS)} mutants, {survived} survived")
+shutil.rmtree(COPY / ".venv", ignore_errors=True)
+```
+
+--- <scratchpad>/i8/tree.sh
+```
+#!/usr/bin/env bash
+# usage: tree.sh   (run from the repository root)
+# Prints HEAD, git's status of the work tree and the blob of every path that status names, so two
+# calls can be compared with cmp: the tree a run read, and the tree it left.
+set -euo pipefail
+echo "  HEAD $(git rev-parse HEAD)"
+git status --porcelain=v1 --untracked-files=all > "${TMPDIR:-/tmp}/tree.$$"
+echo "  git status --porcelain=v1 --untracked-files=all, $(wc -l < "${TMPDIR:-/tmp}/tree.$$" | tr -d ' ') lines:"
+sed 's/^/    /' "${TMPDIR:-/tmp}/tree.$$"
+echo "  git hash-object of each of those paths (a deleted one marked so):"
+cut -c4- "${TMPDIR:-/tmp}/tree.$$" | LC_ALL=C sort | while IFS= read -r path; do
+  if [ -e "$path" ]; then echo "    $(git hash-object "$path")  $path"; else echo "    (deleted)  $path"; fi
+done
+rm -f "${TMPDIR:-/tmp}/tree.$$"
+```
+
+--- <scratchpad>/i8/machine.sh
+```
+#!/usr/bin/env bash
+# usage: machine.sh   Prints one line: the machine, its system, the locked Python and the load.
+set -euo pipefail
+echo "$(uname -m), $(sysctl -n machdep.cpu.brand_string), $(sysctl -n hw.ncpu) cores, macOS $(sw_vers -productVersion) ($(sw_vers -buildVersion)), Python $(uv run --locked python -c 'import platform; print(platform.python_version())'), load $(sysctl -n vm.loadavg | tr -d '{}' | xargs), at $(date '+%Y-%m-%d %H:%M %Z')"
+```
+
+--- <scratchpad>/i8/transcript.sh
+```
+#!/usr/bin/env bash
+# usage: transcript.sh <out file> <title> <script to embed>... -- <command...>   (from the repository root)
+# Writes one transcript outside the tree: its date and branch, the machine and the tree before,
+# the command's whole output, the tree and the machine after, the two trees compared, and every
+# script it ran, embedded. The caller copies the file into the spec's verification/ afterwards.
+set -uo pipefail
+R=$(cd "$(dirname "$0")" && pwd)
+out=$1; title=$2; shift 2
+scripts=()
+while [ "$1" != "--" ]; do scripts+=("$1"); shift; done
+shift
+{
+  echo "$title, run $(date '+%Y-%m-%d %H:%M %Z') on branch"
+  echo "$(git branch --show-current), Vital at /Library/Audio/Plug-Ins/VST3/Vital.vst3"
+  echo "the machine before the run: $(bash "$R/machine.sh")"
+  echo "the tree before the run (this transcript is written outside the tree and copied in afterwards):"
+  bash "$R/tree.sh" | tee "$R/out/tree-before.txt"
+  echo
+  echo "\$ $*"
+  "$@" 2>&1
+  echo "exit=$?"
+  echo
+  echo "the tree after the run:"
+  bash "$R/tree.sh" | tee "$R/out/tree-after.txt"
+  if cmp -s "$R/out/tree-before.txt" "$R/out/tree-after.txt"; then echo "cmp: the tree after the run is the tree before it"; else echo "cmp: THE TREE CHANGED DURING THE RUN"; fi
+  echo "the machine after the run: $(bash "$R/machine.sh")"
+  echo
+  echo "the scripts this run used, each embedded below with its blob:"
+  for s in "${scripts[@]}" "$R/tree.sh" "$R/machine.sh" "$R/transcript.sh"; do echo "    $(git hash-object "$s")  <scratchpad>/i8/$(basename "$s")"; done
+  for s in "${scripts[@]}" "$R/tree.sh" "$R/machine.sh" "$R/transcript.sh"; do
+    echo; echo "--- <scratchpad>/i8/$(basename "$s")"; echo '```'; cat "$s"; echo '```'
+  done
+} > "$out"
+```

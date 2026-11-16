@@ -1,0 +1,404 @@
+The instrument spec (issue #8): core's thirteen contract tests against the installed Vital, on the module's one Vital and on a fresh one each, and over the fake plugin, run 2026-11-16 08:47 EST on branch
+feature/8-the-instrument-vitalinstrument-over-vitalhost-patchvitalpreset-and-cores-contract-tests-against-a-real-vital-spec-b-of-7, Vital at /Library/Audio/Plug-Ins/VST3/Vital.vst3
+the machine before the run: arm64, Apple M4 Pro, 14 cores, macOS 26.6.2 (25G83), Python 3.12.16, load 2.51 2.93 3.09, at 2026-11-16 08:47 EST
+the tree before the run (this transcript is written outside the tree and copied in afterwards):
+  HEAD e3e601781f32d2058f4793895c47c12fe2793385
+  git status --porcelain=v1 --untracked-files=all, 40 lines:
+     M CHANGELOG.md
+     M README.md
+     M agent-os/product/mission.md
+     M agent-os/standards/index.yml
+     M agent-os/standards/vital/measures.md
+     M agent-os/standards/vital/parameter-map.md
+     M agent-os/standards/vital/plugin-state.md
+     M agent-os/standards/vital/preset-tests.md
+     M pyproject.toml
+     M src/patchbay_vital/__init__.py
+     M src/patchbay_vital/census.py
+     M src/patchbay_vital/errors.py
+     M tests/integration/test_factory_round_trip.py
+     M tests/integration/test_vital_plugin.py
+     M tests/unit/test_census.py
+     M tests/unit/test_errors.py
+     M tests/unit/test_package.py
+    ?? agent-os/specs/2026-11-15-1448-the-instrument/plan.md
+    ?? agent-os/specs/2026-11-15-1448-the-instrument/references.md
+    ?? agent-os/specs/2026-11-15-1448-the-instrument/shape.md
+    ?? agent-os/specs/2026-11-15-1448-the-instrument/standards.md
+    ?? agent-os/specs/2026-11-15-1448-the-instrument/verification/carrying-count.txt
+    ?? agent-os/specs/2026-11-15-1448-the-instrument/verification/contract-run.txt
+    ?? agent-os/specs/2026-11-15-1448-the-instrument/verification/mutation.txt
+    ?? agent-os/specs/2026-11-15-1448-the-instrument/verification/off-grid-count.txt
+    ?? agent-os/specs/2026-11-15-1448-the-instrument/verification/probes-2.txt
+    ?? agent-os/specs/2026-11-15-1448-the-instrument/verification/probes.txt
+    ?? agent-os/specs/2026-11-15-1448-the-instrument/verification/wheel-contents.txt
+    ?? agent-os/standards/vital/instrument.md
+    ?? src/patchbay_vital/data/start.vital
+    ?? src/patchbay_vital/instrument.py
+    ?? src/patchbay_vital/midi.py
+    ?? src/patchbay_vital/patch.py
+    ?? src/patchbay_vital/start.py
+    ?? tests/data/upgraded-floats.txt
+    ?? tests/integration/test_vital_instrument.py
+    ?? tests/unit/test_instrument.py
+    ?? tests/unit/test_midi.py
+    ?? tests/unit/test_patch.py
+    ?? tests/unit/test_start.py
+  git hash-object of each of those paths (a deleted one marked so):
+    7bb917977d9baab41d3ca0c65bdcf266af04d4b4  CHANGELOG.md
+    d58671b909be52a417d16e84b5cb03e20d011794  README.md
+    b15907bd6164e024da3fd658a471f15291db42ba  agent-os/product/mission.md
+    a3dddc9d28d9bef006b9e54b7e3eff2d176c7880  agent-os/specs/2026-11-15-1448-the-instrument/plan.md
+    db8c75d636b2346f03102ed5287a0d961684ab81  agent-os/specs/2026-11-15-1448-the-instrument/references.md
+    9eac4cd09d30052aeef99352f356eb07ecc30662  agent-os/specs/2026-11-15-1448-the-instrument/shape.md
+    6689f2ad25d6eb9c361366cb26f41d8e9a91b663  agent-os/specs/2026-11-15-1448-the-instrument/standards.md
+    02d9ff449bddf37ddece41f0df463893d8eb442a  agent-os/specs/2026-11-15-1448-the-instrument/verification/carrying-count.txt
+    7dca88aa007c3828ddfc8400b7cc480771876a8f  agent-os/specs/2026-11-15-1448-the-instrument/verification/contract-run.txt
+    5ed4bad256c956c15812c71b84fa344205089558  agent-os/specs/2026-11-15-1448-the-instrument/verification/mutation.txt
+    7afcdd00049f36ad8c6c82a0308d394826fd1611  agent-os/specs/2026-11-15-1448-the-instrument/verification/off-grid-count.txt
+    b084a1f0d2f34c5f5d6c7c0a3d22d0665f35638b  agent-os/specs/2026-11-15-1448-the-instrument/verification/probes-2.txt
+    86c080df2c0dc6414b3146ebaf8413f8423afabb  agent-os/specs/2026-11-15-1448-the-instrument/verification/probes.txt
+    53d49cd24a05f3fba83c19480614b6400f444c4a  agent-os/specs/2026-11-15-1448-the-instrument/verification/wheel-contents.txt
+    93cf8717cec6326aeb657cad144a0da7eb41f94c  agent-os/standards/index.yml
+    07609985c57af23b50ef29934203f3f8435d77c8  agent-os/standards/vital/instrument.md
+    dc7f40608620feadb0ed2e1dba9c4872b8426360  agent-os/standards/vital/measures.md
+    20e584e2e5b046a30488d097b7019294c4f4c943  agent-os/standards/vital/parameter-map.md
+    1c3eb42e211b13cf89ad0bcef3bdec06bb12cf1e  agent-os/standards/vital/plugin-state.md
+    825a937c2378cf556458182c3052eb02e9925214  agent-os/standards/vital/preset-tests.md
+    4c644450b7d9c61d26001191cd7ad091da89ad94  pyproject.toml
+    ae306f8a4ab8ebcc1e206ba17226fadf0ddf4add  src/patchbay_vital/__init__.py
+    ee9ecbb7cc00b4b63612ae74ff8770411b357e8b  src/patchbay_vital/census.py
+    95e8053ccc855bd9ff4ab4405314930244db3127  src/patchbay_vital/data/start.vital
+    d8c0e345a68411ebe2db537802671269fc709cf3  src/patchbay_vital/errors.py
+    186260668d85ae8a76d3496ebf7f193a4428ce38  src/patchbay_vital/instrument.py
+    d9097431e624deb685e71b4e262b5d8c074e7da3  src/patchbay_vital/midi.py
+    1e8bb9c3da7ecc87cff7c6df747672374488ac77  src/patchbay_vital/patch.py
+    8d8f935855cf1f0f807ed820db1242bf910d9886  src/patchbay_vital/start.py
+    1be64823e7837e6001447e992be89206151618ee  tests/data/upgraded-floats.txt
+    1cc2b8444e9c39b50ebe3781121a1f53c22eef60  tests/integration/test_factory_round_trip.py
+    79afbfdd831585dff450d02a2e309a5238084d02  tests/integration/test_vital_instrument.py
+    05224f6051e761513857cda9fc0cf86323f4c8a7  tests/integration/test_vital_plugin.py
+    5356f56f7be745ddff42ffe2ca20912f2df192b3  tests/unit/test_census.py
+    d82627e9c3095ef6c94232ab633600de5bc0275d  tests/unit/test_errors.py
+    b0119dae1a32c93ee496932ce69e5535a6877508  tests/unit/test_instrument.py
+    2b71e30fb68964d45dfe312a0fb6f1bbc37f8642  tests/unit/test_midi.py
+    cd8ca88fdbd9f54335fa70731387ff1502bcab2b  tests/unit/test_package.py
+    8f0a92f5b84409802e470a7bab19cf2053cb35d0  tests/unit/test_patch.py
+    e273b105262f59300906e1623f78abacc62ab467  tests/unit/test_start.py
+
+$ bash <scratchpad>/i8/contract_run.sh
+== 1. core's thirteen contract tests against the installed Vital, the gate's way: one Vital for the module
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.2.0, pluggy-1.7.0
+rootdir: ~/Code/Audio/patchbay-vital
+configfile: pyproject.toml
+plugins: platformdirs-4.14.5, hypothesis-6.170.14
+collected 35 items / 22 deselected / 13 selected
+
+tests/integration/test_vital_instrument.py .............                 [100%]
+
+============================== slowest durations ===============================
+2.44s setup    tests/integration/test_vital_instrument.py::test_contract_against_vital[parameters_are_unique_and_typed]
+0.10s call     tests/integration/test_vital_instrument.py::test_contract_against_vital[get_after_set_returns_what_was_set]
+0.09s call     tests/integration/test_vital_instrument.py::test_contract_against_vital[a_patch_refused_part_way_changes_nothing]
+0.08s call     tests/integration/test_vital_instrument.py::test_contract_against_vital[render_returns_the_declared_shape_and_sample_rate]
+0.07s call     tests/integration/test_vital_instrument.py::test_contract_against_vital[render_emits_render_completed_once]
+0.03s call     tests/integration/test_vital_instrument.py::test_contract_against_vital[patch_round_trips_through_load_patch]
+0.02s call     tests/integration/test_vital_instrument.py::test_contract_against_vital[load_patch_emits_patch_loaded_once]
+0.02s call     tests/integration/test_vital_instrument.py::test_contract_against_vital[a_value_out_of_range_raises_value_out_of_range]
+0.02s call     tests/integration/test_vital_instrument.py::test_contract_against_vital[set_with_the_wrong_unit_raises_unit_mismatch]
+0.01s call     tests/integration/test_vital_instrument.py::test_contract_against_vital[a_rejected_patch_changes_nothing]
+0.01s setup    tests/integration/test_vital_instrument.py::test_contract_against_vital[render_emits_render_completed_once]
+0.01s setup    tests/integration/test_vital_instrument.py::test_contract_against_vital[an_unknown_id_raises_parameter_not_found]
+0.01s setup    tests/integration/test_vital_instrument.py::test_contract_against_vital[load_patch_emits_patch_loaded_once]
+0.01s setup    tests/integration/test_vital_instrument.py::test_contract_against_vital[a_patch_refused_part_way_changes_nothing]
+0.01s setup    tests/integration/test_vital_instrument.py::test_contract_against_vital[an_impossible_render_raises_render_failed]
+0.01s setup    tests/integration/test_vital_instrument.py::test_contract_against_vital[render_returns_the_declared_shape_and_sample_rate]
+0.01s setup    tests/integration/test_vital_instrument.py::test_contract_against_vital[patch_round_trips_through_load_patch]
+0.01s setup    tests/integration/test_vital_instrument.py::test_contract_against_vital[a_value_out_of_range_raises_value_out_of_range]
+0.01s setup    tests/integration/test_vital_instrument.py::test_contract_against_vital[a_rejected_patch_changes_nothing]
+0.01s setup    tests/integration/test_vital_instrument.py::test_contract_against_vital[set_with_the_wrong_unit_raises_unit_mismatch]
+0.01s setup    tests/integration/test_vital_instrument.py::test_contract_against_vital[set_emits_parameter_changed_once]
+0.01s setup    tests/integration/test_vital_instrument.py::test_contract_against_vital[get_after_set_returns_what_was_set]
+
+(17 durations < 0.005s hidden.  Use -vv to show these durations.)
+====================== 13 passed, 22 deselected in 3.15s =======================
+exit=0
+
+== 2. the same thirteen, a fresh VitalHost for each, by a throwaway invocation: not the gate's way
+patchbay-core 0.0.1 at eddba95404a9b633d358dc4d6b07b084a8f975ad (https://github.com/fromtheoutfit/patchbay)
+pedalboard 0.9.26, machine arm64, Python 3.12.16
+PASSED  parameters_are_unique_and_typed  (Vital 1.6.4 at /Library/Audio/Plug-Ins/VST3/Vital.vst3: loaded in 2.33 s, the test 0.07 s)
+PASSED  get_after_set_returns_what_was_set  (Vital 1.6.4 at /Library/Audio/Plug-Ins/VST3/Vital.vst3: loaded in 2.36 s, the test 0.11 s)
+PASSED  set_with_the_wrong_unit_raises_unit_mismatch  (Vital 1.6.4 at /Library/Audio/Plug-Ins/VST3/Vital.vst3: loaded in 2.32 s, the test 0.10 s)
+PASSED  an_unknown_id_raises_parameter_not_found  (Vital 1.6.4 at /Library/Audio/Plug-Ins/VST3/Vital.vst3: loaded in 2.31 s, the test 0.01 s)
+PASSED  a_value_out_of_range_raises_value_out_of_range  (Vital 1.6.4 at /Library/Audio/Plug-Ins/VST3/Vital.vst3: loaded in 2.42 s, the test 0.03 s)
+PASSED  patch_round_trips_through_load_patch  (Vital 1.6.4 at /Library/Audio/Plug-Ins/VST3/Vital.vst3: loaded in 2.32 s, the test 0.10 s)
+PASSED  a_rejected_patch_changes_nothing  (Vital 1.6.4 at /Library/Audio/Plug-Ins/VST3/Vital.vst3: loaded in 2.31 s, the test 0.03 s)
+PASSED  a_patch_refused_part_way_changes_nothing  (Vital 1.6.4 at /Library/Audio/Plug-Ins/VST3/Vital.vst3: loaded in 2.42 s, the test 0.10 s)
+PASSED  render_returns_the_declared_shape_and_sample_rate  (Vital 1.6.4 at /Library/Audio/Plug-Ins/VST3/Vital.vst3: loaded in 2.31 s, the test 0.08 s)
+PASSED  an_impossible_render_raises_render_failed  (Vital 1.6.4 at /Library/Audio/Plug-Ins/VST3/Vital.vst3: loaded in 2.41 s, the test 0.01 s)
+PASSED  set_emits_parameter_changed_once  (Vital 1.6.4 at /Library/Audio/Plug-Ins/VST3/Vital.vst3: loaded in 2.32 s, the test 0.01 s)
+PASSED  load_patch_emits_patch_loaded_once  (Vital 1.6.4 at /Library/Audio/Plug-Ins/VST3/Vital.vst3: loaded in 2.42 s, the test 0.04 s)
+PASSED  render_emits_render_completed_once  (Vital 1.6.4 at /Library/Audio/Plug-Ins/VST3/Vital.vst3: loaded in 2.42 s, the test 0.09 s)
+13 passed of 13, each on a VitalHost of its own
+exit=0
+
+== 3. the same thirteen over the fake plugin, as CI runs them: a pass over the fake plugin, not against Vital
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.2.0, pluggy-1.7.0
+rootdir: ~/Code/Audio/patchbay-vital
+configfile: pyproject.toml
+plugins: platformdirs-4.14.5, hypothesis-6.170.14
+collected 63 items / 50 deselected / 13 selected
+
+tests/unit/test_instrument.py .............                              [100%]
+
+====================== 13 passed, 50 deselected in 0.52s =======================
+exit=0
+
+== 4. every test of the instrument against the installed Vital, with what each costs
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.2.0, pluggy-1.7.0
+rootdir: ~/Code/Audio/patchbay-vital
+configfile: pyproject.toml
+plugins: platformdirs-4.14.5, hypothesis-6.170.14
+collected 35 items
+
+tests/integration/test_vital_instrument.py ............................. [ 82%]
+......                                                                   [100%]
+
+============================= slowest 12 durations =============================
+17.58s call     tests/integration/test_vital_instrument.py::test_each_installed_preset_loads_through_a_patch_and_comes_back_byte_for_byte
+13.73s call     tests/integration/test_vital_instrument.py::test_two_loads_leave_only_what_vital_makes_of_an_older_preset_and_a_third_changes_none
+2.41s setup    tests/integration/test_vital_instrument.py::test_contract_against_vital[parameters_are_unique_and_typed]
+2.24s call     tests/integration/test_vital_instrument.py::test_after_a_set_at_each_bound_the_plugin_holds_the_model_s_float
+1.49s call     tests/integration/test_vital_instrument.py::test_the_longest_render_is_given_and_one_sample_more_is_refused
+0.26s call     tests/integration/test_vital_instrument.py::test_a_render_of_no_notes_on_an_installed_preset_opens_with_the_preset_sounding
+0.21s call     tests/integration/test_vital_instrument.py::test_the_spectral_centroid_moves_with_the_cutoff
+0.20s call     tests/integration/test_vital_instrument.py::test_the_next_instrument_starts_clean
+0.15s call     tests/integration/test_vital_instrument.py::test_a_note_left_sounding_is_not_heard_in_the_next_render
+0.13s call     tests/integration/test_vital_instrument.py::test_one_load_after_a_set_leaves_the_off_grid_floats_off_and_a_second_holds_them
+0.10s call     tests/integration/test_vital_instrument.py::test_contract_against_vital[get_after_set_returns_what_was_set]
+0.10s call     tests/integration/test_vital_instrument.py::test_a_note_lands_on_the_sample_core_s_rule_gives_it
+============================= 35 passed in 39.69s ==============================
+exit=0
+exit=0
+
+the tree after the run:
+  HEAD e3e601781f32d2058f4793895c47c12fe2793385
+  git status --porcelain=v1 --untracked-files=all, 40 lines:
+     M CHANGELOG.md
+     M README.md
+     M agent-os/product/mission.md
+     M agent-os/standards/index.yml
+     M agent-os/standards/vital/measures.md
+     M agent-os/standards/vital/parameter-map.md
+     M agent-os/standards/vital/plugin-state.md
+     M agent-os/standards/vital/preset-tests.md
+     M pyproject.toml
+     M src/patchbay_vital/__init__.py
+     M src/patchbay_vital/census.py
+     M src/patchbay_vital/errors.py
+     M tests/integration/test_factory_round_trip.py
+     M tests/integration/test_vital_plugin.py
+     M tests/unit/test_census.py
+     M tests/unit/test_errors.py
+     M tests/unit/test_package.py
+    ?? agent-os/specs/2026-11-15-1448-the-instrument/plan.md
+    ?? agent-os/specs/2026-11-15-1448-the-instrument/references.md
+    ?? agent-os/specs/2026-11-15-1448-the-instrument/shape.md
+    ?? agent-os/specs/2026-11-15-1448-the-instrument/standards.md
+    ?? agent-os/specs/2026-11-15-1448-the-instrument/verification/carrying-count.txt
+    ?? agent-os/specs/2026-11-15-1448-the-instrument/verification/contract-run.txt
+    ?? agent-os/specs/2026-11-15-1448-the-instrument/verification/mutation.txt
+    ?? agent-os/specs/2026-11-15-1448-the-instrument/verification/off-grid-count.txt
+    ?? agent-os/specs/2026-11-15-1448-the-instrument/verification/probes-2.txt
+    ?? agent-os/specs/2026-11-15-1448-the-instrument/verification/probes.txt
+    ?? agent-os/specs/2026-11-15-1448-the-instrument/verification/wheel-contents.txt
+    ?? agent-os/standards/vital/instrument.md
+    ?? src/patchbay_vital/data/start.vital
+    ?? src/patchbay_vital/instrument.py
+    ?? src/patchbay_vital/midi.py
+    ?? src/patchbay_vital/patch.py
+    ?? src/patchbay_vital/start.py
+    ?? tests/data/upgraded-floats.txt
+    ?? tests/integration/test_vital_instrument.py
+    ?? tests/unit/test_instrument.py
+    ?? tests/unit/test_midi.py
+    ?? tests/unit/test_patch.py
+    ?? tests/unit/test_start.py
+  git hash-object of each of those paths (a deleted one marked so):
+    7bb917977d9baab41d3ca0c65bdcf266af04d4b4  CHANGELOG.md
+    d58671b909be52a417d16e84b5cb03e20d011794  README.md
+    b15907bd6164e024da3fd658a471f15291db42ba  agent-os/product/mission.md
+    a3dddc9d28d9bef006b9e54b7e3eff2d176c7880  agent-os/specs/2026-11-15-1448-the-instrument/plan.md
+    db8c75d636b2346f03102ed5287a0d961684ab81  agent-os/specs/2026-11-15-1448-the-instrument/references.md
+    9eac4cd09d30052aeef99352f356eb07ecc30662  agent-os/specs/2026-11-15-1448-the-instrument/shape.md
+    6689f2ad25d6eb9c361366cb26f41d8e9a91b663  agent-os/specs/2026-11-15-1448-the-instrument/standards.md
+    02d9ff449bddf37ddece41f0df463893d8eb442a  agent-os/specs/2026-11-15-1448-the-instrument/verification/carrying-count.txt
+    7dca88aa007c3828ddfc8400b7cc480771876a8f  agent-os/specs/2026-11-15-1448-the-instrument/verification/contract-run.txt
+    5ed4bad256c956c15812c71b84fa344205089558  agent-os/specs/2026-11-15-1448-the-instrument/verification/mutation.txt
+    7afcdd00049f36ad8c6c82a0308d394826fd1611  agent-os/specs/2026-11-15-1448-the-instrument/verification/off-grid-count.txt
+    b084a1f0d2f34c5f5d6c7c0a3d22d0665f35638b  agent-os/specs/2026-11-15-1448-the-instrument/verification/probes-2.txt
+    86c080df2c0dc6414b3146ebaf8413f8423afabb  agent-os/specs/2026-11-15-1448-the-instrument/verification/probes.txt
+    53d49cd24a05f3fba83c19480614b6400f444c4a  agent-os/specs/2026-11-15-1448-the-instrument/verification/wheel-contents.txt
+    93cf8717cec6326aeb657cad144a0da7eb41f94c  agent-os/standards/index.yml
+    07609985c57af23b50ef29934203f3f8435d77c8  agent-os/standards/vital/instrument.md
+    dc7f40608620feadb0ed2e1dba9c4872b8426360  agent-os/standards/vital/measures.md
+    20e584e2e5b046a30488d097b7019294c4f4c943  agent-os/standards/vital/parameter-map.md
+    1c3eb42e211b13cf89ad0bcef3bdec06bb12cf1e  agent-os/standards/vital/plugin-state.md
+    825a937c2378cf556458182c3052eb02e9925214  agent-os/standards/vital/preset-tests.md
+    4c644450b7d9c61d26001191cd7ad091da89ad94  pyproject.toml
+    ae306f8a4ab8ebcc1e206ba17226fadf0ddf4add  src/patchbay_vital/__init__.py
+    ee9ecbb7cc00b4b63612ae74ff8770411b357e8b  src/patchbay_vital/census.py
+    95e8053ccc855bd9ff4ab4405314930244db3127  src/patchbay_vital/data/start.vital
+    d8c0e345a68411ebe2db537802671269fc709cf3  src/patchbay_vital/errors.py
+    186260668d85ae8a76d3496ebf7f193a4428ce38  src/patchbay_vital/instrument.py
+    d9097431e624deb685e71b4e262b5d8c074e7da3  src/patchbay_vital/midi.py
+    1e8bb9c3da7ecc87cff7c6df747672374488ac77  src/patchbay_vital/patch.py
+    8d8f935855cf1f0f807ed820db1242bf910d9886  src/patchbay_vital/start.py
+    1be64823e7837e6001447e992be89206151618ee  tests/data/upgraded-floats.txt
+    1cc2b8444e9c39b50ebe3781121a1f53c22eef60  tests/integration/test_factory_round_trip.py
+    79afbfdd831585dff450d02a2e309a5238084d02  tests/integration/test_vital_instrument.py
+    05224f6051e761513857cda9fc0cf86323f4c8a7  tests/integration/test_vital_plugin.py
+    5356f56f7be745ddff42ffe2ca20912f2df192b3  tests/unit/test_census.py
+    d82627e9c3095ef6c94232ab633600de5bc0275d  tests/unit/test_errors.py
+    b0119dae1a32c93ee496932ce69e5535a6877508  tests/unit/test_instrument.py
+    2b71e30fb68964d45dfe312a0fb6f1bbc37f8642  tests/unit/test_midi.py
+    cd8ca88fdbd9f54335fa70731387ff1502bcab2b  tests/unit/test_package.py
+    8f0a92f5b84409802e470a7bab19cf2053cb35d0  tests/unit/test_patch.py
+    e273b105262f59300906e1623f78abacc62ab467  tests/unit/test_start.py
+cmp: the tree after the run is the tree before it
+the machine after the run: arm64, Apple M4 Pro, 14 cores, macOS 26.6.2 (25G83), Python 3.12.16, load 2.65 2.90 3.06, at 2026-11-16 08:48 EST
+
+the scripts this run used, each embedded below with its blob:
+    50db6d692dbec3f06e2cfe493370351b20518bc7  <scratchpad>/i8/contract_run.sh
+    7256b5148faaed184936b4198349326275f74bc7  <scratchpad>/i8/contract_fresh.py
+    e4c1a40cc3893ab50df6717e5a18e2a755914efd  <scratchpad>/i8/tree.sh
+    0dde01b338e9dbc221abc7e0d9b87bcf21acf1cf  <scratchpad>/i8/machine.sh
+    f8023912221e095058a44e333af070ed5593e897  <scratchpad>/i8/transcript.sh
+
+--- <scratchpad>/i8/contract_run.sh
+```
+#!/usr/bin/env bash
+# usage: contract_run.sh   (from the repository root)
+set -uo pipefail
+R=$(cd "$(dirname "$0")" && pwd)
+echo "== 1. core's thirteen contract tests against the installed Vital, the gate's way: one Vital for the module"
+uv run --locked pytest -c pyproject.toml -p no:doctest -p no:cacheprovider tests/integration/test_vital_instrument.py -k test_contract_against_vital -v --durations=0
+echo "exit=$?"
+echo
+echo "== 2. the same thirteen, a fresh VitalHost for each, by a throwaway invocation: not the gate's way"
+uv run --locked python -u -B "$R/contract_fresh.py"
+echo "exit=$?"
+echo
+echo "== 3. the same thirteen over the fake plugin, as CI runs them: a pass over the fake plugin, not against Vital"
+uv run --locked pytest -c pyproject.toml -p no:doctest -p no:cacheprovider tests/unit/test_instrument.py -k test_contract_against_a_fake_plugin -v
+echo "exit=$?"
+echo
+echo "== 4. every test of the instrument against the installed Vital, with what each costs"
+uv run --locked pytest -c pyproject.toml -p no:doctest -p no:cacheprovider tests/integration/test_vital_instrument.py -v --durations=12
+echo "exit=$?"
+```
+
+--- <scratchpad>/i8/contract_fresh.py
+```
+"""Core's thirteen contract tests against Vital, a fresh VitalHost for each: not the gate's way.
+
+A throwaway invocation for the record: the gate shares one Vital a module. Run from the repository
+root with the locked interpreter.
+"""
+
+import importlib.metadata
+import json
+import platform
+import time
+
+from patchbay import EventBus
+from patchbay.testing import CONTRACT_TESTS
+
+from patchbay_vital.host import DEFAULT_PATH, VitalHost
+from patchbay_vital.instrument import VitalInstrument
+
+core = importlib.metadata.distribution("patchbay-core")
+source = json.loads(core.read_text("direct_url.json") or "{}")
+print(f"patchbay-core {core.version} at {source.get('vcs_info', {}).get('commit_id')} ({source.get('url')})")
+print(f"pedalboard {importlib.metadata.version('pedalboard')}, machine {platform.machine()}, Python {platform.python_version()}")
+passed = 0
+for test in CONTRACT_TESTS:
+    began = time.perf_counter()
+    host = VitalHost()
+    loaded = time.perf_counter()
+    bus = EventBus()
+    instrument = VitalInstrument(bus, host)
+    test(instrument, bus)
+    done = time.perf_counter()
+    passed += 1
+    print(f"PASSED  {test.__name__}  (Vital {host.version} at {DEFAULT_PATH}: loaded in {loaded - began:.2f} s, the test {done - loaded:.2f} s)")
+    del instrument, host
+print(f"{passed} passed of {len(CONTRACT_TESTS)}, each on a VitalHost of its own")
+```
+
+--- <scratchpad>/i8/tree.sh
+```
+#!/usr/bin/env bash
+# usage: tree.sh   (run from the repository root)
+# Prints HEAD, git's status of the work tree and the blob of every path that status names, so two
+# calls can be compared with cmp: the tree a run read, and the tree it left.
+set -euo pipefail
+echo "  HEAD $(git rev-parse HEAD)"
+git status --porcelain=v1 --untracked-files=all > "${TMPDIR:-/tmp}/tree.$$"
+echo "  git status --porcelain=v1 --untracked-files=all, $(wc -l < "${TMPDIR:-/tmp}/tree.$$" | tr -d ' ') lines:"
+sed 's/^/    /' "${TMPDIR:-/tmp}/tree.$$"
+echo "  git hash-object of each of those paths (a deleted one marked so):"
+cut -c4- "${TMPDIR:-/tmp}/tree.$$" | LC_ALL=C sort | while IFS= read -r path; do
+  if [ -e "$path" ]; then echo "    $(git hash-object "$path")  $path"; else echo "    (deleted)  $path"; fi
+done
+rm -f "${TMPDIR:-/tmp}/tree.$$"
+```
+
+--- <scratchpad>/i8/machine.sh
+```
+#!/usr/bin/env bash
+# usage: machine.sh   Prints one line: the machine, its system, the locked Python and the load.
+set -euo pipefail
+echo "$(uname -m), $(sysctl -n machdep.cpu.brand_string), $(sysctl -n hw.ncpu) cores, macOS $(sw_vers -productVersion) ($(sw_vers -buildVersion)), Python $(uv run --locked python -c 'import platform; print(platform.python_version())'), load $(sysctl -n vm.loadavg | tr -d '{}' | xargs), at $(date '+%Y-%m-%d %H:%M %Z')"
+```
+
+--- <scratchpad>/i8/transcript.sh
+```
+#!/usr/bin/env bash
+# usage: transcript.sh <out file> <title> <script to embed>... -- <command...>   (from the repository root)
+# Writes one transcript outside the tree: its date and branch, the machine and the tree before,
+# the command's whole output, the tree and the machine after, the two trees compared, and every
+# script it ran, embedded. The caller copies the file into the spec's verification/ afterwards.
+set -uo pipefail
+R=$(cd "$(dirname "$0")" && pwd)
+out=$1; title=$2; shift 2
+scripts=()
+while [ "$1" != "--" ]; do scripts+=("$1"); shift; done
+shift
+{
+  echo "$title, run $(date '+%Y-%m-%d %H:%M %Z') on branch"
+  echo "$(git branch --show-current), Vital at /Library/Audio/Plug-Ins/VST3/Vital.vst3"
+  echo "the machine before the run: $(bash "$R/machine.sh")"
+  echo "the tree before the run (this transcript is written outside the tree and copied in afterwards):"
+  bash "$R/tree.sh" | tee "$R/out/tree-before.txt"
+  echo
+  echo "\$ $*"
+  "$@" 2>&1
+  echo "exit=$?"
+  echo
+  echo "the tree after the run:"
+  bash "$R/tree.sh" | tee "$R/out/tree-after.txt"
+  if cmp -s "$R/out/tree-before.txt" "$R/out/tree-after.txt"; then echo "cmp: the tree after the run is the tree before it"; else echo "cmp: THE TREE CHANGED DURING THE RUN"; fi
+  echo "the machine after the run: $(bash "$R/machine.sh")"
+  echo
+  echo "the scripts this run used, each embedded below with its blob:"
+  for s in "${scripts[@]}" "$R/tree.sh" "$R/machine.sh" "$R/transcript.sh"; do echo "    $(git hash-object "$s")  <scratchpad>/i8/$(basename "$s")"; done
+  for s in "${scripts[@]}" "$R/tree.sh" "$R/machine.sh" "$R/transcript.sh"; do
+    echo; echo "--- <scratchpad>/i8/$(basename "$s")"; echo '```'; cat "$s"; echo '```'
+  done
+} > "$out"
+```

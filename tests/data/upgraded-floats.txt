@@ -1,0 +1,58 @@
+# What Vital 1.6.4 makes of an installed preset older than it, one float a line:
+# <preset, as the manifest lists it><TAB><key><TAB><the file's float, or absent><TAB><the float Vital holds>
+#
+# After a preset's text is loaded into the plugin, twice, these are the floats the plugin holds
+# that are not the model's: the file's own float for a key it holds, the parameter's default for
+# one it lacks. A third load holds the same. They are Vital's own upgrade of a preset written by
+# an older version: a key the file lacks set to other than the default, flanger_center moved
+# into its range, a choice renumbered, an amount rescaled. The 64 other installed presets, the
+# fixture and the start preset have none. Measured on Vital 1.6.4 through pedalboard 0.9.26 on
+# arm64 by the instrument spec (agent-os/specs/2026-11-15-1448-the-instrument/verification/
+# probes-2.txt, section 9c), which tests/integration/test_vital_instrument.py holds Vital to:
+# 46 floats on 11 presets. Each float is written as Python's repr and read back with float().
+Factory/Presets/Ah Eh Ee Oh.vital	osc_1_stack_style	9.0	10.0
+Factory/Presets/Touch Tone.vital	chorus_cutoff	absent	20.0
+Factory/Presets/Touch Tone.vital	flanger_center	0.0	53.689998626708984
+Factory/Presets/Touch Tone.vital	lfo_1_smooth_mode	absent	0.0
+Factory/Presets/Touch Tone.vital	lfo_2_smooth_mode	absent	0.0
+Factory/Presets/Touch Tone.vital	lfo_3_smooth_mode	absent	0.0
+Factory/Presets/Touch Tone.vital	lfo_4_smooth_mode	absent	0.0
+Factory/Presets/Touch Tone.vital	lfo_5_smooth_mode	absent	0.0
+Factory/Presets/Touch Tone.vital	lfo_6_smooth_mode	absent	0.0
+Factory/Presets/Touch Tone.vital	lfo_7_smooth_mode	absent	0.0
+Factory/Presets/Touch Tone.vital	stereo_mode	absent	1.0
+Databroth/Presets/Factory Presets/Snowcrash.vital	filter_2_style	1.0	0.0
+Halcyon Future Riddim Vol 1/Presets/Oolacile/Boot Scre3n.vital	osc_2_stack_style	5.0	6.0
+Halcyon Future Riddim Vol 1/Presets/Oolacile/Boot Scre3n.vital	osc_3_stack_style	9.0	10.0
+Halcyon Future Riddim Vol 1/Presets/Oolacile/Memory Leak.vital	chorus_cutoff	absent	20.0
+Halcyon Future Riddim Vol 1/Presets/Oolacile/Memory Leak.vital	chorus_spread	absent	0.800000011920929
+Halcyon Future Riddim Vol 1/Presets/Oolacile/Memory Leak.vital	flanger_center	0.0	53.689998626708984
+Halcyon Future Riddim Vol 1/Presets/Oolacile/Memory Leak.vital	lfo_1_smooth_mode	absent	0.0
+Halcyon Future Riddim Vol 1/Presets/Oolacile/Memory Leak.vital	lfo_2_smooth_mode	absent	0.0
+Halcyon Future Riddim Vol 1/Presets/Oolacile/Memory Leak.vital	lfo_3_smooth_mode	absent	0.0
+Halcyon Future Riddim Vol 1/Presets/Oolacile/Memory Leak.vital	lfo_4_smooth_mode	absent	0.0
+Halcyon Future Riddim Vol 1/Presets/Oolacile/Memory Leak.vital	lfo_5_smooth_mode	absent	0.0
+Halcyon Future Riddim Vol 1/Presets/Oolacile/Memory Leak.vital	lfo_6_smooth_mode	absent	0.0
+Halcyon Future Riddim Vol 1/Presets/Oolacile/Memory Leak.vital	lfo_7_smooth_mode	absent	0.0
+Halcyon Future Riddim Vol 1/Presets/Oolacile/Memory Leak.vital	osc_3_spectral_morph_type	10.0	7.0
+Halcyon Future Riddim Vol 1/Presets/Oolacile/Memory Leak.vital	stereo_mode	absent	1.0
+Halcyon Future Riddim Vol 1/Presets/Oolacile/Oolacile Evil Dubstep Bass.vital	chorus_cutoff	absent	20.0
+Halcyon Future Riddim Vol 1/Presets/Oolacile/Oolacile Evil Dubstep Bass.vital	chorus_spread	absent	0.800000011920929
+Halcyon Future Riddim Vol 1/Presets/Oolacile/Oolacile Evil Dubstep Bass.vital	flanger_center	-15.359999656677246	38.32999801635742
+Halcyon Future Riddim Vol 1/Presets/Oolacile/Oolacile Evil Dubstep Bass.vital	lfo_1_smooth_mode	absent	0.0
+Halcyon Future Riddim Vol 1/Presets/Oolacile/Oolacile Evil Dubstep Bass.vital	lfo_2_smooth_mode	absent	0.0
+Halcyon Future Riddim Vol 1/Presets/Oolacile/Oolacile Evil Dubstep Bass.vital	lfo_3_smooth_mode	absent	0.0
+Halcyon Future Riddim Vol 1/Presets/Oolacile/Oolacile Evil Dubstep Bass.vital	lfo_4_smooth_mode	absent	0.0
+Halcyon Future Riddim Vol 1/Presets/Oolacile/Oolacile Evil Dubstep Bass.vital	lfo_5_smooth_mode	absent	0.0
+Halcyon Future Riddim Vol 1/Presets/Oolacile/Oolacile Evil Dubstep Bass.vital	lfo_6_smooth_mode	absent	0.0
+Halcyon Future Riddim Vol 1/Presets/Oolacile/Oolacile Evil Dubstep Bass.vital	lfo_7_smooth_mode	absent	0.0
+Halcyon Future Riddim Vol 1/Presets/Oolacile/Oolacile Evil Dubstep Bass.vital	modulation_10_amount	0.19999998807907104	0.07499999552965164
+Halcyon Future Riddim Vol 1/Presets/Oolacile/Oolacile Evil Dubstep Bass.vital	modulation_12_amount	0.13422822952270508	0.050335586071014404
+Halcyon Future Riddim Vol 1/Presets/Oolacile/Oolacile Evil Dubstep Bass.vital	osc_3_spectral_morph_type	10.0	7.0
+Halcyon Future Riddim Vol 1/Presets/Oolacile/Oolacile Evil Dubstep Bass.vital	stereo_mode	absent	1.0
+Unsystematic Fragmentation/Presets/Factory Presets/A happy ending of the world.vital	osc_1_stack_style	9.0	10.0
+Unsystematic Fragmentation/Presets/Factory Presets/A happy ending of the world.vital	osc_2_stack_style	10.0	11.0
+Yuli Yolo/Presets/Factory Presets/Easy Mallet.vital	osc_1_stack_style	9.0	10.0
+Yuli Yolo/Presets/Factory Presets/Jupiter Bass.vital	filter_1_style	1.0	0.0
+Yuli Yolo/Presets/Factory Presets/Metal Head.vital	osc_1_stack_style	10.0	11.0
+inktome/Presets/Piano from the yard sale.vital	osc_2_stack_style	9.0	10.0

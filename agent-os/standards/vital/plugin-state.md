@@ -17,7 +17,9 @@ does the same for its findings; of the revision after the third review
 (`agent-os/specs/2026-11-11-1449-volume-preset-through-the-set-path/`), the revisions after PR
 14's reviews (`agent-os/specs/2026-11-11-1555-revision-after-pr-14-review/` and
 `agent-os/specs/2026-11-11-2044-revision-after-pr-14-second-review/`) and the spec of issue #15
-(`agent-os/specs/2026-11-12-0937-map-inverses-land-on-held-presets/`): `plugin-probe.txt`.
+(`agent-os/specs/2026-11-12-0937-map-inverses-land-on-held-presets/`): `plugin-probe.txt`; and of
+the spec of issue #8 (`agent-os/specs/2026-11-15-1448-the-instrument/`): `probes.txt` and
+`probes-2.txt`.
 
 ## The state
 
@@ -61,8 +63,8 @@ does the same for its findings; of the revision after the third review
   for byte, so it differs from text Vital wrote only in `volume`'s value, and read with the host's
   `_floats`. It is an observation: nothing measured says why one value moves and the other does
   not, and the test that holds it does not rely on which history precedes it. So the plugin's state
-  is never read back as the preset it was given; the instrument keeps the preset it loaded (issue
-  #8). Verified against `test_the_fixture_as_state_reads_back_but_its_sample_delayed`,
+  is never read back as the preset it was given; the instrument keeps the preset it loaded
+  (`vital/instrument.md`). Verified against `test_the_fixture_as_state_reads_back_but_its_sample_delayed`,
   `test_every_installed_preset_loads_as_state`, `test_a_routing_only_in_the_preset_text_is_heard`
   and `test_a_load_holds_volume_s_unheld_float32_as_its_neighbour_and_chorus_feedback_as_given`,
   which holds the load's move, and the `verification/plugin-probe.txt` of the revisions after PR
@@ -70,6 +72,42 @@ does the same for its findings; of the revision after the third review
   `agent-os/specs/2026-11-11-2044-revision-after-pr-14-second-review/`) and of the spec of issue
   #15 (`agent-os/specs/2026-11-12-0937-map-inverses-land-on-held-presets/`), section 2; first seen
   in issue #13's (`agent-os/specs/2026-11-11-1449-volume-preset-through-the-set-path/`).
+- **Vital reports no load it cannot use, and `load_state` raises for none.** Of 20 texts, each
+  loaded in a process of its own, on Vital 1.6.4 through pedalboard 0.9.26 on arm64 (Apple M4 Pro,
+  macOS 26.6.2):
+  - 11 never returned. Vital puts up a modal alert and its caller waits for ever, in AppKit's
+    `NSAlert runModal` under Vital's `SynthProcessor::setStateInformation`, by a sample of the
+    process. A text with no sections does it, and so does one whose fault is inside a section: three
+    wavetables whose `groups` is a number.
+  - A `synth_version` newer than the plugin's is ignored whole, with no error and the plugin
+    unchanged.
+  - `wavetables` or `lfos` as an empty array loads the floats and keeps the sections the plugin had.
+  - A key the text lacks goes to its default, 132 of 132.
+
+  So a text is judged before the plugin is given it (`vital/instrument.md`, the guard); a load
+  that may not return is run only in a process of its own with a time limit, as a transcript; and
+  no test sends one. A load that cannot block is issue #20's to make. Verified against
+  `probes.txt` sections 5 and 5b, `patch.py` (`check_loadable`) and
+  `test_a_preset_the_plugin_was_seen_not_to_load_whole_is_refused_before_it_is_called`.
+- **One load of a text is not enough, and two are: a measured fact, no cause known.** After a set of
+  every parameter and a render, on the start preset, the fixture and the 75 installed presets: one
+  load leaves 17 to 53 of the 903 floats off the text's on every text, 2,335 in all; two loads leave
+  none on 66; a third holds the same 903 as the second on all 77. On a fresh instance with no set
+  before it, one load of an older preset leaves floats off too, 7 to 18 on four of six tried. The
+  sample's 4-sample delay is counted from the text each time, so two loads of one text hold the
+  sample one load does. Measured on Vital 1.6.4 through pedalboard 0.9.26 on arm64 (Apple M4 Pro,
+  macOS 26.6.2). Verified against `probes.txt` sections 6, 9 and 9b and
+  `test_one_load_after_a_set_leaves_the_off_grid_floats_off_and_a_second_holds_them`.
+- **Vital upgrades a preset older than it as it loads, and no number of loads undoes it.** On 11 of
+  the 75 installed presets, versions 0.6.1 to 1.0.0, 46 floats differ from the text's after two
+  loads and after three: 29 are keys the text lacks set to other than the default (`chorus_cutoff`
+  20 where the default is 60), 3 are `flanger_center` moved into its range, and 14 are floats inside
+  their scale renumbered or rescaled (`osc_1_stack_style` 9 held as 10, `filter_1_style` 1 as 0).
+  The map is 1.6.4's, so such a float means another setting in the file than in the plugin. Measured
+  on Vital 1.6.4 through pedalboard 0.9.26 on arm64 (Apple M4 Pro, macOS 26.6.2). What the model
+  holds for such a preset is issue #22's to decide. Verified against `probes-2.txt` section 9c,
+  `tests/data/upgraded-floats.txt` and
+  `test_two_loads_leave_only_what_vital_makes_of_an_older_preset_and_a_third_changes_none`.
 
 ## The process
 
@@ -156,22 +194,71 @@ does the same for its findings; of the revision after the third review
   `test_a_measurement_restores_the_state_however_it_ends`,
   `test_a_measurement_puts_each_parameter_back_and_loads_the_state_once`,
   `test_a_parameter_that_changes_the_preset_s_keys_is_named` and
-  `test_the_census_regenerates_the_committed_map`.
+  `test_the_census_regenerates_the_three_committed_files`.
 
 ## A render
 
 - **A render asks pedalboard for one sample more than it wants and returns the first `samples`**,
   contiguous, pedalboard returning `int(duration · rate)` samples; fewer than asked, or another
   shape, is `PluginRenderError`, as is a length or a rate that is not a positive whole number, a
-  bool included, refused before the plugin is called. A MIDI time is seconds from the render's start. A render
-  from a reset opens with a decaying transient (peak 0.022, under 1e-5 by 50 ms). Verified against
-  `host.py` (`render`, `_whole`), `tests/unit/test_host.py`
+  bool included, refused before the plugin is called. A MIDI time is seconds from the render's
+  start. Verified against `host.py` (`render`, `_whole`), `tests/unit/test_host.py`
   (`test_a_render_is_the_first_samples_asked_for_in_one_block`,
   `test_a_render_length_or_rate_that_is_not_a_positive_whole_number_is_refused`),
   `test_a_render_is_the_length_asked_for_and_finite` and
   `test_a_note_sounds_from_its_time_and_not_before`.
-- **The integration module loads Vital once**, about two seconds a load, and a function-scoped
-  fixture loads the initial state's text before each test, the sample's 4-sample delay on a load
-  being nothing a test there depends on; where the map was measured on another machine the
-  module skips by name (`vital/preset-tests.md`). Verified against
-  `tests/integration/test_vital_plugin.py` (`vital`, `initial`, `host`).
+- **A render with no MIDI holds the preset's own sound, not a fixed transient.** On Vital's own
+  starting state and on the start preset it is a transient that peaks near 0.02 and whose last
+  non-zero sample is 4,889 at most. On the 75 installed presets the largest peak is 2.1, the
+  plugin's ceiling: one reaches full scale as loaded and 17 with `volume` at its maximum, 51 peak
+  above 0.02, and 32 stay at or above 0.001 for a second or more. It recurs at every render, and it
+  is larger with the reset the host makes and not absent without it: Plucked String peaks at 0.21
+  with one and 0.012 without. The host spec measured the starting state alone and called it a
+  transient of 0.022. Measured on Vital 1.6.4 through pedalboard 0.9.26 on arm64 (Apple M4 Pro,
+  macOS 26.6.2). A render that does not open so is issue #21's to make. Verified against
+  `probes.txt` sections 4 and 4b,
+  `test_a_render_of_no_notes_on_the_start_preset_is_its_small_transient_and_no_warning` and
+  `test_a_render_of_no_notes_on_an_installed_preset_opens_with_the_preset_sounding`, which holds
+  today's behaviour by name.
+- **A MIDI time lands one sample early on some samples; half a sample past lands on the sample.**
+  The time of sample n itself, n over the rate, lands on n - 1 at 100,003, 1,000,003 and 4,000,001
+  at 48 kHz and on 4 of 120 drawn; `(n + 0.5) / rate` lands on n at every value tried, five past 12
+  million among them. A sample, not a count; a model that holds the time as a float32 predicted
+  misses that did not happen. Measured on Vital 1.6.4 through pedalboard 0.9.26 on arm64 (Apple M4
+  Pro, macOS 26.6.2). Verified against `probes.txt` section 1, `midi.py` and
+  `test_a_note_lands_on_the_sample_core_s_rule_gives_it`.
+- **On one channel, a note-off releases every voice of its pitch; on another channel a note keeps
+  its own.** On one channel the first note-off of a pitch ends every note of it: of C4 from 0 to
+  1 s and C4 from 0.5 to 1.5 s, the render falls silent at 1.015 s, where the second alone ends at
+  1.510 s, and two struck on one sample both stop at the first end. On two channels each keeps its
+  own length, and three overlapping on three channels each end at their own, where on one channel
+  all three stop at the first end. A note alone sounds the same on any channel, its level within
+  0.000002 and its centroid to the digits printed. The second probe measured these with the
+  `mpe_enabled` setting off and on, but for the two-note overlap, which the first measured with it
+  off. Two things are measured with it off alone, and are not claimed with it on:
+  - that Vital voices two notes of one pitch on one channel as two voices until the note-off. With
+    MPE off their overlap measures 0.2122 against one note's 0.1439; with it on it measures 0.1435,
+    about the level of one, and two on two channels sum to another level than with it off,
+    observations with no cause claimed;
+  - that a note on a channel of its own keeps its own velocity, measured with `velocity_track` at
+    100 %: 0.0892 for velocity 100 and 0.0223 for velocity 50 alone, and 0.0223 where the second
+    sounds on after the first. On the start preset velocity sets no level, `velocity_track` being
+    0 %, and the MPE-on runs were made there.
+
+  Measured on Vital 1.6.4
+  through pedalboard 0.9.26 on arm64 (Apple M4 Pro, macOS 26.6.2). Verified against
+  the revision after PR 23's review (`agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/`)'s `overlap-probe.txt` and `overlap-probe-2.txt`, `midi.py` and
+  `test_two_notes_of_one_pitch_that_overlap_each_sound_for_their_own_length`.
+- **Vital gives samples past full scale, up to 2.1, and 2 ** 24 samples in one render,** every one
+  finite, in 1.3 s, on Vital 1.6.4 through pedalboard 0.9.26 on arm64 (Apple M4 Pro, macOS 26.6.2).
+  Verified against `probes.txt` sections 2 and 3,
+  `test_a_render_that_clips_carries_one_warning_and_the_event_carries_it` and
+  `test_the_longest_render_is_given_and_one_sample_more_is_refused`.
+- **Each integration module loads Vital once**, about two seconds a load. In `test_vital_plugin.py`
+  a function-scoped fixture loads the initial state's text before each test, the sample's 4-sample
+  delay on a load being nothing a test there depends on. In `test_vital_instrument.py` each test
+  builds a new instrument, which loads the start preset twice, so the plugin holds the start's 903
+  floats whatever the test before it set. Where the map was measured on another machine each module
+  skips by name (`vital/preset-tests.md`). Verified against `tests/integration/test_vital_plugin.py`
+  (`vital`, `initial`, `host`), `tests/integration/test_vital_instrument.py` (`vital`, `instrument`)
+  and `test_the_next_instrument_starts_clean`.

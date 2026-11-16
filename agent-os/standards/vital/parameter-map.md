@@ -18,8 +18,10 @@ PR 14's fourth, fifth and sixth reviews
 (`agent-os/specs/2026-11-12-1319-revision-after-pr-14-fourth-review/`,
 `agent-os/specs/2026-11-12-1852-revision-after-pr-14-fifth-review/` and
 `agent-os/specs/2026-11-13-0853-revision-after-pr-14-sixth-review/`), of the spec of issue #16
-(`agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/`) and of the revision after the
-review of patchbay-vital's PR 19 (`agent-os/specs/2026-11-15-0811-revision-after-pr-19-review/`).
+(`agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/`), of the revision after the
+review of patchbay-vital's PR 19 (`agent-os/specs/2026-11-15-0811-revision-after-pr-19-review/`)
+and, for the census's third file and what an arbitrary display takes, of the spec of issue #8
+(`agent-os/specs/2026-11-15-1448-the-instrument/`).
 
 ## Where it comes from
 
@@ -28,9 +30,10 @@ review of patchbay-vital's PR 19 (`agent-os/specs/2026-11-15-0811-revision-after
   float moves and what the plugin displays, fits the scales and writes `data/parameters.json`; a
   parameter it cannot fit is `CensusError`, naming it, as are two parameters moving one preset
   value, a record the map's models refuse and ends that make no scale, and nothing is written;
-  what is written is written whole or not at all, the key list and the map both staged and then
-  both renamed over, the key list put back when the map's rename fails
-  (`patchbay_vital.files.replace_files`), so the two never disagree. The scale is fitted by
+  what is written is written whole or not at all, the key list, the map and the start preset
+  (`vital/instrument.md`), which holds the map's defaults, all staged and then renamed over in
+  turn, an earlier one put back when a later rename fails
+  (`patchbay_vital.files.replace_files`), so the three never disagree. The scale is fitted by
   building the linear one once and the indexed one only where both ends are whole. Vital's source
   is GPLv3 and may be cited for corroboration, never copied. A new Vital is a new census in a
   spec. Verified against `census.py` (`build_map`, `fit_scale`, `_record`, `main`),
@@ -39,8 +42,11 @@ review of patchbay-vital's PR 19 (`agent-os/specs/2026-11-15-0811-revision-after
   `test_two_parameters_moving_one_preset_value_are_named`,
   `test_a_default_that_displays_as_no_number_is_named`,
   `test_a_key_list_that_cannot_be_written_leaves_the_map_unwritten`,
-  `test_a_rename_failing_after_the_key_list_s_puts_the_key_list_back`) and
-  `tests/integration/test_vital_plugin.py` (`test_the_census_regenerates_the_committed_map`).
+  `test_a_rename_failing_after_the_key_list_s_puts_the_key_list_back`,
+  `test_a_rename_failing_at_the_start_preset_puts_the_key_list_and_the_map_back`,
+  `test_the_three_committed_files_are_what_the_census_writes_from_the_committed_map`) and
+  `tests/integration/test_vital_plugin.py`
+  (`test_the_census_regenerates_the_three_committed_files`).
 - **The map records the machine the census ran on and the plugin it measured, and is used with
   no other.** The scales are the plugin's build's: the arm64 build computes a scale with one fused
   multiply-add, and another build may round the product and the sum apart, which the exact fit
@@ -59,7 +65,8 @@ review of patchbay-vital's PR 19 (`agent-os/specs/2026-11-15-0811-revision-after
   (`test_a_map_finds_a_record_by_its_preset_key`).
 - **`settings_keys.txt` is derived from the map, and a census never forgets a key**: its ids but
   the per-slot ones, and `PRESET_ONLY_KEYS` (`chorus_damping`, which old presets hold and no
-  parameter does). The census writes both files and a test holds the one to the other. A key is
+  parameter does). The census writes both files, and the start preset beside them, and a test
+  holds each to the map. A key is
   known once Vital has written it, so a newer Vital that drops a parameter still has presets
   holding its key: the census refuses a list lacking a key the format knows now, `CensusError`
   naming up to four, and a spec adds them to `PRESET_ONLY_KEYS`, so the list stays derived from the
@@ -233,8 +240,9 @@ review of patchbay-vital's PR 19 (`agent-os/specs/2026-11-15-0811-revision-after
     the 46 linear-scale groups, 9,200 sets, and held `main`'s value on none of the 2,085 that
     changed (that spec's `verification/plugin-probe.txt`).
 
-  Which held preset an arbitrary display should take, Vital's rounding as here or the nearer held
-  neighbour, is issue #8's finding 1, still open.
+  Which held preset an arbitrary display takes is decided: Vital's rounding, as here. Issue #8's
+  spec declined the nearer held neighbour, which would be a second rule beside this one
+  (`vital/instrument.md`, "What a set holds").
 
   **An indexed scale** goes through the same set path: its display goes to the nearest whole
   number, a half away from zero, as the plugin rounds, and the answer is what a set of that whole

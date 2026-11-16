@@ -1,0 +1,396 @@
+The instrument spec (issue #8): two follow-ups to the probes, what two loads leave off the model and the centroid over the held note, run 2026-11-15 18:35 EST on branch
+feature/8-the-instrument-vitalinstrument-over-vitalhost-patchvitalpreset-and-cores-contract-tests-against-a-real-vital-spec-b-of-7, Vital at /Library/Audio/Plug-Ins/VST3/Vital.vst3
+the machine before the run: arm64, Apple M4 Pro, 14 cores, macOS 26.6.2 (25G83), Python 3.12.16, load 0.98 1.56 1.91, at 2026-11-15 18:35 EST
+the tree before the run (this transcript is written outside the tree and copied in afterwards):
+  HEAD e3e601781f32d2058f4793895c47c12fe2793385
+  git status --porcelain=v1 --untracked-files=all, 13 lines:
+     M src/patchbay_vital/census.py
+     M src/patchbay_vital/errors.py
+     M tests/integration/test_vital_plugin.py
+     M tests/unit/test_census.py
+     M tests/unit/test_errors.py
+    ?? agent-os/specs/2026-11-15-1448-the-instrument/plan.md
+    ?? agent-os/specs/2026-11-15-1448-the-instrument/references.md
+    ?? agent-os/specs/2026-11-15-1448-the-instrument/shape.md
+    ?? agent-os/specs/2026-11-15-1448-the-instrument/standards.md
+    ?? src/patchbay_vital/data/start.vital
+    ?? src/patchbay_vital/patch.py
+    ?? src/patchbay_vital/start.py
+    ?? tests/unit/test_start.py
+  git hash-object of each of those paths (a deleted one marked so):
+    a3dddc9d28d9bef006b9e54b7e3eff2d176c7880  agent-os/specs/2026-11-15-1448-the-instrument/plan.md
+    db8c75d636b2346f03102ed5287a0d961684ab81  agent-os/specs/2026-11-15-1448-the-instrument/references.md
+    95c5dcfe06527cc0e91122a41cad49f03dada5dc  agent-os/specs/2026-11-15-1448-the-instrument/shape.md
+    6689f2ad25d6eb9c361366cb26f41d8e9a91b663  agent-os/specs/2026-11-15-1448-the-instrument/standards.md
+    ee9ecbb7cc00b4b63612ae74ff8770411b357e8b  src/patchbay_vital/census.py
+    95e8053ccc855bd9ff4ab4405314930244db3127  src/patchbay_vital/data/start.vital
+    d8c0e345a68411ebe2db537802671269fc709cf3  src/patchbay_vital/errors.py
+    1e8bb9c3da7ecc87cff7c6df747672374488ac77  src/patchbay_vital/patch.py
+    8d8f935855cf1f0f807ed820db1242bf910d9886  src/patchbay_vital/start.py
+    05224f6051e761513857cda9fc0cf86323f4c8a7  tests/integration/test_vital_plugin.py
+    5356f56f7be745ddff42ffe2ca20912f2df192b3  tests/unit/test_census.py
+    d82627e9c3095ef6c94232ab633600de5bc0275d  tests/unit/test_errors.py
+    e273b105262f59300906e1623f78abacc62ab467  tests/unit/test_start.py
+
+$ uv run --locked python -u -B <scratchpad>/i8/probe2.py
+Vital 1.6.4 at /Library/Audio/Plug-Ins/VST3/Vital.vst3, through pedalboard 0.9.26
+machine arm64, Python 3.12.16, numpy 2.5.4
+
+== 9c. the floats two loads leave differing from the model, by preset and key
+as in section 9 of probes.txt: every parameter set away, a short render, the text loaded twice; then each of the 903
+floats whose state value is not the model's: the text's own float for a key it holds, the default for one it lacks.
+  Factory/Presets/Ah Eh Ee Oh.vital (synth_version 1.0.0): 1
+      osc_1_stack_style: the model 9.0, the plugin 10.0; scale 0.0 to 12.0; a float inside its scale, moved
+  Factory/Presets/Touch Tone.vital (synth_version 0.6.1): 10
+      chorus_cutoff: the model 60.0, the plugin 20.0; scale 8.0 to 136.0; a key the text lacks, not at its default
+      flanger_center: the model 0.0, the plugin 53.689998626708984; scale 8.0 to 136.0; a float outside its scale, moved
+      lfo_1_smooth_mode: the model 1.0, the plugin 0.0; scale 0.0 to 1.0; a key the text lacks, not at its default
+      lfo_2_smooth_mode: the model 1.0, the plugin 0.0; scale 0.0 to 1.0; a key the text lacks, not at its default
+      lfo_3_smooth_mode: the model 1.0, the plugin 0.0; scale 0.0 to 1.0; a key the text lacks, not at its default
+      lfo_4_smooth_mode: the model 1.0, the plugin 0.0; scale 0.0 to 1.0; a key the text lacks, not at its default
+      lfo_5_smooth_mode: the model 1.0, the plugin 0.0; scale 0.0 to 1.0; a key the text lacks, not at its default
+      lfo_6_smooth_mode: the model 1.0, the plugin 0.0; scale 0.0 to 1.0; a key the text lacks, not at its default
+      lfo_7_smooth_mode: the model 1.0, the plugin 0.0; scale 0.0 to 1.0; a key the text lacks, not at its default
+      stereo_mode: the model 0.0, the plugin 1.0; scale 0.0 to 1.0; a key the text lacks, not at its default
+  Databroth/Presets/Factory Presets/Snowcrash.vital (synth_version 0.8.1): 1
+      filter_2_style: the model 1.0, the plugin 0.0; scale 0.0 to 8.0; a float inside its scale, moved
+  Halcyon Future Riddim Vol 1/Presets/Oolacile/Boot Scre3n.vital (synth_version 1.0.0): 2
+      osc_2_stack_style: the model 5.0, the plugin 6.0; scale 0.0 to 12.0; a float inside its scale, moved
+      osc_3_stack_style: the model 9.0, the plugin 10.0; scale 0.0 to 12.0; a float inside its scale, moved
+  Halcyon Future Riddim Vol 1/Presets/Oolacile/Memory Leak.vital (synth_version 0.6.4): 12
+      chorus_cutoff: the model 60.0, the plugin 20.0; scale 8.0 to 136.0; a key the text lacks, not at its default
+      chorus_spread: the model 1.0, the plugin 0.800000011920929; scale 0.0 to 1.0; a key the text lacks, not at its default
+      flanger_center: the model 0.0, the plugin 53.689998626708984; scale 8.0 to 136.0; a float outside its scale, moved
+      lfo_1_smooth_mode: the model 1.0, the plugin 0.0; scale 0.0 to 1.0; a key the text lacks, not at its default
+      lfo_2_smooth_mode: the model 1.0, the plugin 0.0; scale 0.0 to 1.0; a key the text lacks, not at its default
+      lfo_3_smooth_mode: the model 1.0, the plugin 0.0; scale 0.0 to 1.0; a key the text lacks, not at its default
+      lfo_4_smooth_mode: the model 1.0, the plugin 0.0; scale 0.0 to 1.0; a key the text lacks, not at its default
+      lfo_5_smooth_mode: the model 1.0, the plugin 0.0; scale 0.0 to 1.0; a key the text lacks, not at its default
+      lfo_6_smooth_mode: the model 1.0, the plugin 0.0; scale 0.0 to 1.0; a key the text lacks, not at its default
+      lfo_7_smooth_mode: the model 1.0, the plugin 0.0; scale 0.0 to 1.0; a key the text lacks, not at its default
+      osc_3_spectral_morph_type: the model 10.0, the plugin 7.0; scale 0.0 to 16.0; a float inside its scale, moved
+      stereo_mode: the model 0.0, the plugin 1.0; scale 0.0 to 1.0; a key the text lacks, not at its default
+  Halcyon Future Riddim Vol 1/Presets/Oolacile/Oolacile Evil Dubstep Bass.vital (synth_version 0.6.4): 14
+      chorus_cutoff: the model 60.0, the plugin 20.0; scale 8.0 to 136.0; a key the text lacks, not at its default
+      chorus_spread: the model 1.0, the plugin 0.800000011920929; scale 0.0 to 1.0; a key the text lacks, not at its default
+      flanger_center: the model -15.359999656677246, the plugin 38.32999801635742; scale 8.0 to 136.0; a float outside its scale, moved
+      lfo_1_smooth_mode: the model 1.0, the plugin 0.0; scale 0.0 to 1.0; a key the text lacks, not at its default
+      lfo_2_smooth_mode: the model 1.0, the plugin 0.0; scale 0.0 to 1.0; a key the text lacks, not at its default
+      lfo_3_smooth_mode: the model 1.0, the plugin 0.0; scale 0.0 to 1.0; a key the text lacks, not at its default
+      lfo_4_smooth_mode: the model 1.0, the plugin 0.0; scale 0.0 to 1.0; a key the text lacks, not at its default
+      lfo_5_smooth_mode: the model 1.0, the plugin 0.0; scale 0.0 to 1.0; a key the text lacks, not at its default
+      lfo_6_smooth_mode: the model 1.0, the plugin 0.0; scale 0.0 to 1.0; a key the text lacks, not at its default
+      lfo_7_smooth_mode: the model 1.0, the plugin 0.0; scale 0.0 to 1.0; a key the text lacks, not at its default
+      modulation_10_amount: the model 0.19999998807907104, the plugin 0.07499999552965164; scale -1.0 to 1.0; a float inside its scale, moved
+      modulation_12_amount: the model 0.13422822952270508, the plugin 0.050335586071014404; scale -1.0 to 1.0; a float inside its scale, moved
+      osc_3_spectral_morph_type: the model 10.0, the plugin 7.0; scale 0.0 to 16.0; a float inside its scale, moved
+      stereo_mode: the model 0.0, the plugin 1.0; scale 0.0 to 1.0; a key the text lacks, not at its default
+  Unsystematic Fragmentation/Presets/Factory Presets/A happy ending of the world.vital (synth_version 1.0.0): 2
+      osc_1_stack_style: the model 9.0, the plugin 10.0; scale 0.0 to 12.0; a float inside its scale, moved
+      osc_2_stack_style: the model 10.0, the plugin 11.0; scale 0.0 to 12.0; a float inside its scale, moved
+  Yuli Yolo/Presets/Factory Presets/Easy Mallet.vital (synth_version 0.8.5): 1
+      osc_1_stack_style: the model 9.0, the plugin 10.0; scale 0.0 to 12.0; a float inside its scale, moved
+  Yuli Yolo/Presets/Factory Presets/Jupiter Bass.vital (synth_version 0.8.5): 1
+      filter_1_style: the model 1.0, the plugin 0.0; scale 0.0 to 8.0; a float inside its scale, moved
+  Yuli Yolo/Presets/Factory Presets/Metal Head.vital (synth_version 1.0.0): 1
+      osc_1_stack_style: the model 10.0, the plugin 11.0; scale 0.0 to 12.0; a float inside its scale, moved
+  inktome/Presets/Piano from the yard sale.vital (synth_version 1.0.0): 1
+      osc_2_stack_style: the model 9.0, the plugin 10.0; scale 0.0 to 12.0; a float inside its scale, moved
+of 77 texts, 66 leave no float differing; 46 floats differ in all, on 11 texts
+by kind: {'a key the text lacks, not at its default': 29, 'a float outside its scale, moved': 3, 'a float inside its scale, moved': 14}
+by key: {'osc_1_stack_style': 4, 'chorus_cutoff': 3, 'flanger_center': 3, 'lfo_1_smooth_mode': 3, 'lfo_2_smooth_mode': 3, 'lfo_3_smooth_mode': 3, 'lfo_4_smooth_mode': 3, 'lfo_5_smooth_mode': 3, 'lfo_6_smooth_mode': 3, 'lfo_7_smooth_mode': 3, 'osc_2_stack_style': 3, 'stereo_mode': 3, 'chorus_spread': 2, 'osc_3_spectral_morph_type': 2, 'filter_1_style': 1, 'filter_2_style': 1, 'modulation_10_amount': 1, 'modulation_12_amount': 1, 'osc_3_stack_style': 1}
+
+== 7b. the centroid over the held note alone
+filter 1 on, filter_1_cutoff at normalized 0.3 and 0.8, one C4 at velocity 100 from 0 to 1.5 s, 96000 samples at 48 kHz.
+centroid: the mean of the channels over 0.2 s to 1.4 s, the held note, well past the opening (its last non-zero sample
+is 4928 at most, 0.103 s), under a Hann window, so the segment's two ends add no spectrum of their own; the magnitude of
+its real FFT and that magnitude's frequency-weighted mean, in Hz. RMS: of the same segment, unwindowed. peak: the whole render.
+(probes.txt, section 7, cut the render at sample 7200 with no window: the cut's own step put the low cutoff's centroid
+anywhere from 674 to 1931 Hz.)
+  first instance, normalized 0.3 (display -13.599998474121094 semitones):
+      centroid    320.56 Hz   RMS 0.014135   peak 0.058328
+      centroid    320.56 Hz   RMS 0.014136   peak 0.044378
+      centroid    320.56 Hz   RMS 0.014136   peak 0.054249
+      centroid    320.56 Hz   RMS 0.014134   peak 0.043085
+      centroid    320.56 Hz   RMS 0.014135   peak 0.057835
+      centroid    320.56 Hz   RMS 0.014135   peak 0.057088
+      centroid    320.56 Hz   RMS 0.014135   peak 0.058328
+      centroid    320.56 Hz   RMS 0.014135   peak 0.057785
+      centroid    320.56 Hz   RMS 0.014135   peak 0.058328
+      centroid    320.56 Hz   RMS 0.014134   peak 0.042440
+  first instance, normalized 0.8 (display 50.400001525878906 semitones):
+      centroid   2349.97 Hz   RMS 0.072678   peak 0.194668
+      centroid   2349.97 Hz   RMS 0.072678   peak 0.195259
+      centroid   2349.98 Hz   RMS 0.072680   peak 0.196805
+      centroid   2349.97 Hz   RMS 0.072678   peak 0.194668
+      centroid   2349.97 Hz   RMS 0.072678   peak 0.195578
+      centroid   2349.97 Hz   RMS 0.072678   peak 0.195578
+      centroid   2349.97 Hz   RMS 0.072678   peak 0.195578
+      centroid   2349.97 Hz   RMS 0.072678   peak 0.195578
+      centroid   2349.97 Hz   RMS 0.072678   peak 0.194668
+      centroid   2349.97 Hz   RMS 0.072679   peak 0.194668
+  second instance, normalized 0.3 (display -13.599998474121094 semitones):
+      centroid    320.56 Hz   RMS 0.014135   peak 0.036757
+      centroid    320.56 Hz   RMS 0.014135   peak 0.056820
+      centroid    320.56 Hz   RMS 0.014136   peak 0.048144
+      centroid    320.56 Hz   RMS 0.014135   peak 0.058328
+      centroid    320.56 Hz   RMS 0.014135   peak 0.056990
+      centroid    320.56 Hz   RMS 0.014135   peak 0.058328
+      centroid    320.56 Hz   RMS 0.014135   peak 0.058328
+      centroid    320.56 Hz   RMS 0.014134   peak 0.041998
+      centroid    320.56 Hz   RMS 0.014136   peak 0.057194
+      centroid    320.56 Hz   RMS 0.014137   peak 0.030362
+  second instance, normalized 0.8 (display 50.400001525878906 semitones):
+      centroid   2349.97 Hz   RMS 0.072678   peak 0.195578
+      centroid   2349.97 Hz   RMS 0.072678   peak 0.194668
+      centroid   2349.97 Hz   RMS 0.072678   peak 0.195578
+      centroid   2349.97 Hz   RMS 0.072679   peak 0.196256
+      centroid   2349.97 Hz   RMS 0.072679   peak 0.197553
+      centroid   2349.98 Hz   RMS 0.072681   peak 0.197211
+      centroid   2349.97 Hz   RMS 0.072680   peak 0.196672
+      centroid   2349.97 Hz   RMS 0.072680   peak 0.194668
+      centroid   2349.97 Hz   RMS 0.072678   peak 0.194668
+      centroid   2349.98 Hz   RMS 0.072679   peak 0.197566
+low cutoff, 20 renders: centroid 320.56 to 320.56 Hz, RMS 0.014134 to 0.014137
+high cutoff, 20 renders: centroid 2349.97 to 2349.98 Hz, RMS 0.072678 to 0.072681
+the smallest ratio any high render makes with any low one: 7.331 (of 400 pairs, 40 renders); half of it 3.665
+the smallest RMS of the 40 renders: 0.014134; half of it 0.007067
+no MIDI on the start preset, the same segment: RMS 0; the centroid's guard: sum of magnitudes 0
+exit=0
+
+the tree after the run:
+  HEAD e3e601781f32d2058f4793895c47c12fe2793385
+  git status --porcelain=v1 --untracked-files=all, 13 lines:
+     M src/patchbay_vital/census.py
+     M src/patchbay_vital/errors.py
+     M tests/integration/test_vital_plugin.py
+     M tests/unit/test_census.py
+     M tests/unit/test_errors.py
+    ?? agent-os/specs/2026-11-15-1448-the-instrument/plan.md
+    ?? agent-os/specs/2026-11-15-1448-the-instrument/references.md
+    ?? agent-os/specs/2026-11-15-1448-the-instrument/shape.md
+    ?? agent-os/specs/2026-11-15-1448-the-instrument/standards.md
+    ?? src/patchbay_vital/data/start.vital
+    ?? src/patchbay_vital/patch.py
+    ?? src/patchbay_vital/start.py
+    ?? tests/unit/test_start.py
+  git hash-object of each of those paths (a deleted one marked so):
+    a3dddc9d28d9bef006b9e54b7e3eff2d176c7880  agent-os/specs/2026-11-15-1448-the-instrument/plan.md
+    db8c75d636b2346f03102ed5287a0d961684ab81  agent-os/specs/2026-11-15-1448-the-instrument/references.md
+    95c5dcfe06527cc0e91122a41cad49f03dada5dc  agent-os/specs/2026-11-15-1448-the-instrument/shape.md
+    6689f2ad25d6eb9c361366cb26f41d8e9a91b663  agent-os/specs/2026-11-15-1448-the-instrument/standards.md
+    ee9ecbb7cc00b4b63612ae74ff8770411b357e8b  src/patchbay_vital/census.py
+    95e8053ccc855bd9ff4ab4405314930244db3127  src/patchbay_vital/data/start.vital
+    d8c0e345a68411ebe2db537802671269fc709cf3  src/patchbay_vital/errors.py
+    1e8bb9c3da7ecc87cff7c6df747672374488ac77  src/patchbay_vital/patch.py
+    8d8f935855cf1f0f807ed820db1242bf910d9886  src/patchbay_vital/start.py
+    05224f6051e761513857cda9fc0cf86323f4c8a7  tests/integration/test_vital_plugin.py
+    5356f56f7be745ddff42ffe2ca20912f2df192b3  tests/unit/test_census.py
+    d82627e9c3095ef6c94232ab633600de5bc0275d  tests/unit/test_errors.py
+    e273b105262f59300906e1623f78abacc62ab467  tests/unit/test_start.py
+cmp: the tree after the run is the tree before it
+the machine after the run: arm64, Apple M4 Pro, 14 cores, macOS 26.6.2 (25G83), Python 3.12.16, load 2.31 2.10 1.93, at 2026-11-15 18:48 EST
+
+the scripts this run used, each embedded below with its blob:
+    4ad842667153164adadf5eca165583caf26893d1  <scratchpad>/i8/probe2.py
+    e4c1a40cc3893ab50df6717e5a18e2a755914efd  <scratchpad>/i8/tree.sh
+    0dde01b338e9dbc221abc7e0d9b87bcf21acf1cf  <scratchpad>/i8/machine.sh
+    f8023912221e095058a44e333af070ed5593e897  <scratchpad>/i8/transcript.sh
+
+--- <scratchpad>/i8/probe2.py
+```
+"""Two follow-ups to the instrument spec's probes: which floats two loads leave off the model, and
+the centroid measured over the held note alone.
+
+Run from the repository root with the locked interpreter; everything reaches the plugin through
+VitalHost. Nothing is written; every number is printed.
+"""
+
+import importlib.metadata
+import platform
+from pathlib import Path
+
+import numpy as np
+from patchbay import ParameterId
+
+from patchbay_vital import loads
+from patchbay_vital.format import split_modulations
+from patchbay_vital.host import DEFAULT_PATH, VitalHost, _floats
+from patchbay_vital.parameters import parameter_map
+from patchbay_vital.start import start_text
+
+RATE = 48000
+MAP = parameter_map()
+START = start_text(MAP).encode("utf-8")
+PRESETS = Path.home() / "Music" / "Vital"
+MANIFEST = [
+    line
+    for line in Path("tests/data/factory-manifest.txt").read_text(encoding="utf-8").splitlines()
+    if not line.startswith("#")
+]
+C4_ON, C4_OFF = bytes([0x90, 60, 100]), bytes([0x80, 60, 0])
+
+host = VitalHost()
+print(f"Vital {host.version} at {DEFAULT_PATH}, through pedalboard {importlib.metadata.version('pedalboard')}")
+print(f"machine {platform.machine()}, Python {platform.python_version()}, numpy {np.__version__}")
+
+print("\n== 9c. the floats two loads leave differing from the model, by preset and key")
+print("as in section 9 of probes.txt: every parameter set away, a short render, the text loaded twice; then each of the 903")
+print("floats whose state value is not the model's: the text's own float for a key it holds, the default for one it lacks.")
+texts = [("the start preset", START), ("the fixture", Path("tests/data/init-media-replaced.vital").read_bytes())]
+texts += [(relative, (PRESETS / relative).read_bytes()) for relative in MANIFEST]
+by_key: dict[str, int] = {}
+kinds = {"a key the text lacks, not at its default": 0, "a float outside its scale, moved": 0, "a float inside its scale, moved": 0}
+clean = 0
+total = 0
+for label, text in texts:
+    preset = loads(text.decode("utf-8"))
+    _, slots = split_modulations(preset.modulations)
+    held = {**preset.settings.values, **slots}
+    for record in MAP.parameters:
+        host.set(record.id, 1.0 if record.scale.to_normalized(record.preset_default) < 0.5 else 0.0)
+    host.render([(C4_ON, 0.0)], 2400, RATE)
+    host.load_state(text)
+    host.load_state(text)
+    state = _floats(host.state())
+    rows = []
+    for record in MAP.parameters:
+        key = record.preset_key
+        model = held.get(key, record.preset_default)
+        if state[key] == model:
+            continue
+        if key not in held:
+            kind = "a key the text lacks, not at its default"
+        elif not record.scale.minimum <= model <= record.scale.maximum:
+            kind = "a float outside its scale, moved"
+        else:
+            kind = "a float inside its scale, moved"
+        kinds[kind] += 1
+        by_key[key] = by_key.get(key, 0) + 1
+        rows.append((key, kind, model, state[key], record.scale.minimum, record.scale.maximum))
+    total += len(rows)
+    if not rows:
+        clean += 1
+        continue
+    print(f"  {label} (synth_version {preset.synth_version}): {len(rows)}")
+    for key, kind, model, now, low, high in rows:
+        print(f"      {key}: the model {model!r}, the plugin {now!r}; scale {low!r} to {high!r}; {kind}")
+print(f"of {len(texts)} texts, {clean} leave no float differing; {total} floats differ in all, on {len(texts) - clean} texts")
+print(f"by kind: {kinds}")
+print(f"by key: {dict(sorted(by_key.items(), key=lambda item: (-item[1], item[0])))}")
+
+print("\n== 7b. the centroid over the held note alone")
+print("filter 1 on, filter_1_cutoff at normalized 0.3 and 0.8, one C4 at velocity 100 from 0 to 1.5 s, 96000 samples at 48 kHz.")
+print("centroid: the mean of the channels over 0.2 s to 1.4 s, the held note, well past the opening (its last non-zero sample")
+print("is 4928 at most, 0.103 s), under a Hann window, so the segment's two ends add no spectrum of their own; the magnitude of")
+print("its real FFT and that magnitude's frequency-weighted mean, in Hz. RMS: of the same segment, unwindowed. peak: the whole render.")
+print("(probes.txt, section 7, cut the render at sample 7200 with no window: the cut's own step put the low cutoff's centroid")
+print("anywhere from 674 to 1931 Hz.)")
+HELD = slice(int(0.2 * RATE), int(1.4 * RATE))
+
+
+def centroid(audio: np.ndarray) -> float:
+    held = audio.mean(axis=0)[HELD]
+    magnitude = np.abs(np.fft.rfft(held * np.hanning(held.size)))
+    total_magnitude = magnitude.sum()
+    if total_magnitude == 0:
+        return float("nan")
+    return float((np.fft.rfftfreq(held.size, 1 / RATE) * magnitude).sum() / total_magnitude)
+
+
+def rms(audio: np.ndarray) -> float:
+    held = audio.mean(axis=0)[HELD]
+    return float(np.sqrt((held**2).mean()))
+
+
+cutoff = MAP.find(ParameterId("filter_1_cutoff"))
+note = [(C4_ON, 0.0), (C4_OFF, 1.5)]
+other = VitalHost()
+measured: dict[float, list[tuple[float, float, float]]] = {0.3: [], 0.8: []}
+for name, instance in (("first instance", host), ("second instance", other)):
+    for r in (0.3, 0.8):
+        print(f"  {name}, normalized {r} (display {cutoff.from_normalized(r)!r} semitones):")
+        for _ in range(10):
+            instance.load_state(START)
+            instance.load_state(START)
+            instance.set(ParameterId("filter_1_on"), 1.0)
+            instance.set(ParameterId("filter_1_cutoff"), r)
+            audio = instance.render(note, 2 * RATE, RATE)
+            row = (centroid(audio), rms(audio), float(np.abs(audio).max()))
+            measured[r].append(row)
+            print(f"      centroid {row[0]:9.2f} Hz   RMS {row[1]:.6f}   peak {row[2]:.6f}")
+low, high = measured[0.3], measured[0.8]
+print(f"low cutoff, {len(low)} renders: centroid {min(c for c, _, _ in low):.2f} to {max(c for c, _, _ in low):.2f} Hz, RMS {min(x for _, x, _ in low):.6f} to {max(x for _, x, _ in low):.6f}")
+print(f"high cutoff, {len(high)} renders: centroid {min(c for c, _, _ in high):.2f} to {max(c for c, _, _ in high):.2f} Hz, RMS {min(x for _, x, _ in high):.6f} to {max(x for _, x, _ in high):.6f}")
+smallest = min(c for c, _, _ in high) / max(c for c, _, _ in low)
+print(f"the smallest ratio any high render makes with any low one: {smallest:.3f} (of {len(low) * len(high)} pairs, {len(low) + len(high)} renders); half of it {smallest / 2:.3f}")
+least = min(x for _, x, _ in low + high)
+print(f"the smallest RMS of the {len(low) + len(high)} renders: {least:.6f}; half of it {least / 2:.6f}")
+host.load_state(START)
+host.load_state(START)
+silent = host.render([], 2 * RATE, RATE)
+print(f"no MIDI on the start preset, the same segment: RMS {rms(silent):.3g}; the centroid's guard: sum of magnitudes {float(np.abs(np.fft.rfft(silent.mean(axis=0)[HELD] * np.hanning(HELD.stop - HELD.start))).sum()):.3g}")
+```
+
+--- <scratchpad>/i8/tree.sh
+```
+#!/usr/bin/env bash
+# usage: tree.sh   (run from the repository root)
+# Prints HEAD, git's status of the work tree and the blob of every path that status names, so two
+# calls can be compared with cmp: the tree a run read, and the tree it left.
+set -euo pipefail
+echo "  HEAD $(git rev-parse HEAD)"
+git status --porcelain=v1 --untracked-files=all > "${TMPDIR:-/tmp}/tree.$$"
+echo "  git status --porcelain=v1 --untracked-files=all, $(wc -l < "${TMPDIR:-/tmp}/tree.$$" | tr -d ' ') lines:"
+sed 's/^/    /' "${TMPDIR:-/tmp}/tree.$$"
+echo "  git hash-object of each of those paths (a deleted one marked so):"
+cut -c4- "${TMPDIR:-/tmp}/tree.$$" | LC_ALL=C sort | while IFS= read -r path; do
+  if [ -e "$path" ]; then echo "    $(git hash-object "$path")  $path"; else echo "    (deleted)  $path"; fi
+done
+rm -f "${TMPDIR:-/tmp}/tree.$$"
+```
+
+--- <scratchpad>/i8/machine.sh
+```
+#!/usr/bin/env bash
+# usage: machine.sh   Prints one line: the machine, its system, the locked Python and the load.
+set -euo pipefail
+echo "$(uname -m), $(sysctl -n machdep.cpu.brand_string), $(sysctl -n hw.ncpu) cores, macOS $(sw_vers -productVersion) ($(sw_vers -buildVersion)), Python $(uv run --locked python -c 'import platform; print(platform.python_version())'), load $(sysctl -n vm.loadavg | tr -d '{}' | xargs), at $(date '+%Y-%m-%d %H:%M %Z')"
+```
+
+--- <scratchpad>/i8/transcript.sh
+```
+#!/usr/bin/env bash
+# usage: transcript.sh <out file> <title> <script to embed>... -- <command...>   (from the repository root)
+# Writes one transcript outside the tree: its date and branch, the machine and the tree before,
+# the command's whole output, the tree and the machine after, the two trees compared, and every
+# script it ran, embedded. The caller copies the file into the spec's verification/ afterwards.
+set -uo pipefail
+R=$(cd "$(dirname "$0")" && pwd)
+out=$1; title=$2; shift 2
+scripts=()
+while [ "$1" != "--" ]; do scripts+=("$1"); shift; done
+shift
+{
+  echo "$title, run $(date '+%Y-%m-%d %H:%M %Z') on branch"
+  echo "$(git branch --show-current), Vital at /Library/Audio/Plug-Ins/VST3/Vital.vst3"
+  echo "the machine before the run: $(bash "$R/machine.sh")"
+  echo "the tree before the run (this transcript is written outside the tree and copied in afterwards):"
+  bash "$R/tree.sh" | tee "$R/out/tree-before.txt"
+  echo
+  echo "\$ $*"
+  "$@" 2>&1
+  echo "exit=$?"
+  echo
+  echo "the tree after the run:"
+  bash "$R/tree.sh" | tee "$R/out/tree-after.txt"
+  if cmp -s "$R/out/tree-before.txt" "$R/out/tree-after.txt"; then echo "cmp: the tree after the run is the tree before it"; else echo "cmp: THE TREE CHANGED DURING THE RUN"; fi
+  echo "the machine after the run: $(bash "$R/machine.sh")"
+  echo
+  echo "the scripts this run used, each embedded below with its blob:"
+  for s in "${scripts[@]}" "$R/tree.sh" "$R/machine.sh" "$R/transcript.sh"; do echo "    $(git hash-object "$s")  <scratchpad>/i8/$(basename "$s")"; done
+  for s in "${scripts[@]}" "$R/tree.sh" "$R/machine.sh" "$R/transcript.sh"; do
+    echo; echo "--- <scratchpad>/i8/$(basename "$s")"; echo '```'; cat "$s"; echo '```'
+  done
+} > "$out"
+```

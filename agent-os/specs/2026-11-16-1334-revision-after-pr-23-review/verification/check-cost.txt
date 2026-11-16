@@ -1,0 +1,170 @@
+The revision after PR 23's review: what the guard's second decode costs beside the loads (finding 7), run 2026-11-16 14:00 EST on branch
+feature/8-the-instrument-vitalinstrument-over-vitalhost-patchvitalpreset-and-cores-contract-tests-against-a-real-vital-spec-b-of-7, Vital at /Library/Audio/Plug-Ins/VST3/Vital.vst3
+the machine before the run: arm64, Apple M4 Pro, 14 cores, macOS 26.6.2 (25G83), Python 3.12.16, load 2.65 2.89 2.83, at 2026-11-16 14:00 EST
+the tree before the run (this transcript is written outside the tree and copied in afterwards):
+  HEAD 63ad5ae788cba91fa55104be07fce8a209fa3da5
+  git status --porcelain=v1 --untracked-files=all, 23 lines:
+     M CHANGELOG.md
+     M README.md
+     M src/patchbay_vital/__init__.py
+     M src/patchbay_vital/errors.py
+     M src/patchbay_vital/files.py
+     M src/patchbay_vital/format.py
+     M src/patchbay_vital/instrument.py
+     M src/patchbay_vital/midi.py
+     M src/patchbay_vital/patch.py
+     M src/patchbay_vital/preset.py
+     M src/patchbay_vital/start.py
+     M tests/integration/test_vital_instrument.py
+     M tests/unit/builders.py
+     M tests/unit/test_instrument.py
+     M tests/unit/test_midi.py
+     M tests/unit/test_package.py
+     M tests/unit/test_patch.py
+    ?? agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/plan.md
+    ?? agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/references.md
+    ?? agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/shape.md
+    ?? agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/standards.md
+    ?? agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/verification/overlap-probe-2.txt
+    ?? agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/verification/overlap-probe.txt
+  git hash-object of each of those paths (a deleted one marked so):
+    2031646b4631653e138652adfbbd3ef8723c3165  CHANGELOG.md
+    ce1c64621a9343e66d5a218bd7cb0f5dcde43140  README.md
+    18e34edbd5c9d90809b4ffc840482b16ad4c9491  src/patchbay_vital/__init__.py
+    145eb826c6859888c22999de5e4876ef5ebd2234  src/patchbay_vital/errors.py
+    b2f644c9779f59519da2f5e60a4f57e000a81969  src/patchbay_vital/files.py
+    ad7a9a78bd1ca8275bb92e10ec8d8503f40bb339  src/patchbay_vital/format.py
+    fd816beba50661577c2ee66f4f85a2eeaa78c6f4  src/patchbay_vital/instrument.py
+    ab8ae0ec4a6d9c7889d6f136f7e6d322421e65a9  src/patchbay_vital/midi.py
+    153e25666cd405dfdeaca0f3425d67d5d85307a4  src/patchbay_vital/patch.py
+    f049675b5c61fffad437f008b72e378bd531b422  src/patchbay_vital/preset.py
+    318ed4766bbb83a87a45118a3c86dcafeeb1f138  src/patchbay_vital/start.py
+    728f952f874e6497f67474f72ba02d27009eae96  tests/integration/test_vital_instrument.py
+    c213879e4803b1766a132c3fa7b57c11d8d5850f  tests/unit/builders.py
+    9dda9f2725d8df27481d763aa8a1a135d630af8a  tests/unit/test_instrument.py
+    29373875bcecb57b70493f2445d21829e9e9df73  tests/unit/test_midi.py
+    091ab87c1c4bf715e9e7214ae1305db4056682d1  tests/unit/test_package.py
+    72e01c7f0fd307cc7cf46a859d0b8fbdeb20b7f3  tests/unit/test_patch.py
+    3e1b682af98475b06109a7e8868c6d084d5726d5  agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/plan.md
+    1c13a47fd8f6b2eed83d3424e99f2aa2aae94f5d  agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/references.md
+    6ecb404d4691131ffadcd8a9c44c68233473fb6b  agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/shape.md
+    25302c4bf0e78c403dc8cd826ec3b2abe68eb2a3  agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/standards.md
+    03cf6a4567ae55987530677d18b461645d02347f  agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/verification/overlap-probe-2.txt
+    919d74b182a226642328833cb18f1a5649c99016  agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/verification/overlap-probe.txt
+
+$ uv run --locked python -u -B <scratchpad>/r23/check_cost.py
+the start preset: 60,875 bytes of text, the three sections 34,350
+  check_loadable 0.31 ms, of which the sections' decode 0.02 ms
+  the 2 loads 8.16 ms; the guard is 3.8% of them
+Mr Bill/Presets/Float Chords.vital: 10,126,117 bytes of text, the three sections 10,103,255
+  check_loadable 4.96 ms, of which the sections' decode 5.34 ms
+  the 2 loads 487.30 ms; the guard is 1.0% of them
+exit=0
+
+the machine after the run: arm64, Apple M4 Pro, 14 cores, macOS 26.6.2 (25G83), Python 3.12.16, load 2.76 2.91 2.83, at 2026-11-16 14:00 EST
+the tree after the run:
+  HEAD 63ad5ae788cba91fa55104be07fce8a209fa3da5
+  git status --porcelain=v1 --untracked-files=all, 23 lines:
+     M CHANGELOG.md
+     M README.md
+     M src/patchbay_vital/__init__.py
+     M src/patchbay_vital/errors.py
+     M src/patchbay_vital/files.py
+     M src/patchbay_vital/format.py
+     M src/patchbay_vital/instrument.py
+     M src/patchbay_vital/midi.py
+     M src/patchbay_vital/patch.py
+     M src/patchbay_vital/preset.py
+     M src/patchbay_vital/start.py
+     M tests/integration/test_vital_instrument.py
+     M tests/unit/builders.py
+     M tests/unit/test_instrument.py
+     M tests/unit/test_midi.py
+     M tests/unit/test_package.py
+     M tests/unit/test_patch.py
+    ?? agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/plan.md
+    ?? agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/references.md
+    ?? agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/shape.md
+    ?? agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/standards.md
+    ?? agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/verification/overlap-probe-2.txt
+    ?? agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/verification/overlap-probe.txt
+  git hash-object of each of those paths (a deleted one marked so):
+    2031646b4631653e138652adfbbd3ef8723c3165  CHANGELOG.md
+    ce1c64621a9343e66d5a218bd7cb0f5dcde43140  README.md
+    18e34edbd5c9d90809b4ffc840482b16ad4c9491  src/patchbay_vital/__init__.py
+    145eb826c6859888c22999de5e4876ef5ebd2234  src/patchbay_vital/errors.py
+    b2f644c9779f59519da2f5e60a4f57e000a81969  src/patchbay_vital/files.py
+    ad7a9a78bd1ca8275bb92e10ec8d8503f40bb339  src/patchbay_vital/format.py
+    fd816beba50661577c2ee66f4f85a2eeaa78c6f4  src/patchbay_vital/instrument.py
+    ab8ae0ec4a6d9c7889d6f136f7e6d322421e65a9  src/patchbay_vital/midi.py
+    153e25666cd405dfdeaca0f3425d67d5d85307a4  src/patchbay_vital/patch.py
+    f049675b5c61fffad437f008b72e378bd531b422  src/patchbay_vital/preset.py
+    318ed4766bbb83a87a45118a3c86dcafeeb1f138  src/patchbay_vital/start.py
+    728f952f874e6497f67474f72ba02d27009eae96  tests/integration/test_vital_instrument.py
+    c213879e4803b1766a132c3fa7b57c11d8d5850f  tests/unit/builders.py
+    9dda9f2725d8df27481d763aa8a1a135d630af8a  tests/unit/test_instrument.py
+    29373875bcecb57b70493f2445d21829e9e9df73  tests/unit/test_midi.py
+    091ab87c1c4bf715e9e7214ae1305db4056682d1  tests/unit/test_package.py
+    72e01c7f0fd307cc7cf46a859d0b8fbdeb20b7f3  tests/unit/test_patch.py
+    3e1b682af98475b06109a7e8868c6d084d5726d5  agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/plan.md
+    1c13a47fd8f6b2eed83d3424e99f2aa2aae94f5d  agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/references.md
+    6ecb404d4691131ffadcd8a9c44c68233473fb6b  agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/shape.md
+    25302c4bf0e78c403dc8cd826ec3b2abe68eb2a3  agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/standards.md
+    03cf6a4567ae55987530677d18b461645d02347f  agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/verification/overlap-probe-2.txt
+    919d74b182a226642328833cb18f1a5649c99016  agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/verification/overlap-probe.txt
+
+---- the script check_cost.py, as run ----
+"""What the guard's second decode costs, beside the load it guards (PR 23's finding 7).
+
+On the largest installed preset the manifest lists, by bytes, and on the start preset: the time
+of `check_loadable` (its decode of `wavetables`, `lfos` and `sample` among it), of the decode alone
+of those three sections, and of the two loads `load_patch` makes through the host. Each the best
+of `REPEATS` by `time.perf_counter`, the loads on the installed Vital.
+
+Run from the repository root with the locked interpreter, Vital and its presets installed.
+"""
+
+import time
+from pathlib import Path
+
+from patchbay import PresetKey
+
+from patchbay_vital import check_loadable, dumps, loads, parameter_map, start_preset
+from patchbay_vital.host import VitalHost
+from patchbay_vital.instrument import LOADS
+from patchbay_vital.preset import DECODER
+
+REPEATS = 5
+PRESETS = Path.home() / "Music" / "Vital"
+MANIFEST = [
+    line
+    for line in Path("tests/data/factory-manifest.txt").read_text(encoding="utf-8").splitlines()
+    if not line.startswith("#")
+]
+
+
+def best(call) -> float:
+    times = []
+    for _ in range(REPEATS):
+        started = time.perf_counter()
+        call()
+        times.append(time.perf_counter() - started)
+    return min(times)
+
+
+found = parameter_map()
+host = VitalHost()
+largest = max(MANIFEST, key=lambda name: (PRESETS / name).stat().st_size)
+for name, preset in (
+    ("the start preset", start_preset()),
+    (largest, loads((PRESETS / largest).read_text(encoding="utf-8"))),
+):
+    text = dumps(preset).encode("utf-8")
+    sections = [preset.opaque[PresetKey(key)] for key in ("wavetables", "lfos", "sample")]
+    guard = best(lambda: check_loadable(preset, found))
+    decode = best(lambda: [DECODER.decode(raw.decode("utf-8")) for raw in sections])
+    load = best(lambda: [host.load_state(text) for _ in range(LOADS)])
+    print(f"{name}: {len(text):,} bytes of text, the three sections {sum(map(len, sections)):,}")
+    print(f"  check_loadable {guard * 1000:.2f} ms, of which the sections' decode {decode * 1000:.2f} ms")
+    print(f"  the {LOADS} loads {load * 1000:.2f} ms; the guard is {guard / load:.1%} of them")
+

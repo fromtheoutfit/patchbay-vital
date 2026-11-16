@@ -1,5 +1,8 @@
 """Every preset Vital installed comes back byte for byte, and the set of them is the one expected.
 
+Each comes back through the file's own reader and writer, and through a core `Patch` and its JSON
+(`patchbay_vital.patch`), which needs no plugin either.
+
 The presets are Vital's and may not be redistributed, so they are read where an installed Vital
 keeps them and the tests that read them skip, saying so, where they are absent; those carry the
 `integration` marker, and the manifest's own count, which reads nothing installed, does not. The
@@ -11,8 +14,10 @@ and a pack removed or newly installed fails by name until the manifest is change
 from pathlib import Path
 
 import pytest
+from patchbay import Patch
 
 from patchbay_vital import dumps, loads
+from patchbay_vital.patch import patch_of, preset_of
 
 _ROOT = Path.home() / "Music" / "Vital"
 _USER = "User"
@@ -100,3 +105,25 @@ def test_a_factory_preset_round_trips(presets_root: Path, factory_preset: str) -
 def test_a_pack_preset_round_trips(presets_root: Path, pack_preset: str) -> None:
     """`dumps(loads(text)) == text` for one preset of an artist pack."""
     _assert_round_trip(presets_root, pack_preset)
+
+
+def _assert_round_trip_through_a_patch(root: Path, relative: str) -> None:
+    """Assert one file comes back byte for byte through a patch, and through the patch's JSON."""
+    text = (root / relative).read_bytes().decode("utf-8")
+    patch = patch_of(loads(text))
+    assert dumps(preset_of(patch)) == text, relative
+    assert dumps(preset_of(Patch.model_validate_json(patch.model_dump_json()))) == text, relative
+
+
+@pytest.mark.integration
+def test_a_factory_preset_round_trips_through_a_patch(
+    presets_root: Path, factory_preset: str
+) -> None:
+    """`preset_of(patch_of(preset))` writes the bytes one of Vital's own presets holds."""
+    _assert_round_trip_through_a_patch(presets_root, factory_preset)
+
+
+@pytest.mark.integration
+def test_a_pack_preset_round_trips_through_a_patch(presets_root: Path, pack_preset: str) -> None:
+    """The same for one preset of an artist pack, its out-of-range floats and old keys kept."""
+    _assert_round_trip_through_a_patch(presets_root, pack_preset)

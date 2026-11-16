@@ -2,11 +2,14 @@
 
 Run once per Vital version, with the `host` extra, from the repository root, and commit what it
 writes: `uv run --locked python -m patchbay_vital.census --parameters
-src/patchbay_vital/data/parameters.json --settings-keys src/patchbay_vital/settings_keys.txt`.
+src/patchbay_vital/data/parameters.json --settings-keys src/patchbay_vital/settings_keys.txt
+--start src/patchbay_vital/data/start.vital`.
 `--plugin PATH` names the plugin; without it the host's `DEFAULT_PATH` is the one place looked at.
-Both outputs are named, so nothing is written anywhere unasked, and they are replaced whole or not
-at all: both staged, then both renamed over, an earlier one put back when a later rename fails
-(`patchbay_vital.files`), so the key list and the map it is derived from never disagree. A key the
+The three outputs are named, so nothing is written anywhere unasked, and they are replaced whole
+or not at all: all staged, then renamed over in turn, the key list, the map, then the start
+preset, an earlier one put back when a later rename fails (`patchbay_vital.files`), so the key
+list, the map it is derived from and the preset the instrument starts on, which holds the map's
+defaults (`patchbay_vital.start`), never disagree. A key the
 format knows is never forgotten: the census refuses a key list lacking one, which a newer Vital
 dropping a parameter would give, naming the keys to add to `parameters.PRESET_ONLY_KEYS` in a
 spec, since every preset that holds them must still load. The map records the machine the census
@@ -49,6 +52,7 @@ from patchbay_vital.parameters import (
     displayed_ends,
 )
 from patchbay_vital.preset import KNOWN_SETTINGS
+from patchbay_vital.start import start_text
 
 GRID = (0.0, 0.1, 0.13, 0.25, 0.3, 0.37, 0.5, 0.7, 0.75, 0.9, 1.0)
 """The normalized values each parameter is measured at: both ends, and points that tell the scale
@@ -372,11 +376,15 @@ def dump_map(parameter_map: ParameterMap) -> str:
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    """Measure the plugin and write the map and the key list; 1, saying why, when it cannot."""
+    """Measure the plugin and write the map, the key list and the start preset.
+
+    1, saying why, when it cannot, and then none of the three is written.
+    """
     parser = argparse.ArgumentParser(prog="python -m patchbay_vital.census", description=__doc__)
     parser.add_argument("--plugin", type=Path, default=DEFAULT_PATH, help="Vital's VST3 bundle")
     parser.add_argument("--parameters", type=Path, required=True, help="the map to write")
     parser.add_argument("--settings-keys", type=Path, required=True, help="the key list to write")
+    parser.add_argument("--start", type=Path, required=True, help="the start preset to write")
     arguments = parser.parse_args(argv)
     try:
         built = build_map(VitalHost(arguments.plugin))
@@ -393,6 +401,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             {
                 arguments.settings_keys: keys.encode("utf-8"),
                 arguments.parameters: text.encode("utf-8"),
+                arguments.start: start_text(built).encode("utf-8"),
             }
         )
     except (OSError, ValueError) as error:

@@ -39,6 +39,7 @@ from patchbay_vital.preset import (
     SettingChange,
     VitalPreset,
     VitalSettings,
+    slot_key,
 )
 
 type ModulationEntry = tuple[str, str, bytes | None]
@@ -54,12 +55,14 @@ _SETTINGS_KEY = "settings"
 _SOURCE, _DESTINATION, _LINE_MAPPING = "source", "destination", "line_mapping"
 _TRAILING_NEWLINE = "trailing_newline"
 _TUNING = "tuning"
-_METADATA = tuple(
+METADATA = tuple(
     sorted(
         set(VitalPreset.model_fields)
         - {_SETTINGS_KEY, MODULATIONS_KEY, "opaque", _TUNING, _TRAILING_NEWLINE}
     )
 )
+"""The preset's metadata strings, by field name, sorted: every field but `settings`, the slots, the
+unread sections, `tuning` and `trailing_newline`, so a field added to the model is one here too."""
 _SLOT_FLOATS = (*SLOT_FIELDS, *NEWER_SLOT_FIELDS)
 _WHITESPACE = " \t\n\r"
 
@@ -155,23 +158,18 @@ def _modulation_entries(text: str, start: int) -> tuple[tuple[ModulationEntry, .
         index = _skip_space(text, _expect(text, index, ","))
 
 
-def _slot_key(slot: int, field: str) -> PresetKey:
-    """Return the `settings` key of a slot's float."""
-    return PresetKey(f"modulation_{slot}_{field}")
-
-
 def _join_slot(slot: int, entry: ModulationEntry, floats: dict[PresetKey, float]) -> Modulation:
     """Build one slot, taking its floats out of `floats`."""
     source, destination, line_mapping = entry
     fields: dict[str, float | None] = {}
     for field in SLOT_FIELDS:
-        key = _slot_key(slot, field)
+        key = slot_key(slot, field)
         if key not in floats:
             msg = f"slot {slot} has no {key!r}"
             raise MalformedPresetError(msg)
         fields[field] = floats.pop(key)
     for field in NEWER_SLOT_FIELDS:
-        fields[field] = floats.pop(_slot_key(slot, field), None)
+        fields[field] = floats.pop(slot_key(slot, field), None)
     try:
         return Modulation.model_validate(
             {
@@ -216,7 +214,7 @@ def split_modulations(
         for field in _SLOT_FLOATS:
             value: float | None = getattr(modulation, field)
             if value is not None:
-                floats[_slot_key(slot, field)] = value
+                floats[slot_key(slot, field)] = value
     return tuple(entries), floats
 
 
@@ -268,7 +266,7 @@ def _parse(text: str) -> VitalPreset:
                 msg = f"{_TUNING!r} is an object, here {value!r}"
                 raise MalformedPresetError(msg)
             fields[_TUNING] = body[first:end].encode("utf-8")
-        elif name not in _METADATA:
+        elif name not in METADATA:
             raise UnknownSettingError(name)
         elif value is None:
             msg = f"{name!r} is null, and a file that lacks it omits the key"
@@ -315,23 +313,23 @@ def load(path: Path | str) -> VitalPreset:
     return loads(text)
 
 
-def _string(value: str) -> str:
+def write_string(value: str) -> str:
     """Write a JSON string as Vital does: UTF-8 left raw, only what JSON requires escaped."""
     return json.dumps(value, ensure_ascii=False)
 
 
-def _object(members: Mapping[str, str]) -> str:
+def write_object(members: Mapping[str, str]) -> str:
     """Write a JSON object from its members' written values, its keys sorted."""
-    return "{" + ",".join(f"{_string(key)}:{members[key]}" for key in sorted(members)) + "}"
+    return "{" + ",".join(f"{write_string(key)}:{members[key]}" for key in sorted(members)) + "}"
 
 
 def _entry(entry: ModulationEntry) -> str:
     """Write one entry of the routing list."""
     source, destination, line_mapping = entry
-    members = {_SOURCE: _string(source), _DESTINATION: _string(destination)}
+    members = {_SOURCE: write_string(source), _DESTINATION: write_string(destination)}
     if line_mapping is not None:
         members[_LINE_MAPPING] = line_mapping.decode("utf-8")
-    return _object(members)
+    return write_object(members)
 
 
 def dumps(preset: VitalPreset) -> str:
@@ -341,14 +339,14 @@ def dumps(preset: VitalPreset) -> str:
     settings |= {key: format_float(value) for key, value in floats.items()}
     settings |= {key: raw.decode("utf-8") for key, raw in preset.opaque.items()}
     settings[MODULATIONS_KEY] = "[" + ",".join(_entry(entry) for entry in entries) + "]"
-    members = {_SETTINGS_KEY: _object(settings)}
-    for name in _METADATA:
+    members = {_SETTINGS_KEY: write_object(settings)}
+    for name in METADATA:
         value: str | None = getattr(preset, name)
         if value is not None:
-            members[name] = _string(value)
+            members[name] = write_string(value)
     if preset.tuning is not None:
         members[_TUNING] = preset.tuning.decode("utf-8")
-    return _object(members) + ("\n" if preset.trailing_newline else "")
+    return write_object(members) + ("\n" if preset.trailing_newline else "")
 
 
 def dump(preset: VitalPreset, path: Path | str) -> None:
@@ -367,8 +365,11 @@ def dump(preset: VitalPreset, path: Path | str) -> None:
         raise PresetFileError(str(path), str(error)) from error
 
 
-def _same(old: float | None, new: float | None) -> bool:
-    """Say whether two floats write the same, as `0.0` and `-0.0` do not though they are equal."""
+def writes_same(old: float | None, new: float | None) -> bool:
+    """Say whether two floats write the same, as `0.0` and `-0.0` do not though they are equal.
+
+    None, a float a preset lacks, writes the same only as None.
+    """
     if old is None or new is None:
         return old is new
     return old == new and math.copysign(1.0, old) == math.copysign(1.0, new)
@@ -376,7 +377,7 @@ def _same(old: float | None, new: float | None) -> bool:
 
 def _same_slot(old: Modulation, new: Modulation) -> bool:
     """Say whether two slots write the same."""
-    return old == new and all(_same(getattr(old, f), getattr(new, f)) for f in _SLOT_FLOATS)
+    return old == new and all(writes_same(getattr(old, f), getattr(new, f)) for f in _SLOT_FLOATS)
 
 
 def _setting_changes(a: VitalPreset, b: VitalPreset) -> tuple[SettingChange, ...]:
@@ -385,7 +386,7 @@ def _setting_changes(a: VitalPreset, b: VitalPreset) -> tuple[SettingChange, ...
     return tuple(
         SettingChange(key=key, old=old.get(key), new=new.get(key))
         for key in sorted(set(old) | set(new))
-        if not _same(old.get(key), new.get(key))
+        if not writes_same(old.get(key), new.get(key))
     )
 
 
@@ -400,7 +401,7 @@ def _modulation_change(slot: int, old: Modulation, new: Modulation) -> Modulatio
 def _metadata_changes(a: VitalPreset, b: VitalPreset) -> tuple[MetadataChange, ...]:
     """Return every metadata field that differs, by name."""
     changes: list[MetadataChange] = []
-    for name in sorted((*_METADATA, _TRAILING_NEWLINE)):
+    for name in sorted((*METADATA, _TRAILING_NEWLINE)):
         old: str | bool | None = getattr(a, name)
         new: str | bool | None = getattr(b, name)
         if old != new:
