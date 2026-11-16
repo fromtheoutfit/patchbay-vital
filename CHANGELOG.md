@@ -14,13 +14,43 @@ writes the entry, in that commit
 
 ### Changed
 
+- Revision after the second review of PR 23,
+  `agent-os/specs/2026-11-16-1509-revision-after-pr-23-second-review/`: the two correctness
+  findings of the review at `64863c6` and three of its nine later items. `set` and every other
+  rule of the instrument are unchanged: the texts and the tests are. The version stays 0.0.1.
+  - What a set of the value `get` shows does to a float Vital upgraded is stated as counted, on
+    Vital, and no longer as a rule (finding A; `verification/upgraded-set-count.txt`). Of the 46
+    such floats on the presets Vital installs, it puts Vital on the model's float for 42. It is
+    refused for 3, `flanger_center` on Touch Tone, Memory Leak and Oolacile Evil Dubstep Bass,
+    whose file value is outside the parameter's bounds. It is kept for 1, `modulation_10_amount`
+    on Oolacile Evil Dubstep Bass, a float no set lands on, and no set can put Vital on the
+    model's float there. A test on the fake plugin holds the kept case and a test against Vital
+    the three counts; what the model should hold is issue #22's to decide.
+  - The sample test of a load against a set makes its set from another value, counted at the
+    plugin, and its sample gains each group's two bounds, 1,485 displays in all (finding B). The
+    earlier form could fail, but not where two floats show one display, as at `volume`'s
+    minimum: `verification/mutation.txt` shows a mutant it passes and the new form fails.
+  - `load_patch`'s docstring gives the load rule as `patch.py` states it. `midi.py`'s says which
+    MPE setting each thing was measured under: each note's own length with MPE off and on, its
+    own velocity and the two voices of one pitch on one channel with MPE off alone. The
+    sixteen-note MIDI test writes out its 32 messages in the stream's order.
+  - `test_a_set_holds_the_value_vital_holds_which_need_not_be_the_nearest` computes the float32
+    below the curve's by its bits, as its docstring says. It had stepped a double and rounded
+    back to the float32 it started from, so it passed whether or not that neighbour was the
+    nearer. It now asserts the neighbour, its display and that a set lands on it, and
+    `verification/mutation.txt` shows a display it fails on that the earlier line passed.
+  - The review's other six later items go to two issues, unverified: five cleanups of `patch.py`
+    on this repository, and on fromtheoutfit/patchbay what an instrument does once it has lost
+    step with its device.
 - Revision after the review of PR 23, `agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/`:
   17 findings at `63ad5ae`, each checked against the code and against core at `eddba95`; 14
   fixed, one fixed in part and two declined with their reasons. The entry for the instrument
-  above reads as the revision leaves it. The version stays 0.0.1.
+  below reads as the revision leaves it. The version stays 0.0.1.
   - A set of the value already shown is kept only where the model holds a float no set lands on;
     on any other float it reaches the plugin, so `osc_1_stack_style` 9 on a preset Vital upgrades
-    to 10 is set back to 9 (finding 1).
+    to 10 is set back to 9 (finding 1). Of the 46 floats Vital upgrades, such a set mends 42; 3
+    are refused as out of bounds and 1, a float no set lands on, is kept (the second review's
+    finding A, above).
   - `load_patch` and the carrying check take a value one way: the float its display names, where
     the curve's float32 for it shows exactly that display, and otherwise what a set of it holds.
     Every float a patch carries is restored, all 903 stay in the start preset's `values`, and an
@@ -247,7 +277,8 @@ writes the entry, in that commit
     - a render of most presets opens with the preset sounding though no note was played (#21);
     - on a preset older than the plugin, a few parameters can be reported by `get` with the
       file's value where Vital plays its upgraded one, for a choice a different setting by name
-      (#22): 46 floats on 11 of the 75 installed presets;
+      (#22): 46 floats on 11 of the 75 installed presets, of which a set of the value `get` shows
+      puts Vital on the model's float for 42, is refused for 3 and is kept for 1;
     - every load is made twice, a measured workaround with no known cause: one load leaves 17 to
       53 of a preset's 903 floats off the text's.
   - `agent-os/product/mission.md` names the instrument in "What the adapter is".

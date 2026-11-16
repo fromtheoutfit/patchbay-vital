@@ -443,6 +443,17 @@ Each read back. Draft 4 stays held until the pull request merges."
 > 16. **Fixed.**
 > 17. **Declined.** The size of these transcripts is being decided in fromtheoutfit/patchbay-standards#41. This pair is added to its evidence.
 
+**Revised 2026-11-16, after the second review of PR 23** (finding A;
+`agent-os/specs/2026-11-16-1509-revision-after-pr-23-second-review/`). Item 1 holds for the float
+it names and not for every float Vital upgrades. Counted on Vital over the 46 that
+`tests/data/upgraded-floats.txt` records, a set of the value `get` shows puts Vital on the
+model's float for 42. It is refused for 3, `flanger_center` on Touch Tone, Memory Leak and
+Oolacile Evil Dubstep Bass, out of bounds. It is kept for 1, `modulation_10_amount` on Oolacile
+Evil Dubstep Bass, a float no set lands on, and no set can put Vital on the model's float there.
+Item 3's sample stands, and the unit test beside it now makes its set from another value (finding
+B). The reply above is kept as it was drafted; the second spec drafts the reply to the second
+review.
+
 ### 2. For fromtheoutfit/patchbay#20, the one case where a load and a set differ (drafted as a comment; its body revised in place instead, at the owner's word)
 
 > Since patchbay-vital's revision after the review of its PR 23 (`agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/`), the case has a second side.
@@ -451,6 +462,13 @@ Each read back. Draft 4 stays held until the pull request merges."
 > - **`set(get())` still changes nothing,** but the rule behind it is narrower. A set of the value shown is kept only where the held float is one no set lands on. On any other float it reaches the plugin, so the plugin goes back to the model's float after Vital upgrades a preset older than it.
 >
 > `test_a_display_that_is_an_off_grid_float_s_own_is_restored_by_a_load_and_not_by_a_set` holds it, naming this issue. The candidate wordings above are unchanged by it.
+
+**Revised 2026-11-16, after the second review of PR 23** (finding A). The last clause of the
+second bullet, "so the plugin goes back to the model's float after Vital upgrades a preset older
+than it", said more than was counted: it holds for 42 of the 46 upgraded floats, 3 are refused as
+out of bounds and 1 is kept. The text above is kept as it was written into the issue. The issue's
+body gains a dated paragraph saying so, drafted in the second spec's `shape.md`
+(`agent-os/specs/2026-11-16-1509-revision-after-pr-23-second-review/`).
 
 ### 3. Draft 5 for fromtheoutfit/patchbay (filed as two issues, #23 and #24, at the owner's word)
 

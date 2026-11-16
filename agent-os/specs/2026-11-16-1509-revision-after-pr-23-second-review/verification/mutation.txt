@@ -1,0 +1,481 @@
+The revision after PR 23's second review: two mutants of the load rule against both forms of the sample test, one mutant for each other test added or rewritten, and one of the example whose float32 below a test now computes, run 2026-11-16 15:47 EST on branch
+feature/8-the-instrument-vitalinstrument-over-vitalhost-patchvitalpreset-and-cores-contract-tests-against-a-real-vital-spec-b-of-7, Vital at /Library/Audio/Plug-Ins/VST3/Vital.vst3
+the machine before the run: arm64, Apple M4 Pro, 14 cores, macOS 26.6.2 (25G83), Python 3.12.16, load 3.64 4.20 3.96, at 2026-11-16 15:47 EST
+the tree before the run (this transcript is written outside the tree and copied in afterwards):
+  HEAD 64863c6dc72c80bd475fbfb5f41af95686522426
+  git status --porcelain=v1 --untracked-files=all, 16 lines:
+     M CHANGELOG.md
+     M README.md
+     M agent-os/specs/2026-11-15-1448-the-instrument/shape.md
+     M agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/shape.md
+     M agent-os/standards/index.yml
+     M agent-os/standards/vital/instrument.md
+     M agent-os/standards/vital/plugin-state.md
+     M src/patchbay_vital/instrument.py
+     M src/patchbay_vital/midi.py
+     M tests/integration/test_vital_instrument.py
+     M tests/unit/test_instrument.py
+     M tests/unit/test_midi.py
+    ?? agent-os/specs/2026-11-16-1509-revision-after-pr-23-second-review/plan.md
+    ?? agent-os/specs/2026-11-16-1509-revision-after-pr-23-second-review/references.md
+    ?? agent-os/specs/2026-11-16-1509-revision-after-pr-23-second-review/shape.md
+    ?? agent-os/specs/2026-11-16-1509-revision-after-pr-23-second-review/standards.md
+  git hash-object of each of those paths (a deleted one marked so):
+    25b817db047d748278f7dc170c8de1bdd494c22b  CHANGELOG.md
+    8c70984f6ab340ed55d5921a448131f159f6e3dd  README.md
+    60627f1ab57697c4cf4665836c700a6e8ee761c8  agent-os/specs/2026-11-15-1448-the-instrument/shape.md
+    358aae0828c07dce45ba0d0907969d3bfb95a05f  agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/shape.md
+    c3e8674ef3db80291bf87222702b08829888ec4f  agent-os/standards/index.yml
+    c3ae850ca680bb359729f2d0d8df2d226ad4165f  agent-os/standards/vital/instrument.md
+    0ed004ff63ab2b9077d5cd2d22bd02dfb7841761  agent-os/standards/vital/plugin-state.md
+    cbd7340232e09d9801b2d70d42f133cea4f6efa0  src/patchbay_vital/instrument.py
+    d7fe4315d94cb3e482c4ee6c846b644e9a338187  src/patchbay_vital/midi.py
+    927785c02c9c25f9a00e52f887d5f6387fec0403  tests/integration/test_vital_instrument.py
+    07291ca76904cf6a73e9568f27742ed2bb2d49a1  tests/unit/test_instrument.py
+    3d8ce9bd297978e45502e0661b6454279d86a2a5  tests/unit/test_midi.py
+    df50a44c290cfdcb7392a7ac9898c591cb1d30eb  agent-os/specs/2026-11-16-1509-revision-after-pr-23-second-review/plan.md
+    448ffc40805eb5bf797cd52bbdc419c4fed0dc96  agent-os/specs/2026-11-16-1509-revision-after-pr-23-second-review/references.md
+    b90403e5d7c58767d60bef6de8444d3cc32e33d2  agent-os/specs/2026-11-16-1509-revision-after-pr-23-second-review/shape.md
+    c97b33d91c737836c1f63aef111420e69bc98c36  agent-os/specs/2026-11-16-1509-revision-after-pr-23-second-review/standards.md
+
+$ <scratchpad>/r23b/mutate.sh
+the scratch copy holds 365 files, what git lists of the tree; it is outside the tree and nothing in the tree is changed
+the old form: tests/unit/test_instrument.py as at 64863c6dc72c80bd475fbfb5f41af95686522426, blob 9dda9f2725d8df27481d763aa8a1a135d630af8a, written into the copy alone as tests/unit/test_instrument_at_64863c6.py
+the old form given the new sample: old_form_on_the_new_sample.py, written into the copy alone as tests/unit/test_old_form_on_the_new_sample.py
+ + typing-inspection==0.4.5
+ + virtualenv==21.15.6
+the tree unmutated, in the copy:
+    the sample test, old form: passes (1 passed in 3.38s)
+    the sample test, new form: passes (1 passed in 0.62s)
+    the sample test, old form given the new sample, both its tests: passes (2 passed in 0.92s)
+    the unit suite: 0 failed (597 passed in 8.19s)
+
+Part 1, finding B: two mutants of patch._float_of, each against both forms of the sample test
+MD1: a load always takes the curve's float32, the mutant the owner named (MD1 of the first revision)
+    src/patchbay_vital/patch.py: 'return named if record.to_display(named) == display else record.to_preset(display)' ->
+            return named
+    against the old form: FAILS (1 failed in 0.19s)
+        test_an_arbitrary_display_in_a_patch_holds_what_a_set_of_it_holds
+            AssertionError: Quantity(value=214.3012627664921, unit=<Unit.bpm: 'bpm'>)
+        what it shows: the old test could fail: an arbitrary display is shown by no float, so the set after the load is a real set, and it disagrees with a wrong load.
+    against the new form: FAILS (1 failed in 0.21s)
+        test_an_arbitrary_display_in_a_patch_holds_what_a_set_of_it_holds
+            AssertionError: ('beats_per_minute', Quantity(value=214.3012627664921, unit=<Unit.bpm: 'bpm'>))
+        what it shows: the new form fails it too, so the mutant the owner named does not tell the two forms apart.
+    beyond the four, against the old form given the new sample: 1 of its 2 tests failed (1 failed, 1 passed in 0.48s)
+        test_the_old_form_on_the_new_sample_a_set_after_the_load_agrees_with_the_load
+            AssertionError: Quantity(value=214.3012627664921, unit=<Unit.bpm: 'bpm'>)
+    against the tree's whole unit suite: 2 failed (2 failed, 595 passed in 7.14s)
+        test_an_arbitrary_display_in_a_patch_holds_what_a_set_of_it_holds
+        test_a_value_goes_to_the_float_a_set_of_it_holds_unless_it_names_a_float
+MD4: where the curve's float32 shows the display, a load takes the float32 next above it when that shows the display too
+    src/patchbay_vital/patch.py: 'return named if record.to_display(named) == display else record.to_preset(display)' ->
+            if record.to_display(named) != display:
+                return record.to_preset(display)
+            from patchbay_vital.float32 import next_float32
+            above = next_float32(named, math.inf)
+            shows = above <= record.scale.maximum and record.to_display(above) == display
+            return above if shows else named
+    against the old form: passes (1 passed in 0.59s)
+        what it shows: the old test passes a load that took another float showing the display; its own sample has no such display, and the variant below gives it one.
+    against the new form: FAILS (1 failed in 0.56s)
+        test_an_arbitrary_display_in_a_patch_holds_what_a_set_of_it_holds
+            AssertionError: ('volume', Quantity(value=-80.0, unit=<Unit.db: 'db'>))
+        what it shows: the new form fails: at volume's minimum the set made from another value holds 0, and the load took the float32 above it.
+    beyond the four, against the old form given the new sample: 1 of its 2 tests failed (1 failed, 1 passed in 0.95s)
+        test_the_old_form_on_the_new_sample_every_set_after_the_load_reaches_the_plugin
+            AssertionError: 1 set(s) after the load called no plugin: [('volume', -80.0)]
+    against the tree's whole unit suite: 10 failed (10 failed, 587 passed in 7.76s)
+        test_a_preset_holding_a_float_outside_its_bounds_is_shown_refused_on_set_and_carried
+        test_an_arbitrary_display_in_a_patch_holds_what_a_set_of_it_holds
+        test_a_patch_is_built_once_for_each_model
+        test_parameter_count_is_the_number_of_values_in_the_patch_given
+        test_a_patch_refused_part_way_leaves_the_model_the_plugin_and_the_bus_as_they_were
+        test_the_start_preset_and_the_fixture_come_back_with_all_903_in_values
+        test_a_float_outside_its_bounds_rides_in_the_entry_as_itself
+        test_a_float_its_display_cannot_carry_rides_in_the_entry_though_it_is_in_range
+        test_a_negative_zero_a_value_between_steps_and_a_key_that_is_no_parameter_are_kept
+        test_a_key_the_preset_lacks_is_in_neither_place_and_stays_absent
+
+Part 2: one mutant for each other test this revision added or rewrote
+MK1: a set of the value already shown is carried out like any other (the keep rule gone)
+    src/patchbay_vital/instrument.py: 'if value.value != old.value or writes_same(held, self._held(record)):' -> 'if True:'
+    must fail test_a_set_of_the_value_shown_on_an_upgraded_float_no_set_lands_on_leaves_the_plugin_upgraded: yes; 2 failed (2 failed, 75 passed in 1.77s)
+        test_a_set_of_the_value_already_shown_keeps_what_is_held
+        test_a_set_of_the_value_shown_on_an_upgraded_float_no_set_lands_on_leaves_the_plugin_upgraded
+MM9: a moved note takes the highest free channel
+    src/patchbay_vital/midi.py: 'return free[0]' -> 'return free[-1]'
+    must fail test_sixteen_notes_of_one_pitch_sound_at_once_each_on_a_channel_of_its_own: yes; 7 failed (7 failed, 17 passed in 0.16s)
+        test_a_note_struck_while_its_pitch_sounds_on_its_channel_goes_out_on_the_next
+        test_two_notes_of_one_pitch_struck_on_one_sample_each_sound_with_their_own_velocity_and_length[the louder first]
+        test_two_notes_of_one_pitch_struck_on_one_sample_each_sound_with_their_own_velocity_and_length[the longer first]
+        test_a_moved_note_takes_the_lowest_channel_free_for_its_pitch
+        test_a_note_too_short_to_last_a_sample_sounds_on_when_its_pitch_is_struck_there
+        test_a_note_the_render_ends_before_it_is_released_holds_its_channel
+        test_sixteen_notes_of_one_pitch_sound_at_once_each_on_a_channel_of_its_own
+
+Part 3: the float32 below, in test_a_set_holds_the_value_vital_holds_which_need_not_be_the_nearest
+    unmutated, the test as at 64863c6: passes (1 passed in 0.16s)
+    unmutated, the test in the tree: passes (1 passed in 0.17s)
+MN1: the display given is moved to the other side of the curve's float32, where the float32 below is not the nearer
+    in each form's own file: 'given = 216.85141355537831' -> 'given = 216.85142725'
+    against the test as at 64863c6: passes (1 passed in 0.21s)
+        what it shows: the line as it was passes though its docstring's claim is now false: it never computed the float32 below.
+    against the test in the tree: FAILS (1 failed in 0.23s)
+        test_a_set_holds_the_value_vital_holds_which_need_not_be_the_nearest
+            assert 2.115258789103791e-05 < 7.457641601149589e-06
+        what it shows: the corrected line fails: the float32 below is worked out and compared, and here it is the farther.
+
+the tree unmutated again, in the copy:
+    the unit suite: 0 failed (597 passed in 7.54s)
+Part 1: 2 mutants against 2 forms, 4 results, 0 unexpected
+Part 2: 2 mutants, 0 survived
+Part 3: 1 mutant against 2 forms, 2 results, 0 unexpected
+exit=0
+exit=0
+
+the machine after the run: arm64, Apple M4 Pro, 14 cores, macOS 26.6.2 (25G83), Python 3.12.16, load 4.32 4.30 4.01, at 2026-11-16 15:47 EST
+the tree after the run:
+  HEAD 64863c6dc72c80bd475fbfb5f41af95686522426
+  git status --porcelain=v1 --untracked-files=all, 16 lines:
+     M CHANGELOG.md
+     M README.md
+     M agent-os/specs/2026-11-15-1448-the-instrument/shape.md
+     M agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/shape.md
+     M agent-os/standards/index.yml
+     M agent-os/standards/vital/instrument.md
+     M agent-os/standards/vital/plugin-state.md
+     M src/patchbay_vital/instrument.py
+     M src/patchbay_vital/midi.py
+     M tests/integration/test_vital_instrument.py
+     M tests/unit/test_instrument.py
+     M tests/unit/test_midi.py
+    ?? agent-os/specs/2026-11-16-1509-revision-after-pr-23-second-review/plan.md
+    ?? agent-os/specs/2026-11-16-1509-revision-after-pr-23-second-review/references.md
+    ?? agent-os/specs/2026-11-16-1509-revision-after-pr-23-second-review/shape.md
+    ?? agent-os/specs/2026-11-16-1509-revision-after-pr-23-second-review/standards.md
+  git hash-object of each of those paths (a deleted one marked so):
+    25b817db047d748278f7dc170c8de1bdd494c22b  CHANGELOG.md
+    8c70984f6ab340ed55d5921a448131f159f6e3dd  README.md
+    60627f1ab57697c4cf4665836c700a6e8ee761c8  agent-os/specs/2026-11-15-1448-the-instrument/shape.md
+    358aae0828c07dce45ba0d0907969d3bfb95a05f  agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/shape.md
+    c3e8674ef3db80291bf87222702b08829888ec4f  agent-os/standards/index.yml
+    c3ae850ca680bb359729f2d0d8df2d226ad4165f  agent-os/standards/vital/instrument.md
+    0ed004ff63ab2b9077d5cd2d22bd02dfb7841761  agent-os/standards/vital/plugin-state.md
+    cbd7340232e09d9801b2d70d42f133cea4f6efa0  src/patchbay_vital/instrument.py
+    d7fe4315d94cb3e482c4ee6c846b644e9a338187  src/patchbay_vital/midi.py
+    927785c02c9c25f9a00e52f887d5f6387fec0403  tests/integration/test_vital_instrument.py
+    07291ca76904cf6a73e9568f27742ed2bb2d49a1  tests/unit/test_instrument.py
+    3d8ce9bd297978e45502e0661b6454279d86a2a5  tests/unit/test_midi.py
+    df50a44c290cfdcb7392a7ac9898c591cb1d30eb  agent-os/specs/2026-11-16-1509-revision-after-pr-23-second-review/plan.md
+    448ffc40805eb5bf797cd52bbdc419c4fed0dc96  agent-os/specs/2026-11-16-1509-revision-after-pr-23-second-review/references.md
+    b90403e5d7c58767d60bef6de8444d3cc32e33d2  agent-os/specs/2026-11-16-1509-revision-after-pr-23-second-review/shape.md
+    c97b33d91c737836c1f63aef111420e69bc98c36  agent-os/specs/2026-11-16-1509-revision-after-pr-23-second-review/standards.md
+
+---- the script mutate.sh, as run ----
+#!/usr/bin/env bash
+# usage: mutate.sh   (from the repository root): copy what git lists into a scratch directory,
+# write the unit test module as at 64863c6 into the copy alone, sync it, run the mutants there.
+set -uo pipefail
+R=$(cd "$(dirname "$0")" && pwd)
+COPY="$R/mut/patchbay-vital"
+OLD=64863c6
+rm -rf "$R/mut"; mkdir -p "$COPY"
+git ls-files -z --cached --others --exclude-standard | while IFS= read -r -d '' f; do
+  [ -e "$f" ] || continue
+  mkdir -p "$COPY/$(dirname "$f")" && cp -p "$f" "$COPY/$f"
+done
+echo "the scratch copy holds $(find "$COPY" -type f | wc -l | tr -d ' ') files, what git lists of the tree; it is outside the tree and nothing in the tree is changed"
+git show "$OLD:tests/unit/test_instrument.py" > "$COPY/tests/unit/test_instrument_at_$OLD.py" || exit 2
+echo "the old form: tests/unit/test_instrument.py as at $(git rev-parse "$OLD"), blob $(git rev-parse "$OLD:tests/unit/test_instrument.py"), written into the copy alone as tests/unit/test_instrument_at_$OLD.py"
+cp "$R/old_form_on_the_new_sample.py" "$COPY/tests/unit/test_old_form_on_the_new_sample.py" || exit 2
+echo "the old form given the new sample: old_form_on_the_new_sample.py, written into the copy alone as tests/unit/test_old_form_on_the_new_sample.py"
+(cd "$COPY" && uv sync --locked 2>&1 | tail -2)
+uv run --locked python -u -B "$R/mutate.py" "$COPY"
+echo "exit=$?"
+
+---- the script mutate.py, as run ----
+"""The mutants of the revision after PR 23's second review, each on a scratch copy.
+
+usage: mutate.py <the scratch copy>. Each mutant replaces one piece of text in one file of the
+copy, which must hold that text exactly once, runs the tests named, prints the tests that fail,
+and puts the file back. The harness is the first revision's, with this revision's mutants.
+
+Part 1 is finding B. Two mutants of `patch._float_of`, each run against the sample test in both
+its forms: the old form, the test as at 64863c6, which `mutate.sh` wrote into the copy alone as
+tests/unit/test_instrument_at_64863c6.py; and the new form, the test in the tree. Four results.
+Beyond the four, each mutant is run against the old form given the new form's sample (the
+throwaway old_form_on_the_new_sample.py, in the copy alone), which tells the form from the
+sample, and against the tree's whole unit suite, which says where else the mutant is caught.
+
+Part 2 is one mutant for each other test this revision added or rewrote, which it must fail. A
+mutant that fails no test it must fail is printed as SURVIVED and counted.
+
+Part 3 is the assertion the owner had corrected after the report, in
+test_a_set_holds_the_value_vital_holds_which_need_not_be_the_nearest. Its docstring says the
+float32 below the curve's is nearer the display given; the line as at 64863c6 stepped a double
+and rounded back, so it compared the curve's own float32. One mutant, of the test's example and
+not of the package: the display given is moved to the other side of the curve's float32, where
+the float32 below is no longer the nearer. It is run against the test in both its forms.
+"""
+
+import os
+import re
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+COPY = Path(sys.argv[1])
+INSTRUMENT = "src/patchbay_vital/instrument.py"
+PATCH = "src/patchbay_vital/patch.py"
+MIDI = "src/patchbay_vital/midi.py"
+SAMPLE = "test_an_arbitrary_display_in_a_patch_holds_what_a_set_of_it_holds"
+OLD_FORM = f"tests/unit/test_instrument_at_64863c6.py::{SAMPLE}"
+NEW_FORM = f"tests/unit/test_instrument.py::{SAMPLE}"
+VARIANT = "tests/unit/test_old_form_on_the_new_sample.py"
+UNIT = ["tests/unit", "--ignore", "tests/unit/test_instrument_at_64863c6.py", "--ignore", VARIANT]
+T_INSTRUMENT = ["tests/unit/test_instrument.py"]
+OLD_FILE = "tests/unit/test_instrument_at_64863c6.py"
+NEW_FILE = "tests/unit/test_instrument.py"
+NEARER = "test_a_set_holds_the_value_vital_holds_which_need_not_be_the_nearest"
+GIVEN = "    given = 216.85141355537831\n"
+MOVED = "    given = 216.85142725\n"
+T_MIDI = ["tests/unit/test_midi.py"]
+
+LOAD_RULE = "    return named if record.to_display(named) == display else record.to_preset(display)\n"
+MD1 = "    return named\n"
+MD4 = (
+    "    if record.to_display(named) != display:\n"
+    "        return record.to_preset(display)\n"
+    "    from patchbay_vital.float32 import next_float32\n"
+    "    above = next_float32(named, math.inf)\n"
+    "    shows = above <= record.scale.maximum and record.to_display(above) == display\n"
+    "    return above if shows else named\n"
+)
+
+# (id, what the mutant does, the replacement, what the old form is expected to do, and the new)
+LOAD_MUTANTS = [
+    ("MD1", "a load always takes the curve's float32, the mutant the owner named (MD1 of the first revision)", MD1, "fail", "fail"),
+    ("MD4", "where the curve's float32 shows the display, a load takes the float32 next above it when that shows the display too", MD4, "pass", "fail"),
+]
+SAYS = {
+    ("MD1", "old"): "the old test could fail: an arbitrary display is shown by no float, so the set after the load is a real set, and it disagrees with a wrong load",
+    ("MD1", "new"): "the new form fails it too, so the mutant the owner named does not tell the two forms apart",
+    ("MD4", "old"): "the old test passes a load that took another float showing the display; its own sample has no such display, and the variant below gives it one",
+    ("MD4", "new"): "the new form fails: at volume's minimum the set made from another value holds 0, and the load took the float32 above it",
+}
+
+# (id, what the mutant does, file, the text replaced, the replacement, tests run, a test it must fail)
+OTHER_MUTANTS = [
+    ("MK1", "a set of the value already shown is carried out like any other (the keep rule gone)", INSTRUMENT,
+     "        if value.value != old.value or writes_same(held, self._held(record)):\n", "        if True:\n", T_INSTRUMENT,
+     "test_a_set_of_the_value_shown_on_an_upgraded_float_no_set_lands_on_leaves_the_plugin_upgraded"),
+    ("MM9", "a moved note takes the highest free channel", MIDI,
+     "return free[0]", "return free[-1]", T_MIDI,
+     "test_sixteen_notes_of_one_pitch_sound_at_once_each_on_a_channel_of_its_own"),
+]
+
+
+def run(tests: list[str]) -> tuple[list[tuple[str, str]], str]:
+    """Run pytest in the copy; return the failed tests with their reasons, and the last line."""
+    command = ["uv", "run", "--locked", "pytest", "-c", "pyproject.toml", "-p", "no:doctest", "-p", "no:cacheprovider", "-rfE", "--no-header", *tests]
+    # wide, so that pytest's summary line has room for the reason after a long test name
+    wide = {**os.environ, "COLUMNS": "400"}
+    done = subprocess.run(command, cwd=COPY, capture_output=True, text=True, check=False, env=wide)
+    # a parametrized test's id can hold spaces, so a name runs to the " - " before its reason
+    found = re.findall(r"^(?:FAILED|ERROR) (.+?)(?: - (.*))?$", done.stdout, flags=re.MULTILINE)
+    tail = done.stdout.strip().splitlines()[-1] if done.stdout.strip() else done.stderr.strip()[-200:]
+    return [(name.split("::", 1)[1] if "::" in name else name, reason) for name, reason in found], f"({tail})"
+
+
+def mutated(file: str, old: str, new: str) -> bytes | None:
+    """Write the mutant into the copy and return the file as it was, or None if the text is not there once."""
+    path = COPY / file
+    kept = path.read_bytes()
+    text = kept.decode("utf-8")
+    if text.count(old) != 1:
+        print(f"    THE TEXT TO REPLACE IS THERE {text.count(old)} TIMES, not once: {old!r}")
+        return None
+    path.write_text(text.replace(old, new), encoding="utf-8")
+    return kept
+
+
+unexpected = survived = 0
+print("the tree unmutated, in the copy:")
+for label, test in (("old form", OLD_FORM), ("new form", NEW_FORM), ("old form given the new sample, both its tests", VARIANT)):
+    failed, tail = run([test])
+    print(f"    the sample test, {label}: {'FAILS' if failed else 'passes'} {tail}")
+    unexpected += bool(failed)
+failed, tail = run(UNIT)
+print(f"    the unit suite: {len(failed)} failed {tail}")
+unexpected += bool(failed)
+
+print()
+print("Part 1, finding B: two mutants of patch._float_of, each against both forms of the sample test")
+for name, what, new, old_expected, new_expected in LOAD_MUTANTS:
+    print(f"{name}: {what}")
+    print(f"    {PATCH}: {LOAD_RULE.strip()!r} ->")
+    for line in new.rstrip("\n").split("\n"):
+        print(f"        {line}")
+    kept = mutated(PATCH, LOAD_RULE, new)
+    if kept is None:
+        unexpected += 1
+        continue
+    for label, test, expected in (("old", OLD_FORM, old_expected), ("new", NEW_FORM, new_expected)):
+        failed, tail = run([test])
+        got = "fail" if failed else "pass"
+        mark = "" if got == expected else f"  UNEXPECTED, {expected} was expected"
+        unexpected += got != expected
+        print(f"    against the {label} form: {'FAILS' if failed else 'passes'} {tail}{mark}")
+        for test_name, reason in failed:
+            print(f"        {test_name}")
+            print(f"            {reason[:300]}")
+        print(f"        what it shows: {SAYS[name, label]}.")
+    failed, tail = run([VARIANT])
+    print(f"    beyond the four, against the old form given the new sample: {len(failed)} of its 2 tests failed {tail}")
+    for test_name, reason in failed:
+        print(f"        {test_name}")
+        print(f"            {reason[:300]}")
+    failed, tail = run(UNIT)
+    print(f"    against the tree's whole unit suite: {len(failed)} failed {tail}")
+    for test_name, _ in failed[:12]:
+        print(f"        {test_name}")
+    if len(failed) > 12:
+        print(f"        and {len(failed) - 12} more")
+    (COPY / PATCH).write_bytes(kept)
+
+print()
+print("Part 2: one mutant for each other test this revision added or rewrote")
+for name, what, file, old, new, tests, must_fail in OTHER_MUTANTS:
+    print(f"{name}: {what}")
+    print(f"    {file}: {old.strip()[:90]!r} -> {new.strip()[:90]!r}")
+    kept = mutated(file, old, new)
+    if kept is None:
+        survived += 1
+        continue
+    failed, tail = run(tests)
+    (COPY / file).write_bytes(kept)
+    caught = any(must_fail in test_name for test_name, _ in failed)
+    survived += not caught
+    print(f"    must fail {must_fail}: {'yes' if caught else 'NO, SURVIVED'}; {len(failed)} failed {tail}")
+    for test_name, _ in failed[:8]:
+        print(f"        {test_name}")
+    if len(failed) > 8:
+        print(f"        and {len(failed) - 8} more")
+
+print()
+print("Part 3: the float32 below, in " + NEARER)
+part_three = 0
+for label, file in (("the test as at 64863c6", OLD_FILE), ("the test in the tree", NEW_FILE)):
+    failed, tail = run([f"{file}::{NEARER}"])
+    print(f"    unmutated, {label}: {'FAILS' if failed else 'passes'} {tail}")
+    part_three += bool(failed)
+print("MN1: the display given is moved to the other side of the curve's float32, where the float32 below is not the nearer")
+print(f"    in each form's own file: {GIVEN.strip()!r} -> {MOVED.strip()!r}")
+SHOWS = {
+    OLD_FILE: "the line as it was passes though its docstring's claim is now false: it never computed the float32 below",
+    NEW_FILE: "the corrected line fails: the float32 below is worked out and compared, and here it is the farther",
+}
+for label, file, expected in (("the test as at 64863c6", OLD_FILE, "pass"), ("the test in the tree", NEW_FILE, "fail")):
+    kept = mutated(file, GIVEN, MOVED)
+    if kept is None:
+        part_three += 1
+        continue
+    failed, tail = run([f"{file}::{NEARER}"])
+    (COPY / file).write_bytes(kept)
+    got = "fail" if failed else "pass"
+    mark = "" if got == expected else f"  UNEXPECTED, {expected} was expected"
+    part_three += got != expected
+    print(f"    against {label}: {'FAILS' if failed else 'passes'} {tail}{mark}")
+    for test_name, reason in failed:
+        print(f"        {test_name}")
+        print(f"            {reason[:300]}")
+    print(f"        what it shows: {SHOWS[file]}.")
+
+print()
+print("the tree unmutated again, in the copy:")
+failed, tail = run(UNIT)
+print(f"    the unit suite: {len(failed)} failed {tail}")
+unexpected += bool(failed)
+print(f"Part 1: {len(LOAD_MUTANTS)} mutants against 2 forms, {len(LOAD_MUTANTS) * 2} results, {unexpected} unexpected")
+print(f"Part 2: {len(OTHER_MUTANTS)} mutants, {survived} survived")
+print(f"Part 3: 1 mutant against 2 forms, 2 results, {part_three} unexpected")
+unexpected += part_three
+shutil.rmtree(COPY / ".venv", ignore_errors=True)
+sys.exit(1 if unexpected or survived else 0)
+
+---- the script old_form_on_the_new_sample.py, as run ----
+"""The sample test's old form given the new form's sample: a throwaway, in the scratch copy alone.
+
+The test as at 64863c6 draws 25 uniform rounds and no bound, so a mutant that differs only at a
+bound passes it for want of the display. This module gives the old form, a load and then a set of
+each display, the new form's 27 rounds, to tell the form from the sample. `mutate.sh` writes it
+into the copy as tests/unit/test_old_form_on_the_new_sample.py; it is no part of the tree. It
+takes the fake plugin and its fixtures from the tree's tests/unit/test_instrument.py.
+"""
+
+import numpy as np
+from patchbay import Patch
+from test_instrument import (  # the fixtures are taken by name, for pytest to find them here
+    _FakeVital,
+    _model_floats,
+    _quantity,
+    bus,
+    host,
+    instrument,
+    plugin,
+)
+
+from patchbay_vital.instrument import VitalInstrument
+from patchbay_vital.parameters import MappedParameter, parameter_map
+
+__all__ = ["bus", "host", "instrument", "plugin"]
+
+
+def _rounds() -> list[dict[str, object]]:
+    """Return the new form's sample: 25 uniform rounds, seed 23, then each bound, as quantities."""
+    groups: dict[str, MappedParameter] = {}
+    for record in parameter_map().parameters:
+        if record.parameter.kind == "continuous":
+            groups.setdefault(record.scale.model_dump_json() + record.curve.model_dump_json(), record)
+    rng = np.random.default_rng(23)
+    rounds = [
+        {r.id: float(rng.uniform(r.parameter.minimum, r.parameter.maximum)) for r in groups.values()}
+        for _ in range(25)
+    ]
+    rounds.append({r.id: r.parameter.minimum for r in groups.values()})
+    rounds.append({r.id: r.parameter.maximum for r in groups.values()})
+    units = {r.id: r.parameter.unit for r in groups.values()}
+    return [{key: _quantity(display, units[key]) for key, display in found.items()} for found in rounds]
+
+
+def test_the_old_form_on_the_new_sample_a_set_after_the_load_agrees_with_the_load(
+    instrument: VitalInstrument,
+) -> None:
+    """The old form's one assertion, over the new sample's 1,485 displays."""
+    compared = 0
+    for values in _rounds():
+        instrument.load_patch(Patch(instrument="Vital", values=values))
+        loaded = _model_floats(instrument.preset)
+        for parameter_id, value in values.items():
+            instrument.set(parameter_id, value)
+            assert _model_floats(instrument.preset)[parameter_id] == loaded[parameter_id], value
+            compared += 1
+    assert compared == 1485
+
+
+def test_the_old_form_on_the_new_sample_every_set_after_the_load_reaches_the_plugin(
+    instrument: VitalInstrument, plugin: _FakeVital
+) -> None:
+    """What the old form never asked: was the set after the load a set, or the keep rule's no-op."""
+    kept = []
+    for values in _rounds():
+        instrument.load_patch(Patch(instrument="Vital", values=values))
+        for parameter_id, value in values.items():
+            sent = len(plugin.sets)
+            instrument.set(parameter_id, value)
+            if len(plugin.sets) == sent:
+                kept.append((parameter_id, value.value))
+    assert kept == [], f"{len(kept)} set(s) after the load called no plugin: {kept}"
+

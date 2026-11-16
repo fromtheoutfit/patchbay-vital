@@ -307,12 +307,46 @@ def test_a_note_the_render_ends_before_it_is_released_holds_its_channel() -> Non
 
 
 def test_sixteen_notes_of_one_pitch_sound_at_once_each_on_a_channel_of_its_own() -> None:
-    """All struck on one sample: the first on the first channel, the rest on the next in turn."""
+    """All struck on one sample: the first on the first channel, the rest on the next in turn.
+
+    The whole stream, written out: the sixteen note-ons in the pattern's order, then the sixteen
+    note-offs in it, a beat later.
+    """
     midi = midi_of(_pattern(*(_note(60, 0.0, 1.0) for _ in range(16))), _request())
-    ons = [message for message, when in midi if when == _at(0)]
-    assert ons == [bytes([0x90 | channel, 0x3C, 0x64]) for channel in range(16)]
-    offs = [message for message, when in midi if when == _at(24000)]
-    assert offs == [bytes([0x80 | channel, 0x3C, 0x00]) for channel in range(16)]
+    assert midi == (
+        (b"\x90\x3c\x64", _at(0)),
+        (b"\x91\x3c\x64", _at(0)),
+        (b"\x92\x3c\x64", _at(0)),
+        (b"\x93\x3c\x64", _at(0)),
+        (b"\x94\x3c\x64", _at(0)),
+        (b"\x95\x3c\x64", _at(0)),
+        (b"\x96\x3c\x64", _at(0)),
+        (b"\x97\x3c\x64", _at(0)),
+        (b"\x98\x3c\x64", _at(0)),
+        (b"\x99\x3c\x64", _at(0)),
+        (b"\x9a\x3c\x64", _at(0)),
+        (b"\x9b\x3c\x64", _at(0)),
+        (b"\x9c\x3c\x64", _at(0)),
+        (b"\x9d\x3c\x64", _at(0)),
+        (b"\x9e\x3c\x64", _at(0)),
+        (b"\x9f\x3c\x64", _at(0)),
+        (b"\x80\x3c\x00", _at(24000)),
+        (b"\x81\x3c\x00", _at(24000)),
+        (b"\x82\x3c\x00", _at(24000)),
+        (b"\x83\x3c\x00", _at(24000)),
+        (b"\x84\x3c\x00", _at(24000)),
+        (b"\x85\x3c\x00", _at(24000)),
+        (b"\x86\x3c\x00", _at(24000)),
+        (b"\x87\x3c\x00", _at(24000)),
+        (b"\x88\x3c\x00", _at(24000)),
+        (b"\x89\x3c\x00", _at(24000)),
+        (b"\x8a\x3c\x00", _at(24000)),
+        (b"\x8b\x3c\x00", _at(24000)),
+        (b"\x8c\x3c\x00", _at(24000)),
+        (b"\x8d\x3c\x00", _at(24000)),
+        (b"\x8e\x3c\x00", _at(24000)),
+        (b"\x8f\x3c\x00", _at(24000)),
+    )
 
 
 def test_a_seventeenth_note_of_one_pitch_at_once_is_refused_naming_its_pitch_and_sample() -> None:

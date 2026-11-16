@@ -234,6 +234,17 @@ def _float32(value: float) -> float:
     return held
 
 
+def _float32_toward_zero(value: float) -> float:
+    """Return the float32 next to a float32 that is not zero, toward zero, by its bits.
+
+    One less in the float32's own bits. `math.nextafter` steps a double, and the double next to a
+    float32 rounds back to that float32.
+    """
+    (bits,) = struct.unpack("<I", struct.pack("<f", value))
+    stepped: float = struct.unpack("<f", struct.pack("<I", bits - 1))[0]
+    return stepped
+
+
 def _state_floats(instrument: VitalInstrument) -> dict[str, float]:
     """Return the plugin's own floats, through the diagnostic read."""
     return _floats(instrument.host.state())
@@ -355,14 +366,18 @@ def test_a_set_holds_the_value_vital_holds_which_need_not_be_the_nearest(
 
     60 bpm is 1 in the preset, on a scale from the float32 of 1/3 to 5. The float32 nearest the
     display over 60 is 3.6141903400421143, which no normalized value lands on; the normalized
-    value nearest it lands on 3.6141905784606934, shown as 216.8514347076416, where the float32
-    below, shown as 216.8514060974121, is nearer the display given. All worked out here.
+    value nearest it lands on 3.6141905784606934, the float32 above it, shown as
+    216.8514347076416, where the float32 below it, 3.614190101623535, shown as 216.8514060974121,
+    is one a set lands on and is nearer the display given. All worked out here.
     """
     given = 216.85141355537831
     own = _float32(given / 60.0)
     normalized, held = what_a_set_holds(own, _float32(1 / 3), 5.0)
     assert (own, held) == (3.6141903400421143, 3.6141905784606934)
-    assert abs(_float32(math.nextafter(own, 0.0)) * 60.0 - given) < abs(held * 60.0 - given)
+    below = _float32_toward_zero(own)
+    assert (below, below * 60.0) == (3.614190101623535, 216.8514060974121)
+    assert what_a_set_holds(below, _float32(1 / 3), 5.0)[1] == below  # a set of it lands on it
+    assert abs(below * 60.0 - given) < abs(held * 60.0 - given)
     recorder = _recorder(bus)
     old = instrument.get(ParameterId("beats_per_minute"))
     instrument.set(ParameterId("beats_per_minute"), _quantity(given, Unit.bpm))
@@ -449,6 +464,45 @@ def test_a_set_of_the_value_already_shown_on_a_float_a_set_lands_on_reaches_the_
     (changed,) = recorder.events
     assert isinstance(changed, ParameterChanged)
     assert changed.old == changed.new == _quantity(9.0)
+
+
+def test_a_set_of_the_value_shown_on_an_upgraded_float_no_set_lands_on_leaves_the_plugin_upgraded(
+    bus: EventBus, instrument: VitalInstrument, plugin: _FakeVital
+) -> None:
+    """Finding A of PR 23's second review: the one upgraded float a set of its value cannot mend.
+
+    On Oolacile Evil Dubstep Bass the model holds `modulation_10_amount` at 0.19999998807907104
+    where Vital plays 0.07499999552965164 (issue #22; `tests/data/upgraded-floats.txt`, line 49).
+    The model's float is one no normalized value lands on, worked out here from primitives: on
+    the scale from -1 to 1 a set of it would hold 0.20000004768371582, two float32 steps up. So
+    the keep rule keeps it. The plugin is not called and goes on holding its upgraded float, the
+    model is the same object, and the set is published all the same, `old` equal to `new`.
+    Nothing the host can set puts the plugin on the model's float: what the model should hold
+    for such a preset is issue #22's to decide.
+    """
+    amount = ParameterId("modulation_10_amount")
+    in_file, upgraded = 0.19999998807907104, 0.07499999552965164
+    assert (_float32(in_file), _float32(upgraded)) == (in_file, upgraded)
+    _, a_set_holds = what_a_set_holds(in_file, -1.0, 1.0)
+    assert a_set_holds == 0.20000004768371582 != in_file  # noqa: PLR2004 - its neighbour
+    start = start_preset()
+    slots = list(start.modulations)
+    slots[9] = slots[9].model_copy(update={"amount": in_file})
+    instrument.load_patch(patch_of(start.model_copy(update={"modulations": tuple(slots)})))
+    assert instrument.preset.modulations[9].amount == in_file
+    plugin.floats["modulation_10_amount"] = upgraded  # the plugin's own upgrade, the model's kept
+    recorder = _recorder(bus)
+    before = instrument.preset
+    shown = instrument.get(amount)
+    assert shown == _quantity(in_file)
+    instrument.set(amount, shown)
+    assert plugin.sets == []
+    assert _state_floats(instrument)["modulation_10_amount"] == upgraded
+    assert instrument.preset is before
+    assert instrument.get(amount) == shown
+    (changed,) = recorder.events
+    assert isinstance(changed, ParameterChanged)
+    assert changed.old == changed.new == shown
 
 
 def test_an_off_grid_float_set_back_after_another_value_holds_its_neighbour(
@@ -638,40 +692,64 @@ def test_a_patch_of_values_alone_loads_as_the_start_preset_with_those_values(
 
 _SAMPLE_SEED = 23
 _SAMPLE_ROUNDS = 25
+_BOUND_ROUNDS = 2  # every group's minimum, then every group's maximum
+_SAMPLE_GROUPS = 55
 
 
 def test_an_arbitrary_display_in_a_patch_holds_what_a_set_of_it_holds(
-    instrument: VitalInstrument,
+    instrument: VitalInstrument, plugin: _FakeVital
 ) -> None:
     """PR 23's findings 2 and 3, on a labelled sample: a load and a set leave the same float.
 
-    One record of each of the map's continuous groups, a scale and a curve, 25 displays each,
-    drawn by `numpy.random.default_rng(23).uniform` over the parameter's bounds: each display in
-    a patch of values alone holds the very float a set of it holds. A sample, not a count; the
-    one display that differs, one that is exactly a float's own, is the next test's.
+    One record of each of the map's 55 continuous groups, a scale and a curve. 25 displays each
+    are drawn by `numpy.random.default_rng(23).uniform` over the parameter's bounds, and each
+    bound is taken too: 27 rounds of 55, 1,485 displays. Each display in a patch of values alone
+    holds the very float a set of it holds, the sign of a zero included.
+
+    The set is made from another value, on the start preset and before the load, and each is
+    counted at the plugin (finding B of PR 23's second review). Made after the load, a set of a
+    display the loaded float shows is the keep rule's no-op, and the load then agrees with it
+    whatever float it took. That takes a display two floats show, which is why the bounds are in
+    the sample: `volume`'s minimum is one, shown by 0 and by the float32 next above it, and a
+    uniform draw never lands there. A sample, not a count; the one display that differs, one
+    that is exactly an off-grid float's own, is the next test's.
     """
     groups: dict[str, MappedParameter] = {}
     for record in parameter_map().parameters:
         if record.parameter.kind == "continuous":
             key = record.scale.model_dump_json() + record.curve.model_dump_json()
             groups.setdefault(key, record)
+    assert len(groups) == _SAMPLE_GROUPS
     rng = np.random.default_rng(_SAMPLE_SEED)
-    compared = 0
-    for _ in range(_SAMPLE_ROUNDS):
-        values = {
-            record.id: _quantity(
-                float(rng.uniform(record.parameter.minimum, record.parameter.maximum)),
-                record.parameter.unit,
-            )
+    rounds = [
+        {
+            record.id: float(rng.uniform(record.parameter.minimum, record.parameter.maximum))
             for record in groups.values()
         }
+        for _ in range(_SAMPLE_ROUNDS)
+    ]
+    rounds.append({record.id: record.parameter.minimum for record in groups.values()})
+    rounds.append({record.id: record.parameter.maximum for record in groups.values()})
+    units = {record.id: record.parameter.unit for record in groups.values()}
+    compared = 0
+    for displays in rounds:
+        values = {
+            parameter_id: _quantity(display, units[parameter_id])
+            for parameter_id, display in displays.items()
+        }
+        instrument.load_patch(Patch(instrument="Vital", values={}))
+        sent = len(plugin.sets)
+        for parameter_id, value in values.items():
+            instrument.set(parameter_id, value)
+        assert len(plugin.sets) - sent == len(values)  # each reached the plugin: none was kept
+        set_holds = _model_floats(instrument.preset)
         instrument.load_patch(Patch(instrument="Vital", values=values))
         loaded = _model_floats(instrument.preset)
         for parameter_id, value in values.items():
-            instrument.set(parameter_id, value)
-            assert _model_floats(instrument.preset)[parameter_id] == loaded[parameter_id], value
+            taken, held = loaded[parameter_id], set_holds[parameter_id]
+            assert struct.pack("<d", taken) == struct.pack("<d", held), (parameter_id, value)
             compared += 1
-    assert compared == _SAMPLE_ROUNDS * len(groups)
+    assert compared == (_SAMPLE_ROUNDS + _BOUND_ROUNDS) * _SAMPLE_GROUPS
 
 
 def test_a_display_that_is_an_off_grid_float_s_own_is_restored_by_a_load_and_not_by_a_set(

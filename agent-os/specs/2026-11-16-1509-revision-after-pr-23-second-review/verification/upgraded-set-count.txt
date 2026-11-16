@@ -1,0 +1,233 @@
+The revision after PR 23's second review: what a set of the value get shows does to each float Vital upgrades, counted on Vital, run 2026-11-16 15:46 EST on branch
+feature/8-the-instrument-vitalinstrument-over-vitalhost-patchvitalpreset-and-cores-contract-tests-against-a-real-vital-spec-b-of-7, Vital at /Library/Audio/Plug-Ins/VST3/Vital.vst3
+the machine before the run: arm64, Apple M4 Pro, 14 cores, macOS 26.6.2 (25G83), Python 3.12.16, load 3.44 4.20 3.95, at 2026-11-16 15:46 EST
+the tree before the run (this transcript is written outside the tree and copied in afterwards):
+  HEAD 64863c6dc72c80bd475fbfb5f41af95686522426
+  git status --porcelain=v1 --untracked-files=all, 16 lines:
+     M CHANGELOG.md
+     M README.md
+     M agent-os/specs/2026-11-15-1448-the-instrument/shape.md
+     M agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/shape.md
+     M agent-os/standards/index.yml
+     M agent-os/standards/vital/instrument.md
+     M agent-os/standards/vital/plugin-state.md
+     M src/patchbay_vital/instrument.py
+     M src/patchbay_vital/midi.py
+     M tests/integration/test_vital_instrument.py
+     M tests/unit/test_instrument.py
+     M tests/unit/test_midi.py
+    ?? agent-os/specs/2026-11-16-1509-revision-after-pr-23-second-review/plan.md
+    ?? agent-os/specs/2026-11-16-1509-revision-after-pr-23-second-review/references.md
+    ?? agent-os/specs/2026-11-16-1509-revision-after-pr-23-second-review/shape.md
+    ?? agent-os/specs/2026-11-16-1509-revision-after-pr-23-second-review/standards.md
+  git hash-object of each of those paths (a deleted one marked so):
+    25b817db047d748278f7dc170c8de1bdd494c22b  CHANGELOG.md
+    8c70984f6ab340ed55d5921a448131f159f6e3dd  README.md
+    60627f1ab57697c4cf4665836c700a6e8ee761c8  agent-os/specs/2026-11-15-1448-the-instrument/shape.md
+    358aae0828c07dce45ba0d0907969d3bfb95a05f  agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/shape.md
+    c3e8674ef3db80291bf87222702b08829888ec4f  agent-os/standards/index.yml
+    c3ae850ca680bb359729f2d0d8df2d226ad4165f  agent-os/standards/vital/instrument.md
+    0ed004ff63ab2b9077d5cd2d22bd02dfb7841761  agent-os/standards/vital/plugin-state.md
+    cbd7340232e09d9801b2d70d42f133cea4f6efa0  src/patchbay_vital/instrument.py
+    d7fe4315d94cb3e482c4ee6c846b644e9a338187  src/patchbay_vital/midi.py
+    927785c02c9c25f9a00e52f887d5f6387fec0403  tests/integration/test_vital_instrument.py
+    07291ca76904cf6a73e9568f27742ed2bb2d49a1  tests/unit/test_instrument.py
+    3d8ce9bd297978e45502e0661b6454279d86a2a5  tests/unit/test_midi.py
+    df50a44c290cfdcb7392a7ac9898c591cb1d30eb  agent-os/specs/2026-11-16-1509-revision-after-pr-23-second-review/plan.md
+    448ffc40805eb5bf797cd52bbdc419c4fed0dc96  agent-os/specs/2026-11-16-1509-revision-after-pr-23-second-review/references.md
+    b90403e5d7c58767d60bef6de8444d3cc32e33d2  agent-os/specs/2026-11-16-1509-revision-after-pr-23-second-review/shape.md
+    c97b33d91c737836c1f63aef111420e69bc98c36  agent-os/specs/2026-11-16-1509-revision-after-pr-23-second-review/standards.md
+
+$ uv run --locked python -u -B <scratchpad>/r23b/upgraded_set_count.py
+Vital 1.6.4 at /Library/Audio/Plug-Ins/VST3/Vital.vst3, through pedalboard 0.9.26
+machine arm64, Python 3.12.16
+tests/data/upgraded-floats.txt: 46 floats on 11 presets, read from ~/Music/Vital
+
+preset | key | in the file | the model's float | Vital before | the set | Vital after | the model after
+Ah Eh Ee Oh | osc_1_stack_style | 9.0 | 9.0 | 10.0 | mended: it reaches Vital | 9.0 | 9.0
+Touch Tone | chorus_cutoff | absent | 60.0 | 20.0 | mended: it reaches Vital | 60.0 | 60.0
+Touch Tone | flanger_center | 0.0 | 0.0 | 53.689998626708984 | refused: 0.0 is outside 8.0 to 136.0 | 53.689998626708984 | 0.0
+Touch Tone | lfo_1_smooth_mode | absent | 1.0 | 0.0 | mended: it reaches Vital | 1.0 | 1.0
+Touch Tone | lfo_2_smooth_mode | absent | 1.0 | 0.0 | mended: it reaches Vital | 1.0 | 1.0
+Touch Tone | lfo_3_smooth_mode | absent | 1.0 | 0.0 | mended: it reaches Vital | 1.0 | 1.0
+Touch Tone | lfo_4_smooth_mode | absent | 1.0 | 0.0 | mended: it reaches Vital | 1.0 | 1.0
+Touch Tone | lfo_5_smooth_mode | absent | 1.0 | 0.0 | mended: it reaches Vital | 1.0 | 1.0
+Touch Tone | lfo_6_smooth_mode | absent | 1.0 | 0.0 | mended: it reaches Vital | 1.0 | 1.0
+Touch Tone | lfo_7_smooth_mode | absent | 1.0 | 0.0 | mended: it reaches Vital | 1.0 | 1.0
+Touch Tone | stereo_mode | absent | 0.0 | 1.0 | mended: it reaches Vital | 0.0 | 0.0
+Snowcrash | filter_2_style | 1.0 | 1.0 | 0.0 | mended: it reaches Vital | 1.0 | 1.0
+Boot Scre3n | osc_2_stack_style | 5.0 | 5.0 | 6.0 | mended: it reaches Vital | 5.0 | 5.0
+Boot Scre3n | osc_3_stack_style | 9.0 | 9.0 | 10.0 | mended: it reaches Vital | 9.0 | 9.0
+Memory Leak | chorus_cutoff | absent | 60.0 | 20.0 | mended: it reaches Vital | 60.0 | 60.0
+Memory Leak | chorus_spread | absent | 1.0 | 0.800000011920929 | mended: it reaches Vital | 1.0 | 1.0
+Memory Leak | flanger_center | 0.0 | 0.0 | 53.689998626708984 | refused: 0.0 is outside 8.0 to 136.0 | 53.689998626708984 | 0.0
+Memory Leak | lfo_1_smooth_mode | absent | 1.0 | 0.0 | mended: it reaches Vital | 1.0 | 1.0
+Memory Leak | lfo_2_smooth_mode | absent | 1.0 | 0.0 | mended: it reaches Vital | 1.0 | 1.0
+Memory Leak | lfo_3_smooth_mode | absent | 1.0 | 0.0 | mended: it reaches Vital | 1.0 | 1.0
+Memory Leak | lfo_4_smooth_mode | absent | 1.0 | 0.0 | mended: it reaches Vital | 1.0 | 1.0
+Memory Leak | lfo_5_smooth_mode | absent | 1.0 | 0.0 | mended: it reaches Vital | 1.0 | 1.0
+Memory Leak | lfo_6_smooth_mode | absent | 1.0 | 0.0 | mended: it reaches Vital | 1.0 | 1.0
+Memory Leak | lfo_7_smooth_mode | absent | 1.0 | 0.0 | mended: it reaches Vital | 1.0 | 1.0
+Memory Leak | osc_3_spectral_morph_type | 10.0 | 10.0 | 7.0 | mended: it reaches Vital | 10.0 | 10.0
+Memory Leak | stereo_mode | absent | 0.0 | 1.0 | mended: it reaches Vital | 0.0 | 0.0
+Oolacile Evil Dubstep Bass | chorus_cutoff | absent | 60.0 | 20.0 | mended: it reaches Vital | 60.0 | 60.0
+Oolacile Evil Dubstep Bass | chorus_spread | absent | 1.0 | 0.800000011920929 | mended: it reaches Vital | 1.0 | 1.0
+Oolacile Evil Dubstep Bass | flanger_center | -15.359999656677246 | -15.359999656677246 | 38.32999801635742 | refused: -15.359999656677246 is outside 8.0 to 136.0 | 38.32999801635742 | -15.359999656677246
+Oolacile Evil Dubstep Bass | lfo_1_smooth_mode | absent | 1.0 | 0.0 | mended: it reaches Vital | 1.0 | 1.0
+Oolacile Evil Dubstep Bass | lfo_2_smooth_mode | absent | 1.0 | 0.0 | mended: it reaches Vital | 1.0 | 1.0
+Oolacile Evil Dubstep Bass | lfo_3_smooth_mode | absent | 1.0 | 0.0 | mended: it reaches Vital | 1.0 | 1.0
+Oolacile Evil Dubstep Bass | lfo_4_smooth_mode | absent | 1.0 | 0.0 | mended: it reaches Vital | 1.0 | 1.0
+Oolacile Evil Dubstep Bass | lfo_5_smooth_mode | absent | 1.0 | 0.0 | mended: it reaches Vital | 1.0 | 1.0
+Oolacile Evil Dubstep Bass | lfo_6_smooth_mode | absent | 1.0 | 0.0 | mended: it reaches Vital | 1.0 | 1.0
+Oolacile Evil Dubstep Bass | lfo_7_smooth_mode | absent | 1.0 | 0.0 | mended: it reaches Vital | 1.0 | 1.0
+Oolacile Evil Dubstep Bass | modulation_10_amount | 0.19999998807907104 | 0.19999998807907104 | 0.07499999552965164 | kept: the model the same object, Vital as before | 0.07499999552965164 | 0.19999998807907104
+Oolacile Evil Dubstep Bass | modulation_12_amount | 0.13422822952270508 | 0.13422822952270508 | 0.050335586071014404 | mended: it reaches Vital | 0.13422822952270508 | 0.13422822952270508
+Oolacile Evil Dubstep Bass | osc_3_spectral_morph_type | 10.0 | 10.0 | 7.0 | mended: it reaches Vital | 10.0 | 10.0
+Oolacile Evil Dubstep Bass | stereo_mode | absent | 0.0 | 1.0 | mended: it reaches Vital | 0.0 | 0.0
+A happy ending of the world | osc_1_stack_style | 9.0 | 9.0 | 10.0 | mended: it reaches Vital | 9.0 | 9.0
+A happy ending of the world | osc_2_stack_style | 10.0 | 10.0 | 11.0 | mended: it reaches Vital | 10.0 | 10.0
+Easy Mallet | osc_1_stack_style | 9.0 | 9.0 | 10.0 | mended: it reaches Vital | 9.0 | 9.0
+Jupiter Bass | filter_1_style | 1.0 | 1.0 | 0.0 | mended: it reaches Vital | 1.0 | 1.0
+Metal Head | osc_1_stack_style | 10.0 | 10.0 | 11.0 | mended: it reaches Vital | 10.0 | 10.0
+Piano from the yard sale | osc_2_stack_style | 9.0 | 9.0 | 10.0 | mended: it reaches Vital | 9.0 | 9.0
+
+mended 42, refused 3, kept 1, of 46
+none of the three: 0
+exit=0
+
+the machine after the run: arm64, Apple M4 Pro, 14 cores, macOS 26.6.2 (25G83), Python 3.12.16, load 3.69 4.23 3.97, at 2026-11-16 15:46 EST
+the tree after the run:
+  HEAD 64863c6dc72c80bd475fbfb5f41af95686522426
+  git status --porcelain=v1 --untracked-files=all, 16 lines:
+     M CHANGELOG.md
+     M README.md
+     M agent-os/specs/2026-11-15-1448-the-instrument/shape.md
+     M agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/shape.md
+     M agent-os/standards/index.yml
+     M agent-os/standards/vital/instrument.md
+     M agent-os/standards/vital/plugin-state.md
+     M src/patchbay_vital/instrument.py
+     M src/patchbay_vital/midi.py
+     M tests/integration/test_vital_instrument.py
+     M tests/unit/test_instrument.py
+     M tests/unit/test_midi.py
+    ?? agent-os/specs/2026-11-16-1509-revision-after-pr-23-second-review/plan.md
+    ?? agent-os/specs/2026-11-16-1509-revision-after-pr-23-second-review/references.md
+    ?? agent-os/specs/2026-11-16-1509-revision-after-pr-23-second-review/shape.md
+    ?? agent-os/specs/2026-11-16-1509-revision-after-pr-23-second-review/standards.md
+  git hash-object of each of those paths (a deleted one marked so):
+    25b817db047d748278f7dc170c8de1bdd494c22b  CHANGELOG.md
+    8c70984f6ab340ed55d5921a448131f159f6e3dd  README.md
+    60627f1ab57697c4cf4665836c700a6e8ee761c8  agent-os/specs/2026-11-15-1448-the-instrument/shape.md
+    358aae0828c07dce45ba0d0907969d3bfb95a05f  agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/shape.md
+    c3e8674ef3db80291bf87222702b08829888ec4f  agent-os/standards/index.yml
+    c3ae850ca680bb359729f2d0d8df2d226ad4165f  agent-os/standards/vital/instrument.md
+    0ed004ff63ab2b9077d5cd2d22bd02dfb7841761  agent-os/standards/vital/plugin-state.md
+    cbd7340232e09d9801b2d70d42f133cea4f6efa0  src/patchbay_vital/instrument.py
+    d7fe4315d94cb3e482c4ee6c846b644e9a338187  src/patchbay_vital/midi.py
+    927785c02c9c25f9a00e52f887d5f6387fec0403  tests/integration/test_vital_instrument.py
+    07291ca76904cf6a73e9568f27742ed2bb2d49a1  tests/unit/test_instrument.py
+    3d8ce9bd297978e45502e0661b6454279d86a2a5  tests/unit/test_midi.py
+    df50a44c290cfdcb7392a7ac9898c591cb1d30eb  agent-os/specs/2026-11-16-1509-revision-after-pr-23-second-review/plan.md
+    448ffc40805eb5bf797cd52bbdc419c4fed0dc96  agent-os/specs/2026-11-16-1509-revision-after-pr-23-second-review/references.md
+    b90403e5d7c58767d60bef6de8444d3cc32e33d2  agent-os/specs/2026-11-16-1509-revision-after-pr-23-second-review/shape.md
+    c97b33d91c737836c1f63aef111420e69bc98c36  agent-os/specs/2026-11-16-1509-revision-after-pr-23-second-review/standards.md
+
+---- the script upgraded_set_count.py, as run ----
+"""What a set of the value `get` shows does to each float Vital upgrades, counted on Vital.
+
+For each line of `tests/data/upgraded-floats.txt`, on its preset as `load_patch` loads it: the
+model's float (the file's, or the parameter's default for a key the file lacks), the float Vital
+holds before the set, what `set(id, get(id))` does, and the float Vital holds after it. Vital's
+floats are read through the diagnostic read, `instrument.host.state()`. An outcome is one of:
+
+- mended: the set reaches Vital, which then holds the model's float;
+- refused: the set raises ParameterRangeError, the model and Vital unchanged;
+- kept: the set changes nothing, the model the same object, and Vital holds what it held.
+
+A count over the 46 recorded floats, not a sample. Run from the repository root with the locked
+interpreter. Each preset is loaded once, on one instrument over one Vital.
+"""
+
+import importlib.metadata
+import platform
+from pathlib import Path
+
+from patchbay import EventBus, ParameterId
+
+from patchbay_vital import loads
+from patchbay_vital.errors import ParameterRangeError
+from patchbay_vital.format import split_modulations
+from patchbay_vital.host import DEFAULT_PATH, VitalHost, _floats
+from patchbay_vital.instrument import VitalInstrument
+from patchbay_vital.parameters import parameter_map
+from patchbay_vital.patch import patch_of
+
+PRESETS = Path.home() / "Music" / "Vital"
+RECORDED = Path("tests") / "data" / "upgraded-floats.txt"
+
+
+def model_floats(instrument: VitalInstrument) -> dict[str, float]:
+    """Return what the model says each parameter holds: its float, or the default without one."""
+    preset = instrument.preset
+    _, slots = split_modulations(preset.modulations)
+    held = {str(key): value for key, value in (*preset.settings.values.items(), *slots.items())}
+    return {r.preset_key: held.get(r.preset_key, r.preset_default) for r in parameter_map().parameters}
+
+
+rows: dict[str, list[tuple[str, str, float]]] = {}
+for line in RECORDED.read_text(encoding="utf-8").splitlines():
+    if line.startswith("#"):
+        continue
+    preset_name, key, written, vital_holds = line.split("\t")
+    rows.setdefault(preset_name, []).append((key, written, float(vital_holds)))
+
+host = VitalHost()
+instrument = VitalInstrument(EventBus(), host)
+print(f"Vital {host.version} at {DEFAULT_PATH}, through pedalboard {importlib.metadata.version('pedalboard')}")
+print(f"machine {platform.machine()}, Python {platform.python_version()}")
+print(f"{RECORDED}: {sum(len(found) for found in rows.values())} floats on {len(rows)} presets, read from ~/Music/Vital")
+print()
+print("preset | key | in the file | the model's float | Vital before | the set | Vital after | the model after")
+counts = {"mended": 0, "refused": 0, "kept": 0}
+other: list[str] = []
+for preset_name, found in rows.items():
+    text = (PRESETS / preset_name).read_bytes().decode("utf-8")
+    instrument.load_patch(patch_of(loads(text)))
+    for key, written, recorded in found:
+        before = instrument.preset
+        model = model_floats(instrument)[key]
+        vital_before = _floats(host.state())[key]
+        shown = instrument.get(ParameterId(key))
+        try:
+            instrument.set(ParameterId(key), shown)
+        except ParameterRangeError as error:
+            outcome = f"refused: {error.given!r} is outside {error.minimum!r} to {error.maximum!r}"
+            kind = "refused" if instrument.preset is before else "other"
+        else:
+            kind = ""
+            outcome = ""
+        vital_after = _floats(host.state())[key]
+        model_after = model_floats(instrument)[key]
+        if not kind:
+            if vital_after == model_after:
+                kind, outcome = "mended", "mended: it reaches Vital"
+            elif instrument.preset is before and vital_after == vital_before:
+                kind, outcome = "kept", "kept: the model the same object, Vital as before"
+            else:
+                kind, outcome = "other", "OTHER"
+        if kind == "refused" and vital_after != vital_before:
+            kind = "other"
+        if vital_before != recorded:
+            kind = "other"
+            outcome += f" (VITAL HELD {vital_before!r} BEFORE, NOT THE RECORDED {recorded!r})"
+        if kind == "other":
+            other.append(f"{preset_name} {key}")
+        else:
+            counts[kind] += 1
+        name = preset_name.rsplit("/", 1)[-1].removesuffix(".vital")
+        print(f"{name} | {key} | {written} | {model!r} | {vital_before!r} | {outcome} | {vital_after!r} | {model_after!r}")
+print()
+print(f"mended {counts['mended']}, refused {counts['refused']}, kept {counts['kept']}, of {sum(len(found) for found in rows.values())}")
+print(f"none of the three: {len(other)} {other if other else ''}".rstrip())
+

@@ -1208,6 +1208,21 @@ two lines, for the two issues filed on fromtheoutfit/patchbay that day at the ow
   `load_patch` raises patchbay-vital's `PluginStateError`, which is not `PatchRejectedError`, and
   the instrument refuses every later call that would reach the plugin, saying to build a new one.
 
+**Revised 2026-11-16, after the second review of PR 23**
+(`agent-os/specs/2026-11-16-1509-revision-after-pr-23-second-review/`). When it is filed, "The
+run" cites that spec's `verification/contract-run.txt` in place of the first revision's: 13 of 13
+on the module's one Vital and 13 of 13 on a `VitalHost` of its own for each test, run on the code
+as the second revision leaves it. "What core does not say yet" gains one line, for the issue
+filed on fromtheoutfit/patchbay that day at the owner's word:
+
+- #25: what an instrument does once it has lost step with its device. `set` and `render` then
+  raise an error outside the types the protocol names for them, ahead of the usual checks.
+
+The line above under "The adapter's limits" stays, and no longer "asks core nothing new": the
+limit is the adapter's, and what an instrument does in that state is now asked of core as #25.
+The draft's line on fromtheoutfit/patchbay-vital#22 stands; that issue's body says, since the
+same day, that a set of the value `get` shows mends 42 of its 46 floats. The draft stays held.
+
 > **Title:** Propose patchbay-core 0.1.0: the contract suite passes against a real instrument, Vital
 >
 > patchbay-vital's `VitalInstrument` implements `patchbay.Instrument` over a hosted Vital, and core's thirteen `CONTRACT_TESTS` pass against it. patchbay-vital's issue #8 asked for this proposal once they did: cut patchbay-core 0.1.0, the contracts now held by an instrument that is not core's own fake.

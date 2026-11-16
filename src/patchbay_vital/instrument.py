@@ -48,7 +48,13 @@ an agent in front of the instrument, in this order; the fourth is a workaround n
   the file's value where Vital plays its upgraded one, and for a choice that can be a different
   setting by name. Vital upgrades such a preset as it loads: of the 75 presets it installs, 11
   hold 46 such floats, `osc_1_stack_style` 9 played as 10 and `filter_1_style` 1 played as 0
-  among them. The model keeps the file's floats.
+  among them. The model keeps the file's floats. A set of the value `get` shows puts Vital on
+  the model's float for 42 of the 46, counted on Vital (the `verification/upgraded-set-count.txt`
+  of the revision after PR 23's second review). It is refused for 3, `flanger_center` on Touch
+  Tone, Memory Leak and Oolacile Evil Dubstep Bass, whose file value shows a display outside the
+  parameter's bounds. It is kept for 1, `modulation_10_amount` on Oolacile Evil Dubstep Bass,
+  a float no set lands on: Vital goes on playing 0.07499999552965164 where `get` shows
+  0.19999998807907104, and no set can put it on the model's float.
 - A load is made twice, a measured workaround with no known cause and no issue of its own. One
   load leaves 17 to 53 of a preset's 903 floats off the text's; a second load of the same text
   holds them, all but what the upgrade above changes, and a third changes nothing more.
@@ -202,7 +208,9 @@ class VitalInstrument:
         the nearest step held. A set of the value the parameter already shows, where it holds a
         float no set lands on, keeps that float, in the model and the plugin, and is published
         all the same, `old` equal to `new`; a set of the value shown on any other float sets the
-        plugin to it.
+        plugin to it. So where Vital upgraded a preset's float as it loaded (issue #22), a set
+        of the value shown puts Vital on the model's float only where that is one a set lands
+        on: a kept float leaves Vital on its upgraded one.
 
         UnknownParameterError for an id the instrument does not have, ParameterUnitError for a
         value in another unit, ParameterRangeError for one outside the parameter's bounds or, on
@@ -238,9 +246,11 @@ class VitalInstrument:
         A patch with a `preset` entry is a whole preset, as `patch` gives one. A patch of values
         alone, its `opaque` empty, is the start preset with those values: its sections, routing
         and metadata, and every parameter the patch does not name at the start's value. Each
-        value is taken to the float a preset holds for it, the nearest float32 the curve gives
-        and on a stepped parameter the nearest step, so the patch `patch` then returns can differ
-        from the one given by that much, and loads back unchanged.
+        value is taken to a float one way (`patchbay_vital.patch`): the float its display names,
+        where the curve's float32 for it shows exactly that display, and otherwise the float a
+        set of it holds, on a stepped parameter the nearest step. So the patch `patch` then
+        returns can differ from the one given, where a value named no float, and loads back
+        unchanged.
 
         `PatchLoaded.parameter_count` is the number of entries in the patch's `values` as given:
         every parameter the preset holds for a whole patch, less any whose float rides in
@@ -264,7 +274,11 @@ class VitalInstrument:
 
         A preset older than the plugin loads, and Vital upgrades it as it does: the model keeps
         the file's floats, so `get` can then report the file's value for a few parameters where
-        Vital plays another, which for a choice is another setting by name.
+        Vital plays another, which for a choice is another setting by name. A set of the value
+        `get` shows then puts Vital on the model's float, but where that value is outside the
+        parameter's bounds, which is refused, or the float is one no set lands on, which is
+        kept: 42, 3 and 1 of the 46 such floats on the presets Vital installs (the module's
+        known limits).
         """
         self._refuse_once_lost()
         preset = preset_of(patch)

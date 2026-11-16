@@ -12,18 +12,21 @@ every note has a channel, and no note-on carries velocity 0, which most receiver
 note-off. A unit test holds that core refuses a velocity of 0, so a change there is seen.
 
 **Each note sounds for its own length, as core's reference instrument sums a sine per note.** On
-one channel Vital voices two notes of one pitch, but the first note-off releases both: of two
-overlapping, the later stops where the earlier ends, and of two struck on one sample both stop at
-the first end, on Vital 1.6.4 through pedalboard 0.9.26 on arm64 (Apple M4 Pro, macOS 26.6.2;
-this revision's spec, `verification/overlap-probe.txt`). On another channel each note keeps its
-own length and its own velocity, and a note alone sounds the same on any channel, with Vital's
-MPE setting off and on (`overlap-probe-2.txt`). So a note keeps its own channel unless its pitch
-is already sounding there; then it goes out, its note-on and its note-off, on the lowest channel
-where that pitch is not sounding. Of two notes of one pitch struck on one sample, the first in the
-pattern keeps its channel and the second moves. A pitch is sounding on a channel from its note-on
-to its note-off, so one released on the sample another is struck on is free again. Sixteen notes
-of one pitch can sound at once; a seventeenth is RenderRefusedError, naming the pitch and the
-sample, since Vital has no channel left to give it its own length.
+one channel the first note-off of a pitch releases every note of it: of two overlapping, the
+later stops where the earlier ends, and of two struck on one sample both stop at the first end,
+on Vital 1.6.4 through pedalboard 0.9.26 on arm64 (Apple M4 Pro, macOS 26.6.2; the
+`verification/overlap-probe.txt` of the revision after PR 23's first review), with Vital's MPE
+setting off and on (`overlap-probe-2.txt`). With MPE off the two sound as two voices until then;
+with it on, their overlap measured about the level of one. On another channel each note keeps
+its own length, and a note alone sounds the same on any channel, with MPE off and on. That each
+keeps its own velocity was measured with MPE off alone, and with `velocity_track` at 100 %: on
+the start preset it is 0 % and velocity sets no level. So a note keeps its own channel unless its
+pitch is already sounding there; then it goes out, its note-on and its note-off, on the lowest
+channel where that pitch is not sounding. Of two notes of one pitch struck on one sample, the
+first in the pattern keeps its channel and the second moves. A pitch is sounding on a channel
+from its note-on to its note-off, so one released on the sample another is struck on is free
+again. Sixteen notes of one pitch can sound at once; a seventeenth is RenderRefusedError, naming
+the pitch and the sample, since Vital has no channel left to give it its own length.
 
 **The samples are core's.** A note starts on `RenderRequest.sample_at(pattern, start_beats)` and
 ends on `sample_at(pattern, start_beats + duration_beats)`, the sum as core's reference instrument

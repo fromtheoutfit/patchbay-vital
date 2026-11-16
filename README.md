@@ -94,7 +94,12 @@ the instrument, in this order; the fourth is a workaround no issue owns
 - **On a preset older than the plugin, a few parameters can be reported by `get` with the file's
   value where Vital plays its upgraded one,** and for a choice that can be a different setting by
   name (issue #22): of the 75 presets Vital installs, 11 hold 46 such values,
-  `osc_1_stack_style` and `filter_1_style` among them.
+  `osc_1_stack_style` and `filter_1_style` among them. Setting a parameter to the value `get`
+  shows puts Vital back on it for 42 of the 46. It is refused for 3, `flanger_center` on Touch
+  Tone, Memory Leak and Oolacile Evil Dubstep Bass, where the file's value is outside the
+  parameter's bounds. It changes nothing for 1, `modulation_10_amount` on Oolacile Evil Dubstep
+  Bass, which holds a value no set lands on: Vital goes on playing about 0.075 where `get` shows
+  about 0.2.
 - **Every load is made twice,** a measured workaround with no known cause: one load leaves 17 to 53
   of a preset's 903 floats off the text's, and a second holds them.
 

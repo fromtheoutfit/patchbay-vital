@@ -45,7 +45,7 @@ from patchbay.testing import CONTRACT_TESTS, RecordingSubscriber
 from patchbay.testing.contract_tests import ContractTest
 
 from patchbay_vital import dumps, loads
-from patchbay_vital.errors import PatchRefusedError, RenderRefusedError
+from patchbay_vital.errors import ParameterRangeError, PatchRefusedError, RenderRefusedError
 from patchbay_vital.format import split_modulations
 from patchbay_vital.host import DEFAULT_PATH, VitalHost, _floats
 from patchbay_vital.instrument import (
@@ -79,6 +79,19 @@ _OPENING_SOUND = 0.1  # peak of a render of no notes on Plucked String (probes.t
 _CENTROID_RATIO = 3.6  # high cutoff's centroid over low's (probes-2.txt: 7.331 least, 40 renders)
 _AUDIBLE = 0.007  # RMS of a held note (probes-2.txt: 0.014134 least of 40 renders; 0 with no MIDI)
 _AH_EH = "Factory/Presets/Ah Eh Ee Oh.vital"  # tests/data/upgraded-floats.txt: stack style 9 as 10
+_OOLACILE = "Halcyon Future Riddim Vol 1/Presets/Oolacile/Oolacile Evil Dubstep Bass.vital"
+_MENDED = 42  # of the 46 upgraded floats: a set of the value shown puts Vital on the model's
+_REFUSED = {  # flanger_center's file value shows a display outside its bounds, 8 to 136
+    ("Factory/Presets/Touch Tone.vital", "flanger_center"),
+    ("Halcyon Future Riddim Vol 1/Presets/Oolacile/Memory Leak.vital", "flanger_center"),
+    (_OOLACILE, "flanger_center"),
+}
+_KEPT = {  # a float no set lands on: the model's, then the one Vital goes on holding
+    (_OOLACILE, "modulation_10_amount"): (0.19999998807907104, 0.07499999552965164),
+}
+"""What a set of the value `get` shows does to each float Vital upgrades, counted on Vital 1.6.4
+through pedalboard 0.9.26 on arm64 (`verification/upgraded-set-count.txt` of the revision after
+PR 23's second review, `agent-os/specs/2026-11-16-1509-revision-after-pr-23-second-review/`)."""
 _OWN_LENGTH = 0.5  # a note's level where another of its pitch ended, over its level alone: 1.00
 # for the bytes that move it (0.143944 of 0.143940, this revision's overlap-probe.txt; 0.143945
 # of 0.143942, overlap-probe-2.txt) and 0 for bytes that do not (0.000000 in both)
@@ -405,6 +418,56 @@ def test_a_set_of_the_value_shown_on_an_upgraded_float_sets_vital_to_the_model_s
     instrument.set(stack, _quantity(9.0))
     assert _state_floats(instrument)["osc_1_stack_style"] == 9.0  # noqa: PLR2004 - the model's
     assert instrument.get(stack) == _quantity(9.0)
+
+
+def test_a_set_of_the_value_shown_mends_42_of_the_upgraded_floats_is_refused_on_3_and_kept_on_1(
+    instrument: VitalInstrument, pytestconfig: pytest.Config
+) -> None:
+    """Finding A of PR 23's second review, counted on Vital over all 46 floats it upgrades.
+
+    For each float `tests/data/upgraded-floats.txt` records, on its preset as loaded, the value
+    `get` shows is set, and what Vital then holds is read through the diagnostic read:
+
+    - mended, 42: the set reaches Vital, which then holds the model's float, for a key the file
+      lacks the parameter's default;
+    - refused, 3: `flanger_center`, whose file value shows a display outside its bounds, so the
+      set is `ParameterRangeError` and nothing changes;
+    - kept, 1: `modulation_10_amount` on Oolacile Evil Dubstep Bass, a float no set lands on, so
+      the keep rule keeps it, the model is the same object and Vital goes on holding its
+      upgraded float. No set can put Vital on the model's float there.
+
+    The three refused and the one kept are written out. What the model should hold for a preset
+    older than the plugin is issue #22's to decide. Where the presets are not installed this
+    skips, saying so.
+    """
+    recorded = _upgraded(pytestconfig)
+    assert set(recorded) <= set(_manifest(pytestconfig))
+    mended = 0
+    refused: set[tuple[str, str]] = set()
+    kept: dict[tuple[str, str], tuple[float, float]] = {}
+    for relative, floats in recorded.items():
+        text = (_PRESETS / relative).read_bytes().decode("utf-8")
+        instrument.load_patch(patch_of(loads(text)))
+        for key, (_, upgraded) in floats.items():
+            before = instrument.preset
+            assert _state_floats(instrument)[key] == upgraded, (relative, key)
+            try:
+                instrument.set(ParameterId(key), instrument.get(ParameterId(key)))
+            except ParameterRangeError:
+                refused.add((relative, key))
+                assert instrument.preset is before, (relative, key)
+                assert _state_floats(instrument)[key] == upgraded, (relative, key)
+                continue
+            model, state = _model_floats(instrument.preset)[key], _state_floats(instrument)[key]
+            if state == model:
+                mended += 1
+            else:
+                assert instrument.preset is before, (relative, key)
+                kept[(relative, key)] = (model, state)
+    assert refused == _REFUSED
+    assert kept == _KEPT
+    assert mended == _MENDED
+    assert mended + len(refused) + len(kept) == _UPGRADED_FLOATS
 
 
 def test_an_off_grid_float_set_back_after_another_value_holds_its_neighbour_on_vital(
