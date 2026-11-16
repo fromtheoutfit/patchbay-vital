@@ -36,7 +36,7 @@ import importlib.resources
 import json
 import struct
 
-from patchbay_vital.format import loads
+from patchbay_vital.format import loads, write_object, write_string
 from patchbay_vital.grisu2 import format_float
 from patchbay_vital.parameters import ParameterMap
 from patchbay_vital.preset import MODULATION_SLOTS, MODULATIONS_KEY, VitalPreset
@@ -69,14 +69,14 @@ _DATA = "data/start.vital"
 _EMPTY_SLOT = '{"destination":"","source":""}'
 
 
-def _json(value: object) -> str:
-    """Write a value as a preset writes JSON: keys sorted at every depth, no whitespace."""
+def _section(value: object) -> str:
+    """Write a section as a preset holds it: keys sorted at every depth, no whitespace.
+
+    The format holds a section as the text the file held and never writes one from values, so
+    this is the one writer of nested JSON; strings and the objects of the file's top level and
+    `settings` go through the format's own writers.
+    """
     return json.dumps(value, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
-
-
-def _object(members: dict[str, str]) -> str:
-    """Write a JSON object from its members' written values, its keys sorted."""
-    return "{" + ",".join(f"{_json(key)}:{members[key]}" for key in sorted(members)) + "}"
 
 
 def _ramp() -> str:
@@ -130,11 +130,11 @@ def sections(version: str) -> dict[str, str]:
         "samples": base64.b64encode(struct.pack(f"<{len(SAMPLE)}h", *SAMPLE)).decode("ascii"),
     }
     return {
-        "custom_warps": _json([_line(f"Line {number}") for number in range(1, WARPS + 1)]),
-        "lfos": _json([_line(f"Line {number}") for number in range(1, LFOS + 1)]),
-        "random_values": _json([{"seed": RANDOM_SEED}] * RANDOMS),
-        "sample": _json(sample),
-        "wavetables": _json([_wavetable(version)] * OSCILLATORS),
+        "custom_warps": _section([_line(f"Line {number}") for number in range(1, WARPS + 1)]),
+        "lfos": _section([_line(f"Line {number}") for number in range(1, LFOS + 1)]),
+        "random_values": _section([{"seed": RANDOM_SEED}] * RANDOMS),
+        "sample": _section(sample),
+        "wavetables": _section([_wavetable(version)] * OSCILLATORS),
     }
 
 
@@ -151,15 +151,15 @@ def start_text(found: ParameterMap) -> str:
     settings |= sections(found.vital_version)
     settings[MODULATIONS_KEY] = "[" + ",".join([_EMPTY_SLOT] * MODULATION_SLOTS) + "]"
     members = {
-        "author": _json(AUTHOR),
-        "comments": _json(COMMENTS),
-        "preset_name": _json(PRESET_NAME),
-        "preset_style": _json(""),
-        "settings": _object(settings),
-        "synth_version": _json(found.vital_version),
+        "author": write_string(AUTHOR),
+        "comments": write_string(COMMENTS),
+        "preset_name": write_string(PRESET_NAME),
+        "preset_style": write_string(""),
+        "settings": write_object(settings),
+        "synth_version": write_string(found.vital_version),
     }
-    members |= {f"macro{number}": _json(name) for number, name in enumerate(MACROS, 1)}
-    return _object(members)
+    members |= {f"macro{number}": write_string(name) for number, name in enumerate(MACROS, 1)}
+    return write_object(members)
 
 
 @functools.cache

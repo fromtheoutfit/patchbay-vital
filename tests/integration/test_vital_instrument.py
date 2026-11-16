@@ -53,10 +53,9 @@ from patchbay_vital.instrument import (
     LOADS,
     MAX_SAMPLES,
     VitalInstrument,
-    check_loadable,
 )
 from patchbay_vital.parameters import parameter_map
-from patchbay_vital.patch import patch_of
+from patchbay_vital.patch import check_loadable, patch_of
 from patchbay_vital.preset import VitalPreset
 from patchbay_vital.start import start_preset
 
@@ -79,6 +78,11 @@ _TRANSIENT = 0.05  # peak of a render of no notes on the start preset (probes.tx
 _OPENING_SOUND = 0.1  # peak of a render of no notes on Plucked String (probes.txt: 0.21 to 0.37)
 _CENTROID_RATIO = 3.6  # high cutoff's centroid over low's (probes-2.txt: 7.331 least, 40 renders)
 _AUDIBLE = 0.007  # RMS of a held note (probes-2.txt: 0.014134 least of 40 renders; 0 with no MIDI)
+_AH_EH = "Factory/Presets/Ah Eh Ee Oh.vital"  # tests/data/upgraded-floats.txt: stack style 9 as 10
+_OWN_LENGTH = 0.5  # a note's level where another of its pitch ended, over its level alone: 1.00
+# for the bytes that move it (0.143944 of 0.143940, this revision's overlap-probe.txt; 0.143945
+# of 0.143942, overlap-probe-2.txt) and 0 for bytes that do not (0.000000 in both)
+_ENVELOPE_WINDOW, _ENVELOPE_HOP = 0.02, 0.005  # seconds: the overlap probes' Hann envelope
 _HELD_FROM, _HELD_TO = 0.2, 1.4
 """The seconds a measure of the held note is taken over. The note sounds from 0 to 1.5 s: the
 segment starts past the opening, which is over by 0.102 s, and past the note's own attack, and
@@ -197,6 +201,36 @@ def _centroid(audio: NDArray[np.float32]) -> float:
     if total == 0.0:
         pytest.fail("the held note is silent: there is no spectrum to take a centroid of")
     return float((np.fft.rfftfreq(held.size, 1 / _RATE) * magnitude).sum() / total)
+
+
+def _level(audio: NDArray[np.float32], start: float, end: float) -> float:
+    """Return the overlap probes' level of a render between two times, in seconds, written once.
+
+    Its RMS under a Hann window of `_ENVELOPE_WINDOW` every `_ENVELOPE_HOP`, both channels,
+    divided by the window's own RMS, and the median of those whose centres fall in the span.
+    """
+    size, hop = round(_ENVELOPE_WINDOW * _RATE), round(_ENVELOPE_HOP * _RATE)
+    window = np.hanning(size)
+    norm = float(np.sqrt(np.mean(window**2)))
+    signal = audio.astype(np.float64)
+    starts = np.arange(0, signal.shape[1] - size, hop)
+    centres = (starts + size / 2) / _RATE
+    inside = starts[(centres >= start) & (centres <= end)]
+    levels = [np.sqrt(np.mean((signal[:, at : at + size] * window) ** 2)) / norm for at in inside]
+    return float(np.median(levels))
+
+
+def _two_bars(*notes: tuple[int, float, float]) -> Pattern:
+    """Return two bars at 120 bpm of C4s on the first channel, each (velocity, start, duration)."""
+    return Pattern(
+        tempo_bpm=120.0,
+        bars=2,
+        beats_per_bar=4,
+        notes=tuple(
+            Note(pitch=60, velocity=v, start_beats=at, duration_beats=d, channel=0)
+            for v, at, d in notes
+        ),
+    )
 
 
 def _manifest(pytestconfig: pytest.Config) -> list[str]:
@@ -350,6 +384,27 @@ def test_a_set_of_the_value_already_shown_leaves_vital_holding_its_off_grid_floa
     assert instrument.preset is start_preset()
     state = _state_floats(instrument)
     assert all(state[record.preset_key] == record.preset_default for record in off_grid)
+
+
+def test_a_set_of_the_value_shown_on_an_upgraded_float_sets_vital_to_the_model_s(
+    instrument: VitalInstrument, pytestconfig: pytest.Config
+) -> None:
+    """PR 23's finding 1, on Vital: the model holds `osc_1_stack_style` 9, Vital plays 10.
+
+    Ah Eh Ee Oh is older than Vital 1.6.4, which upgrades its stack style as it loads (issue
+    #22; `tests/data/upgraded-floats.txt`). 9 is a step a set lands on, so a set of the value
+    `get` shows reaches Vital, which then holds 9, the model's float. Where the presets are not
+    installed this skips, saying so.
+    """
+    listed = _manifest(pytestconfig)
+    assert _AH_EH in listed
+    stack = ParameterId("osc_1_stack_style")
+    instrument.load_patch(patch_of(loads((_PRESETS / _AH_EH).read_text(encoding="utf-8"))))
+    assert instrument.get(stack) == _quantity(9.0)
+    assert _state_floats(instrument)["osc_1_stack_style"] == 10.0  # noqa: PLR2004 - Vital's upgrade
+    instrument.set(stack, _quantity(9.0))
+    assert _state_floats(instrument)["osc_1_stack_style"] == 9.0  # noqa: PLR2004 - the model's
+    assert instrument.get(stack) == _quantity(9.0)
 
 
 def test_an_off_grid_float_set_back_after_another_value_holds_its_neighbour_on_vital(
@@ -528,6 +583,26 @@ def test_a_note_lands_on_the_sample_core_s_rule_gives_it(instrument: VitalInstru
     peaks = _peaks(instrument.render(late, _NO_TAIL).audio)
     assert float(peaks[_OPENING_ENDS:sample].max()) < _QUIET
     assert int(np.nonzero(peaks[_OPENING_ENDS:])[0][0]) + _OPENING_ENDS == sample
+
+
+def test_two_notes_of_one_pitch_that_overlap_each_sound_for_their_own_length(
+    instrument: VitalInstrument,
+) -> None:
+    """PR 23's finding 5, on Vital: as core's reference instrument sums a sine per note.
+
+    On the start preset, C4 from beat 0 to 2 and C4 from 1 to 3 (0 to 1 s, 0.5 to 1.5 s). After
+    the first ends, the second sounds at its level alone, under the probes' window: on one
+    channel Vital would release both at the first note-off, and the builder moves the second to
+    a channel of its own. The same for two struck on one sample, one beat and three long.
+    """
+    overlap = instrument.render(_two_bars((100, 0.0, 2.0), (100, 1.0, 2.0)), _NO_TAIL).audio
+    later_alone = instrument.render(_two_bars((100, 1.0, 2.0)), _NO_TAIL).audio
+    assert _level(later_alone, 1.05, 1.45) > _AUDIBLE
+    assert _level(overlap, 1.05, 1.45) / _level(later_alone, 1.05, 1.45) > _OWN_LENGTH
+    together = instrument.render(_two_bars((100, 0.0, 1.0), (50, 0.0, 3.0)), _NO_TAIL).audio
+    longer_alone = instrument.render(_two_bars((50, 0.0, 3.0)), _NO_TAIL).audio
+    assert _level(longer_alone, 0.55, 0.95) > _AUDIBLE
+    assert _level(together, 0.55, 0.95) / _level(longer_alone, 0.55, 0.95) > _OWN_LENGTH
 
 
 def test_a_note_left_sounding_is_not_heard_in_the_next_render(instrument: VitalInstrument) -> None:

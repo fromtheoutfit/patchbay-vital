@@ -1,0 +1,206 @@
+The revision after PR 23's review: core's thirteen contract tests against Vital, a shared host and a fresh one, and over the fake plugin, run 2026-11-16 14:00 EST on branch
+feature/8-the-instrument-vitalinstrument-over-vitalhost-patchvitalpreset-and-cores-contract-tests-against-a-real-vital-spec-b-of-7, Vital at /Library/Audio/Plug-Ins/VST3/Vital.vst3
+the machine before the run: arm64, Apple M4 Pro, 14 cores, macOS 26.6.2 (25G83), Python 3.12.16, load 2.76 2.91 2.83, at 2026-11-16 14:00 EST
+the tree before the run (this transcript is written outside the tree and copied in afterwards):
+  HEAD 63ad5ae788cba91fa55104be07fce8a209fa3da5
+  git status --porcelain=v1 --untracked-files=all, 23 lines:
+     M CHANGELOG.md
+     M README.md
+     M src/patchbay_vital/__init__.py
+     M src/patchbay_vital/errors.py
+     M src/patchbay_vital/files.py
+     M src/patchbay_vital/format.py
+     M src/patchbay_vital/instrument.py
+     M src/patchbay_vital/midi.py
+     M src/patchbay_vital/patch.py
+     M src/patchbay_vital/preset.py
+     M src/patchbay_vital/start.py
+     M tests/integration/test_vital_instrument.py
+     M tests/unit/builders.py
+     M tests/unit/test_instrument.py
+     M tests/unit/test_midi.py
+     M tests/unit/test_package.py
+     M tests/unit/test_patch.py
+    ?? agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/plan.md
+    ?? agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/references.md
+    ?? agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/shape.md
+    ?? agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/standards.md
+    ?? agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/verification/overlap-probe-2.txt
+    ?? agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/verification/overlap-probe.txt
+  git hash-object of each of those paths (a deleted one marked so):
+    2031646b4631653e138652adfbbd3ef8723c3165  CHANGELOG.md
+    ce1c64621a9343e66d5a218bd7cb0f5dcde43140  README.md
+    18e34edbd5c9d90809b4ffc840482b16ad4c9491  src/patchbay_vital/__init__.py
+    145eb826c6859888c22999de5e4876ef5ebd2234  src/patchbay_vital/errors.py
+    b2f644c9779f59519da2f5e60a4f57e000a81969  src/patchbay_vital/files.py
+    ad7a9a78bd1ca8275bb92e10ec8d8503f40bb339  src/patchbay_vital/format.py
+    fd816beba50661577c2ee66f4f85a2eeaa78c6f4  src/patchbay_vital/instrument.py
+    ab8ae0ec4a6d9c7889d6f136f7e6d322421e65a9  src/patchbay_vital/midi.py
+    153e25666cd405dfdeaca0f3425d67d5d85307a4  src/patchbay_vital/patch.py
+    f049675b5c61fffad437f008b72e378bd531b422  src/patchbay_vital/preset.py
+    318ed4766bbb83a87a45118a3c86dcafeeb1f138  src/patchbay_vital/start.py
+    728f952f874e6497f67474f72ba02d27009eae96  tests/integration/test_vital_instrument.py
+    c213879e4803b1766a132c3fa7b57c11d8d5850f  tests/unit/builders.py
+    9dda9f2725d8df27481d763aa8a1a135d630af8a  tests/unit/test_instrument.py
+    29373875bcecb57b70493f2445d21829e9e9df73  tests/unit/test_midi.py
+    091ab87c1c4bf715e9e7214ae1305db4056682d1  tests/unit/test_package.py
+    72e01c7f0fd307cc7cf46a859d0b8fbdeb20b7f3  tests/unit/test_patch.py
+    3e1b682af98475b06109a7e8868c6d084d5726d5  agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/plan.md
+    1c13a47fd8f6b2eed83d3424e99f2aa2aae94f5d  agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/references.md
+    6ecb404d4691131ffadcd8a9c44c68233473fb6b  agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/shape.md
+    25302c4bf0e78c403dc8cd826ec3b2abe68eb2a3  agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/standards.md
+    03cf6a4567ae55987530677d18b461645d02347f  agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/verification/overlap-probe-2.txt
+    919d74b182a226642328833cb18f1a5649c99016  agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/verification/overlap-probe.txt
+
+$ <scratchpad>/r23/contract_run.sh
+== 1. core's thirteen contract tests against the installed Vital, the gate's way: one Vital for the module
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.2.0, pluggy-1.7.0
+rootdir: /Users/michaelwitwicki/Code/Audio/patchbay-vital
+configfile: pyproject.toml
+plugins: platformdirs-4.14.5, hypothesis-6.170.14
+collected 37 items / 24 deselected / 13 selected
+
+tests/integration/test_vital_instrument.py .............                 [100%]
+
+====================== 13 passed, 24 deselected in 2.99s =======================
+exit=0
+
+== 2. the same thirteen, a fresh VitalHost for each, by a throwaway invocation: not the gate's way
+patchbay-core 0.0.1 at eddba95404a9b633d358dc4d6b07b084a8f975ad (https://github.com/fromtheoutfit/patchbay)
+pedalboard 0.9.26, machine arm64, Python 3.12.16
+PASSED  parameters_are_unique_and_typed  (Vital 1.6.4 at /Library/Audio/Plug-Ins/VST3/Vital.vst3: loaded in 2.27 s, the test 0.07 s)
+PASSED  get_after_set_returns_what_was_set  (Vital 1.6.4 at /Library/Audio/Plug-Ins/VST3/Vital.vst3: loaded in 2.32 s, the test 0.11 s)
+PASSED  set_with_the_wrong_unit_raises_unit_mismatch  (Vital 1.6.4 at /Library/Audio/Plug-Ins/VST3/Vital.vst3: loaded in 2.39 s, the test 0.02 s)
+PASSED  an_unknown_id_raises_parameter_not_found  (Vital 1.6.4 at /Library/Audio/Plug-Ins/VST3/Vital.vst3: loaded in 2.27 s, the test 0.01 s)
+PASSED  a_value_out_of_range_raises_value_out_of_range  (Vital 1.6.4 at /Library/Audio/Plug-Ins/VST3/Vital.vst3: loaded in 2.35 s, the test 0.03 s)
+PASSED  patch_round_trips_through_load_patch  (Vital 1.6.4 at /Library/Audio/Plug-Ins/VST3/Vital.vst3: loaded in 2.35 s, the test 0.04 s)
+PASSED  a_rejected_patch_changes_nothing  (Vital 1.6.4 at /Library/Audio/Plug-Ins/VST3/Vital.vst3: loaded in 2.33 s, the test 0.02 s)
+PASSED  a_patch_refused_part_way_changes_nothing  (Vital 1.6.4 at /Library/Audio/Plug-Ins/VST3/Vital.vst3: loaded in 2.29 s, the test 0.11 s)
+PASSED  render_returns_the_declared_shape_and_sample_rate  (Vital 1.6.4 at /Library/Audio/Plug-Ins/VST3/Vital.vst3: loaded in 2.26 s, the test 0.08 s)
+PASSED  an_impossible_render_raises_render_failed  (Vital 1.6.4 at /Library/Audio/Plug-Ins/VST3/Vital.vst3: loaded in 2.38 s, the test 0.01 s)
+PASSED  set_emits_parameter_changed_once  (Vital 1.6.4 at /Library/Audio/Plug-Ins/VST3/Vital.vst3: loaded in 2.28 s, the test 0.01 s)
+PASSED  load_patch_emits_patch_loaded_once  (Vital 1.6.4 at /Library/Audio/Plug-Ins/VST3/Vital.vst3: loaded in 2.34 s, the test 0.03 s)
+PASSED  render_emits_render_completed_once  (Vital 1.6.4 at /Library/Audio/Plug-Ins/VST3/Vital.vst3: loaded in 2.33 s, the test 0.08 s)
+13 passed of 13, each on a VitalHost of its own
+exit=0
+
+== 3. the same thirteen over the fake plugin, as CI runs them: a pass over the fake plugin, not against Vital
+============================= test session starts ==============================
+platform darwin -- Python 3.12.16, pytest-9.2.0, pluggy-1.7.0
+rootdir: /Users/michaelwitwicki/Code/Audio/patchbay-vital
+configfile: pyproject.toml
+plugins: platformdirs-4.14.5, hypothesis-6.170.14
+collected 76 items / 63 deselected / 13 selected
+
+tests/unit/test_instrument.py .............                              [100%]
+
+====================== 13 passed, 63 deselected in 0.39s =======================
+exit=0
+exit=0
+
+the machine after the run: arm64, Apple M4 Pro, 14 cores, macOS 26.6.2 (25G83), Python 3.12.16, load 3.25 3.06 2.90, at 2026-11-16 14:01 EST
+the tree after the run:
+  HEAD 63ad5ae788cba91fa55104be07fce8a209fa3da5
+  git status --porcelain=v1 --untracked-files=all, 23 lines:
+     M CHANGELOG.md
+     M README.md
+     M src/patchbay_vital/__init__.py
+     M src/patchbay_vital/errors.py
+     M src/patchbay_vital/files.py
+     M src/patchbay_vital/format.py
+     M src/patchbay_vital/instrument.py
+     M src/patchbay_vital/midi.py
+     M src/patchbay_vital/patch.py
+     M src/patchbay_vital/preset.py
+     M src/patchbay_vital/start.py
+     M tests/integration/test_vital_instrument.py
+     M tests/unit/builders.py
+     M tests/unit/test_instrument.py
+     M tests/unit/test_midi.py
+     M tests/unit/test_package.py
+     M tests/unit/test_patch.py
+    ?? agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/plan.md
+    ?? agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/references.md
+    ?? agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/shape.md
+    ?? agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/standards.md
+    ?? agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/verification/overlap-probe-2.txt
+    ?? agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/verification/overlap-probe.txt
+  git hash-object of each of those paths (a deleted one marked so):
+    2031646b4631653e138652adfbbd3ef8723c3165  CHANGELOG.md
+    ce1c64621a9343e66d5a218bd7cb0f5dcde43140  README.md
+    18e34edbd5c9d90809b4ffc840482b16ad4c9491  src/patchbay_vital/__init__.py
+    145eb826c6859888c22999de5e4876ef5ebd2234  src/patchbay_vital/errors.py
+    b2f644c9779f59519da2f5e60a4f57e000a81969  src/patchbay_vital/files.py
+    ad7a9a78bd1ca8275bb92e10ec8d8503f40bb339  src/patchbay_vital/format.py
+    fd816beba50661577c2ee66f4f85a2eeaa78c6f4  src/patchbay_vital/instrument.py
+    ab8ae0ec4a6d9c7889d6f136f7e6d322421e65a9  src/patchbay_vital/midi.py
+    153e25666cd405dfdeaca0f3425d67d5d85307a4  src/patchbay_vital/patch.py
+    f049675b5c61fffad437f008b72e378bd531b422  src/patchbay_vital/preset.py
+    318ed4766bbb83a87a45118a3c86dcafeeb1f138  src/patchbay_vital/start.py
+    728f952f874e6497f67474f72ba02d27009eae96  tests/integration/test_vital_instrument.py
+    c213879e4803b1766a132c3fa7b57c11d8d5850f  tests/unit/builders.py
+    9dda9f2725d8df27481d763aa8a1a135d630af8a  tests/unit/test_instrument.py
+    29373875bcecb57b70493f2445d21829e9e9df73  tests/unit/test_midi.py
+    091ab87c1c4bf715e9e7214ae1305db4056682d1  tests/unit/test_package.py
+    72e01c7f0fd307cc7cf46a859d0b8fbdeb20b7f3  tests/unit/test_patch.py
+    3e1b682af98475b06109a7e8868c6d084d5726d5  agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/plan.md
+    1c13a47fd8f6b2eed83d3424e99f2aa2aae94f5d  agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/references.md
+    6ecb404d4691131ffadcd8a9c44c68233473fb6b  agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/shape.md
+    25302c4bf0e78c403dc8cd826ec3b2abe68eb2a3  agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/standards.md
+    03cf6a4567ae55987530677d18b461645d02347f  agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/verification/overlap-probe-2.txt
+    919d74b182a226642328833cb18f1a5649c99016  agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/verification/overlap-probe.txt
+
+---- the script contract_run.sh, as run ----
+#!/usr/bin/env bash
+# usage: contract_run.sh   (from the repository root)
+set -uo pipefail
+R=$(cd "$(dirname "$0")" && pwd)
+echo "== 1. core's thirteen contract tests against the installed Vital, the gate's way: one Vital for the module"
+uv run --locked pytest -c pyproject.toml -p no:doctest -p no:cacheprovider tests/integration/test_vital_instrument.py -k test_contract_against_vital -v
+echo "exit=$?"
+echo
+echo "== 2. the same thirteen, a fresh VitalHost for each, by a throwaway invocation: not the gate's way"
+uv run --locked python -u -B "$R/contract_fresh.py"
+echo "exit=$?"
+echo
+echo "== 3. the same thirteen over the fake plugin, as CI runs them: a pass over the fake plugin, not against Vital"
+uv run --locked pytest -c pyproject.toml -p no:doctest -p no:cacheprovider tests/unit/test_instrument.py -k test_contract_against_a_fake_plugin -v
+echo "exit=$?"
+
+---- the script contract_fresh.py, as run ----
+"""Core's thirteen contract tests against Vital, a fresh VitalHost for each: not the gate's way.
+
+A throwaway invocation for the record: the gate shares one Vital a module. Run from the repository
+root with the locked interpreter.
+"""
+
+import importlib.metadata
+import json
+import platform
+import time
+
+from patchbay import EventBus
+from patchbay.testing import CONTRACT_TESTS
+
+from patchbay_vital.host import DEFAULT_PATH, VitalHost
+from patchbay_vital.instrument import VitalInstrument
+
+core = importlib.metadata.distribution("patchbay-core")
+source = json.loads(core.read_text("direct_url.json") or "{}")
+print(f"patchbay-core {core.version} at {source.get('vcs_info', {}).get('commit_id')} ({source.get('url')})")
+print(f"pedalboard {importlib.metadata.version('pedalboard')}, machine {platform.machine()}, Python {platform.python_version()}")
+passed = 0
+for test in CONTRACT_TESTS:
+    began = time.perf_counter()
+    host = VitalHost()
+    loaded = time.perf_counter()
+    bus = EventBus()
+    instrument = VitalInstrument(bus, host)
+    test(instrument, bus)
+    done = time.perf_counter()
+    passed += 1
+    print(f"PASSED  {test.__name__}  (Vital {host.version} at {DEFAULT_PATH}: loaded in {loaded - began:.2f} s, the test {done - loaded:.2f} s)")
+    del instrument, host
+print(f"{passed} passed of {len(CONTRACT_TESTS)}, each on a VitalHost of its own")
+

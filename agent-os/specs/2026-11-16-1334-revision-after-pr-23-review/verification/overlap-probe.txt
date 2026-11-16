@@ -1,0 +1,276 @@
+The revision after PR 23's review: a probe of two notes of one pitch that overlap, with the instrument's bytes today, run 2026-11-16 13:40 EST on branch
+feature/8-the-instrument-vitalinstrument-over-vitalhost-patchvitalpreset-and-cores-contract-tests-against-a-real-vital-spec-b-of-7, Vital at /Library/Audio/Plug-Ins/VST3/Vital.vst3
+the machine before the run: arm64, Apple M4 Pro, 14 cores, macOS 26.6.2 (25G83), Python 3.12.16, load 1.81 2.74 2.79, at 2026-11-16 13:40 EST
+the tree before the run (this transcript is written outside the tree and copied in afterwards):
+  HEAD 63ad5ae788cba91fa55104be07fce8a209fa3da5
+  git status --porcelain=v1 --untracked-files=all, 4 lines:
+    ?? agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/plan.md
+    ?? agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/references.md
+    ?? agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/shape.md
+    ?? agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/standards.md
+  git hash-object of each of those paths (a deleted one marked so):
+    3e1b682af98475b06109a7e8868c6d084d5726d5  agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/plan.md
+    1c13a47fd8f6b2eed83d3424e99f2aa2aae94f5d  agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/references.md
+    6ecb404d4691131ffadcd8a9c44c68233473fb6b  agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/shape.md
+    25302c4bf0e78c403dc8cd826ec3b2abe68eb2a3  agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/standards.md
+
+$ uv run --locked python -u -B <scratchpad>/r23/overlap.py
+Vital 1.6.4 at /Library/Audio/Plug-Ins/VST3/Vital.vst3, through pedalboard 0.9.26
+machine arm64, numpy 2.5.4
+window: Hann 0.02 s every 0.005 s, both channels; an end is the last centre at or above 0.5 of the level; spans start past 0.15 s; a beat is 0.5 s
+
+== A alone: pitch 60, velocity 100, beats 0 to 2, channel 0
+  midi 90 3c 64 at 0.000010417 s (sample 0)
+  midi 80 3c 00 at 1.000010417 s (sample 48000)
+  peak 0.3633
+  level 0.15 to 0.45 s: 0.143940
+  level 0.55 to 0.95 s: 0.143940
+  level 1.05 to 1.45 s: 0.000000
+  level 1.55 to 1.95 s: 0.000000
+
+== B alone: pitch 60, velocity 100, beats 1 to 3, channel 0
+  midi 90 3c 64 at 0.500010417 s (sample 24000)
+  midi 80 3c 00 at 1.500010417 s (sample 72000)
+  peak 0.3583
+  level 0.15 to 0.45 s: 0.000000
+  level 0.55 to 0.95 s: 0.143940
+  level 1.05 to 1.45 s: 0.143940
+  level 1.55 to 1.95 s: 0.000000
+
+== same pitch overlapping: A 60 beats 0 to 2, B 60 beats 1 to 3, channel 0
+  midi 90 3c 64 at 0.000010417 s (sample 0)
+  midi 90 3c 64 at 0.500010417 s (sample 24000)
+  midi 80 3c 00 at 1.000010417 s (sample 48000)
+  midi 80 3c 00 at 1.500010417 s (sample 72000)
+  peak 0.4347
+  level 0.15 to 0.45 s: 0.143940
+  level 0.55 to 0.95 s: 0.163813
+  level 1.05 to 1.45 s: 0.000000
+  level 1.55 to 1.95 s: 0.000000
+
+== same pitch, same sample: 60 velocity 100 for 1 beat, then 60 velocity 50 for 3 beats
+  midi 90 3c 64 at 0.000010417 s (sample 0)
+  midi 90 3c 32 at 0.000010417 s (sample 0)
+  midi 80 3c 00 at 0.500010417 s (sample 24000)
+  midi 80 3c 00 at 1.500010417 s (sample 72000)
+  peak 0.4545
+  level 0.15 to 0.45 s: 0.176927
+  level 0.55 to 0.95 s: 0.000000
+  level 1.05 to 1.45 s: 0.000000
+  level 1.55 to 1.95 s: 0.000000
+
+== same pitch, same sample: 60 velocity 50 for 3 beats, then 60 velocity 100 for 1 beat
+  midi 90 3c 32 at 0.000010417 s (sample 0)
+  midi 90 3c 64 at 0.000010417 s (sample 0)
+  midi 80 3c 00 at 0.500010417 s (sample 24000)
+  midi 80 3c 00 at 1.500010417 s (sample 72000)
+  peak 0.6465
+  level 0.15 to 0.45 s: 0.286634
+  level 0.55 to 0.95 s: 0.000000
+  level 1.05 to 1.45 s: 0.000000
+  level 1.55 to 1.95 s: 0.000000
+
+== 60 velocity 100 alone for 1 beat
+  midi 90 3c 64 at 0.000010417 s (sample 0)
+  midi 80 3c 00 at 0.500010417 s (sample 24000)
+  peak 0.3615
+  level 0.15 to 0.45 s: 0.143940
+  level 0.55 to 0.95 s: 0.000000
+  level 1.05 to 1.45 s: 0.000000
+  level 1.55 to 1.95 s: 0.000000
+
+== 60 velocity 50 alone for 3 beats
+  midi 90 3c 32 at 0.000010417 s (sample 0)
+  midi 80 3c 00 at 1.500010417 s (sample 72000)
+  peak 0.3608
+  level 0.15 to 0.45 s: 0.143940
+  level 0.55 to 0.95 s: 0.143941
+  level 1.05 to 1.45 s: 0.143940
+  level 1.55 to 1.95 s: 0.000000
+
+== control, two pitches: A 60 beats 0 to 2, B 67 beats 1 to 3, channel 0
+  midi 90 3c 64 at 0.000010417 s (sample 0)
+  midi 90 43 64 at 0.500010417 s (sample 24000)
+  midi 80 3c 00 at 1.000010417 s (sample 48000)
+  midi 80 43 00 at 1.500010417 s (sample 72000)
+  peak 0.5850
+  level 0.15 to 0.45 s: 0.143940
+  level 0.55 to 0.95 s: 0.196588
+  level 1.05 to 1.45 s: 0.143702
+  level 1.55 to 1.95 s: 0.000000
+
+== 67 alone: beats 1 to 3
+  midi 90 43 64 at 0.500010417 s (sample 24000)
+  midi 80 43 00 at 1.500010417 s (sample 72000)
+  peak 0.3553
+  level 0.15 to 0.45 s: 0.000000
+  level 0.55 to 0.95 s: 0.143703
+  level 1.05 to 1.45 s: 0.143703
+  level 1.55 to 1.95 s: 0.000000
+
+== same pitch on two channels: A 60 ch 0 beats 0 to 2, B 60 ch 1 beats 1 to 3
+  midi 90 3c 64 at 0.000010417 s (sample 0)
+  midi 91 3c 64 at 0.500010417 s (sample 24000)
+  midi 80 3c 00 at 1.000010417 s (sample 48000)
+  midi 81 3c 00 at 1.500010417 s (sample 72000)
+  peak 0.5437
+  level 0.15 to 0.45 s: 0.143938
+  level 0.55 to 0.95 s: 0.236432
+  level 1.05 to 1.45 s: 0.143944
+  level 1.55 to 1.95 s: 0.000000
+
+== ends, against the level of A alone from 0.15 to 0.95 s, 0.143940
+  1.010 s  A alone: pitch 60, velocity 100, beats 0 to 2, channel 0
+  1.510 s  B alone: pitch 60, velocity 100, beats 1 to 3, channel 0
+  1.015 s  same pitch overlapping: A 60 beats 0 to 2, B 60 beats 1 to 3, channel 0
+  0.515 s  same pitch, same sample: 60 velocity 100 for 1 beat, then 60 velocity 50 for 3 beats
+  0.525 s  same pitch, same sample: 60 velocity 50 for 3 beats, then 60 velocity 100 for 1 beat
+  0.510 s  60 velocity 100 alone for 1 beat
+  1.510 s  60 velocity 50 alone for 3 beats
+  1.510 s  control, two pitches: A 60 beats 0 to 2, B 67 beats 1 to 3, channel 0
+  1.510 s  67 alone: beats 1 to 3
+  1.510 s  same pitch on two channels: A 60 ch 0 beats 0 to 2, B 60 ch 1 beats 1 to 3
+exit=0
+
+the machine after the run: arm64, Apple M4 Pro, 14 cores, macOS 26.6.2 (25G83), Python 3.12.16, load 1.74 2.71 2.78, at 2026-11-16 13:40 EST
+the tree after the run:
+  HEAD 63ad5ae788cba91fa55104be07fce8a209fa3da5
+  git status --porcelain=v1 --untracked-files=all, 4 lines:
+    ?? agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/plan.md
+    ?? agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/references.md
+    ?? agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/shape.md
+    ?? agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/standards.md
+  git hash-object of each of those paths (a deleted one marked so):
+    3e1b682af98475b06109a7e8868c6d084d5726d5  agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/plan.md
+    1c13a47fd8f6b2eed83d3424e99f2aa2aae94f5d  agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/references.md
+    6ecb404d4691131ffadcd8a9c44c68233473fb6b  agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/shape.md
+    25302c4bf0e78c403dc8cd826ec3b2abe68eb2a3  agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/standards.md
+
+---- the script overlap.py, as run ----
+"""Probe: what Vital makes of two notes of one pitch that overlap, with the instrument's bytes today.
+
+On the start preset at 48 kHz, 120 bpm (a beat is 0.5 s), a render of two bars, each pattern
+rendered by `VitalInstrument.render` as it stands, so the MIDI is `midi_of`'s. Each render's
+envelope is its RMS under a Hann window of `WINDOW` s every `HOP` s, both channels. A note's level
+is the envelope's median over a span where it alone sounds; a render's end is the last window
+centre where the envelope is at or above `END_FRACTION` of the level. The opening transient of
+the start preset is over by 0.102 s (the instrument spec's probes.txt), so every span starts past
+`OPENING`.
+
+Cases: each note alone, as references; two notes of one pitch overlapping (A beats 0 to 2, B 1
+to 3); the same pitch struck on the same sample (lengths 1 and 3 beats, velocities 100 and 50,
+in both orders); a control of two pitches overlapping; and the same overlap on two channels.
+
+Run from the repository root with the locked interpreter, Vital installed.
+"""
+
+import numpy as np
+import pedalboard
+from patchbay import EventBus, Note, Pattern, RenderRequest
+
+from patchbay_vital.host import DEFAULT_PATH
+from patchbay_vital.instrument import VitalInstrument
+from patchbay_vital.midi import midi_of
+from patchbay_vital.parameters import parameter_map
+
+RATE = 48_000
+WINDOW = 0.02  # s, the Hann window's length
+HOP = 0.005  # s, between window centres
+END_FRACTION = 0.5  # of a note's level: where a render counts as having ended
+OPENING = 0.15  # s: every span measured starts past the start preset's opening
+BEAT = 0.5  # s at 120 bpm
+REQUEST = RenderRequest(sample_rate=RATE, tail_seconds=0.0)
+
+
+def pattern(*notes: tuple[int, int, float, float, int]) -> Pattern:
+    """A pattern of two bars of four beats, from (pitch, velocity, start, duration, channel)."""
+    return Pattern(
+        tempo_bpm=120.0,
+        bars=2,
+        beats_per_bar=4,
+        notes=tuple(
+            Note(pitch=p, velocity=v, start_beats=s, duration_beats=d, channel=c)
+            for p, v, s, d, c in notes
+        ),
+    )
+
+
+def envelope(audio: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """Return window centres in seconds and the RMS under a Hann window at each."""
+    size, hop = round(WINDOW * RATE), round(HOP * RATE)
+    window = np.hanning(size)
+    norm = np.sqrt(np.mean(window**2))
+    starts = np.arange(0, audio.shape[1] - size, hop)
+    values = np.array(
+        [np.sqrt(np.mean((audio[:, s : s + size] * window) ** 2)) / norm for s in starts]
+    )
+    return (starts + size / 2) / RATE, values
+
+
+def level(times: np.ndarray, values: np.ndarray, start: float, end: float) -> float:
+    """The envelope's median between two times."""
+    inside = (times >= start) & (times <= end)
+    return float(np.median(values[inside]))
+
+
+def ended(times: np.ndarray, values: np.ndarray, reference: float) -> float:
+    """The last window centre at or above END_FRACTION of a level."""
+    loud = np.nonzero(values >= END_FRACTION * reference)[0]
+    return float(times[loud[-1]]) if loud.size else float("nan")
+
+
+CASES = {
+    "A alone: pitch 60, velocity 100, beats 0 to 2, channel 0": pattern((60, 100, 0.0, 2.0, 0)),
+    "B alone: pitch 60, velocity 100, beats 1 to 3, channel 0": pattern((60, 100, 1.0, 2.0, 0)),
+    "same pitch overlapping: A 60 beats 0 to 2, B 60 beats 1 to 3, channel 0": pattern(
+        (60, 100, 0.0, 2.0, 0), (60, 100, 1.0, 2.0, 0)
+    ),
+    "same pitch, same sample: 60 velocity 100 for 1 beat, then 60 velocity 50 for 3 beats": pattern(
+        (60, 100, 0.0, 1.0, 0), (60, 50, 0.0, 3.0, 0)
+    ),
+    "same pitch, same sample: 60 velocity 50 for 3 beats, then 60 velocity 100 for 1 beat": pattern(
+        (60, 50, 0.0, 3.0, 0), (60, 100, 0.0, 1.0, 0)
+    ),
+    "60 velocity 100 alone for 1 beat": pattern((60, 100, 0.0, 1.0, 0)),
+    "60 velocity 50 alone for 3 beats": pattern((60, 50, 0.0, 3.0, 0)),
+    "control, two pitches: A 60 beats 0 to 2, B 67 beats 1 to 3, channel 0": pattern(
+        (60, 100, 0.0, 2.0, 0), (67, 100, 1.0, 2.0, 0)
+    ),
+    "67 alone: beats 1 to 3": pattern((67, 100, 1.0, 2.0, 0)),
+    "same pitch on two channels: A 60 ch 0 beats 0 to 2, B 60 ch 1 beats 1 to 3": pattern(
+        (60, 100, 0.0, 2.0, 0), (60, 100, 1.0, 2.0, 1)
+    ),
+}
+
+
+def main() -> None:
+    found = parameter_map()
+    print(f"Vital {found.vital_version} at {DEFAULT_PATH}, through pedalboard {pedalboard.__version__}")
+    print(f"machine {found.machine}, numpy {np.__version__}")
+    print(
+        f"window: Hann {WINDOW} s every {HOP} s, both channels; an end is the last centre at or "
+        f"above {END_FRACTION} of the level; spans start past {OPENING} s; a beat is {BEAT} s"
+    )
+    instrument = VitalInstrument(EventBus())
+    renders = {}
+    for name, case in CASES.items():
+        audio = instrument.render(case, REQUEST).audio
+        times, values = envelope(np.asarray(audio, dtype=np.float64))
+        renders[name] = (times, values)
+        print()
+        print(f"== {name}")
+        for message, time in midi_of(case, REQUEST):
+            print(f"  midi {message.hex(' ')} at {time:.9f} s (sample {round(time * RATE - 0.5)})")
+        print(f"  peak {float(np.max(np.abs(audio))):.4f}")
+        for start, end in ((OPENING, 0.45), (0.55, 0.95), (1.05, 1.45), (1.55, 1.95)):
+            print(f"  level {start:.2f} to {end:.2f} s: {level(times, values, start, end):.6f}")
+    reference = level(*renders["A alone: pitch 60, velocity 100, beats 0 to 2, channel 0"], OPENING, 0.95)
+    print()
+    print(f"== ends, against the level of A alone from {OPENING} to 0.95 s, {reference:.6f}")
+    for name, (times, values) in renders.items():
+        print(f"  {ended(times, values, reference):.3f} s  {name}")
+
+
+if __name__ == "__main__":
+    main()
+

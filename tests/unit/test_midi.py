@@ -8,8 +8,9 @@ builder.
 from fractions import Fraction
 
 import pytest
-from patchbay import Note, PatchbayValidationError, Pattern, RenderRequest
+from patchbay import Note, PatchbayValidationError, Pattern, RenderFailedError, RenderRequest
 
+from patchbay_vital.errors import RenderRefusedError, VitalError
 from patchbay_vital.midi import midi_of
 
 _RATE = 48000
@@ -179,3 +180,149 @@ def test_a_pattern_of_no_notes_and_a_render_of_no_samples_give_no_midi() -> None
     instant = _pattern(_note(60, 0.0, 4.0), tempo=23_040_000.0)
     assert _request(tail=0.0).samples(instant) == 0
     assert midi_of(instant, _request(tail=0.0)) == ()
+
+
+# --- notes of one pitch that overlap -------------------------------------------------------------
+# Each sounds for its own length, as core's reference instrument sums a sine per note. On one
+# channel Vital releases both at the first note-off, and on another each keeps its own (this
+# revision's spec, `verification/overlap-probe.txt` and `overlap-probe-2.txt`).
+
+
+def test_a_note_struck_while_its_pitch_sounds_on_its_channel_goes_out_on_the_next() -> None:
+    """A from beat 0 to 2 and B from 1 to 3, both C4 on the first channel: B on the second.
+
+    Each note's on and off carry the one channel it sounds on, so each off ends its own note.
+    """
+    midi = midi_of(_pattern(_note(60, 0.0, 2.0), _note(60, 1.0, 2.0)), _request())
+    assert midi == (
+        (b"\x90\x3c\x64", _at(0)),
+        (b"\x91\x3c\x64", _at(24000)),
+        (b"\x80\x3c\x00", _at(48000)),
+        (b"\x81\x3c\x00", _at(72000)),
+    )
+
+
+@pytest.mark.parametrize(
+    ("first", "second", "expected"),
+    [
+        (
+            (100, 1.0),
+            (50, 3.0),
+            (
+                (b"\x90\x3c\x64", _at(0)),
+                (b"\x91\x3c\x32", _at(0)),
+                (b"\x80\x3c\x00", _at(24000)),
+                (b"\x81\x3c\x00", _at(72000)),
+            ),
+        ),
+        (
+            (50, 3.0),
+            (100, 1.0),
+            (
+                (b"\x90\x3c\x32", _at(0)),
+                (b"\x91\x3c\x64", _at(0)),
+                (b"\x81\x3c\x00", _at(24000)),
+                (b"\x80\x3c\x00", _at(72000)),
+            ),
+        ),
+    ],
+    ids=["the louder first", "the longer first"],
+)
+def test_two_notes_of_one_pitch_struck_on_one_sample_each_sound_with_their_own_velocity_and_length(
+    first: tuple[int, float],
+    second: tuple[int, float],
+    expected: tuple[tuple[bytes, float], ...],
+) -> None:
+    """The first in the pattern keeps its channel and the second moves; both sound.
+
+    Each is struck with its own velocity, on its own channel, and released at its own end.
+    """
+    (first_velocity, first_length), (second_velocity, second_length) = first, second
+    pattern = _pattern(
+        _note(60, 0.0, first_length, velocity=first_velocity),
+        _note(60, 0.0, second_length, velocity=second_velocity),
+    )
+    assert midi_of(pattern, _request()) == expected
+
+
+def test_notes_of_two_pitches_that_overlap_keep_their_channels() -> None:
+    """The control: C4 and G4 overlap on the first channel, and neither moves."""
+    midi = midi_of(_pattern(_note(60, 0.0, 2.0), _note(67, 1.0, 2.0)), _request())
+    assert midi == (
+        (b"\x90\x3c\x64", _at(0)),
+        (b"\x90\x43\x64", _at(24000)),
+        (b"\x80\x3c\x00", _at(48000)),
+        (b"\x80\x43\x00", _at(72000)),
+    )
+
+
+def test_a_moved_note_takes_the_lowest_channel_free_for_its_pitch() -> None:
+    """Two notes on the sixth channel overlap: the second takes the first, the lowest free.
+
+    A third, struck as the first ends on that sample, finds the sixth free again, the first's
+    off coming before its on, and keeps it.
+    """
+    midi = midi_of(
+        _pattern(
+            _note(60, 0.0, 1.0, channel=5),
+            _note(60, 0.5, 2.0, channel=5),
+            _note(60, 1.0, 1.0, channel=5),
+        ),
+        _request(),
+    )
+    assert midi == (
+        (b"\x95\x3c\x64", _at(0)),
+        (b"\x90\x3c\x64", _at(12000)),
+        (b"\x85\x3c\x00", _at(24000)),
+        (b"\x95\x3c\x64", _at(24000)),
+        (b"\x85\x3c\x00", _at(48000)),
+        (b"\x80\x3c\x00", _at(60000)),
+    )
+
+
+def test_a_note_too_short_to_last_a_sample_sounds_on_when_its_pitch_is_struck_there() -> None:
+    """At 100 Hz a C4 of a thousandth of a beat is struck and released on sample 100.
+
+    Its off comes after every on of that sample, so a second C4 struck there finds the pitch
+    sounding on the first channel and takes the second.
+    """
+    rate = 100
+    midi = midi_of(_pattern(_note(60, 2.0, 0.001), _note(60, 2.0, 1.0)), _request(rate))
+    assert midi == (
+        (b"\x90\x3c\x64", _at(100, rate)),
+        (b"\x91\x3c\x64", _at(100, rate)),
+        (b"\x80\x3c\x00", _at(100, rate)),
+        (b"\x81\x3c\x00", _at(150, rate)),
+    )
+
+
+def test_a_note_the_render_ends_before_it_is_released_holds_its_channel() -> None:
+    """A note held past the render's end has no note-off, so its pitch sounds on to the end."""
+    midi = midi_of(_pattern(_note(60, 0.0, 4.0), _note(60, 1.0, 1.0)), _request(tail=0.0))
+    assert midi == (
+        (b"\x90\x3c\x64", _at(0)),
+        (b"\x91\x3c\x64", _at(24000)),
+        (b"\x81\x3c\x00", _at(48000)),
+    )
+
+
+def test_sixteen_notes_of_one_pitch_sound_at_once_each_on_a_channel_of_its_own() -> None:
+    """All struck on one sample: the first on the first channel, the rest on the next in turn."""
+    midi = midi_of(_pattern(*(_note(60, 0.0, 1.0) for _ in range(16))), _request())
+    ons = [message for message, when in midi if when == _at(0)]
+    assert ons == [bytes([0x90 | channel, 0x3C, 0x64]) for channel in range(16)]
+    offs = [message for message, when in midi if when == _at(24000)]
+    assert offs == [bytes([0x80 | channel, 0x3C, 0x00]) for channel in range(16)]
+
+
+def test_a_seventeenth_note_of_one_pitch_at_once_is_refused_naming_its_pitch_and_sample() -> None:
+    """No channel is left to give it its own length: the package's render error, core's too."""
+    notes = (*(_note(60, 0.0, 2.0) for _ in range(16)), _note(60, 1.0, 1.0))
+    with pytest.raises(RenderRefusedError) as caught:
+        midi_of(_pattern(*notes), _request())
+    assert isinstance(caught.value, VitalError)
+    assert isinstance(caught.value, RenderFailedError)
+    assert caught.value.reason == (
+        "pitch 60 is already sounding on all 16 MIDI channels at sample 24000, so a note struck "
+        "there cannot sound for its own length"
+    )

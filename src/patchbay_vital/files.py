@@ -1,7 +1,8 @@
 """Files replaced whole or not at all: each written beside its target and renamed over it.
 
-A preset can be a person's only copy, and the committed map and the key list derived from it are
-read together, so none is left half-written and the two never disagree. `replace_files` writes
+A preset can be a person's only copy, and the committed map, the key list derived from it and the
+start preset written from it are read together, so none is left half-written and the three never
+disagree. `replace_files` writes
 every file's bytes to a temporary beside its target, flushes each to disk and keeps the target's
 permissions, writing through a symlink to what it points at, and reads the bytes of every target
 but the last, which a later rename could force back; only once every temporary is staged is each
@@ -16,9 +17,10 @@ directory (`_UNSUPPORTED`, some FUSE, SMB and NFS mounts) is passed over; any ot
 leaves the files replaced but maybe not durable, a degraded result, which is logged as a warning
 through this module's logger, naming the directory and the errno, and never raised. What fails is
 the `OSError` or `ValueError` the file system raised, which the caller reports as its own error.
-`patchbay_vital.format` writes a preset through `replace_file` and `patchbay_vital.census` the key
-list and the map through `replace_files` (`vital/preset-file.md`, "dump replaces a file whole or
-not at all"). It imports nothing from the package.
+`patchbay_vital.format` writes a preset through `replace_file` and `patchbay_vital.census` its
+three files, the map, the key list and `data/start.vital`, through `replace_files`
+(`vital/preset-file.md`, "dump replaces a file whole or not at all"). It imports nothing from
+the package.
 """
 
 import contextlib

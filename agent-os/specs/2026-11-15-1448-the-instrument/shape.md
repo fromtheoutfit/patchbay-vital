@@ -1191,6 +1191,23 @@ out-of-range ones) checked and corrected if needed." So, at that time and not be
   fromtheoutfit/patchbay#20, already filed, says "2,201 of the 57,636 floats inside their
   bounds", which is the same count.
 
+**Revised 2026-11-16, after the review of PR 23**
+(`agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/`). When it is filed, "The run"
+cites that spec's `verification/contract-run.txt`: 13 of 13 on the module's one Vital and 13 of
+13 on a `VitalHost` of its own for each test, run on the code the review revised. The gate's
+figures are those of the run on the merged commit, as above. "What core does not say yet" gains
+two lines, for the two issues filed on fromtheoutfit/patchbay that day at the owner's word:
+
+- #23: `Patch`'s "a value for each parameter", against the 35 floats a patch carries in `opaque`.
+- #24: what an adapter does when one channel cannot voice two notes of one pitch, which core's
+  fake sums each for its own length.
+
+"The adapter's limits" gains one line and asks core nothing new:
+
+- When the plugin refuses a load and then the model's own text, its state is unknown.
+  `load_patch` raises patchbay-vital's `PluginStateError`, which is not `PatchRejectedError`, and
+  the instrument refuses every later call that would reach the plugin, saying to build a new one.
+
 > **Title:** Propose patchbay-core 0.1.0: the contract suite passes against a real instrument, Vital
 >
 > patchbay-vital's `VitalInstrument` implements `patchbay.Instrument` over a hosted Vital, and core's thirteen `CONTRACT_TESTS` pass against it. patchbay-vital's issue #8 asked for this proposal once they did: cut patchbay-core 0.1.0, the contracts now held by an instrument that is not core's own fake.

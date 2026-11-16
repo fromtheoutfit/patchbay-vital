@@ -14,6 +14,34 @@ writes the entry, in that commit
 
 ### Changed
 
+- Revision after the review of PR 23, `agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/`:
+  17 findings at `63ad5ae`, each checked against the code and against core at `eddba95`; 14
+  fixed, one fixed in part and two declined with their reasons. The entry for the instrument
+  above reads as the revision leaves it. The version stays 0.0.1.
+  - A set of the value already shown is kept only where the model holds a float no set lands on;
+    on any other float it reaches the plugin, so `osc_1_stack_style` 9 on a preset Vital upgrades
+    to 10 is set back to 9 (finding 1).
+  - `load_patch` and the carrying check take a value one way: the float its display names, where
+    the curve's float32 for it shows exactly that display, and otherwise what a set of it holds.
+    Every float a patch carries is restored, all 903 stay in the start preset's `values`, and an
+    arbitrary display loads to what a set holds, a sample of them shown; a display that is exactly
+    an off-grid float's is restored by a load and not by a set, fromtheoutfit/patchbay#20's case
+    (findings 2 and 3).
+  - A refusal of a load and of the model's own text after it leaves the instrument out of step,
+    and every later call that would reach the plugin is refused, naming it (finding 4).
+  - Two notes of one pitch that overlap each sound for their own length on Vital, the later moved
+    to a channel of its own, measured with Vital's MPE setting off and on (finding 5).
+  - A version is compared by its numbers less trailing zeros, and a plugin version that is not
+    digits and dots refuses every preset (finding 6). `patch()` is built once for each model
+    (finding 8); the clipping peak is taken without a copy of the audio (finding 9, in part).
+  - `format.METADATA`, `format.writes_same`, `format.write_string`, `format.write_object`,
+    `preset.slot_key` and `preset.slot_place` are each the one definition the patch, the start
+    preset and the instrument use, and `check_loadable` lives in `patch.py` (findings 10 to 14).
+  - The known limits and `files.py`'s docstring read true (findings 15 and 16).
+  - Declined: decoding the guard's sections once (finding 7, measured), a second scan for
+    non-finite samples and the length given to `midi_of` (finding 9), and the two harness
+    transcripts of the instrument spec, whose size is fromtheoutfit/patchbay-standards#41's to
+    decide (finding 17).
 - Revision after the review of PR 12, `agent-os/specs/2026-11-11-1321-revision-after-pr-12-review/`:
   all 15 findings of the review at `8ebce15` addressed, a gate spec. The version stays 0.0.1.
   - Cases n and o, and case t's two edits of patchbay-core's rev in `[tool.uv.sources]` (through
@@ -186,24 +214,33 @@ writes the entry, in that commit
   - A set holds the value Vital holds for the display given, the map's `to_preset`, which need
     not be the held value nearest it; a bound is held exactly; a value between the steps of one
     of the 29 stepped continuous parameters is taken and the nearest step held; a set of the
-    value a parameter already shows keeps what it holds and is still published.
-  - `patch.patch_of` and `patch.preset_of`, re-exported at the root: a preset carried in a core
-    `Patch` and back, byte for byte, through JSON too. A float is carried in exactly one place:
-    in `values` where its display can carry it, checked for each float, and otherwise as itself
-    in `opaque`, as the 32 out-of-range floats and three `chorus_damping` of the 75 installed
-    presets are. A patch of values alone is the start preset with those values. A patch is taken
-    whole or refused, naming the first entry to refuse.
+    value a parameter already shows, where the model holds a float no set lands on, keeps that
+    float and is still published, and any other set reaches the plugin.
+  - `patch.patch_of`, `patch.preset_of` and `patch.check_loadable`, re-exported at the root: a
+    preset carried in a core `Patch` and back, byte for byte, through JSON too, and the check of
+    a preset the plugin was seen to load whole, which needs no plugin. A float is carried in
+    exactly one place: in `values` where its display names it, checked for each float, and
+    otherwise as itself in `opaque`, as the 32 out-of-range floats and three `chorus_damping` of
+    the 75 installed presets are. A value is taken as the float its display names where it names
+    one, and otherwise as a set of it holds. A patch of values alone is the start preset with
+    those values. A patch is taken whole or refused, naming the first entry to refuse.
   - `midi.midi_of`: a pattern's notes as note-on and note-off bytes, each at a time half a sample
     past its sample, since the time of the sample itself lands one sample early on some samples.
-    mido is not used.
+    Each note sounds for its own length, as core's reference instrument has it: a note whose
+    pitch already sounds on its channel goes out on the lowest channel where it does not, since
+    on one channel Vital releases both at the first note-off. mido is not used.
   - `errors`: `ParameterUnitError`, `PatchRefusedError` and `RenderRefusedError`, each under
     `VitalError` and core's `UnitMismatchError`, `PatchRejectedError` and `RenderFailedError`.
   - A render is refused past `MAX_SAMPLES`, 2 ** 24, or outside 1,000 to 768,000 Hz, naming the
-    limit; a render of no samples is an empty result; a render that reaches full scale carries
-    one warning saying the peak and where, the audio never clipped by the instrument.
-  - Known limits, each measured (`verification/probes.txt` and `probes-2.txt`) and each waiting
-    on an issue of its own, all three before the first experiment that puts an agent in front of
-    the instrument, in this order:
+    limit, or with a seventeenth note of one pitch sounding at once; a render of no samples is an
+    empty result; a render that reaches full scale carries one warning saying the peak and where,
+    the audio never clipped by the instrument.
+  - When the plugin refuses a load and then the model's own text, the instrument has lost step
+    with it: `PluginStateError` says so, and every later `set`, `load_patch` and `render` is
+    refused naming that failure, while `get` and `patch` answer from the model. Build a new one.
+  - Known limits, each measured (`verification/probes.txt` and `probes-2.txt`). The first three
+    each wait on an issue of their own, all three before the first experiment that puts an agent
+    in front of the instrument, in this order; the fourth is a workaround no issue owns:
     - a malformed preset section can hang the process (#20): Vital answers a preset it cannot
       read with a modal alert and never returns. `load_patch` refuses every shape seen to do it,
       and cannot judge a section's inside;

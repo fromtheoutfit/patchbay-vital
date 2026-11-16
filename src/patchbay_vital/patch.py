@@ -7,14 +7,23 @@ the bytes the preset writes, through JSON too. Neither touches the plugin.
 **A float is carried in exactly one place.** `values` holds a parameter's value in the unit Vital
 displays, and it holds one only where that display can carry the preset's own float: the display
 is one the parameter takes (`Parameter.check`), and it converts back to the very float, the sign
-of a zero included. That is checked for each float as the patch is built, never assumed. Back is
-the float a preset holds for a display: the curve's inverse rounded to float32 and kept within the
-scale, and on an indexed scale the nearest step, a half away from zero. A float the display
-cannot carry rides in `opaque` as itself and is not in `values`: one outside its parameter's
-bounds, as `flanger_dry_wet` 0.7072 is in presets Vital ships; one the curve does not give back,
-as at or below `volume`'s floor; one between an indexed scale's steps; and a key that is no
-parameter, as `chorus_damping`. A key the preset lacks, which an older file may, is in neither
-and reads as its parameter's default.
+of a zero included, by the rule below. That is checked for each float as the patch is built,
+never assumed. A float the display cannot carry rides in `opaque` as itself and is not in
+`values`: one outside its parameter's bounds, as `flanger_dry_wet` 0.7072 is in presets Vital
+ships; one the curve does not give back, as at or below `volume`'s floor; one between an indexed
+scale's steps; one whose display another float shows; and a key that is no parameter, as
+`chorus_damping`. A key the preset lacks, which an older file may, is in neither
+and reads as its parameter's default. So a patch an instrument gives restores every float it
+carried, and `values` names each parameter the preset holds a float for, but those.
+
+**A value is taken one way, by `load_patch` and by the check above alike.** On a linear scale, the
+curve's inverse rounded to float32 and kept within the scale's ends, where that float's display
+is exactly the one given: the display names it, and it is stored. Any other value is taken as
+`set` takes it, the float a set of the display holds (`MappedParameter.to_preset`), and on an
+indexed scale always so: the nearest step, a half away from zero. So an arbitrary display in a
+patch holds what a set of it holds. The one difference is a display that is exactly the display
+of a float no set lands on, which a load restores and a set does not: the case of
+fromtheoutfit/patchbay#20, `Instrument.get`'s clause.
 
 **What `opaque` holds**, under fixed keys, any other key refused by name:
 
@@ -35,7 +44,10 @@ chained from what refused it. Its reason names the first entry to refuse, in the
 checked, so it is the same on every run: the instrument's name; then each `opaque` key, sorted;
 then each of `values`, sorted by id, for an id that is no parameter, a parameter carried in both
 places, its unit and its range; then the preset the entries make. A value in range is never
-refused for its resolution: it is taken to the float a preset holds for it, as above.
+refused for its resolution: it is taken to a float as above.
+
+`check_loadable` is here too, beside `preset_of`: what the plugin was seen not to load whole,
+judged from a preset and the map alone, so it needs no plugin.
 """
 
 import json
@@ -63,10 +75,16 @@ from patchbay_vital.errors import (
     UnknownParameterError,
     VitalError,
 )
-from patchbay_vital.format import ModulationEntry, join_modulations, split_modulations
+from patchbay_vital.format import (
+    METADATA,
+    ModulationEntry,
+    join_modulations,
+    split_modulations,
+    writes_same,
+)
 from patchbay_vital.parameters import MappedParameter, ParameterMap, parameter_map
-from patchbay_vital.preset import MODULATION_SLOTS, SLOT_KEY, VitalPreset, VitalSettings
-from patchbay_vital.start import start_preset
+from patchbay_vital.preset import DECODER, MODULATION_SLOTS, SLOT_KEY, VitalPreset, VitalSettings
+from patchbay_vital.start import LFOS, OSCILLATORS, start_preset
 
 PRESET_ENTRY = "preset"
 """The `opaque` key of the entry that makes a patch a whole preset."""
@@ -81,17 +99,9 @@ TUNING_ENTRY = "tuning"
 """The `opaque` key of the plugin state's top-level `tuning`."""
 
 _SLOT_NUMBER = re.compile("[1-9][0-9]*")
-_METADATA = (
-    "author",
-    "comments",
-    "macro1",
-    "macro2",
-    "macro3",
-    "macro4",
-    "preset_name",
-    "preset_style",
-    "synth_version",
-)
+_VERSION = re.compile("[0-9]+([.][0-9]+)*")
+_SAMPLE_KEYS = frozenset({"length", "name", "sample_rate", "samples"})
+_SECTION_COUNTS = {"wavetables": OSCILLATORS, "lfos": LFOS}
 
 
 class _Entry(PatchbayModel, frozen=True):
@@ -133,19 +143,16 @@ def check_value(parameter: Parameter, value: Quantity) -> None:
 def _float_of(record: MappedParameter, display: float) -> float:
     """Return the float a preset holds for a display the parameter takes.
 
-    The curve's inverse rounded to float32 and kept within the scale's ends; on an indexed scale
-    the nearest step, a half away from zero, which on every scale of the map is what
-    `MappedParameter.to_preset` gives. It need not be a float the host's normalized value lands
-    on: a preset is loaded as text, and holds floats a set cannot reach.
+    On a linear scale, the curve's inverse rounded to float32 and kept within the scale's ends,
+    where that float's own display is exactly the one given: the display names it, as every
+    display a patch carries does. Otherwise, as on every indexed scale, the float a set of the
+    display holds, `MappedParameter.to_preset`: on an indexed scale the nearest step, a half away
+    from zero, which a value between steps shows too and so does not name.
     """
     if record.scale.kind == "indexed":
         return record.to_preset(display)
-    return min(max(record.curve.to_preset(display), record.scale.minimum), record.scale.maximum)
-
-
-def _same(one: float, other: float) -> bool:
-    """Say whether two floats write the same, as `0.0` and `-0.0` do not though they are equal."""
-    return one == other and math.copysign(1.0, one) == math.copysign(1.0, other)
+    named = min(max(record.curve.to_preset(display), record.scale.minimum), record.scale.maximum)
+    return named if record.to_display(named) == display else record.to_preset(display)
 
 
 def _carried_as_a_value(found: ParameterMap, key: str, held: float) -> Quantity | None:
@@ -161,7 +168,7 @@ def _carried_as_a_value(found: ParameterMap, key: str, held: float) -> Quantity 
         back = _float_of(record, value.value)
     except (VitalError, PatchbayValidationError):
         return None
-    return value if _same(back, held) else None
+    return value if writes_same(back, held) else None
 
 
 def _entry_text(
@@ -169,7 +176,7 @@ def _entry_text(
 ) -> bytes:
     """Write the `preset` entry: sorted keys, no whitespace, each float as its shortest repr."""
     entry: dict[str, object] = {
-        name: getattr(preset, name) for name in _METADATA if getattr(preset, name) is not None
+        name: getattr(preset, name) for name in METADATA if getattr(preset, name) is not None
     }
     entry["modulations"] = [[source, destination] for source, destination, _ in entries]
     entry["settings"] = dict(carried)
@@ -276,7 +283,7 @@ def _whole(patch: Patch, found: ParameterMap) -> VitalPreset:
         held = (*start.settings.values.items(), *slot_floats.items())
         floats: dict[str, float] = {str(key): value for key, value in held}
         _take_values(patch, found, floats, {})
-        fields: dict[str, object] = {name: getattr(start, name) for name in _METADATA}
+        fields: dict[str, object] = {name: getattr(start, name) for name in METADATA}
         fields |= {"opaque": start.opaque, "tuning": start.tuning}
         fields["trailing_newline"] = start.trailing_newline
     else:
@@ -286,7 +293,7 @@ def _whole(patch: Patch, found: ParameterMap) -> VitalPreset:
         )
         floats = dict(entry.settings)
         _take_values(patch, found, floats, entry.settings)
-        fields = {name: getattr(entry, name) for name in _METADATA}
+        fields = {name: getattr(entry, name) for name in METADATA}
         fields |= {"opaque": sections, "tuning": patch.opaque.get(TUNING_ENTRY)}
         fields["trailing_newline"] = entry.trailing_newline
     slots = {PresetKey(key): value for key, value in floats.items() if SLOT_KEY.fullmatch(key)}
@@ -312,3 +319,81 @@ def preset_of(patch: Patch) -> VitalPreset:
         raise
     except (VitalError, PatchbayValidationError) as error:
         raise PatchRefusedError(str(error)) from error
+
+
+def _version(text: str) -> tuple[int, ...] | None:
+    """Return a version's numbers less its trailing zeros, or None for one not digits and dots.
+
+    So `1.6.4.0` is `1.6.4`, and `1.6.10` is past `1.6.4`.
+    """
+    if not _VERSION.fullmatch(text):
+        return None
+    numbers = [int(part) for part in text.split(".")]
+    while len(numbers) > 1 and numbers[-1] == 0:
+        numbers.pop()
+    return tuple(numbers)
+
+
+def check_loadable(preset: VitalPreset, found: ParameterMap) -> None:
+    """Raise PatchRefusedError unless a preset is one the plugin was seen to load whole.
+
+    Vital reports no load it cannot use. It blocks its caller on a modal alert, ignores the whole
+    text without a word, or loads the floats and keeps the sections it had (the instrument spec's
+    `verification/probes.txt`), so what was seen to do so is refused here, before the plugin is
+    called, in this order:
+
+    - a `synth_version` that is not digits and dots, which blocks, or is newer than the plugin's,
+      `found.vital_version`, which is ignored whole; versions compared by their numbers, trailing
+      zeros dropped. A plugin version that is not digits and dots refuses every preset, since
+      none can then be shown not to be newer;
+    - `wavetables` and `lfos` that are not arrays of three and of eight objects, and a `sample`
+      that is not an object holding `length`, `name`, `sample_rate` and `samples`: every preset
+      Vital installs, of any version, holds them so, a text without them blocks, and an empty
+      array keeps the sections of the preset before it;
+    - a parameter's float whose display is no finite number, which `get` could not return.
+
+    It judges a section's shape and not its inside, which this package does not read: a section
+    Vital cannot read inside still blocks. It needs no plugin, so a preset `preset_of` builds can
+    be checked where no Vital is installed.
+    """
+    version, plugin = _version(preset.synth_version), _version(found.vital_version)
+    if version is None:
+        msg = f"synth_version {preset.synth_version!r} is not a version, digits and dots"
+        raise PatchRefusedError(msg)
+    if plugin is None:
+        msg = (
+            f"the plugin's version {found.vital_version!r} is not digits and dots, so no "
+            "preset's can be compared with it"
+        )
+        raise PatchRefusedError(msg)
+    if version > plugin:
+        msg = (
+            f"synth_version {preset.synth_version} is newer than the plugin's {found.vital_version}"
+        )
+        raise PatchRefusedError(msg)
+    for name, count in _SECTION_COUNTS.items():
+        section = _section(preset, name)
+        if not (
+            isinstance(section, list)
+            and len(section) == count
+            and all(isinstance(entry, dict) for entry in section)
+        ):
+            msg = f"settings.{name}: a preset holds an array of {count} objects there"
+            raise PatchRefusedError(msg)
+    sample = _section(preset, "sample")
+    if not (isinstance(sample, dict) and sample.keys() >= _SAMPLE_KEYS):
+        msg = f"settings.sample: a preset holds an object there with {sorted(_SAMPLE_KEYS)}"
+        raise PatchRefusedError(msg)
+    _, slots = split_modulations(preset.modulations)
+    floats = {**preset.settings.values, **slots}
+    for record in found.parameters:
+        held = floats.get(record.preset_key)
+        if held is not None and not math.isfinite(record.to_display(held)):
+            msg = f"{record.id}: {held!r} has no display that is a finite number"
+            raise PatchRefusedError(msg)
+
+
+def _section(preset: VitalPreset, name: str) -> object:
+    """Return one of a preset's unread sections, parsed, or None where it has none."""
+    raw = preset.opaque.get(PresetKey(name))
+    return None if raw is None else DECODER.decode(raw.decode("utf-8"))

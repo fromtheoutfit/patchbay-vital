@@ -153,7 +153,7 @@ def test_the_package_re_exports_what_a_consumer_uses() -> None:
             "ParameterMap",
             "parameter_map",
         ),
-        patchbay_vital.patch: ("patch_of", "preset_of"),
+        patchbay_vital.patch: ("check_loadable", "patch_of", "preset_of"),
         patchbay_vital.preset: (
             "MetadataChange",
             "Modulation",

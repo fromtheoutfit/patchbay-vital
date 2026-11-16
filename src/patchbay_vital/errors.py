@@ -116,7 +116,11 @@ class PluginLoadError(VitalHostError):
 
 
 class PluginStateError(VitalHostError, _ReasonError):
-    """Bytes are not a state this package reads, or the plugin refused a read or a write."""
+    """Bytes are not a state this package reads, or the plugin refused a read or a write.
+
+    Also what an instrument raises once the plugin has refused a load and the model's own text
+    after it, its state then unknown, and for every later call that would reach the plugin.
+    """
 
     _prefix = "plugin state"
 
@@ -178,8 +182,9 @@ class PatchRefusedError(VitalError, PatchRejectedError):
 class RenderRefusedError(VitalError, RenderFailedError):
     """A render the instrument does not give; core's `RenderFailedError` too.
 
-    `reason` names the limit passed and its value, or says what the plugin gave in place of the
-    render, the host's error then the cause.
+    `reason` names the limit passed and its value, the pitch and sample of a note no MIDI channel
+    is left to voice, or what the plugin gave in place of the render, the host's error then the
+    cause.
     """
 
 

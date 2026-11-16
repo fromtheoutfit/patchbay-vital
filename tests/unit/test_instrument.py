@@ -16,12 +16,12 @@ import math
 import platform
 import struct
 from collections.abc import Callable
-from fractions import Fraction
 from pathlib import Path
 
 import numpy as np
 import pedalboard
 import pytest
+from builders import what_a_set_holds
 from numpy.typing import NDArray
 from patchbay import (
     Event,
@@ -69,10 +69,9 @@ from patchbay_vital.instrument import (
     MAX_SAMPLES,
     MIN_SAMPLE_RATE,
     VitalInstrument,
-    check_loadable,
 )
 from patchbay_vital.parameters import MappedParameter, parameter_map
-from patchbay_vital.patch import PRESET_ENTRY, patch_of
+from patchbay_vital.patch import PRESET_ENTRY, check_loadable, patch_of
 from patchbay_vital.preset import VitalPreset, VitalSettings
 from patchbay_vital.start import start_preset
 from patchbay_vital.state import PluginState, unwrap, wrap
@@ -235,27 +234,6 @@ def _float32(value: float) -> float:
     return held
 
 
-def _round32(value: Fraction) -> float:
-    """Return the float32 nearest an exact value: the nearer of the two a double's rounding gives.
-
-    `float(Fraction)` is correctly rounded to a double, and every value here is far enough from a
-    float32 tie that the double's rounding to float32 is the exact value's.
-    """
-    return _float32(float(value))
-
-
-def _what_a_set_holds(own: float, minimum: float, maximum: float) -> tuple[float, float]:
-    """Return the normalized value a host is sent for a float32, and the float32 it then holds.
-
-    From primitives, as the plugin computes them: the span is the float32 difference of the
-    scale's ends, the normalized value the float32 nearest the exact quotient, and the value held
-    that normalized value times the span plus the minimum, rounded once.
-    """
-    span = _round32(Fraction(maximum) - Fraction(minimum))
-    normalized = _round32((Fraction(own) - Fraction(minimum)) / Fraction(span))
-    return normalized, _round32(Fraction(normalized) * Fraction(span) + Fraction(minimum))
-
-
 def _state_floats(instrument: VitalInstrument) -> dict[str, float]:
     """Return the plugin's own floats, through the diagnostic read."""
     return _floats(instrument.host.state())
@@ -382,7 +360,7 @@ def test_a_set_holds_the_value_vital_holds_which_need_not_be_the_nearest(
     """
     given = 216.85141355537831
     own = _float32(given / 60.0)
-    normalized, held = _what_a_set_holds(own, _float32(1 / 3), 5.0)
+    normalized, held = what_a_set_holds(own, _float32(1 / 3), 5.0)
     assert (own, held) == (3.6141903400421143, 3.6141905784606934)
     assert abs(_float32(math.nextafter(own, 0.0)) * 60.0 - given) < abs(held * 60.0 - given)
     recorder = _recorder(bus)
@@ -428,10 +406,11 @@ def test_a_value_between_steps_is_taken_and_the_nearest_step_held(
 def test_a_set_of_the_value_already_shown_keeps_what_is_held(
     bus: EventBus, instrument: VitalInstrument, plugin: _FakeVital
 ) -> None:
-    """Finding 3, decided, on the 22 defaults the scale does not hold, counted.
+    """The keep rule, on the 22 defaults the scale does not hold, counted.
 
     Each is a float no normalized value lands on, so a set of its own display would hold a
     neighbour. It keeps the float, in the model and the plugin, and is published all the same.
+    The rule's other side is the next test's.
     """
     off_grid = [r for r in parameter_map().parameters if not r.scale.holds(r.preset_default)]
     assert len(off_grid) == _OFF_GRID_DEFAULTS
@@ -446,6 +425,30 @@ def test_a_set_of_the_value_already_shown_keeps_what_is_held(
     events = recorder.of_type(ParameterChanged)
     assert len(recorder.events) == len(events) == _OFF_GRID_DEFAULTS
     assert all(event.old == event.new for event in events)
+
+
+def test_a_set_of_the_value_already_shown_on_a_float_a_set_lands_on_reaches_the_plugin(
+    bus: EventBus, instrument: VitalInstrument, plugin: _FakeVital
+) -> None:
+    """PR 23's finding 1: the plugin holds another float than the model's, and a set mends it.
+
+    As Vital upgrades a preset older than it (issue #22), the model holds `osc_1_stack_style` 9
+    where the plugin holds 10. 9 is a step of the scale, 0 to 12, so a set of the value shown
+    reaches the plugin, sent 9 / 12 = 0.75, and the plugin holds 9 again. Published once, `old`
+    equal to `new`.
+    """
+    stack = ParameterId("osc_1_stack_style")
+    instrument.load_patch(Patch(instrument="Vital", values={stack: _quantity(9.0)}))
+    plugin.floats["osc_1_stack_style"] = 10.0  # the plugin's own upgrade, which the model keeps
+    assert _state_floats(instrument)["osc_1_stack_style"] == 10.0  # noqa: PLR2004 - Vital's
+    recorder = _recorder(bus)
+    instrument.set(stack, _quantity(9.0))
+    assert plugin.sets == [("osc_1_stack_style", 0.75)]
+    assert _state_floats(instrument)["osc_1_stack_style"] == 9.0  # noqa: PLR2004 - the model's
+    assert instrument.preset.settings.values[PresetKey("osc_1_stack_style")] == 9.0  # noqa: PLR2004
+    (changed,) = recorder.events
+    assert isinstance(changed, ParameterChanged)
+    assert changed.old == changed.new == _quantity(9.0)
 
 
 def test_an_off_grid_float_set_back_after_another_value_holds_its_neighbour(
@@ -469,7 +472,7 @@ def test_an_off_grid_float_set_back_after_another_value_holds_its_neighbour(
     assert first == _quantity(started * 100.0, Unit.percent)
     instrument.set(feedback, _quantity(10.0, Unit.percent))
     instrument.set(feedback, first)
-    _, held = _what_a_set_holds(started, _float32(-0.95), _float32(0.95))
+    _, held = what_a_set_holds(started, _float32(-0.95), _float32(0.95))
     steps = abs(
         struct.unpack("<i", struct.pack("<f", held))[0]
         - struct.unpack("<i", struct.pack("<f", started))[0]
@@ -633,6 +636,84 @@ def test_a_patch_of_values_alone_loads_as_the_start_preset_with_those_values(
     assert (loaded.instrument, loaded.parameter_count) == ("Vital", len(values))
 
 
+_SAMPLE_SEED = 23
+_SAMPLE_ROUNDS = 25
+
+
+def test_an_arbitrary_display_in_a_patch_holds_what_a_set_of_it_holds(
+    instrument: VitalInstrument,
+) -> None:
+    """PR 23's findings 2 and 3, on a labelled sample: a load and a set leave the same float.
+
+    One record of each of the map's continuous groups, a scale and a curve, 25 displays each,
+    drawn by `numpy.random.default_rng(23).uniform` over the parameter's bounds: each display in
+    a patch of values alone holds the very float a set of it holds. A sample, not a count; the
+    one display that differs, one that is exactly a float's own, is the next test's.
+    """
+    groups: dict[str, MappedParameter] = {}
+    for record in parameter_map().parameters:
+        if record.parameter.kind == "continuous":
+            key = record.scale.model_dump_json() + record.curve.model_dump_json()
+            groups.setdefault(key, record)
+    rng = np.random.default_rng(_SAMPLE_SEED)
+    compared = 0
+    for _ in range(_SAMPLE_ROUNDS):
+        values = {
+            record.id: _quantity(
+                float(rng.uniform(record.parameter.minimum, record.parameter.maximum)),
+                record.parameter.unit,
+            )
+            for record in groups.values()
+        }
+        instrument.load_patch(Patch(instrument="Vital", values=values))
+        loaded = _model_floats(instrument.preset)
+        for parameter_id, value in values.items():
+            instrument.set(parameter_id, value)
+            assert _model_floats(instrument.preset)[parameter_id] == loaded[parameter_id], value
+            compared += 1
+    assert compared == _SAMPLE_ROUNDS * len(groups)
+
+
+def test_a_display_that_is_an_off_grid_float_s_own_is_restored_by_a_load_and_not_by_a_set(
+    instrument: VitalInstrument,
+) -> None:
+    """The one case where a load and a set differ, fromtheoutfit/patchbay#20's.
+
+    `chorus_feedback` starts on the float32 of 0.4, which no normalized value lands on. Its
+    display names it: a patch carrying that display restores it, as a patch the instrument gave
+    restores every float it carried. A set of the same display holds the float32 a set of 0.4
+    lands on, worked out here from primitives, which "Instrument.get: a value `get` has returned
+    is not always one `set` lands on" asks core's clause about.
+    """
+    feedback = ParameterId("chorus_feedback")
+    started = _float32(0.4)
+    first = instrument.get(feedback)
+    instrument.set(feedback, _quantity(10.0, Unit.percent))
+    instrument.load_patch(Patch(instrument="Vital", values={feedback: first}))
+    assert instrument.preset.settings.values[PresetKey("chorus_feedback")] == started
+    assert instrument.get(feedback) == first
+    instrument.set(feedback, _quantity(10.0, Unit.percent))
+    instrument.set(feedback, first)
+    _, held = what_a_set_holds(started, _float32(-0.95), _float32(0.95))
+    assert held != started
+    assert instrument.preset.settings.values[PresetKey("chorus_feedback")] == held
+
+
+def test_a_patch_is_built_once_for_each_model(instrument: VitalInstrument) -> None:
+    """PR 23's finding 8: the same object until a set or a load replaces the model."""
+    first = instrument.patch()
+    assert instrument.patch() is first
+    instrument.set(ParameterId("volume"), _quantity(-80.0, Unit.db))
+    after_set = instrument.patch()
+    assert after_set is not first
+    assert after_set.values[ParameterId("volume")] == _quantity(-80.0, Unit.db)
+    assert instrument.patch() is after_set
+    instrument.load_patch(first)
+    after_load = instrument.patch()
+    assert after_load is not after_set
+    assert after_load == first
+
+
 def test_parameter_count_is_the_number_of_values_in_the_patch_given(
     bus: EventBus, instrument: VitalInstrument
 ) -> None:
@@ -709,19 +790,96 @@ def test_a_load_the_plugin_refuses_puts_the_model_s_text_back_and_is_refused_as_
     assert recorder.events == ()
 
 
-def test_a_plugin_that_refuses_the_model_s_own_text_too_is_the_host_s_error(
-    instrument: VitalInstrument, plugin: _FakeVital
+_LOST = (
+    "the plugin refused a preset (the plugin refuses the state) and then the model's own text "
+    "(the plugin refuses the state), so its state is unknown while the model holds the preset "
+    "before"
+)
+
+
+def _lose_step(instrument: VitalInstrument, plugin: _FakeVital) -> None:
+    """Have the plugin refuse a load and the model's own text after it, then take loads again."""
+    plugin.refusing.add("load")
+    with pytest.raises(PluginStateError):
+        instrument.load_patch(Patch(instrument="Vital", values={}))
+    plugin.refusing.clear()
+
+
+def test_a_plugin_that_refuses_the_model_s_own_text_too_leaves_the_instrument_out_of_step(
+    bus: EventBus, instrument: VitalInstrument, plugin: _FakeVital
 ) -> None:
-    """Nothing is left to put back with: the host's error leaves, the first one in its chain."""
+    """PR 23's finding 4: the package's PluginStateError, not core's PatchRejectedError.
+
+    It names both refusals and says to build a new instrument, chained from the host's error for
+    the second refusal: that is chained from what the plugin raised, raised while the first
+    refusal was being handled. The model holds the preset before; nothing is published.
+    """
     before = instrument.preset
+    recorder = _recorder(bus)
     plugin.refusing.add("load")
     with pytest.raises(PluginStateError) as caught:
         instrument.load_patch(Patch(instrument="Vital", values={}))
-    assert isinstance(caught.value, VitalError)
+    assert not isinstance(caught.value, PatchRejectedError)
+    assert caught.value.reason == f"{_LOST}: build a new VitalInstrument"
     second = caught.value.__cause__
-    assert isinstance(second, RuntimeError)
-    assert isinstance(second.__context__, PluginStateError)  # the first refusal, kept
+    assert isinstance(second, PluginStateError)
+    raised = second.__cause__
+    assert isinstance(raised, RuntimeError)
+    first = raised.__context__
+    assert isinstance(first, PluginStateError)  # the first refusal, kept
+    assert first is not second
     assert instrument.preset is before
+    assert recorder.events == ()
+
+
+@pytest.mark.parametrize(
+    "call",
+    [
+        lambda instrument: instrument.set(ParameterId("volume"), _quantity(0.0, Unit.db)),
+        lambda instrument: instrument.set(ParameterId("volume.unknown"), _quantity(0.0, Unit.db)),
+        lambda instrument: instrument.load_patch(Patch(instrument="Vital", values={})),
+        lambda instrument: instrument.load_patch(Patch(instrument="another", values={})),
+        lambda instrument: instrument.render(_PATTERN, _REQUEST),
+    ],
+    ids=["set", "a set it would refuse", "load_patch", "a patch it would refuse", "render"],
+)
+def test_once_out_of_step_every_call_that_reaches_the_plugin_is_refused_before_anything_else(
+    bus: EventBus,
+    instrument: VitalInstrument,
+    plugin: _FakeVital,
+    call: Callable[[VitalInstrument], object],
+) -> None:
+    """Refused naming the earlier failure, even where its own checks would refuse it first.
+
+    The plugin is not called, the model is not changed and nothing is published.
+    """
+    _lose_step(instrument, plugin)
+    before, loads_made = instrument.preset, len(plugin.loads)
+    recorder = _recorder(bus)
+    with pytest.raises(PluginStateError) as caught:
+        call(instrument)
+    assert caught.value.reason == (
+        f"the instrument lost step with the plugin: {_LOST}; build a new one"
+    )
+    assert (len(plugin.loads), plugin.sets, plugin.renders) == (loads_made, [], [])
+    assert instrument.preset is before
+    assert recorder.events == ()
+
+
+def test_once_out_of_step_get_and_patch_answer_from_the_model(
+    instrument: VitalInstrument, plugin: _FakeVital
+) -> None:
+    """They read the model, the preset before, which the plugin may no longer match.
+
+    The fake plugin keeps its state through a refused load, so what Vital is left holding is
+    not shown here: the instrument does not read it either way.
+    """
+    instrument.set(ParameterId("volume"), _quantity(-80.0, Unit.db))
+    shown, patch = instrument.get(ParameterId("volume")), instrument.patch()
+    _lose_step(instrument, plugin)
+    assert instrument.get(ParameterId("volume")) == shown == _quantity(-80.0, Unit.db)
+    assert instrument.patch() == patch
+    assert instrument.parameters() == tuple(r.parameter for r in parameter_map().parameters)
 
 
 # --- the guard -----------------------------------------------------------------------------------
@@ -842,6 +1000,28 @@ def test_the_guard_passes_what_vital_was_seen_to_load(pytestconfig: pytest.Confi
     check_loadable(_holding(flanger_dry_wet=_float32(0.7072)), found)
 
 
+def test_a_version_is_compared_by_its_numbers_less_trailing_zeros() -> None:
+    """PR 23's finding 6: `1.6.4.0` is the plugin's 1.6.4, and `1.6.10` is newer than it."""
+    found = parameter_map()
+    check_loadable(start_preset().model_copy(update={"synth_version": "1.6.4.0"}), found)
+    check_loadable(start_preset().model_copy(update={"synth_version": "1.6.4.0.0"}), found)
+    check_loadable(start_preset().model_copy(update={"synth_version": "1.6"}), found)
+    with pytest.raises(PatchRefusedError) as caught:
+        check_loadable(start_preset().model_copy(update={"synth_version": "1.6.10"}), found)
+    assert caught.value.reason == "synth_version 1.6.10 is newer than the plugin's 1.6.4"
+
+
+def test_a_plugin_version_that_is_not_digits_and_dots_refuses_every_preset_by_name() -> None:
+    """PR 23's finding 6: no preset can be shown not to be newer, so none is taken."""
+    found = parameter_map().model_copy(update={"vital_version": "1.6.4b"})
+    with pytest.raises(PatchRefusedError) as caught:
+        check_loadable(start_preset().model_copy(update={"synth_version": "0.6.1"}), found)
+    assert caught.value.reason == (
+        "the plugin's version '1.6.4b' is not digits and dots, so no preset's can be compared "
+        "with it"
+    )
+
+
 def test_the_guard_does_not_read_inside_a_section() -> None:
     """Three wavetables whose inside Vital cannot read pass: the limit the docstring states.
 
@@ -946,6 +1126,23 @@ def test_a_render_past_a_limit_is_refused_naming_the_limit_and_its_value(
     assert recorder.events == ()
     assert instrument.preset is start_preset()
     assert _state_floats(instrument) == state
+
+
+def test_a_render_with_a_note_no_channel_can_voice_is_refused_and_the_plugin_not_called(
+    bus: EventBus, instrument: VitalInstrument, plugin: _FakeVital
+) -> None:
+    """Seventeen notes of one pitch at once: refused by the MIDI's reason, publishing nothing."""
+    notes = tuple(
+        Note(pitch=60, velocity=100, start_beats=0.0, duration_beats=1.0, channel=0)
+        for _ in range(17)
+    )
+    crowded = _PATTERN.model_copy(update={"notes": notes})
+    recorder = _recorder(bus)
+    with pytest.raises(RenderRefusedError) as caught:
+        instrument.render(crowded, _REQUEST)
+    assert caught.value.reason.startswith("pitch 60 is already sounding on all 16 MIDI channels")
+    assert plugin.renders == []
+    assert recorder.events == ()
 
 
 def test_the_limits_themselves_are_rendered(instrument: VitalInstrument) -> None:

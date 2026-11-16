@@ -3,8 +3,9 @@
 The package re-exports what a consumer uses and nothing else lives here: the models of a preset
 (`patchbay_vital.preset`), reading, writing and comparing a `.vital` file
 (`patchbay_vital.format`), the parameter map and its scales (`patchbay_vital.parameters`), a
-preset carried in a core `Patch` and back (`patchbay_vital.patch`), the preset the instrument
-starts on (`patchbay_vital.start`) and the errors (`patchbay_vital.errors`). Writing a float as
+preset carried in a core `Patch` and back, and the check of a preset the plugin loads whole
+(`patchbay_vital.patch`), the preset the instrument starts on (`patchbay_vital.start`) and the
+errors (`patchbay_vital.errors`). Writing a float as
 Vital does is `patchbay_vital.grisu2`, float32 arithmetic `patchbay_vital.float32`, the plugin
 state's containers `patchbay_vital.state`, a pattern's MIDI `patchbay_vital.midi`, and the
 reversible join of a preset's modulations stays in `patchbay_vital.format`; none is re-exported.
@@ -50,7 +51,7 @@ from patchbay_vital.parameters import (
     ParameterMap,
     parameter_map,
 )
-from patchbay_vital.patch import patch_of, preset_of
+from patchbay_vital.patch import check_loadable, patch_of, preset_of
 from patchbay_vital.preset import (
     MetadataChange,
     Modulation,
@@ -96,6 +97,7 @@ __all__ = [
     "VitalPreset",
     "VitalSettings",
     "__version__",
+    "check_loadable",
     "diff",
     "dump",
     "dumps",

@@ -12,7 +12,7 @@ import struct
 from pathlib import Path
 
 import pytest
-from builders import EMPTY_SLOT, FLOATS, KEYS, make_preset
+from builders import EMPTY_SLOT, FLOATS, KEYS, make_preset, what_a_set_holds
 from hypothesis import given
 from hypothesis import strategies as st
 from patchbay import (
@@ -304,19 +304,33 @@ def test_a_patch_of_values_alone_is_laid_over_the_start_preset() -> None:
     assert preset_of(Patch(instrument="Vital", values={})) == start
 
 
-def test_a_value_goes_to_the_float_a_preset_holds_for_it() -> None:
-    """The nearest float32 on a linear scale, the nearest step on a stepped one, a half away."""
+def test_a_value_goes_to_the_float_a_set_of_it_holds_unless_it_names_a_float() -> None:
+    """PR 23's findings 2 and 3: a value is taken as a set takes it, but for a float's own display.
+
+    60 bpm is 1 in the preset, on a scale from the float32 of 1/3 to 5. 216.85141355537831 is no
+    float's display: the float32 nearest it over 60 shows another, so it holds what a set of it
+    holds, worked out from primitives. That float32's own display, 3.6141903400421143 times 60,
+    names it, and it is held as itself, though no set lands on it. On a stepped scale a value
+    always goes to the nearest step, a half away, as a set does.
+    """
+    given = 216.85141355537831
+    own = _float32(given / 60.0)
+    _, set_holds = what_a_set_holds(own, _float32(1 / 3), 5.0)
+    assert (own, set_holds) == (3.6141903400421143, 3.6141905784606934)
+    assert own * 60.0 != given
     values = {
-        ParameterId("beats_per_minute"): Quantity(value=216.85141355537831, unit=Unit.bpm),
+        ParameterId("beats_per_minute"): Quantity(value=given, unit=Unit.bpm),
         ParameterId("chorus_voices"): Quantity(value=6.0, unit=Unit.none),
         ParameterId("oversampling"): Quantity(value=3.0, unit=Unit.none),
     }
     held = preset_of(Patch(instrument="Vital", values=values)).settings.values
-    # 60 bpm is 1 in the preset: the float32 nearest 216.85141355537831 / 60, held or not.
-    assert held[PresetKey("beats_per_minute")] == _float32(216.85141355537831 / 60.0)
+    assert held[PresetKey("beats_per_minute")] == set_holds
     # 6 voices is 1.5 in fours, and a half goes up; log2(3) is 1.58, the step of 4 and not of 2.
     assert held[PresetKey("chorus_voices")] == _SECOND_STEP
     assert held[PresetKey("oversampling")] == _SECOND_STEP
+    named = {ParameterId("beats_per_minute"): Quantity(value=own * 60.0, unit=Unit.bpm)}
+    back = preset_of(Patch(instrument="Vital", values=named)).settings.values
+    assert back[PresetKey("beats_per_minute")] == own != set_holds
 
 
 def test_another_instrument_s_patch_is_refused_before_anything_else_is_read() -> None:

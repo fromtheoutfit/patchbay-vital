@@ -18,13 +18,22 @@ what `get` then returns and `ParameterChanged.new` carries: the value given itse
 at any value a set has left the parameter holding, and otherwise a value near it that need not be
 the nearest one held. A value between the steps of a stepped parameter is taken and the nearest
 step held, a half away from zero: `chorus_voices` given 6 holds 8. A set of the value the
-parameter already shows changes nothing, in the model or the plugin, and is still published: a
-preset can hold a float no set lands on, and a set of its own display would otherwise move it.
+parameter already shows, where the model holds a float no set lands on, changes nothing, in the
+model or the plugin, and is still published: a set of that float's own display would otherwise
+move it. Any other set reaches the plugin, one of the value shown on a float a set does land on
+among them, so the plugin is set to what the model holds.
+
+**When the plugin refuses a load and then refuses the model's own text too,** its state is
+unknown and the model still holds the preset before: the instrument has lost step with it.
+`load_patch` raises `PluginStateError` saying so, and from then on `set`, `load_patch` and
+`render` are refused with that error, the plugin not called and nothing published, while `get`,
+`patch` and `parameters` answer from a model the plugin no longer matches. Build a new
+instrument.
 
 **Known limits, each measured** on Vital 1.6.4 through pedalboard 0.9.26 on arm64 (the
-instrument spec's `verification/probes.txt` and `probes-2.txt`), each the hosted plugin's and
-waiting on an issue of its own, which come before the first experiment that puts an agent in
-front of the instrument, in this order:
+instrument spec's `verification/probes.txt` and `probes-2.txt`), each the hosted plugin's. The
+first three each wait on an issue of their own, which come before the first experiment that puts
+an agent in front of the instrument, in this order; the fourth is a workaround no issue owns:
 
 - Issue #20. A malformed preset section can hang the process. Vital answers a text it cannot
   read with a modal alert and never returns to its caller, and nothing here can catch that.
@@ -40,13 +49,11 @@ front of the instrument, in this order:
   setting by name. Vital upgrades such a preset as it loads: of the 75 presets it installs, 11
   hold 46 such floats, `osc_1_stack_style` 9 played as 10 and `filter_1_style` 1 played as 0
   among them. The model keeps the file's floats.
-- A load is made twice, a measured workaround with no known cause. One load leaves 17 to 53 of
-  a preset's 903 floats off the text's; a second load of the same text holds them, all but what
-  the upgrade above changes, and a third changes nothing more.
+- A load is made twice, a measured workaround with no known cause and no issue of its own. One
+  load leaves 17 to 53 of a preset's 903 floats off the text's; a second load of the same text
+  holds them, all but what the upgrade above changes, and a third changes nothing more.
 """
 
-import math
-import re
 import time
 import uuid
 
@@ -60,7 +67,6 @@ from patchbay import (
     Patch,
     PatchLoaded,
     Pattern,
-    PresetKey,
     Quantity,
     RenderCompleted,
     RenderRequest,
@@ -73,13 +79,13 @@ from patchbay_vital.errors import (
     PluginStateError,
     RenderRefusedError,
 )
-from patchbay_vital.format import dumps, split_modulations
+from patchbay_vital.format import dumps, writes_same
 from patchbay_vital.host import VitalHost
 from patchbay_vital.midi import midi_of
-from patchbay_vital.parameters import MappedParameter, ParameterMap, parameter_map
-from patchbay_vital.patch import check_value, patch_of, preset_of
-from patchbay_vital.preset import DECODER, SLOT_KEY, VitalPreset, VitalSettings
-from patchbay_vital.start import LFOS, OSCILLATORS, start_preset
+from patchbay_vital.parameters import MappedParameter, parameter_map
+from patchbay_vital.patch import check_loadable, check_value, patch_of, preset_of
+from patchbay_vital.preset import VitalPreset, VitalSettings, slot_place
+from patchbay_vital.start import start_preset
 
 MAX_SAMPLES = 2**24
 """The longest render the instrument makes, in samples: 5.8 minutes at 48 kHz, 128 MiB of stereo
@@ -104,78 +110,6 @@ scale does not hold a float32 step or two from the text's, and a second load of 
 holds them as given (the instrument spec's `verification/probes.txt`)."""
 
 _CHANNELS = 2
-_VERSION = re.compile("[0-9]+([.][0-9]+)*")
-_SAMPLE_KEYS = frozenset({"length", "name", "sample_rate", "samples"})
-_SECTION_COUNTS = {"wavetables": OSCILLATORS, "lfos": LFOS}
-
-
-def _version(text: str) -> tuple[int, ...] | None:
-    """Return a version's numbers, or None for a text that is not digits and dots."""
-    return tuple(int(part) for part in text.split(".")) if _VERSION.fullmatch(text) else None
-
-
-def check_loadable(preset: VitalPreset, found: ParameterMap) -> None:
-    """Raise PatchRefusedError unless a preset is one the plugin was seen to load whole.
-
-    Vital reports no load it cannot use. It blocks its caller on a modal alert, ignores the whole
-    text without a word, or loads the floats and keeps the sections it had (the instrument spec's
-    `verification/probes.txt`), so what was seen to do so is refused here, before the plugin is
-    called, in this order:
-
-    - a `synth_version` that is not digits and dots, which blocks, or is newer than the plugin's,
-      which is ignored whole;
-    - `wavetables` and `lfos` that are not arrays of three and of eight objects, and a `sample`
-      that is not an object holding `length`, `name`, `sample_rate` and `samples`: every preset
-      Vital installs, of any version, holds them so, a text without them blocks, and an empty
-      array keeps the sections of the preset before it;
-    - a parameter's float whose display is no finite number, which `get` could not return.
-
-    It judges a section's shape and not its inside, which this package does not read: a section
-    Vital cannot read inside still blocks.
-    """
-    version, plugin = _version(preset.synth_version), _version(found.vital_version)
-    if version is None:
-        msg = f"synth_version {preset.synth_version!r} is not a version, digits and dots"
-        raise PatchRefusedError(msg)
-    if plugin is not None and version > plugin:
-        msg = (
-            f"synth_version {preset.synth_version} is newer than the plugin's {found.vital_version}"
-        )
-        raise PatchRefusedError(msg)
-    for name, count in _SECTION_COUNTS.items():
-        section = _section(preset, name)
-        if not (
-            isinstance(section, list)
-            and len(section) == count
-            and all(isinstance(entry, dict) for entry in section)
-        ):
-            msg = f"settings.{name}: a preset holds an array of {count} objects there"
-            raise PatchRefusedError(msg)
-    sample = _section(preset, "sample")
-    if not (isinstance(sample, dict) and sample.keys() >= _SAMPLE_KEYS):
-        msg = f"settings.sample: a preset holds an object there with {sorted(_SAMPLE_KEYS)}"
-        raise PatchRefusedError(msg)
-    _, slots = split_modulations(preset.modulations)
-    floats = {**preset.settings.values, **slots}
-    for record in found.parameters:
-        held = floats.get(record.preset_key)
-        if held is not None and not math.isfinite(record.to_display(held)):
-            msg = f"{record.id}: {held!r} has no display that is a finite number"
-            raise PatchRefusedError(msg)
-
-
-def _section(preset: VitalPreset, name: str) -> object:
-    """Return one of a preset's unread sections, parsed, or None where it has none."""
-    raw = preset.opaque.get(PresetKey(name))
-    return None if raw is None else DECODER.decode(raw.decode("utf-8"))
-
-
-def _slot_field(key: str) -> tuple[int, str] | None:
-    """Return a slot float's place, its slot from 0 and its field, or None for another key."""
-    match = SLOT_KEY.fullmatch(key)
-    if match is None:
-        return None
-    return int(key.split("_")[1]) - 1, match.group(1)
 
 
 def _clipping(audio: NDArray[np.float32], sample_rate: int) -> tuple[str, ...]:
@@ -186,7 +120,7 @@ def _clipping(audio: NDArray[np.float32], sample_rate: int) -> tuple[str, ...]:
     """
     if audio.shape[1] == 0:
         return ()
-    peaks = np.abs(audio).max(axis=0)
+    peaks = np.maximum(audio.max(axis=0), -audio.min(axis=0))
     peak = float(peaks.max())
     if peak < FULL_SCALE:
         return ()
@@ -218,6 +152,8 @@ class VitalInstrument:
         self._map = parameter_map()
         self._parameters = tuple(record.parameter for record in self._map.parameters)
         self._preset = start_preset()
+        self._patch: Patch | None = None
+        self._lost: str | None = None
         self._send(self._preset)
 
     @property
@@ -250,7 +186,9 @@ class VitalInstrument:
         The display of the model's float, or of the parameter's default where the preset lacks
         its key. A loaded preset can hold a float outside the parameter's bounds, and its true
         display is returned, though `set` would refuse it. UnknownParameterError, core's
-        ParameterNotFoundError too, when there is no such id.
+        ParameterNotFoundError too, when there is no such id. After the instrument has lost step
+        with the plugin (`load_patch`), it still answers from the model, which the plugin no
+        longer matches.
         """
         record = self._map.find(parameter_id)
         return Quantity(value=record.to_display(self._held(record)), unit=record.parameter.unit)
@@ -261,8 +199,10 @@ class VitalInstrument:
         The parameter then holds the value Vital holds for the display given, which `get`
         returns and the event's `new` carries, and which need not be the held value nearest it.
         A bound is held exactly. A value between the steps of a stepped parameter is taken and
-        the nearest step held. A set of the value the parameter already shows keeps what it
-        holds, in the model and the plugin, and is published all the same, `old` equal to `new`.
+        the nearest step held. A set of the value the parameter already shows, where it holds a
+        float no set lands on, keeps that float, in the model and the plugin, and is published
+        all the same, `old` equal to `new`; a set of the value shown on any other float sets the
+        plugin to it.
 
         UnknownParameterError for an id the instrument does not have, ParameterUnitError for a
         value in another unit, ParameterRangeError for one outside the parameter's bounds or, on
@@ -270,15 +210,18 @@ class VitalInstrument:
         UnitMismatchError and ValueOutOfRangeError too, each changing nothing and publishing
         nothing. When the plugin refuses the value after those checks pass, the host's
         PluginStateError, a VitalError, leaves the call with the model unchanged and nothing
-        published.
+        published. Once the instrument has lost step with the plugin (`load_patch`), every set
+        is refused with PluginStateError before anything else, naming the earlier failure: build
+        a new instrument.
         """
+        self._refuse_once_lost()
         record = self._map.find(parameter_id)
         check_value(record.parameter, value)
         old = self.get(parameter_id)
-        if value.value != old.value:
-            held = record.to_preset(value.value)
+        held = record.to_preset(value.value)
+        if value.value != old.value or writes_same(held, self._held(record)):
             self._host.set(parameter_id, record.scale.to_normalized(held))
-            self._preset = self._holding(record, held)
+            self._hold(self._holding(record, held))
         self._bus.publish(
             ParameterChanged(
                 source=self.name,
@@ -308,23 +251,40 @@ class VitalInstrument:
         (`patchbay_vital.patch`), and for a preset the plugin was seen not to load whole
         (`check_loadable`); nothing is then changed or published. When the plugin refuses the
         text after those checks pass, the model's own text is sent to it again and the same
-        error leaves the call, chained from the host's; should the plugin refuse that too, the
-        host's PluginStateError leaves it. A section Vital cannot read inside is not caught by
-        any of this: it blocks the calling process.
+        error leaves the call, chained from the host's. A section Vital cannot read inside is not
+        caught by any of this: it blocks the calling process.
+
+        Should the plugin refuse the model's own text too, its state is unknown and the model
+        holds the preset before: the instrument has lost step with the plugin. PluginStateError,
+        a VitalError and not core's PatchRejectedError, leaves the call naming both refusals,
+        chained from the second, and nothing is published. From then on `set`, `load_patch` and
+        `render` are refused with PluginStateError naming that failure, the plugin not called
+        and nothing published, and `get` and `patch` answer from the model: build a new
+        instrument.
 
         A preset older than the plugin loads, and Vital upgrades it as it does: the model keeps
         the file's floats, so `get` can then report the file's value for a few parameters where
         Vital plays another, which for a choice is another setting by name.
         """
+        self._refuse_once_lost()
         preset = preset_of(patch)
         check_loadable(preset, self._map)
         try:
             self._send(preset)
         except PluginStateError as error:
-            self._send(self._preset)
+            try:
+                self._send(self._preset)
+            except PluginStateError as again:
+                self._lost = (
+                    f"the plugin refused a preset ({error.reason}) and then the model's own text "
+                    f"({again.reason}), so its state is unknown while the model holds the preset "
+                    "before"
+                )
+                msg = f"{self._lost}: build a new VitalInstrument"
+                raise PluginStateError(msg) from again
             msg = f"the plugin refused the preset: {error.reason}"
             raise PatchRefusedError(msg) from error
-        self._preset = preset
+        self._hold(preset)
         self._bus.publish(
             PatchLoaded(
                 source=self.name,
@@ -341,9 +301,14 @@ class VitalInstrument:
         that float. A parameter whose stored value is outside its bounds, or one no display
         carries exactly, is absent from `values` and its float rides in `opaque`; `get` still
         returns its true display, and a set of a value in range brings it into `values` from
-        then on. Every entry of `values` is one `set` takes.
+        then on. Every entry of `values` is one `set` takes, and names the float it carries
+        (`patchbay_vital.patch`). The patch is built once for each model and the same object is
+        returned until the model changes. After the instrument has lost step with the plugin
+        (`load_patch`), it still carries the model, which the plugin no longer matches.
         """
-        return patch_of(self._preset)
+        if self._patch is None:
+            self._patch = patch_of(self._preset)
+        return self._patch
 
     def render(self, pattern: Pattern, request: RenderRequest, /) -> RenderResult:
         """Render the pattern as the request asks, two channels, then publish RenderCompleted.
@@ -358,9 +323,14 @@ class VitalInstrument:
 
         RenderRefusedError, core's RenderFailedError too, publishing nothing: for a rate outside
         `MIN_SAMPLE_RATE` to `MAX_SAMPLE_RATE`, a render longer than `MAX_SAMPLES`, each naming
-        the limit and its value, and for a render the plugin does not give or gives with a sample
-        that is no finite number, chained from the host's error.
+        the limit and its value; for a pattern with a note no MIDI channel can voice, naming its
+        pitch and sample (`patchbay_vital.midi`); and for a render the plugin does not give or
+        gives with a sample that is no finite number, chained from the host's error. Once the
+        instrument has lost step with the plugin (`load_patch`), every render is refused with
+        PluginStateError before anything else, naming the earlier failure: build a new
+        instrument.
         """
+        self._refuse_once_lost()
         started = time.perf_counter()
         rate = request.sample_rate
         if not MIN_SAMPLE_RATE <= rate <= MAX_SAMPLE_RATE:
@@ -414,23 +384,34 @@ class VitalInstrument:
         for _ in range(LOADS):
             self._host.load_state(text)
 
+    def _refuse_once_lost(self) -> None:
+        """Raise PluginStateError, naming the failure, once the instrument has lost step."""
+        if self._lost is not None:
+            msg = f"the instrument lost step with the plugin: {self._lost}; build a new one"
+            raise PluginStateError(msg)
+
+    def _hold(self, preset: VitalPreset) -> None:
+        """Make a preset the model, dropping the patch built from the one before."""
+        self._preset = preset
+        self._patch = None
+
     def _held(self, record: MappedParameter) -> float:
         """Return the float the model holds for a parameter, its default where the key is absent."""
-        place = _slot_field(record.id)
+        place = slot_place(record.preset_key)
         if place is None:
             held = self._preset.settings.values.get(record.preset_key)
         else:
             slot, field = place
-            held = getattr(self._preset.modulations[slot], field)
+            held = getattr(self._preset.modulations[slot - 1], field)
         return record.preset_default if held is None else held
 
     def _holding(self, record: MappedParameter, held: float) -> VitalPreset:
         """Return the model with one parameter's float replaced, everything else the same object."""
-        place = _slot_field(record.id)
+        place = slot_place(record.preset_key)
         if place is None:
             values = {**self._preset.settings.values, record.preset_key: held}
             return self._preset.model_copy(update={"settings": VitalSettings(values=values)})
         slot, field = place
         modulations = list(self._preset.modulations)
-        modulations[slot] = modulations[slot].model_copy(update={field: held})
+        modulations[slot - 1] = modulations[slot - 1].model_copy(update={field: held})
         return self._preset.model_copy(update={"modulations": tuple(modulations)})

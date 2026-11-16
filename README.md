@@ -67,12 +67,22 @@ not said what the group holds.
   from it; what the plugin holds is never read back as the instrument's state.
 - **A value is held as Vital holds it.** After `set`, `get` returns the value Vital holds for the one
   given, which need not be the nearest value it can hold; a bound is held exactly; a value between a
-  stepped parameter's steps is taken and the nearest step held.
+  stepped parameter's steps is taken and the nearest step held. A patch's value is taken the same
+  way, but where the value is exactly the display of a float, which it then names: so a patch the
+  instrument gave restores every float it carried.
+- **A patch names every parameter the preset holds a float for** in `values`, but for a float no
+  display names, one outside its parameter's bounds among them, which rides in `opaque` as itself
+  and is still read with `get`.
+- **Each note sounds for its own length.** Two notes of one pitch that overlap on one channel would
+  both stop at the first one's end on Vital, so the later is sent on a channel of its own.
+- **If the plugin refuses a load and then refuses the instrument's own preset, build a new
+  instrument.** Its state is then unknown, and the instrument refuses every later call that would
+  reach it.
 
-Known limits, each measured on Vital 1.6.4 through pedalboard 0.9.26 on arm64 and each waiting on
-an issue of its own. All three come before the first experiment that puts an agent in front of the
-instrument, in this order (`agent-os/specs/2026-11-15-1448-the-instrument/shape.md` holds the
-measurements):
+Known limits, each measured on Vital 1.6.4 through pedalboard 0.9.26 on arm64. The first three each
+wait on an issue of their own and come before the first experiment that puts an agent in front of
+the instrument, in this order; the fourth is a workaround no issue owns
+(`agent-os/specs/2026-11-15-1448-the-instrument/shape.md` holds the measurements):
 
 - **A malformed preset section can hang the process** (issue #20). Vital answers a preset it cannot read with a
   modal alert and never returns to its caller. `load_patch` refuses every shape of preset that was
@@ -85,6 +95,8 @@ measurements):
   value where Vital plays its upgraded one,** and for a choice that can be a different setting by
   name (issue #22): of the 75 presets Vital installs, 11 hold 46 such values,
   `osc_1_stack_style` and `filter_1_style` among them.
+- **Every load is made twice,** a measured workaround with no known cause: one load leaves 17 to 53
+  of a preset's 903 floats off the text's, and a second holds them.
 
 ## Layout
 

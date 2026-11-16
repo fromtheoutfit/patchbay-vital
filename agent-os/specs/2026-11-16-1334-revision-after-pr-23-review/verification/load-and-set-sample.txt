@@ -1,0 +1,225 @@
+The revision after PR 23's review: a labelled sample, a load of an arbitrary display and a set of it, run 2026-11-16 13:59 EST on branch
+feature/8-the-instrument-vitalinstrument-over-vitalhost-patchvitalpreset-and-cores-contract-tests-against-a-real-vital-spec-b-of-7, Vital at /Library/Audio/Plug-Ins/VST3/Vital.vst3
+the machine before the run: arm64, Apple M4 Pro, 14 cores, macOS 26.6.2 (25G83), Python 3.12.16, load 3.22 3.00 2.86, at 2026-11-16 13:59 EST
+the tree before the run (this transcript is written outside the tree and copied in afterwards):
+  HEAD 63ad5ae788cba91fa55104be07fce8a209fa3da5
+  git status --porcelain=v1 --untracked-files=all, 23 lines:
+     M CHANGELOG.md
+     M README.md
+     M src/patchbay_vital/__init__.py
+     M src/patchbay_vital/errors.py
+     M src/patchbay_vital/files.py
+     M src/patchbay_vital/format.py
+     M src/patchbay_vital/instrument.py
+     M src/patchbay_vital/midi.py
+     M src/patchbay_vital/patch.py
+     M src/patchbay_vital/preset.py
+     M src/patchbay_vital/start.py
+     M tests/integration/test_vital_instrument.py
+     M tests/unit/builders.py
+     M tests/unit/test_instrument.py
+     M tests/unit/test_midi.py
+     M tests/unit/test_package.py
+     M tests/unit/test_patch.py
+    ?? agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/plan.md
+    ?? agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/references.md
+    ?? agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/shape.md
+    ?? agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/standards.md
+    ?? agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/verification/overlap-probe-2.txt
+    ?? agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/verification/overlap-probe.txt
+  git hash-object of each of those paths (a deleted one marked so):
+    2031646b4631653e138652adfbbd3ef8723c3165  CHANGELOG.md
+    ce1c64621a9343e66d5a218bd7cb0f5dcde43140  README.md
+    18e34edbd5c9d90809b4ffc840482b16ad4c9491  src/patchbay_vital/__init__.py
+    145eb826c6859888c22999de5e4876ef5ebd2234  src/patchbay_vital/errors.py
+    b2f644c9779f59519da2f5e60a4f57e000a81969  src/patchbay_vital/files.py
+    ad7a9a78bd1ca8275bb92e10ec8d8503f40bb339  src/patchbay_vital/format.py
+    fd816beba50661577c2ee66f4f85a2eeaa78c6f4  src/patchbay_vital/instrument.py
+    ab8ae0ec4a6d9c7889d6f136f7e6d322421e65a9  src/patchbay_vital/midi.py
+    153e25666cd405dfdeaca0f3425d67d5d85307a4  src/patchbay_vital/patch.py
+    f049675b5c61fffad437f008b72e378bd531b422  src/patchbay_vital/preset.py
+    318ed4766bbb83a87a45118a3c86dcafeeb1f138  src/patchbay_vital/start.py
+    728f952f874e6497f67474f72ba02d27009eae96  tests/integration/test_vital_instrument.py
+    c213879e4803b1766a132c3fa7b57c11d8d5850f  tests/unit/builders.py
+    9dda9f2725d8df27481d763aa8a1a135d630af8a  tests/unit/test_instrument.py
+    29373875bcecb57b70493f2445d21829e9e9df73  tests/unit/test_midi.py
+    091ab87c1c4bf715e9e7214ae1305db4056682d1  tests/unit/test_package.py
+    72e01c7f0fd307cc7cf46a859d0b8fbdeb20b7f3  tests/unit/test_patch.py
+    3e1b682af98475b06109a7e8868c6d084d5726d5  agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/plan.md
+    1c13a47fd8f6b2eed83d3424e99f2aa2aae94f5d  agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/references.md
+    6ecb404d4691131ffadcd8a9c44c68233473fb6b  agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/shape.md
+    25302c4bf0e78c403dc8cd826ec3b2abe68eb2a3  agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/standards.md
+    03cf6a4567ae55987530677d18b461645d02347f  agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/verification/overlap-probe-2.txt
+    919d74b182a226642328833cb18f1a5649c99016  agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/verification/overlap-probe.txt
+
+$ uv run --locked python -u -B <scratchpad>/r23/load_and_set_sample.py
+55 continuous groups, 2000 displays each, seed 20261116, numpy 2.5.4
+drawn 110000: the same float 110000; a display naming its own float 0
+other disagreements: 0
+  group of beats_per_minute: linear scale 0.3333333432674408 to 5.0, linear curve
+  group of chorus_cutoff: linear scale 8.0 to 136.0, linear curve
+  group of chorus_delay_1: linear scale -10.0 to -5.64385986328125, exponential curve
+  group of chorus_dry_wet: linear scale 0.0 to 1.0, linear curve
+  group of chorus_feedback: linear scale -0.949999988079071 to 0.949999988079071, linear curve
+  group of chorus_frequency: linear scale -6.0 to 3.0, exponential_inverted curve
+  group of chorus_spread: linear scale 0.0 to 1.0, linear curve
+  group of chorus_voices: indexed scale 1.0 to 4.0, linear curve
+  group of compressor_band_gain: linear scale -30.0 to 30.0, linear curve
+  group of compressor_band_lower_ratio: linear scale -1.0 to 1.0, linear curve
+  group of compressor_band_lower_threshold: linear scale -80.0 to 0.0, linear curve
+  group of delay_aux_frequency: linear scale -2.0 to 9.0, exponential_inverted curve
+  group of delay_feedback: linear scale -1.0 to 1.0, linear curve
+  group of distortion_filter_blend: linear scale 0.0 to 2.0, linear curve
+  group of effect_chain_order: indexed scale 0.0 to 362879.0, linear curve
+  group of env_1_attack: linear scale 0.0 to 2.378420114517212, quartic curve
+  group of env_1_attack_power: linear scale -20.0 to 20.0, linear curve
+  group of env_1_delay: linear scale 0.0 to 1.4142135381698608, quartic curve
+  group of eq_band_gain: linear scale -15.0 to 15.0, linear curve
+  group of eq_band_resonance: linear scale 0.0 to 1.0, quadratic curve
+  group of filter_1_blend_transpose: linear scale 0.0 to 84.0, linear curve
+  group of filter_1_cutoff: linear scale 8.0 to 136.0, linear curve
+  group of filter_1_drive: linear scale 0.0 to 20.0, linear curve
+  group of filter_1_formant_resonance: linear scale 0.30000001192092896 to 1.0, linear curve
+  group of filter_1_formant_transpose: linear scale -12.0 to 12.0, linear curve
+  group of flanger_dry_wet: linear scale 0.0 to 0.5, linear curve
+  group of flanger_frequency: linear scale -5.0 to 2.0, exponential_inverted curve
+  group of flanger_phase_offset: linear scale 0.0 to 1.0, linear curve
+  group of lfo_1_delay_time: linear scale 0.0 to 4.0, linear curve
+  group of lfo_1_fade_time: linear scale 0.0 to 8.0, linear curve
+  group of lfo_1_frequency: linear scale -7.0 to 9.0, exponential_inverted curve
+  group of lfo_1_keytrack_transpose: indexed scale -60.0 to 36.0, linear curve
+  group of lfo_1_smooth_time: linear scale -10.0 to 4.0, exponential curve
+  group of lfo_1_stereo: linear scale -0.5 to 0.5, linear curve
+  group of modulation_10_power: linear scale -10.0 to 10.0, linear curve
+  group of osc_1_detune_power: linear scale -5.0 to 5.0, linear curve
+  group of osc_1_detune_range: linear scale 0.0 to 48.0, linear curve
+  group of osc_1_distortion_spread: linear scale -0.5 to 0.5, linear curve
+  group of osc_1_frame_spread: linear scale -128.0 to 128.0, linear curve
+  group of osc_1_level: linear scale 0.0 to 1.0, quadratic curve
+  group of osc_1_transpose: indexed scale -48.0 to 48.0, linear curve
+  group of osc_1_transpose_quantize: indexed scale 0.0 to 8191.0, linear curve
+  group of osc_1_unison_detune: linear scale 0.0 to 10.0, quadratic curve
+  group of osc_1_unison_voices: indexed scale 1.0 to 16.0, linear curve
+  group of osc_1_wave_frame: linear scale 0.0 to 256.0, linear curve
+  group of oversampling: indexed scale 0.0 to 3.0, exponential curve
+  group of pitch_bend_range: indexed scale 0.0 to 48.0, linear curve
+  group of polyphony: indexed scale 1.0 to 32.0, linear curve
+  group of portamento_slope: linear scale -8.0 to 8.0, linear curve
+  group of reverb_chorus_frequency: linear scale -8.0 to 3.0, exponential curve
+  group of reverb_decay_time: linear scale -6.0 to 6.0, exponential curve
+  group of reverb_delay: linear scale 0.0 to 0.30000001192092896, linear curve
+  group of reverb_high_shelf_cutoff: linear scale 0.0 to 128.0, linear curve
+  group of reverb_high_shelf_gain: linear scale -6.0 to 0.0, linear curve
+  group of volume: linear scale 0.0 to 7399.4404296875, square_root curve
+exit=0
+
+the machine after the run: arm64, Apple M4 Pro, 14 cores, macOS 26.6.2 (25G83), Python 3.12.16, load 2.65 2.89 2.83, at 2026-11-16 14:00 EST
+the tree after the run:
+  HEAD 63ad5ae788cba91fa55104be07fce8a209fa3da5
+  git status --porcelain=v1 --untracked-files=all, 23 lines:
+     M CHANGELOG.md
+     M README.md
+     M src/patchbay_vital/__init__.py
+     M src/patchbay_vital/errors.py
+     M src/patchbay_vital/files.py
+     M src/patchbay_vital/format.py
+     M src/patchbay_vital/instrument.py
+     M src/patchbay_vital/midi.py
+     M src/patchbay_vital/patch.py
+     M src/patchbay_vital/preset.py
+     M src/patchbay_vital/start.py
+     M tests/integration/test_vital_instrument.py
+     M tests/unit/builders.py
+     M tests/unit/test_instrument.py
+     M tests/unit/test_midi.py
+     M tests/unit/test_package.py
+     M tests/unit/test_patch.py
+    ?? agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/plan.md
+    ?? agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/references.md
+    ?? agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/shape.md
+    ?? agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/standards.md
+    ?? agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/verification/overlap-probe-2.txt
+    ?? agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/verification/overlap-probe.txt
+  git hash-object of each of those paths (a deleted one marked so):
+    2031646b4631653e138652adfbbd3ef8723c3165  CHANGELOG.md
+    ce1c64621a9343e66d5a218bd7cb0f5dcde43140  README.md
+    18e34edbd5c9d90809b4ffc840482b16ad4c9491  src/patchbay_vital/__init__.py
+    145eb826c6859888c22999de5e4876ef5ebd2234  src/patchbay_vital/errors.py
+    b2f644c9779f59519da2f5e60a4f57e000a81969  src/patchbay_vital/files.py
+    ad7a9a78bd1ca8275bb92e10ec8d8503f40bb339  src/patchbay_vital/format.py
+    fd816beba50661577c2ee66f4f85a2eeaa78c6f4  src/patchbay_vital/instrument.py
+    ab8ae0ec4a6d9c7889d6f136f7e6d322421e65a9  src/patchbay_vital/midi.py
+    153e25666cd405dfdeaca0f3425d67d5d85307a4  src/patchbay_vital/patch.py
+    f049675b5c61fffad437f008b72e378bd531b422  src/patchbay_vital/preset.py
+    318ed4766bbb83a87a45118a3c86dcafeeb1f138  src/patchbay_vital/start.py
+    728f952f874e6497f67474f72ba02d27009eae96  tests/integration/test_vital_instrument.py
+    c213879e4803b1766a132c3fa7b57c11d8d5850f  tests/unit/builders.py
+    9dda9f2725d8df27481d763aa8a1a135d630af8a  tests/unit/test_instrument.py
+    29373875bcecb57b70493f2445d21829e9e9df73  tests/unit/test_midi.py
+    091ab87c1c4bf715e9e7214ae1305db4056682d1  tests/unit/test_package.py
+    72e01c7f0fd307cc7cf46a859d0b8fbdeb20b7f3  tests/unit/test_patch.py
+    3e1b682af98475b06109a7e8868c6d084d5726d5  agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/plan.md
+    1c13a47fd8f6b2eed83d3424e99f2aa2aae94f5d  agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/references.md
+    6ecb404d4691131ffadcd8a9c44c68233473fb6b  agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/shape.md
+    25302c4bf0e78c403dc8cd826ec3b2abe68eb2a3  agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/standards.md
+    03cf6a4567ae55987530677d18b461645d02347f  agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/verification/overlap-probe-2.txt
+    919d74b182a226642328833cb18f1a5649c99016  agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/verification/overlap-probe.txt
+
+---- the script load_and_set_sample.py, as run ----
+"""A labelled sample: a load of an arbitrary display and a set of it leave the same float.
+
+One record of each continuous group of the map, a group being a scale and a curve, linear and
+indexed alike. For each, `SIZE` displays drawn by `numpy.random.default_rng(SEED).uniform` over
+the parameter's bounds, in the groups' order and then the draws'. A load is `preset_of` of a patch
+of values alone naming the display; a set is the float `VitalInstrument.set` stores,
+`MappedParameter.to_preset` of the display, which the unit tests hold the set to. Each is compared
+exactly, the sign of a zero included. A display that names its own float, the one case where the
+two differ, is counted apart: a draw that hits one is not a disagreement but is listed.
+
+A sample, not a count: it says nothing of displays not drawn. No plugin is used.
+"""
+
+import math
+
+import numpy as np
+from patchbay import ParameterId, Patch, Quantity
+
+from patchbay_vital import parameter_map, preset_of
+from patchbay_vital.format import split_modulations
+
+SEED = 20261116
+SIZE = 2_000
+
+found = parameter_map()
+groups: dict[str, object] = {}
+for record in found.parameters:
+    if record.parameter.kind == "continuous":
+        groups.setdefault(record.scale.model_dump_json() + record.curve.model_dump_json(), record)
+print(f"{len(groups)} continuous groups, {SIZE} displays each, seed {SEED}, numpy {np.__version__}")
+rng = np.random.default_rng(SEED)
+drawn = agree = named = 0
+disagree: list[str] = []
+for record in groups.values():
+    for _ in range(SIZE):
+        display = float(rng.uniform(record.parameter.minimum, record.parameter.maximum))
+        value = Quantity(value=display, unit=record.parameter.unit)
+        preset = preset_of(Patch(instrument="Vital", values={ParameterId(record.id): value}))
+        _, slots = split_modulations(preset.modulations)
+        loaded = {**preset.settings.values, **slots}[record.preset_key]
+        held = record.to_preset(display)
+        drawn += 1
+        if loaded == held and math.copysign(1.0, loaded) == math.copysign(1.0, held):
+            agree += 1
+        elif record.to_display(loaded) == display:
+            named += 1
+            disagree.append(f"  named: {record.id} {display!r} loads {loaded!r}, a set holds {held!r}")
+        else:
+            disagree.append(f"  DISAGREE: {record.id} {display!r} loads {loaded!r}, a set {held!r}")
+print(f"drawn {drawn}: the same float {agree}; a display naming its own float {named}")
+print(f"other disagreements: {drawn - agree - named}")
+for line in disagree:
+    print(line)
+for record in groups.values():
+    print(f"  group of {record.id}: {record.scale.kind} scale {record.scale.minimum!r} to "
+          f"{record.scale.maximum!r}, {record.curve.kind} curve")
+
