@@ -7,7 +7,15 @@ method gives it back and that each call is entered with the process's own. The s
 what pedalboard raises, from any reach, is the package's error, that a measurement puts each
 parameter back and loads the state once however it ends, that the containers are read once, that
 a state, a value or an id the host cannot take is the package's error, and that the map is refused
-on another machine or Vital version. What the host does with a loaded Vital is
+on another machine or Vital version.
+
+A state is written under a watch that answers Vital's alert. A stand-in for it shows the watch is
+in place for the length of a write and at no other time, a write that raises included; that an
+alert answered is the package's error with the alert's words; and that a load from a second thread
+is refused before the plugin is called. The marker a load is checked with is worked out from
+primitives, and the fake shows a load that leaves it is refused as ignored and the marker set
+back. The watch itself, AppKit's, is run on a real alert in a child this module can kill. No test
+here gives Vital anything. What the host does with a loaded Vital is
 `tests/integration/test_vital_plugin.py`'s.
 """
 
@@ -16,6 +24,9 @@ import ctypes.util
 import json
 import math
 import platform
+import subprocess
+import sys
+import threading
 import types
 from collections.abc import Callable, Iterator
 from pathlib import Path
@@ -24,6 +35,7 @@ from typing import ClassVar
 import numpy as np
 import pedalboard
 import pytest
+from builders import StandInWatch
 from numpy.typing import NDArray
 from patchbay import ParameterId, PatchbayValidationError
 
@@ -35,9 +47,10 @@ from patchbay_vital.errors import (
     PluginLoadError,
     PluginRenderError,
     PluginStateError,
+    PluginThreadError,
     UnknownParameterError,
 )
-from patchbay_vital.host import DEFAULT_PATH, VitalHost, _c_library, _environment_kept
+from patchbay_vital.host import DEFAULT_PATH, VitalHost, _c_library, _environment_kept, _planted
 from patchbay_vital.parameters import parameter_map
 from patchbay_vital.state import PluginState, unwrap, wrap
 
@@ -187,9 +200,16 @@ def test_without_the_two_functions_the_host_refuses_to_load(
 # A plugin as pedalboard hands it to the host, with one parameter, filter_1_cutoff, whose preset
 # key is its host id and whose preset value is 8 + 128 r (the committed map). Every call into it
 # turns upward rounding on, as Vital turns flush-to-zero on, so the guard has something to undo.
+# The fixture makes that one parameter the marker a load is checked with, and puts a stand-in
+# watch in place of the one that answers Vital's alert.
 _HOST_ID = "filter_1_cutoff"
 _TWIN_ID = "filter_2_cutoff"
 _START = 0.40625  # normalized, the plugin's default of 60 semitones
+_ALERT = ("Error opening preset", "a stand-in's words")
+_LOAD = ["raw_value", "set_raw_value", "set_preset_data", "raw_value"]
+"""The calls a checked load makes: the marker read and set, the state written, the marker read."""
+_MAP = ["name", "version"]
+"""What a host reads once, where it first needs the map: the plugin it was measured from."""
 _CONTAINERS: dict[str, object] = {  # Vital 1.6.4's, as tests/unit/test_state.py measured them
     "class_id": b"56535456697461766974616C00000000",
     "container_version": 1,
@@ -250,6 +270,9 @@ class _FakePlugin:
     twinned = False  # whether a second host id, filter_2_cutoff, moves the same value
     short = False  # whether a render gives three samples whatever was asked
     version_text = "1.6.4"
+    watch: ClassVar[StandInWatch]
+    alerting = ""  # "after the floats" or "before the floats": where a state write raises an alert
+    ignoring = False  # whether a state write changes nothing and says nothing
 
     def __init__(self, path: str) -> None:
         self.path = path
@@ -257,6 +280,7 @@ class _FakePlugin:
         self.calls: list[str] = []
         self.entered: list[int] = []
         self.refusing: set[str] = set()
+        self.watched: list[bool] = []  # whether the watch was in place at each state write
         self.touch("load")
 
     def touch(self, what: str) -> None:
@@ -300,9 +324,17 @@ class _FakePlugin:
 
     @preset_data.setter
     def preset_data(self, data: bytes) -> None:
+        self.watched.append(self.watch.in_place)
         self.touch("set_preset_data")
+        if self.ignoring:
+            return
+        if self.alerting == "before the floats":
+            self.watch.alert(*_ALERT)
+            return
         settings = json.loads(unwrap(data).text)["settings"]
         self.value = (settings[_HOST_ID] - 8.0) / 128.0
+        if self.alerting == "after the floats":
+            self.watch.alert(*_ALERT)
 
     def process(
         self, _midi: list[tuple[bytes, float]], duration: float, sample_rate: int
@@ -319,8 +351,12 @@ def fake(
     """Return a maker of a host over the fake plugin, the environment restored after the test."""
     library, upward = _upward_or_skip()
     original = library.fegetround()
+    watch = StandInWatch()
     monkeypatch.setattr(_FakePlugin, "library", library, raising=False)
     monkeypatch.setattr(_FakePlugin, "upward", upward, raising=False)
+    monkeypatch.setattr(_FakePlugin, "watch", watch, raising=False)
+    monkeypatch.setattr(host, "_ALERTS", watch)
+    monkeypatch.setattr(host, "MARKER", ParameterId(_HOST_ID))
     monkeypatch.setattr(platform, "machine", lambda: parameter_map().machine)
     made: list[_FakePlugin] = []
 
@@ -557,9 +593,12 @@ def test_a_load_reuses_the_containers_read_when_the_plugin_loaded(fake: _Maker) 
     assert plugin.calls.count("preset_data") == 1
     text = hosted.state()
     before = plugin.calls.count("preset_data")
+    made = len(plugin.calls)
     hosted.load_state(text)
     assert plugin.calls.count("preset_data") == before
-    assert plugin.calls[-1] == "set_preset_data"
+    assert plugin.calls[made:] == [*_MAP, *_LOAD]
+    hosted.load_state(text)
+    assert plugin.calls[made:] == [*_MAP, *_LOAD, *_LOAD]
 
 
 def test_a_plugin_whose_state_the_codec_cannot_read_is_refused_at_load(
@@ -627,3 +666,330 @@ def test_display_texts_for_a_host_id_not_hosted_is_named(fake: _Maker) -> None:
         hosted.display_texts("no_such_parameter", [0.0])
     assert (caught.value.parameter_id, caught.value.instrument) == ("no_such_parameter", "Vital")
     assert len(plugin.calls) == before
+
+
+# --- a state write: the watch, the thread, the marker --------------------------------------------
+
+
+def _text_holding(cutoff: float) -> bytes:
+    """Return a state's text that holds the fake's one parameter at a preset value."""
+    return json.dumps({"settings": {_HOST_ID: cutoff}}).encode("utf-8")
+
+
+def test_the_watch_is_in_place_for_a_state_write_and_at_no_other_time(fake: _Maker) -> None:
+    """Nothing is replaced outside a write, and it is put back when the write raises.
+
+    The stand-in says when it is in place and the fake plugin notes that at each state write: a
+    load's, a load's that pedalboard refuses, and the one a measurement ends on.
+    """
+    hosted, plugin = fake()
+    watch = _FakePlugin.watch
+    assert (watch.in_place, watch.entered) == (False, 0)  # loading the plugin watches nothing
+    hosted.set(ParameterId(_HOST_ID), 0.5)
+    hosted.state()
+    hosted.render([], 10, 48000)
+    assert (plugin.watched, watch.in_place, watch.entered) == ([], False, 0)
+    hosted.load_state(hosted.state())
+    assert (plugin.watched, watch.in_place, watch.entered) == ([True], False, 1)
+    plugin.refusing = {"set_preset_data"}
+    with pytest.raises(PluginStateError):
+        hosted.load_state(hosted.state())
+    assert (plugin.watched, watch.in_place, watch.entered) == ([True, True], False, 2)
+    plugin.refusing = set()
+    hosted.measure([0.0, 1.0])
+    assert (plugin.watched, watch.in_place, watch.entered) == ([True, True, True], False, 3)
+
+
+def test_a_state_the_plugin_answers_with_its_alert_is_the_package_s_error_with_its_words(
+    fake: _Maker,
+) -> None:
+    """An alert answered during the write is PluginStateError; the plugin holds the text in part.
+
+    Vital raises no error of its own for it, so there is no cause. The marker had moved to the
+    text's value before the alert, so it is not set back: the last call is its read.
+    """
+    hosted, plugin = fake()
+    plugin.alerting = "after the floats"
+    made = len(plugin.calls)
+    with pytest.raises(PluginStateError) as caught:
+        hosted.load_state(_text_holding(104.0))
+    assert all(words in caught.value.reason for words in _ALERT)
+    assert caught.value.__cause__ is None
+    assert plugin.value == (104.0 - 8.0) / 128.0
+    assert plugin.calls[made:] == [*_MAP, *_LOAD]
+
+
+@pytest.mark.parametrize("how", ["refused", "an alert before the floats"])
+def test_a_marker_a_failed_write_left_is_set_back_to_the_value_it_had(
+    fake: _Maker, how: str
+) -> None:
+    """A write that fails before it takes the text leaves the plugin holding what it held.
+
+    The parameter held 0.25, and the text's 104 is in the upper half of 8 to 136, so the marker
+    was planted at 0.0: the write left it there, and it is set to 0.25 again.
+    """
+    hosted, plugin = fake()
+    hosted.set(ParameterId(_HOST_ID), 0.25)
+    if how == "refused":
+        plugin.refusing = {"set_preset_data"}
+    else:
+        plugin.alerting = "before the floats"
+    made = len(plugin.calls)
+    with pytest.raises(PluginStateError):
+        hosted.load_state(_text_holding(104.0))
+    assert plugin.calls[made:] == [*_LOAD, "set_raw_value"]
+    assert plugin.value == 0.25  # noqa: PLR2004 - the value it had
+
+
+def test_a_load_the_plugin_ignores_is_refused_by_the_marker_it_left(fake: _Maker) -> None:
+    """A write that changes nothing and says nothing is PluginStateError, and nothing is changed.
+
+    The start's 60 is in the lower half, so the marker was planted at 1.0, where the write left
+    it: the load was ignored. The same text loaded by a plugin that takes it moves the marker.
+    """
+    hosted, plugin = fake()
+    text = hosted.state()
+    plugin.ignoring = True
+    made = len(plugin.calls)
+    with pytest.raises(PluginStateError, match="ignored the state") as caught:
+        hosted.load_state(text)
+    assert _HOST_ID in caught.value.reason
+    assert caught.value.__cause__ is None
+    assert plugin.calls[made:] == [*_MAP, *_LOAD, "set_raw_value"]
+    assert plugin.value == _START
+    plugin.ignoring = False
+    hosted.load_state(text)
+    assert plugin.value == _START
+
+
+_ABSENT = object()
+
+
+@pytest.mark.parametrize(
+    ("key", "held", "planted"),
+    [
+        # filter_1_on, the marker: a switch, 0 to 1, its midpoint 0.5 and its default 0
+        ("filter_1_on", 0.0, 1.0),
+        ("filter_1_on", 1.0, 0.0),
+        ("filter_1_on", 0.5, 0.0),
+        ("filter_1_on", 0.49, 1.0),
+        ("filter_1_on", 1, 0.0),
+        ("filter_1_on", 1e30, 0.0),
+        ("filter_1_on", -1e30, 1.0),
+        ("filter_1_on", _ABSENT, 1.0),
+        ("filter_1_on", "on", 1.0),
+        ("filter_1_on", True, 1.0),
+        ("filter_1_on", None, 1.0),
+        # filter_1_cutoff: linear, 8 to 136, its midpoint 72 and its default 60
+        ("filter_1_cutoff", 72.0, 0.0),
+        ("filter_1_cutoff", 71.99, 1.0),
+        ("filter_1_cutoff", _ABSENT, 1.0),
+    ],
+)
+def test_the_marker_is_planted_at_the_end_of_its_range_the_text_does_not_hold(
+    key: str, held: object, planted: float
+) -> None:
+    """The maximum, unless the text's value is in the upper half of the scale; then the minimum.
+
+    Each expected value is worked out here from the scale's two ends and the default, written
+    out: a text without the key, or holding there what is no number, holds the default. What is
+    planted is an end, which the scale holds exactly, half the range or more from the text's.
+    """
+    record = parameter_map().find(ParameterId(key))
+    ends = {"filter_1_on": (0.0, 1.0, 0.0), "filter_1_cutoff": (8.0, 136.0, 60.0)}[key]
+    assert (record.scale.minimum, record.scale.maximum, record.preset_default) == ends
+    settings = {} if held is _ABSENT else {key: held}
+    text = json.dumps({"settings": settings}).encode("utf-8")
+    assert _planted(record, text) == planted
+    end = record.scale.to_preset(planted)
+    assert end in ends[:2]
+    assert record.scale.holds(end)
+    number = isinstance(held, int | float) and not isinstance(held, bool)
+    its_own = float(held) if number else ends[2]  # type: ignore[arg-type]
+    clamped = min(max(its_own, ends[0]), ends[1])
+    assert abs(end - clamped) >= (ends[1] - ends[0]) / 2
+
+
+def test_a_text_with_no_settings_object_holds_the_marker_s_default() -> None:
+    """A state whose settings is no object holds no value for the marker: its default decides."""
+    record = parameter_map().find(host.MARKER)
+    assert _planted(record, b'{"settings":[]}') == 1.0
+    assert _planted(record, b"{}") == 1.0
+
+
+def test_the_marker_is_a_switch_the_map_holds() -> None:
+    """`MARKER` is a boolean on a scale from 0 to 1, so each end is a value it holds exactly."""
+    record = parameter_map().find(host.MARKER)
+    assert record.parameter.kind == "boolean"
+    assert (record.scale.kind, record.scale.minimum, record.scale.maximum) == ("indexed", 0.0, 1.0)
+    assert (record.scale.to_preset(0.0), record.scale.to_preset(1.0)) == (0.0, 1.0)
+
+
+def test_a_load_from_a_second_thread_is_refused_before_the_plugin_is_called(fake: _Maker) -> None:
+    """Where a load is the main thread's, another thread's is PluginThreadError, nothing touched.
+
+    The error names the thread. The same load is then made from the main thread.
+    """
+    hosted, plugin = fake()
+    text = hosted.state()
+    made = len(plugin.calls)
+    caught: list[PluginThreadError] = []
+
+    def load() -> None:
+        try:
+            hosted.load_state(text)
+        except PluginThreadError as error:
+            caught.append(error)
+
+    thread = threading.Thread(target=load, name="a second thread")
+    thread.start()
+    thread.join()
+    (error,) = caught
+    assert error.thread == "a second thread"
+    assert "a second thread" in str(error)
+    assert (plugin.calls[made:], _FakePlugin.watch.entered) == ([], 0)
+    hosted.load_state(text)
+    assert plugin.calls[made:] == [*_MAP, *_LOAD]
+
+
+def test_where_no_alert_is_answered_a_load_is_made_from_any_thread(fake: _Maker) -> None:
+    """Off macOS the host does what it did: a load from a second thread is made."""
+    hosted, plugin = fake()
+    _FakePlugin.watch.main_thread_only = False
+    text = hosted.state()
+    made = len(plugin.calls)
+    thread = threading.Thread(target=lambda: hosted.load_state(text))
+    thread.start()
+    thread.join()
+    assert plugin.calls[made:] == [*_MAP, *_LOAD]
+
+
+def test_where_the_map_is_not_the_plugin_s_a_load_is_made_unchecked(fake: _Maker) -> None:
+    """With a map measured from another Vital no marker is set, and an ignored load is not seen.
+
+    The map is sought once, which reads the plugin's name and version; the second load reads
+    neither.
+    """
+    hosted, plugin = fake()
+    text = hosted.state()
+    plugin.version_text = "1.7.0"
+    plugin.ignoring = True
+    made = len(plugin.calls)
+    hosted.load_state(text)
+    assert plugin.calls[made:] == ["name", "version", "set_preset_data"]
+    hosted.load_state(text)
+    assert plugin.calls[made:] == ["name", "version", "set_preset_data", "set_preset_data"]
+    assert plugin.watched == [True, True]  # each write still under the watch
+
+
+def test_without_the_runtime_the_host_refuses_to_load(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """On macOS where the runtime cannot be reached the host is refused, saying why."""
+    monkeypatch.setattr(host, "_ALERTS", None)
+    with pytest.raises(PluginLoadError) as caught:
+        VitalHost(tmp_path)
+    assert caught.value.path == str(tmp_path)
+    assert "Objective-C runtime and AppKit" in caught.value.reason
+
+
+def test_off_macos_no_alert_is_watched(monkeypatch: pytest.MonkeyPatch) -> None:
+    """On any other platform the watch does nothing, and a load is any thread's, as before."""
+    monkeypatch.setattr(platform, "system", lambda: "Linux")
+    watch = host._alert_watch()  # noqa: SLF001 - the choice the module makes when it loads
+    assert watch is not None
+    assert not watch.main_thread_only
+    with watch.answered() as alerts:
+        pass
+    assert alerts == []
+
+
+@pytest.mark.parametrize("missing", ["objc", "AppKit"])
+def test_on_macos_a_library_that_is_not_found_leaves_no_watch(
+    monkeypatch: pytest.MonkeyPatch, missing: str
+) -> None:
+    """Where the runtime or AppKit is not found by name there is no watch, and the host says so."""
+    monkeypatch.setattr(platform, "system", lambda: "Darwin")
+    found = ctypes.util.find_library
+    monkeypatch.setattr(
+        ctypes.util, "find_library", lambda name: None if name == missing else found(name)
+    )
+    assert host._alert_watch() is None  # noqa: SLF001 - the choice the module makes when it loads
+
+
+_REAL_ALERT = """
+import ctypes
+import ctypes.util
+
+from patchbay_vital import host
+
+runtime = ctypes.CDLL(ctypes.util.find_library("objc"))
+pointer = ctypes.c_void_p
+runtime.objc_getClass.restype = pointer
+runtime.objc_getClass.argtypes = [ctypes.c_char_p]
+runtime.sel_registerName.restype = pointer
+runtime.sel_registerName.argtypes = [ctypes.c_char_p]
+runtime.class_getInstanceMethod.restype = pointer
+runtime.class_getInstanceMethod.argtypes = [pointer, pointer]
+runtime.method_getImplementation.restype = pointer
+runtime.method_getImplementation.argtypes = [pointer]
+
+
+def send(receiver, selector, *arguments, result=pointer, kinds=()):
+    call = ctypes.CFUNCTYPE(result, pointer, pointer, *kinds)(("objc_msgSend", runtime))
+    return call(receiver, runtime.sel_registerName(selector), *arguments)
+
+
+def words(text):
+    string = runtime.objc_getClass(b"NSString")
+    return send(string, b"stringWithUTF8String:", text, kinds=(ctypes.c_char_p,))
+
+
+send(runtime.objc_getClass(b"NSApplication"), b"sharedApplication")
+alert = send(send(runtime.objc_getClass(b"NSAlert"), b"alloc"), b"init")
+send(alert, b"setMessageText:", words(b"a test's alert"), kinds=(pointer,))
+send(alert, b"setInformativeText:", words(b"its words"), kinds=(pointer,))
+method = runtime.class_getInstanceMethod(
+    runtime.objc_getClass(b"NSAlert"), runtime.sel_registerName(b"runModal")
+)
+own = runtime.method_getImplementation(method)
+watch = host._ALERTS
+with watch.answered() as alerts:
+    during = runtime.method_getImplementation(method)
+    button = send(alert, b"runModal", result=ctypes.c_long)
+after = runtime.method_getImplementation(method)
+try:
+    with watch.answered():
+        raise KeyError("a write that raises")
+except KeyError:
+    pass
+raised = runtime.method_getImplementation(method)
+print((type(watch).__name__, button, alerts, during != own, after == own, raised == own))
+"""
+_REAL_ALERT_SECONDS = 10
+
+
+def test_the_watch_answers_a_real_alert_at_once_and_puts_the_method_back() -> None:
+    """AppKit's own `-[NSAlert runModal]`, in a child this test can kill, on macOS.
+
+    The child makes an alert and runs it modally under the watch. Answered, it returns the first
+    button at once with the alert's two texts noted, and the method's implementation is the
+    watch's while it is entered and AppKit's own afterwards, a block that raised included. Not
+    answered, the alert would wait for a click: the child is then killed at the time limit and
+    the test fails by name. It loads no plugin.
+    """
+    if platform.system() != "Darwin":
+        pytest.skip(f"the watch that answers Vital's alert is macOS's; this is {platform.system()}")
+    try:
+        child = subprocess.run(  # noqa: S603 - this interpreter, and the script above
+            [sys.executable, "-c", _REAL_ALERT],
+            capture_output=True,
+            text=True,
+            timeout=_REAL_ALERT_SECONDS,
+            check=False,
+        )
+    except subprocess.TimeoutExpired:
+        pytest.fail(f"the alert was not answered: its child waited {_REAL_ALERT_SECONDS} s, killed")
+    assert child.returncode == 0, child.stderr
+    answered = ("_AppKitWatch", 1000, [("a test's alert", "its words")], True, True, True)
+    assert child.stdout.strip() == repr(answered)

@@ -269,11 +269,12 @@ writes the entry, in that commit
     with it: `PluginStateError` says so, and every later `set`, `load_patch` and `render` is
     refused naming that failure, while `get` and `patch` answer from the model. Build a new one.
   - Known limits, each measured (`verification/probes.txt` and `probes-2.txt`). The first three
-    each wait on an issue of their own, all three before the first experiment that puts an agent
-    in front of the instrument, in this order; the fourth is a workaround no issue owns:
+    each had an issue of its own, all three before the first experiment that puts an agent in
+    front of the instrument, in this order; the fourth is a workaround no issue owns:
     - a malformed preset section can hang the process (#20): Vital answers a preset it cannot
       read with a modal alert and never returns. `load_patch` refuses every shape seen to do it,
-      and cannot judge a section's inside;
+      and cannot judge a section's inside. Issue #20's spec has since had the host answer the
+      alert on macOS; on any other platform it still blocks ("Fixed", below);
     - a render of most presets opens with the preset sounding though no note was played (#21);
     - on a preset older than the plugin, a few parameters can be reported by `get` with the
       file's value where Vital plays its upgraded one, for a choice a different setting by name
@@ -338,6 +339,40 @@ writes the entry, in that commit
 
 ### Fixed
 
+- A preset Vital cannot read no longer blocks the calling process on macOS, issue #20,
+  `agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/`. Vital reports no load it cannot
+  use: it answers a text it cannot read with a modal alert and never returns to its caller, it
+  ignores a text newer than itself, and it dies inside its own reading of some texts. The spec
+  probed first, four runs kept in its `verification/`, and remedied in the host what the owner
+  chose. Measured on Vital 1.6.4 through pedalboard 0.9.26 on arm64, macOS 26.6.2. The version
+  stays 0.0.1.
+  - **The alert is answered before it opens, on macOS.** For the length of each state write
+    `-[NSAlert runModal]` returns at once, and is put back however the write ends, through
+    `ctypes` and the standard library alone. `VitalHost.load_state` then raises
+    `PluginStateError` with the alert's own words, and `load_patch` its patch error, the model's
+    text loaded again: the plugin had taken the patch in part. Of 335 texts tried, 249 raise the
+    alert; under the watch every one returned, with nothing on screen. **On any other platform
+    nothing answers the alert and such a preset still blocks.** Nothing was probed there, nor in
+    a process with no screen. Each answered alert leaves one window object in the application's
+    list, never shown, and the method is replaced for the whole process while a write runs.
+  - **A load is made on the main thread or not at all, on macOS.** `PluginThreadError`, a new
+    error, is raised before the plugin is called. From another thread the alert cannot open: the
+    load raised, the parameters were then read stale, and the process died at its next render,
+    11 of 11.
+  - **A load Vital ignores is refused.** The host sets a marker on the plugin before each state
+    write, `filter_1_on` at the end of its range the text does not hold, and reads it after: a
+    write that left it there is `PluginStateError`. No model, `get`, `patch` or event shows the
+    marker. It needs no AppKit; it was measured on macOS alone.
+  - **The guard also refuses `custom_warps` and `random_values` that are not arrays of three
+    objects,** where a preset holds them. One entry more killed the process inside Vital, in all
+    14 children of each; one fewer, or none, was not loaded as given. None of the 75 presets
+    Vital installs holds either section.
+  - **What stays.** A text Vital dies on kills the calling process, and only the shapes found
+    are refused: 3 of the 335, each of which changes one value. A text Vital loads in part,
+    keeping a wavetable or a sample it had, is not detected. Both are issue #25's.
+  - A trial load in a child process and a timer that ends the alert's modal loop were probed and
+    not built: a child costs 2.4 s a load, or a second Vital kept up, where answering the alert
+    costs a median of 31.5 microseconds.
 - `MappedParameter.to_preset` always returns a preset the plugin holds, issue #16,
   `agent-os/specs/2026-11-14-1509-to-preset-returns-a-held-preset/`, revised after the review of
   patchbay-vital's PR 19, `agent-os/specs/2026-11-15-0811-revision-after-pr-19-review/`. For a

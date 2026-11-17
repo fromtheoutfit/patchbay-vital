@@ -23,23 +23,44 @@ model or the plugin, and is still published: a set of that float's own display w
 move it. Any other set reaches the plugin, one of the value shown on a float a set does land on
 among them, so the plugin is set to what the model holds.
 
-**When the plugin refuses a load and then refuses the model's own text too,** its state is
-unknown and the model still holds the preset before: the instrument has lost step with it.
+**When the plugin does not take a load and then does not take the model's own text either,**
+refusing it, answering it with its alert or ignoring it, its state is unknown and the model
+still holds the preset before: the instrument has lost step with it.
 `load_patch` raises `PluginStateError` saying so, and from then on `set`, `load_patch` and
 `render` are refused with that error, the plugin not called and nothing published, while `get`,
 `patch` and `parameters` answer from a model the plugin no longer matches. Build a new
 instrument.
 
+**A patch Vital cannot use** (issue #20; the spec's `verification/` holds the counts). Vital
+reports none. Given a text it cannot read it puts up a modal alert and never returns to its
+caller; a text newer than itself it ignores without a word; and some texts kill the process
+inside Vital's own reading of them. What the instrument does about each:
+
+- **The alert.** On macOS the host answers it before it opens, and `load_patch` refuses the
+  patch: `PatchRefusedError`, with Vital's own words, the model's text loaded again. The patch
+  was taken in part by then, so the plugin is put back, not left alone. On any other platform
+  nothing answers the alert and such a patch still blocks the calling process: nothing was
+  probed there, nor in a process with no screen.
+- **A load from a thread that is not the main one,** on macOS: `PluginThreadError`, the plugin
+  not called and nothing changed. The alert cannot open there, and the process was seen to die
+  at its next render.
+- **A load Vital ignores.** A preset newer than the plugin, the one kind seen ignored whole,
+  `check_loadable` refuses before Vital is given it. Behind that the host sets a marker on the
+  plugin before each load and reads it after; one that was left is refused the same way as an
+  alert. The marker is the plugin's alone: `get`, `patch` and the bus never show it.
+- **A text Vital dies on kills the calling process** (issue #25). Three shapes were found, each
+  a section one entry longer than Vital holds, and `check_loadable` refuses those. Only the
+  shapes found are refused: no text was tried with two faults, or with a fault past an array's
+  first entry.
+- **A text Vital loads in part is not detected** (issue #25). Where it keeps a wavetable or a
+  sample it had, or makes something else of the one given, nothing read back from the plugin
+  tells.
+
 **Known limits, each measured** on Vital 1.6.4 through pedalboard 0.9.26 on arm64 (the
 instrument spec's `verification/probes.txt` and `probes-2.txt`), each the hosted plugin's. The
-first three each wait on an issue of their own, which come before the first experiment that puts
-an agent in front of the instrument, in this order; the fourth is a workaround no issue owns:
+first two each wait on an issue of their own, which come before the first experiment that puts
+an agent in front of the instrument, in this order; the third is a workaround no issue owns:
 
-- Issue #20. A malformed preset section can hang the process. Vital answers a text it cannot
-  read with a modal alert and never returns to its caller, and nothing here can catch that.
-  `load_patch` refuses, before the plugin is called, every shape of text that was seen to block,
-  to be ignored whole or to keep the sections of the preset before it, but a section's inside
-  passes through unread, and one Vital cannot read still blocks.
 - Issue #21. A render of most presets opens with the preset sounding though no note was played.
   On the start preset that is a transient of about 0.02 of full scale, over in about 100 ms; on
   presets Vital installs it reaches full scale and can last seconds. The clipping warning counts
@@ -150,7 +171,7 @@ class VitalInstrument:
         path; without one the instrument loads Vital there itself. Whatever the plugin held is
         replaced. PluginLoadError when no Vital loads, MapMismatchError when the parameter map was
         measured on another machine or from another Vital, PluginStateError when the plugin
-        refuses the start preset.
+        refuses the start preset, PluginThreadError on macOS when this is not the main thread.
         """
         self._bus = bus
         self._host = VitalHost() if host is None else host
@@ -261,8 +282,19 @@ class VitalInstrument:
         (`patchbay_vital.patch`), and for a preset the plugin was seen not to load whole
         (`check_loadable`); nothing is then changed or published. When the plugin refuses the
         text after those checks pass, the model's own text is sent to it again and the same
-        error leaves the call, chained from the host's. A section Vital cannot read inside is not
-        caught by any of this: it blocks the calling process.
+        error leaves the call, chained from the host's. That is so when pedalboard refuses it,
+        when Vital answers it with its alert, which the host answers on macOS, the reason then
+        carrying the alert's words, and when Vital ignores it, which the host's marker shows.
+        After an alert the plugin had taken the patch in part, and the model's text puts it back.
+
+        On every platform but macOS no alert is answered: a patch with a section Vital cannot
+        read inside blocks the calling process there. A patch Vital dies on kills the calling
+        process on any platform, but for the shapes `check_loadable` refuses. A patch Vital loads
+        in part, keeping sections it had, is not detected. Both are issue #25's.
+
+        PluginThreadError, a VitalError and not core's PatchRejectedError, on macOS when this is
+        not the main thread: the plugin is not called, nothing is changed or published, and the
+        instrument has not lost step.
 
         Should the plugin refuse the model's own text too, its state is unknown and the model
         holds the preset before: the instrument has lost step with the plugin. PluginStateError,

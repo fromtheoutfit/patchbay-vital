@@ -6,6 +6,11 @@ since, and records every call. So the instrument reaches its plugin only through
 too, and core's thirteen contract tests run against it on any machine. A pass here is a pass over
 the fake plugin: what Vital itself does is `tests/integration/test_vital_instrument.py`'s.
 
+The fake can answer a load as Vital was seen to: take it, have pedalboard refuse it, raise its
+alert with the text taken or not, or ignore it. A stand-in watch (`builders.StandInWatch`) is in
+place of the one that answers the alert, so these run alike on macOS and without AppKit. The
+host's marker shows among the fake's sets and nowhere else; `_sets` leaves it out.
+
 An expected value is written out or worked out from primitives, `Fraction`, `struct` and the
 scale's and the curve's formulas restated, never from the map's `to_preset` or `to_normalized`
 and never from the instrument.
@@ -15,13 +20,14 @@ import json
 import math
 import platform
 import struct
+import threading
 from collections.abc import Callable
 from pathlib import Path
 
 import numpy as np
 import pedalboard
 import pytest
-from builders import what_a_set_holds
+from builders import StandInWatch, what_a_set_holds
 from numpy.typing import NDArray
 from patchbay import (
     Event,
@@ -49,6 +55,7 @@ from patchbay.testing import CONTRACT_TESTS, RecordingSubscriber
 from patchbay.testing.contract_tests import ContractTest
 
 from patchbay_vital import dumps, loads
+from patchbay_vital import host as host_module
 from patchbay_vital.errors import (
     MapMismatchError,
     ParameterRangeError,
@@ -56,12 +63,13 @@ from patchbay_vital.errors import (
     PatchRefusedError,
     PluginRenderError,
     PluginStateError,
+    PluginThreadError,
     RenderRefusedError,
     UnknownParameterError,
     VitalError,
 )
 from patchbay_vital.format import split_modulations
-from patchbay_vital.host import VitalHost, _floats
+from patchbay_vital.host import MARKER, VitalHost, _floats
 from patchbay_vital.instrument import (
     FULL_SCALE,
     LOADS,
@@ -93,6 +101,7 @@ _CONTAINERS: dict[str, object] = {  # Vital 1.6.4's, as tests/unit/test_state.py
     "reserved": bytes(128),
     "trailer": bytes(17) + b"JUCEPrivateData",
 }
+_ALERT = ("Error opening preset", "a stand-in's words")
 _PATTERN = Pattern(
     tempo_bpm=120.0,
     bars=1,
@@ -116,7 +125,7 @@ class _FakeParameter:
 
     @property
     def raw_value(self) -> float:
-        return self._plugin.normalized.get(self._record.id, 0.0)
+        return self._plugin.read(self._record)
 
     @raw_value.setter
     def raw_value(self, value: float) -> None:
@@ -130,14 +139,18 @@ class _FakeVital:
     """pedalboard's plugin as the host sees it: 903 parameters, and a preset's text as its state.
 
     A set holds the scale's own value for the normalized value sent, as Vital does. A load keeps
-    the text and forgets the sets before it. `refusing` names the calls it raises on;
-    `load_script`, while it has entries, says load by load which is refused. `audio` makes what a
-    render gives.
+    the text and forgets the sets before it, and a parameter then reads as the text holds it, or
+    at its default where the text lacks it. `refusing` names the calls it raises on;
+    `load_script`, while it has entries, says load by load what becomes of it: False, taken;
+    True, refused by pedalboard; "alert", taken and then answered with the alert; "alert first",
+    answered with the alert and not taken; "ignore", nothing at all. `audio` makes what a render
+    gives.
     """
 
     name, version = "Vital", "1.6.4"
 
     def __init__(self, _path: str) -> None:
+        self.watch = StandInWatch()
         self.text = b'{"settings":{}}'
         self.floats: dict[str, float] = {}
         self.normalized: dict[str, float] = {}
@@ -145,7 +158,7 @@ class _FakeVital:
         self.sets: list[tuple[str, float]] = []
         self.renders: list[tuple[list[tuple[bytes, float]], float, int]] = []
         self.refusing: set[str] = set()
-        self.load_script: list[bool] = []
+        self.load_script: list[bool | str] = []
         self.audio: Callable[[int], NDArray[np.float32]] | None = None
         self._hosted = {
             record.host_id: _FakeParameter(self, record) for record in parameter_map().parameters
@@ -154,6 +167,13 @@ class _FakeVital:
     @property
     def parameters(self) -> dict[str, _FakeParameter]:
         return self._hosted
+
+    def read(self, record: MappedParameter) -> float:
+        """Return a parameter's normalized value: what was set, or what the text holds for it."""
+        if record.id in self.normalized:
+            return self.normalized[record.id]
+        held = json.loads(self.text)["settings"].get(record.preset_key, record.preset_default)
+        return record.scale.to_normalized(held)
 
     def write(self, record: MappedParameter, value: float) -> None:
         if "set" in self.refusing:
@@ -172,14 +192,21 @@ class _FakeVital:
 
     @preset_data.setter
     def preset_data(self, data: bytes) -> None:
-        refused = self.load_script.pop(0) if self.load_script else "load" in self.refusing
-        if refused:
+        how = self.load_script.pop(0) if self.load_script else "load" in self.refusing
+        if how is True:
             msg = "the plugin refuses the state"
             raise RuntimeError(msg)
+        if how == "ignore":
+            return
+        if how == "alert first":
+            self.watch.alert(*_ALERT)
+            return
         self.text = unwrap(data).text
         self.floats = {}
         self.normalized = {}
         self.loads.append(self.text)
+        if how == "alert":
+            self.watch.alert(*_ALERT)
 
     def process(
         self, midi: list[tuple[bytes, float]], duration: float, sample_rate: int
@@ -200,6 +227,7 @@ def plugin(monkeypatch: pytest.MonkeyPatch) -> _FakeVital:
     fake = _FakeVital("")
     monkeypatch.setattr(platform, "machine", lambda: parameter_map().machine)
     monkeypatch.setattr(pedalboard, "VST3Plugin", lambda _path: fake)
+    monkeypatch.setattr(host_module, "_ALERTS", fake.watch)
     return fake
 
 
@@ -243,6 +271,11 @@ def _float32_toward_zero(value: float) -> float:
     (bits,) = struct.unpack("<I", struct.pack("<f", value))
     stepped: float = struct.unpack("<f", struct.pack("<I", bits - 1))[0]
     return stepped
+
+
+def _sets(plugin: _FakeVital) -> list[tuple[str, float]]:
+    """Return the sets the plugin was sent, less the host's marker, which no model knows of."""
+    return [made for made in plugin.sets if made[0] != MARKER]
 
 
 def _state_floats(instrument: VitalInstrument) -> dict[str, float]:
@@ -385,7 +418,7 @@ def test_a_set_holds_the_value_vital_holds_which_need_not_be_the_nearest(
     assert shown.value == held * 60.0
     assert instrument.get(ParameterId("beats_per_minute")) == shown
     assert instrument.preset.settings.values[PresetKey("beats_per_minute")] == held
-    assert plugin.sets == [("beats_per_minute", normalized)]
+    assert _sets(plugin) == [("beats_per_minute", normalized)]
     assert _state_floats(instrument)["beats_per_minute"] == held
     (changed,) = recorder.of_type(ParameterChanged)
     assert (changed.id, changed.old, changed.new) == ("beats_per_minute", old, shown)
@@ -436,7 +469,7 @@ def test_a_set_of_the_value_already_shown_keeps_what_is_held(
         instrument.set(record.id, shown)
         assert instrument.get(record.id) == shown
     assert instrument.preset is before
-    assert plugin.sets == []
+    assert _sets(plugin) == []
     events = recorder.of_type(ParameterChanged)
     assert len(recorder.events) == len(events) == _OFF_GRID_DEFAULTS
     assert all(event.old == event.new for event in events)
@@ -458,7 +491,7 @@ def test_a_set_of_the_value_already_shown_on_a_float_a_set_lands_on_reaches_the_
     assert _state_floats(instrument)["osc_1_stack_style"] == 10.0  # noqa: PLR2004 - Vital's
     recorder = _recorder(bus)
     instrument.set(stack, _quantity(9.0))
-    assert plugin.sets == [("osc_1_stack_style", 0.75)]
+    assert _sets(plugin) == [("osc_1_stack_style", 0.75)]
     assert _state_floats(instrument)["osc_1_stack_style"] == 9.0  # noqa: PLR2004 - the model's
     assert instrument.preset.settings.values[PresetKey("osc_1_stack_style")] == 9.0  # noqa: PLR2004
     (changed,) = recorder.events
@@ -496,7 +529,7 @@ def test_a_set_of_the_value_shown_on_an_upgraded_float_no_set_lands_on_leaves_th
     shown = instrument.get(amount)
     assert shown == _quantity(in_file)
     instrument.set(amount, shown)
-    assert plugin.sets == []
+    assert _sets(plugin) == []
     assert _state_floats(instrument)["modulation_10_amount"] == upgraded
     assert instrument.preset is before
     assert instrument.get(amount) == shown
@@ -593,7 +626,7 @@ def test_a_set_it_refuses_is_the_package_s_error_with_core_s_fields_and_core_s_e
         assert (unknown.value.parameter_id, unknown.value.instrument) == ("volume.unknown", "Vital")
     assert recorder.events == ()
     assert instrument.preset is start_preset()
-    assert plugin.sets == []
+    assert _sets(plugin) == []
 
 
 def test_a_set_the_plugin_refuses_leaves_the_model_the_plugin_and_the_bus_as_they_were(
@@ -932,14 +965,14 @@ def test_once_out_of_step_every_call_that_reaches_the_plugin_is_refused_before_a
     The plugin is not called, the model is not changed and nothing is published.
     """
     _lose_step(instrument, plugin)
-    before, loads_made = instrument.preset, len(plugin.loads)
+    before, reached = instrument.preset, (len(plugin.loads), len(plugin.sets), len(plugin.renders))
     recorder = _recorder(bus)
     with pytest.raises(PluginStateError) as caught:
         call(instrument)
     assert caught.value.reason == (
         f"the instrument lost step with the plugin: {_LOST}; build a new one"
     )
-    assert (len(plugin.loads), plugin.sets, plugin.renders) == (loads_made, [], [])
+    assert (len(plugin.loads), len(plugin.sets), len(plugin.renders)) == reached
     assert instrument.preset is before
     assert recorder.events == ()
 
@@ -958,6 +991,155 @@ def test_once_out_of_step_get_and_patch_answer_from_the_model(
     assert instrument.get(ParameterId("volume")) == shown == _quantity(-80.0, Unit.db)
     assert instrument.patch() == patch
     assert instrument.parameters() == tuple(r.parameter for r in parameter_map().parameters)
+
+
+# --- a load Vital answers with its alert, or ignores ----------------------------------------------
+
+
+def _answered(how: str) -> str:
+    """Return the host's reason for a load the fake answered `how`."""
+    if how == "ignore":
+        return f"Vital ignored the state: {MARKER}, set before the load, was left as it was set"
+    return f"Vital answered the state with its alert, {_ALERT[0]!r}: {_ALERT[1]!r}"
+
+
+@pytest.mark.parametrize("how", ["alert", "alert first", "ignore"])
+def test_a_load_vital_answers_with_its_alert_or_ignores_is_refused_and_the_model_s_text_put_back(
+    bus: EventBus, instrument: VitalInstrument, plugin: _FakeVital, how: str
+) -> None:
+    """The host's error is met by the rollback that was there: refused as a patch, nothing kept.
+
+    The plugin takes the alerting text in part, or not at all, or ignores the load; each way the
+    model's own text is then loaded twice, and the plugin, through the diagnostic read, holds
+    the model's floats, not the refused patch's. Nothing is published.
+    """
+    instrument.set(ParameterId("volume"), _quantity(0.0, Unit.db))
+    before, state = instrument.preset, _state_floats(instrument)
+    recorder = _recorder(bus)
+    plugin.load_script = [how, False, False]
+    patch = Patch(instrument="Vital", values={ParameterId("volume"): _quantity(-80.0, Unit.db)})
+    with pytest.raises(PatchRefusedError) as caught:
+        instrument.load_patch(patch)
+    assert isinstance(caught.value, PatchRejectedError)
+    cause = caught.value.__cause__
+    assert type(cause) is PluginStateError
+    assert cause.reason == _answered(how)
+    assert caught.value.reason == f"the plugin refused the preset: {_answered(how)}"
+    assert instrument.preset is before
+    assert _state_floats(instrument) == state
+    assert plugin.loads[-LOADS:] == [dumps(before).encode("utf-8")] * LOADS
+    assert plugin.load_script == []
+    assert recorder.events == ()
+    assert not plugin.watch.in_place
+
+
+@pytest.mark.parametrize("how", ["alert", "alert first", "ignore"])
+def test_a_rollback_vital_answers_the_same_way_leaves_the_instrument_out_of_step(
+    bus: EventBus, instrument: VitalInstrument, plugin: _FakeVital, how: str
+) -> None:
+    """The model's own text alerting too, or ignored too: lost step, as for a refusal.
+
+    `PluginStateError`, not core's `PatchRejectedError`, names both failures; the model holds
+    the preset before, nothing is published, and every later load is refused before the plugin.
+    """
+    before = instrument.preset
+    recorder = _recorder(bus)
+    plugin.load_script = [how, how]
+    with pytest.raises(PluginStateError) as caught:
+        instrument.load_patch(Patch(instrument="Vital", values={}))
+    assert not isinstance(caught.value, PatchRejectedError)
+    assert caught.value.reason == (
+        f"the plugin refused a preset ({_answered(how)}) and then the model's own text "
+        f"({_answered(how)}), so its state is unknown while the model holds the preset before: "
+        "build a new VitalInstrument"
+    )
+    assert type(caught.value.__cause__) is PluginStateError
+    assert instrument.preset is before
+    assert recorder.events == ()
+    reached = (len(plugin.loads), len(plugin.sets))
+    with pytest.raises(PluginStateError, match="lost step"):
+        instrument.load_patch(Patch(instrument="Vital", values={}))
+    assert (len(plugin.loads), len(plugin.sets)) == reached
+
+
+def test_the_marker_is_the_plugin_s_alone_on_a_load_that_succeeds_and_on_one_that_fails(
+    bus: EventBus, instrument: VitalInstrument, plugin: _FakeVital
+) -> None:
+    """The host sets it on the plugin; the model, `get`, `patch` and the bus never see it.
+
+    The start preset holds the marker's parameter at 0, so each of its two loads planted 1. A
+    preset holding it at 1 plants 0, and the model then holds the preset's own 1. A load that
+    is then ignored plants and sets back at the plugin, and the model, the patch object and the
+    bus are as they were.
+    """
+    assert MARKER == "filter_1_on"
+    planted = [made for made in plugin.sets if made[0] == MARKER]
+    assert planted == [(MARKER, 1.0)] * LOADS
+    assert instrument.get(MARKER) == _quantity(0.0)
+    recorder = _recorder(bus)
+
+    instrument.load_patch(patch_of(_holding(filter_1_on=1.0)))
+    planted = [made for made in plugin.sets if made[0] == MARKER]
+    assert planted == [(MARKER, 1.0)] * LOADS + [(MARKER, 0.0)] * LOADS
+    assert instrument.get(MARKER) == _quantity(1.0)
+    assert instrument.preset.settings.values[PresetKey("filter_1_on")] == 1.0
+    assert instrument.patch().values[MARKER] == _quantity(1.0)
+    assert _state_floats(instrument)["filter_1_on"] == 1.0
+    (loaded,) = recorder.events
+    assert isinstance(loaded, PatchLoaded)
+
+    held, patch, state = instrument.preset, instrument.patch(), _state_floats(instrument)
+    plugin.load_script = ["ignore", False, False]
+    with pytest.raises(PatchRefusedError):
+        instrument.load_patch(patch_of(_holding(filter_1_on=0.0)))
+    assert [made for made in plugin.sets if made[0] == MARKER][2 * LOADS :] == [
+        (MARKER, 1.0),  # planted for a text that holds 0: where the plugin stood already
+        (MARKER, 1.0),  # the load left it there, so it is set back to what it was
+        (MARKER, 0.0),  # the model's own text, which holds 1, put back: its first load
+        (MARKER, 0.0),  # and its second
+    ]
+    assert instrument.preset is held
+    assert instrument.patch() is patch
+    assert instrument.get(MARKER) == _quantity(1.0)
+    assert _state_floats(instrument) == state
+    assert recorder.events == (loaded,)
+    assert not any(isinstance(event, ParameterChanged) for event in recorder.events)
+
+
+def test_a_load_from_a_second_thread_changes_nothing_and_is_the_thread_s_error(
+    bus: EventBus, instrument: VitalInstrument, plugin: _FakeVital
+) -> None:
+    """`PluginThreadError` leaves `load_patch` as itself, before the plugin is called.
+
+    It is not a state error, so no rollback answers it and the instrument has not lost step:
+    the same patch then loads from the main thread.
+    """
+    before, state = instrument.preset, _state_floats(instrument)
+    reached = (len(plugin.loads), len(plugin.sets))
+    recorder = _recorder(bus)
+    patch = Patch(instrument="Vital", values={ParameterId("volume"): _quantity(-80.0, Unit.db)})
+    caught: list[VitalError] = []
+
+    def load() -> None:
+        try:
+            instrument.load_patch(patch)
+        except VitalError as error:
+            caught.append(error)
+
+    thread = threading.Thread(target=load, name="a second thread")
+    thread.start()
+    thread.join()
+    (error,) = caught
+    assert type(error) is PluginThreadError
+    assert not isinstance(error, PatchRejectedError | PluginStateError)
+    assert error.thread == "a second thread"
+    assert instrument.preset is before
+    assert _state_floats(instrument) == state
+    assert (len(plugin.loads), len(plugin.sets)) == reached
+    assert recorder.events == ()
+    instrument.load_patch(patch)
+    assert instrument.get(ParameterId("volume")) == _quantity(-80.0, Unit.db)
+    assert len(recorder.of_type(PatchLoaded)) == 1
 
 
 # --- the guard -----------------------------------------------------------------------------------
@@ -980,6 +1162,15 @@ _NO_SAMPLE = (
     "settings.sample: a preset holds an object there with "
     "['length', 'name', 'sample_rate', 'samples']"
 )
+_LINE: dict[str, object] = {
+    "name": "Line 1",
+    "num_points": 2,
+    "points": [0.0, 1.0, 1.0, 0.0],
+    "powers": [0.0, 0.0],
+    "smooth": False,
+}
+_NO_WARPS = "settings.custom_warps: a preset that holds it holds an array of 3 objects there"
+_NO_RANDOMS = "settings.random_values: a preset that holds it holds an array of 3 objects there"
 _REFUSED: dict[str, tuple[Callable[[], VitalPreset], str]] = {
     "a version that is no version": (
         lambda: start_preset().model_copy(update={"synth_version": "abc"}),
@@ -1037,6 +1228,46 @@ _REFUSED: dict[str, tuple[Callable[[], VitalPreset], str]] = {
         lambda: _reshaped(sample=[_SAMPLE]),
         _NO_SAMPLE,
     ),
+    "four custom warps": (
+        lambda: _reshaped(custom_warps=[_LINE] * 4),
+        _NO_WARPS,
+    ),
+    "two custom warps": (
+        lambda: _reshaped(custom_warps=[_LINE] * 2),
+        _NO_WARPS,
+    ),
+    "custom warps empty": (
+        lambda: _reshaped(custom_warps=[]),
+        _NO_WARPS,
+    ),
+    "custom warps an object": (
+        lambda: _reshaped(custom_warps={}),
+        _NO_WARPS,
+    ),
+    "custom warps that are not objects": (
+        lambda: _reshaped(custom_warps=[_LINE, _LINE, 5]),
+        _NO_WARPS,
+    ),
+    "four random values": (
+        lambda: _reshaped(random_values=[{"seed": 4}] * 4),
+        _NO_RANDOMS,
+    ),
+    "two random values": (
+        lambda: _reshaped(random_values=[{"seed": 4}] * 2),
+        _NO_RANDOMS,
+    ),
+    "random values empty": (
+        lambda: _reshaped(random_values=[]),
+        _NO_RANDOMS,
+    ),
+    "random values an object": (
+        lambda: _reshaped(random_values={}),
+        _NO_RANDOMS,
+    ),
+    "random values that are not objects": (
+        lambda: _reshaped(random_values=[{"seed": 4}, {"seed": 4}, "x"]),
+        _NO_RANDOMS,
+    ),
     "a float whose display is no finite number": (
         lambda: _holding(chorus_delay_1=1e30),  # shown as two to that power, in seconds
         "chorus_delay_1: 1e+30 has no display that is a finite number",
@@ -1051,7 +1282,12 @@ def test_a_preset_the_plugin_was_seen_not_to_load_whole_is_refused_before_it_is_
     plugin: _FakeVital,
     case: tuple[Callable[[], VitalPreset], str],
 ) -> None:
-    """Each shape the probes saw block, be ignored or keep old sections, refused by its reason."""
+    """Each shape the probes saw block, be ignored, keep old sections or kill the process.
+
+    Refused by its reason, before the plugin is called. `custom_warps` and `random_values` one
+    entry longer killed the process on Vital, and shorter or empty were not held as given (the
+    spec of issue #20's `verification/arrays-seen.txt`): no test sends Vital either.
+    """
     build, reason = case
     preset = build()
     with pytest.raises(PatchRefusedError) as caught:
@@ -1075,7 +1311,23 @@ def test_the_guard_passes_what_vital_was_seen_to_load(pytestconfig: pytest.Confi
     check_loadable(start_preset().model_copy(update={"synth_version": "0.6.1"}), found)
     check_loadable(_reshaped(sample={**_SAMPLE, "samples_stereo": ""}), found)
     check_loadable(_reshaped(custom_warps=None, random_values=None), found)
+    check_loadable(_reshaped(custom_warps=[_LINE] * 3, random_values=[{"seed": 9}] * 3), found)
     check_loadable(_holding(flanger_dry_wet=_float32(0.7072)), found)
+
+
+def test_the_sections_are_judged_in_the_order_the_guard_gives() -> None:
+    """Of two sections that would each refuse, the earlier in the guard's order is named.
+
+    Wavetables and lfos, then the sample, then the two a preset need not hold.
+    """
+    found = parameter_map()
+    both = _reshaped(sample=[_SAMPLE], custom_warps=[], random_values=[])
+    with pytest.raises(PatchRefusedError) as caught:
+        check_loadable(both, found)
+    assert caught.value.reason == _NO_SAMPLE
+    with pytest.raises(PatchRefusedError) as caught:
+        check_loadable(_reshaped(custom_warps=[], random_values=[]), found)
+    assert caught.value.reason == _NO_WARPS
 
 
 def test_a_version_is_compared_by_its_numbers_less_trailing_zeros() -> None:
@@ -1103,8 +1355,10 @@ def test_a_plugin_version_that_is_not_digits_and_dots_refuses_every_preset_by_na
 def test_the_guard_does_not_read_inside_a_section() -> None:
     """Three wavetables whose inside Vital cannot read pass: the limit the docstring states.
 
-    On Vital this text never returns (the instrument spec's `verification/probes.txt`; issue
-    #20), which is why no test sends it there. The guard judges a section's shape alone.
+    Vital answers this text with its alert (the instrument spec's `verification/probes.txt`).
+    Since issue #20 the host answers that alert on macOS and the load is refused; anywhere else
+    it still never returns, which is why no test sends it to Vital in the test's own process.
+    The guard judges a section's shape alone.
     """
     check_loadable(_reshaped(wavetables=[{"groups": 5}] * 3), parameter_map())
 
@@ -1135,7 +1389,7 @@ def test_a_render_sends_the_pattern_s_midi_and_gives_the_length_asked_for(
         (),
     )
     assert instrument.preset is start_preset()
-    assert plugin.sets == []
+    assert _sets(plugin) == []
 
 
 def test_a_render_of_no_samples_is_an_empty_result_and_the_plugin_is_not_called(
@@ -1160,7 +1414,7 @@ def test_a_render_of_no_samples_is_an_empty_result_and_the_plugin_is_not_called(
     assert isinstance(completed, RenderCompleted)
     assert (completed.audio_seconds, completed.elapsed_seconds) == (0.0, result.elapsed_seconds)
     assert instrument.preset is start_preset()
-    assert (_state_floats(instrument), len(plugin.loads), plugin.sets) == (state, loads_made, [])
+    assert (_state_floats(instrument), len(plugin.loads), _sets(plugin)) == (state, loads_made, [])
 
 
 _RATES = "MIN_SAMPLE_RATE, 1000 Hz, to MAX_SAMPLE_RATE, 768000 Hz"

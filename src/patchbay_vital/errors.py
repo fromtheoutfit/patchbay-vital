@@ -6,10 +6,11 @@ with another. Under it, `VitalFormatError` is a preset's: a preset that cannot b
 `MalformedPresetError` or `UnknownSettingError`, never pydantic's or `json`'s error, and a file that
 cannot be reached is `PresetFileError`, never an `OSError`. `VitalHostError` is the hosted plugin's:
 a plugin that cannot be loaded is `PluginLoadError`, state bytes the codec cannot read, or a read,
-a state or a value the plugin refuses, are `PluginStateError`, a render the plugin cannot give is
-`PluginRenderError`, and a parameter map measured on another machine, or from another plugin,
-than this one is `MapMismatchError`, naming what differs; nothing pedalboard raises leaves the
-host. `CensusError` is the
+a state or a value the plugin refuses, a state it answers with its alert and a state it ignores
+are `PluginStateError`, a render the plugin cannot give is `PluginRenderError`, a parameter map
+measured on another machine, or from another plugin, than this one is `MapMismatchError`, naming
+what differs, and a state loaded from a thread that is not the main one, where the host makes no
+load, is `PluginThreadError`; nothing pedalboard raises leaves the host. `CensusError` is the
 generator's, naming a parameter it cannot fit. A model built directly refuses as patchbay's
 `PatchbayValidationError`, as every model on `PatchbayModel` does.
 
@@ -118,8 +119,10 @@ class PluginLoadError(VitalHostError):
 class PluginStateError(VitalHostError, _ReasonError):
     """Bytes are not a state this package reads, or the plugin refused a read or a write.
 
-    Also what an instrument raises once the plugin has refused a load and the model's own text
-    after it, its state then unknown, and for every later call that would reach the plugin.
+    A write the plugin answered with its alert is one too, the alert's own words in the reason,
+    and so is a write it ignored, which a marker set before it shows. Also what an instrument
+    raises once the plugin has refused a load and the model's own text after it, its state then
+    unknown, and for every later call that would reach the plugin.
     """
 
     _prefix = "plugin state"
@@ -150,6 +153,26 @@ class MapMismatchError(VitalHostError):
     def __str__(self) -> str:
         """Say which field, and both values."""
         return f"the map's {self.what} is {self.measured!r}, here {self.found!r}"
+
+
+class PluginThreadError(VitalHostError):
+    """A state was to be loaded from a thread that is not the main one, and was not.
+
+    On macOS Vital answers a text it cannot read with an alert, which only the main thread can
+    open. From another thread the load raises instead, the plugin's parameters are then read
+    stale, and the process dies at its next render (the spec of issue #20's
+    `verification/probes-3-counts.txt`). So the host makes no load there: this is raised before
+    the plugin is called, and nothing is changed. `thread` is the name of the thread that asked.
+    """
+
+    def __init__(self, thread: str) -> None:
+        """Name the thread the load was asked from."""
+        super().__init__(thread)
+        self.thread = thread
+
+    def __str__(self) -> str:
+        """Say where a load is made, and where this one was asked from."""
+        return f"a state is loaded from the main thread only, not from {self.thread!r}"
 
 
 class UnknownParameterError(VitalError, ParameterNotFoundError):

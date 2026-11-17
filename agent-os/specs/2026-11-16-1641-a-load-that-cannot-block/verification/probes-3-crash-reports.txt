@@ -1,0 +1,252 @@
+The spec of issue #20 (a load that cannot block): what macOS's crash reports say of the children that died in probe run 3 (run 18:55 to 18:58 EST), read after it, run 2026-11-16 19:00 EST on branch
+bugfix/20-the-host-a-preset-vital-cannot-read-blocks-the-calling-process-for-ever, Vital at /Library/Audio/Plug-Ins/VST3/Vital.vst3
+the machine before the run: arm64, Apple M4 Pro, 14 cores, macOS 26.6.2 (25G83), Python 3.12.16, load 5.86 4.27 3.10, at 2026-11-16 19:00 EST
+the tree before the run (this transcript is written outside the tree and copied in afterwards):
+  HEAD 0eac1dba4e0738d8b32d2b703ddfba0c09d11b18
+  git status --porcelain=v1 --untracked-files=all, 8 lines:
+     M agent-os/specs/2026-11-15-1448-the-instrument/shape.md
+    ?? agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/plan.md
+    ?? agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/references.md
+    ?? agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/shape.md
+    ?? agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/standards.md
+    ?? agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/probes-1-costs.txt
+    ?? agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/probes-2-alert.txt
+    ?? agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/probes-3-counts.txt
+  git hash-object of each of those paths (a deleted one marked so):
+    ae44c46104b792f792e47728258dc5ed0c8b2eeb  agent-os/specs/2026-11-15-1448-the-instrument/shape.md
+    4a33afdae42f645aa8749f2766996be553358743  agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/plan.md
+    6085dde9b16dee9eda8a2c256f712e4bbac04225  agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/references.md
+    2896ae71767f19e8ad2e9358d44b14f0cdefea8b  agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/shape.md
+    dc2d17e44e7f13a6eb4911a880a958d6e67c31b8  agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/standards.md
+    6345b0bc5cf2bb31e8a363312a9e69269b087048  agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/probes-1-costs.txt
+    53118aba5339dd7f467c3999bfa74d408aaa6335  agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/probes-2-alert.txt
+    54133d8744901c8b1467807bf83755bb5f4583a3  agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/probes-3-counts.txt
+
+$ .venv/bin/python -B -I <scratchpad>/i20/crash_reports.py 185500 185900
+reports named python3.12-2026-11-16-<time>.ips with a time from 185500 to 185900: 13
+185613.000: pid 97017, EXC_BREAKPOINT SIGTRAP ; the faulting thread: 0 (com.apple.main-thread)
+    the faulting thread's stack, each frame its image and its symbol (shown once for each distinct stack):
+        AppKit  ___NSAssertMainEventQueueIsCurrentEventQueue_block_invoke + 216
+        libdispatch.dylib  _dispatch_client_callout + 16
+        libdispatch.dylib  _dispatch_once_callout + 32
+        AppKit  _DPSNextEvent + 268
+        AppKit  -[NSApplication(NSEventRouting) _nextEventMatchingEventMask:untilDate:inMode:dequeue:] + 688
+        AppKit  -[NSApplication(NSEventRouting) nextEventMatchingMask:untilDate:inMode:dequeue:] + 72
+        pedalboard_native.cpython-312-darwin.so  <no symbol> + 2125716
+        pedalboard_native.cpython-312-darwin.so  <no symbol> + 928204
+        pedalboard_native.cpython-312-darwin.so  <no symbol> + 935880
+        pedalboard_native.cpython-312-darwin.so  <no symbol> + 887544
+        pedalboard_native.cpython-312-darwin.so  <no symbol> + 961464
+        pedalboard_native.cpython-312-darwin.so  <no symbol> + 960748
+        pedalboard_native.cpython-312-darwin.so  <no symbol> + 478720
+        python3.12  cfunction_call + 72
+        python3.12  _PyEval_EvalFrameDefault + 225668
+        python3.12  PyEval_EvalCode + 216
+        python3.12  run_mod + 228
+        python3.12  pyrun_file + 156
+        python3.12  _PyRun_SimpleFileObject + 288
+        python3.12  _PyRun_AnyFileObject + 80
+        python3.12  pymain_run_file_obj + 164
+        python3.12  pymain_run_file + 72
+        python3.12  Py_RunMain + 1136
+        python3.12  pymain_main + 456
+        python3.12  main + 36
+        dyld  start + 6992
+185613.0002: pid 97127, EXC_BREAKPOINT SIGTRAP ; the faulting thread: 0 (com.apple.main-thread)
+185613: pid 96903, EXC_BREAKPOINT SIGTRAP ; the faulting thread: 0 (com.apple.main-thread)
+185616: pid 97243, EXC_BREAKPOINT SIGTRAP ; the faulting thread: 0 (com.apple.main-thread)
+185619: pid 97357, EXC_BREAKPOINT SIGTRAP ; the faulting thread: 0 (com.apple.main-thread)
+185623: pid 97482, EXC_BREAKPOINT SIGTRAP ; the faulting thread: 0 (com.apple.main-thread)
+185626: pid 97608, EXC_BREAKPOINT SIGTRAP ; the faulting thread: 0 (com.apple.main-thread)
+185629: pid 97720, EXC_BREAKPOINT SIGTRAP ; the faulting thread: 0 (com.apple.main-thread)
+185632: pid 97842, EXC_BREAKPOINT SIGTRAP ; the faulting thread: 0 (com.apple.main-thread)
+185635: pid 97953, EXC_BREAKPOINT SIGTRAP ; the faulting thread: 0 (com.apple.main-thread)
+185638: pid 98073, EXC_BREAKPOINT SIGTRAP ; the faulting thread: 0 (com.apple.main-thread)
+185642: pid 98265, EXC_BAD_ACCESS SIGSEGV KERN_INVALID_ADDRESS at 0x0000000000000004; the faulting thread: 10 (a thread with no name)
+    the faulting thread's stack, each frame its image and its symbol (shown once for each distinct stack):
+        Vital  LineGenerator::render() + 808
+        Vital  LineGenerator::fromJson(nlohmann::basic_json<std::__1::map, std::__1::vector, std::__1::basic_string<char, std + 724
+        Vital  LineGenerator::fromJson(nlohmann::basic_json<std::__1::map, std::__1::vector, std::__1::basic_string<char, std + 724
+        Vital  LoadSave::jsonToState(SynthBase*, std::__1::map<std::__1::basic_string<char, std::__1::char_traits<char>, std: + 5072
+        Vital  SynthProcessor::setStateInformation(void const*, int) + 416
+        Vital  juce::JuceVST3Component::setStateInformation(void const*, int) + 244
+        Vital  juce::JuceVST3Component::loadVST2CompatibleState(char const*, int) + 152
+        Vital  juce::JuceVST3Component::setState(Steinberg::IBStream*) + 720
+        pedalboard_native.cpython-312-darwin.so  <no symbol> + 300380
+        pedalboard_native.cpython-312-darwin.so  <no symbol> + 941952
+        pedalboard_native.cpython-312-darwin.so  <no symbol> + 260236
+        pedalboard_native.cpython-312-darwin.so  <no symbol> + 944068
+        pedalboard_native.cpython-312-darwin.so  <no symbol> + 943580
+        pedalboard_native.cpython-312-darwin.so  <no symbol> + 477652
+        python3.12  cfunction_call + 72
+        python3.12  PyObject_Vectorcall + 420
+        python3.12  property_descr_set + 72
+        python3.12  PyObject_GenericSetAttr + 1220
+        python3.12  wrap_setattr + 192
+        python3.12  _PyEval_EvalFrameDefault + 225668
+        python3.12  vectorcall_method + 192
+        python3.12  slot_tp_setattro + 60
+        python3.12  _PyEval_EvalFrameDefault + 71096
+        python3.12  method_vectorcall + 356
+        python3.12  thread_run + 156
+        python3.12  pythread_wrapper + 48
+        libsystem_pthread.dylib  _pthread_start + 136
+        libsystem_pthread.dylib  thread_start + 8
+185759: pid 1629, EXC_BAD_ACCESS SIGSEGV KERN_INVALID_ADDRESS at 0x0000000000000004; the faulting thread: 0 (com.apple.main-thread)
+by exception and signal: {('EXC_BREAKPOINT', 'SIGTRAP'): 11, ('EXC_BAD_ACCESS', 'SIGSEGV'): 2}
+exit=0
+
+the tree after the run:
+  HEAD 0eac1dba4e0738d8b32d2b703ddfba0c09d11b18
+  git status --porcelain=v1 --untracked-files=all, 8 lines:
+     M agent-os/specs/2026-11-15-1448-the-instrument/shape.md
+    ?? agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/plan.md
+    ?? agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/references.md
+    ?? agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/shape.md
+    ?? agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/standards.md
+    ?? agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/probes-1-costs.txt
+    ?? agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/probes-2-alert.txt
+    ?? agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/probes-3-counts.txt
+  git hash-object of each of those paths (a deleted one marked so):
+    ae44c46104b792f792e47728258dc5ed0c8b2eeb  agent-os/specs/2026-11-15-1448-the-instrument/shape.md
+    4a33afdae42f645aa8749f2766996be553358743  agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/plan.md
+    6085dde9b16dee9eda8a2c256f712e4bbac04225  agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/references.md
+    2896ae71767f19e8ad2e9358d44b14f0cdefea8b  agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/shape.md
+    dc2d17e44e7f13a6eb4911a880a958d6e67c31b8  agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/standards.md
+    6345b0bc5cf2bb31e8a363312a9e69269b087048  agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/probes-1-costs.txt
+    53118aba5339dd7f467c3999bfa74d408aaa6335  agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/probes-2-alert.txt
+    54133d8744901c8b1467807bf83755bb5f4583a3  agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/probes-3-counts.txt
+cmp: the tree after the run is the tree before it
+the machine after the run: arm64, Apple M4 Pro, 14 cores, macOS 26.6.2 (25G83), Python 3.12.16, load 5.86 4.27 3.10, at 2026-11-16 19:00 EST
+
+the scripts this run used, each embedded below with its blob:
+    a87edad05f41c25b9d9195b90fd3ceb2333d4b5a  <scratchpad>/i20/crash_reports.py
+    e4c1a40cc3893ab50df6717e5a18e2a755914efd  <scratchpad>/i20/tree.sh
+    0dde01b338e9dbc221abc7e0d9b87bcf21acf1cf  <scratchpad>/i20/machine.sh
+    43532a582c6f20d5b140e66162c45647a16a4287  <scratchpad>/i20/transcript.sh
+
+--- <scratchpad>/i20/crash_reports.py
+```
+"""What macOS's crash reports say of the Python children that died during a probe run.
+
+usage: crash_reports.py <from HHMMSS> <to HHMMSS>   (the reports of today whose name's time is in the span)
+
+Reads ~/Library/Logs/DiagnosticReports/python3.12-<today>-<time>*.ips, which the system writes
+when a process dies of a signal. For each: its pid, its exception and signal, its faulting thread.
+For each distinct stack, the faulting thread's frames, each its image and its symbol, once.
+Nothing else of a report is printed. It loads no plugin and opens no window.
+"""
+
+import collections
+import json
+import sys
+import time
+from pathlib import Path
+
+FRAMES = 28
+
+
+def main(first: str, last: str) -> None:
+    today = time.strftime("%Y-%m-%d")
+    folder = Path.home() / "Library" / "Logs" / "DiagnosticReports"
+    paths = sorted(
+        path
+        for path in folder.glob(f"python3.12-{today}-*.ips")
+        if first <= path.name.split("-")[-1][:6] <= last
+    )
+    print(f"reports named python3.12-{today}-<time>.ips with a time from {first} to {last}: {len(paths)}")
+    kinds: collections.Counter[tuple[object, ...]] = collections.Counter()
+    shown: set[tuple[object, ...]] = set()
+    for path in paths:
+        with path.open(encoding="utf-8", errors="replace") as report:
+            report.readline()
+            body = json.loads(report.read())
+        exception = body.get("exception", {})
+        images = body.get("usedImages", [])
+        thread = body["threads"][body.get("faultingThread", 0)]
+        frames = [
+            f"{images[frame['imageIndex']].get('name', '?')}  {str(frame.get('symbol', '<no symbol>'))[:110]} + {frame.get('symbolLocation', frame.get('imageOffset'))}"
+            for frame in thread.get("frames", [])[:FRAMES]
+        ]
+        where = thread.get("queue") or thread.get("name") or "a thread with no name"
+        kinds[(exception.get("type"), exception.get("signal"))] += 1
+        print(
+            f"{path.name.removeprefix('python3.12-' + today + '-').removesuffix('.ips')}: pid {body.get('pid')}, "
+            f"{exception.get('type')} {exception.get('signal')} {exception.get('subtype', '')}; "
+            f"the faulting thread: {body.get('faultingThread')} ({where})"
+        )
+        key = (exception.get("type"), tuple(line.split(" + ")[0] for line in frames[:8]))
+        if key not in shown:
+            shown.add(key)
+            print("    the faulting thread's stack, each frame its image and its symbol (shown once for each distinct stack):")
+            for line in frames:
+                print(f"        {line}")
+    print(f"by exception and signal: {dict(kinds)}")
+
+
+if __name__ == "__main__":
+    main(sys.argv[1], sys.argv[2])
+```
+
+--- <scratchpad>/i20/tree.sh
+```
+#!/usr/bin/env bash
+# usage: tree.sh   (run from the repository root)
+# Prints HEAD, git's status of the work tree and the blob of every path that status names, so two
+# calls can be compared with cmp: the tree a run read, and the tree it left.
+set -euo pipefail
+echo "  HEAD $(git rev-parse HEAD)"
+git status --porcelain=v1 --untracked-files=all > "${TMPDIR:-/tmp}/tree.$$"
+echo "  git status --porcelain=v1 --untracked-files=all, $(wc -l < "${TMPDIR:-/tmp}/tree.$$" | tr -d ' ') lines:"
+sed 's/^/    /' "${TMPDIR:-/tmp}/tree.$$"
+echo "  git hash-object of each of those paths (a deleted one marked so):"
+cut -c4- "${TMPDIR:-/tmp}/tree.$$" | LC_ALL=C sort | while IFS= read -r path; do
+  if [ -e "$path" ]; then echo "    $(git hash-object "$path")  $path"; else echo "    (deleted)  $path"; fi
+done
+rm -f "${TMPDIR:-/tmp}/tree.$$"
+```
+
+--- <scratchpad>/i20/machine.sh
+```
+#!/usr/bin/env bash
+# usage: machine.sh   Prints one line: the machine, its system, the locked Python and the load.
+set -euo pipefail
+echo "$(uname -m), $(sysctl -n machdep.cpu.brand_string), $(sysctl -n hw.ncpu) cores, macOS $(sw_vers -productVersion) ($(sw_vers -buildVersion)), Python $(uv run --locked python -c 'import platform; print(platform.python_version())'), load $(sysctl -n vm.loadavg | tr -d '{}' | xargs), at $(date '+%Y-%m-%d %H:%M %Z')"
+```
+
+--- <scratchpad>/i20/transcript.sh
+```
+#!/usr/bin/env bash
+# usage: transcript.sh <out file> <title> <script to embed>... -- <command...>   (from the repository root)
+# Writes one transcript outside the tree: its date and branch, the machine and the tree before,
+# the command's whole output, the tree and the machine after, the two trees compared, and every
+# script it ran, embedded. The caller copies the file into the spec's verification/ afterwards.
+set -uo pipefail
+R=$(cd "$(dirname "$0")" && pwd)
+out=$1; title=$2; shift 2
+scripts=()
+while [ "$1" != "--" ]; do scripts+=("$1"); shift; done
+shift
+{
+  echo "$title, run $(date '+%Y-%m-%d %H:%M %Z') on branch"
+  echo "$(git branch --show-current), Vital at /Library/Audio/Plug-Ins/VST3/Vital.vst3"
+  echo "the machine before the run: $(bash "$R/machine.sh")"
+  echo "the tree before the run (this transcript is written outside the tree and copied in afterwards):"
+  bash "$R/tree.sh" | tee "$R/out/tree-before.txt"
+  echo
+  echo "\$ $*" | sed "s|$R|<scratchpad>/i20|g"
+  "$@" 2>&1
+  echo "exit=$?"
+  echo
+  echo "the tree after the run:"
+  bash "$R/tree.sh" | tee "$R/out/tree-after.txt"
+  if cmp -s "$R/out/tree-before.txt" "$R/out/tree-after.txt"; then echo "cmp: the tree after the run is the tree before it"; else echo "cmp: THE TREE CHANGED DURING THE RUN"; fi
+  echo "the machine after the run: $(bash "$R/machine.sh")"
+  echo
+  echo "the scripts this run used, each embedded below with its blob:"
+  for s in "${scripts[@]}" "$R/tree.sh" "$R/machine.sh" "$R/transcript.sh"; do echo "    $(git hash-object "$s")  <scratchpad>/i20/$(basename "$s")"; done
+  for s in "${scripts[@]}" "$R/tree.sh" "$R/machine.sh" "$R/transcript.sh"; do
+    echo; echo "--- <scratchpad>/i20/$(basename "$s")"; echo '```'; cat "$s"; echo '```'
+  done
+} > "$out"
+```

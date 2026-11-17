@@ -13,14 +13,23 @@ spec, `agent-os/specs/2026-11-15-1448-the-instrument/`); none compares samples. 
 is written out or worked out from primitives, never by the map's `to_preset` or the instrument.
 
 No test here may hang the gate. Vital answers a text it cannot read with a modal alert and never
-returns to its caller (issue #20), so every load a test sends passes the instrument's guard first,
-and the loads that block live only in that spec's transcripts, each run in a process of its own.
+returns to its caller, which the host answers on macOS alone (issue #20), and some texts kill the
+process. So every load a test sends Vital in this process is a text Vital was seen to load, which
+passes the instrument's guard first. Two tests give Vital a text it does not take, one it answers
+with its alert and one it ignores: each does so in a child of its own, killed at a time limit, so
+a remedy that stopped working fails here by name and hangs nothing. The texts that block or kill
+live only in the transcripts of the spec of issue #20
+(`agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/`), each run in a process of its own.
 """
 
 import json
 import math
+import os
 import platform
 import struct
+import subprocess
+import sys
+import time
 from fractions import Fraction
 from pathlib import Path
 
@@ -821,3 +830,176 @@ def test_what_the_data_file_of_upgraded_floats_holds(pytestconfig: pytest.Config
     assert json.dumps(sorted(recorded["Factory/Presets/Ah Eh Ee Oh.vital"].items())) == (
         '[["osc_1_stack_style", [9.0, 10.0]]]'
     )
+
+
+# --- a text Vital does not take, each in a child this module can kill ----------------------------
+
+_CHILD_SECONDS = 20
+"""What a child is given: Vital loads in about two seconds, and a load it takes in milliseconds.
+A child still running then is killed, so neither test below can wait on an alert past it."""
+
+_ALERTING = """
+import json
+import sys
+
+from patchbay import EventBus, PresetKey
+
+from patchbay_vital import dumps, loads
+from patchbay_vital.errors import PatchRefusedError
+from patchbay_vital.host import _floats
+from patchbay_vital.instrument import VitalInstrument
+from patchbay_vital.patch import patch_of
+
+
+def sections(state):
+    settings = json.loads(state)["settings"]
+    return {key: value for key, value in settings.items() if not isinstance(value, float)}
+
+
+model = loads(open(sys.argv[1], encoding="utf-8").read())
+instrument = VitalInstrument(EventBus())
+instrument.load_patch(patch_of(model))
+before = instrument.host.state()
+sample = {"length": "x", "name": "x", "sample_rate": 44100, "samples": ""}
+unread = {**model.opaque, PresetKey("sample"): json.dumps(sample).encode("utf-8")}
+outcome = {"refused": False}
+try:
+    instrument.load_patch(patch_of(model.model_copy(update={"opaque": unread})))
+except PatchRefusedError as error:
+    outcome = {"refused": True, "reason": error.reason, "cause": type(error.__cause__).__name__}
+after = instrument.host.state()
+outcome["floats"] = len(_floats(before))
+outcome["floats_as_before"] = _floats(after) == _floats(before)
+outcome["sections_as_before"] = sections(after) == sections(before)
+outcome["model_kept"] = dumps(instrument.preset) == dumps(model)
+print(json.dumps(outcome))
+"""
+
+_IGNORED = """
+import json
+
+from patchbay_vital import dumps
+from patchbay_vital.errors import PluginStateError
+from patchbay_vital.host import VitalHost, _floats
+from patchbay_vital.start import start_preset
+
+start = start_preset()
+host = VitalHost()
+text = dumps(start).encode("utf-8")
+host.load_state(text)
+host.load_state(text)
+before = _floats(host.state())
+newer = dumps(start.model_copy(update={"synth_version": "99.0.0"})).encode("utf-8")
+outcome = {"refused": False}
+try:
+    host.load_state(newer)
+except PluginStateError as error:
+    outcome = {"refused": True, "reason": error.reason}
+outcome["floats"] = len(before)
+outcome["floats_as_before"] = _floats(host.state()) == before
+print(json.dumps(outcome))
+"""
+
+
+def _in_a_child(script: str, *arguments: str) -> dict[str, object]:
+    """Run a script in a child of this interpreter; return what it printed, or fail by name.
+
+    A child that has not ended in `_CHILD_SECONDS` is killed, by `subprocess.run`, and the test
+    fails saying so: a load that waited on Vital's alert is what that would be.
+    """
+    try:
+        child = subprocess.run(  # noqa: S603 - this interpreter, and a script of this module
+            [sys.executable, "-c", script, *arguments],
+            capture_output=True,
+            text=True,
+            timeout=_CHILD_SECONDS,
+            check=False,
+        )
+    except subprocess.TimeoutExpired:
+        pytest.fail(f"the child did not return in {_CHILD_SECONDS} s and was killed: a load waited")
+    assert child.returncode == 0, child.stderr
+    printed: dict[str, object] = json.loads(child.stdout.splitlines()[-1])
+    return printed
+
+
+_NEVER_RETURNS = """
+import os
+import sys
+import time
+
+with open(sys.argv[1], "w", encoding="utf-8") as noted:
+    noted.write(str(os.getpid()))
+time.sleep(600)
+"""
+
+
+def test_a_child_that_does_not_return_is_killed_at_its_limit_and_the_test_fails_by_name(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A stand-in that blocks, in place of a load waiting on Vital's alert: nothing hangs.
+
+    The two tests below reach Vital only through `_in_a_child`. Here its child sleeps for ten
+    minutes and the limit is a second: the child is killed at the limit, the test that ran it
+    fails saying so, and the process is gone. It needs no Vital, so it runs everywhere.
+    """
+    noted = tmp_path / "pid"
+    monkeypatch.setattr(sys.modules[__name__], "_CHILD_SECONDS", 1)
+    began = time.perf_counter()
+    with pytest.raises(pytest.fail.Exception, match="did not return in 1 s and was killed"):
+        _in_a_child(_NEVER_RETURNS, str(noted))
+    assert time.perf_counter() - began < 10  # noqa: PLR2004 - far short of the child's ten minutes
+    with pytest.raises(ProcessLookupError):
+        os.kill(int(noted.read_text(encoding="utf-8")), 0)
+
+
+def test_a_patch_vital_answers_with_its_alert_is_refused_and_the_plugin_put_back(
+    vital: VitalHost, pytestconfig: pytest.Config
+) -> None:
+    """Issue #20, on Vital, in a child: the alert is answered and the patch refused, on macOS.
+
+    The model is the fixture, loaded through a patch. The patch then given is the fixture with a
+    sample whose `length` is a string, which the guard passes and Vital answers with its alert
+    (the instrument spec's `verification/probes.txt`). `load_patch` raises the package's patch
+    error with Vital's words, and the plugin, which had taken the patch in part, holds every one
+    of its 903 floats and every section as before it. The model is the fixture still.
+    """
+    del vital  # asked for so that this skips where the module's Vital does
+    if platform.system() != "Darwin":
+        pytest.skip(f"Vital's alert is answered on macOS alone; this is {platform.system()}")
+    fixture = pytestconfig.rootpath / "tests" / "data" / "init-media-replaced.vital"
+    outcome = _in_a_child(_ALERTING, str(fixture))
+    assert outcome == {
+        "refused": True,
+        "reason": (
+            "the plugin refused the preset: Vital answered the state with its alert, "
+            "'Error opening preset': 'There was an error open the preset. Preset file is "
+            "corrupted.'"
+        ),
+        "cause": "PluginStateError",
+        "floats": _PARAMETERS,
+        "floats_as_before": True,
+        "sections_as_before": True,
+        "model_kept": True,
+    }
+
+
+def test_a_state_vital_ignores_is_refused_by_the_marker_and_the_plugin_left_as_it_was(
+    vital: VitalHost,
+) -> None:
+    """A text newer than the plugin, given to the host in a child: refused, nothing changed.
+
+    Vital ignores it whole and says nothing (the instrument spec's `verification/probes.txt`).
+    The instrument's guard refuses such a version before the plugin is called; this is the host
+    alone, whose marker was left as it was set. All 903 floats are then what they were, the
+    marker set back among them.
+    """
+    del vital  # asked for so that this skips where the module's Vital does
+    outcome = _in_a_child(_IGNORED)
+    assert outcome == {
+        "refused": True,
+        "reason": (
+            "Vital ignored the state: filter_1_on, set before the load, was left as it was set"
+        ),
+        "floats": _PARAMETERS,
+        "floats_as_before": True,
+    }

@@ -75,19 +75,38 @@ not said what the group holds.
   and is still read with `get`.
 - **Each note sounds for its own length.** Two notes of one pitch that overlap on one channel would
   both stop at the first one's end on Vital, so the later is sent on a channel of its own.
-- **If the plugin refuses a load and then refuses the instrument's own preset, build a new
-  instrument.** Its state is then unknown, and the instrument refuses every later call that would
-  reach it.
+- **If the plugin does not take a load and then does not take the instrument's own preset, build
+  a new instrument.** Its state is then unknown, and the instrument refuses every later call that
+  would reach it.
 
-Known limits, each measured on Vital 1.6.4 through pedalboard 0.9.26 on arm64. The first three each
+**A patch Vital cannot use.** Vital reports none. What the instrument does about each kind, on
+Vital 1.6.4 through pedalboard 0.9.26 on arm64 (issue #20;
+`agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/shape.md` holds the measurements):
+
+- **One Vital cannot read** it answers with a modal alert, and never returns to its caller. On
+  macOS the instrument answers that alert before it opens: `load_patch` raises
+  `PatchRefusedError` with Vital's own words and loads its own preset again. **On any other
+  platform nothing answers the alert, and such a patch still blocks the calling process.**
+  Nothing was measured there, nor in a process with no screen.
+- **From a thread that is not the main one,** on macOS, a load is refused with
+  `PluginThreadError` and nothing is touched. The alert cannot open there, and the process was
+  seen to die at its next render.
+- **One Vital ignores is refused too.** A preset newer than the plugin, which Vital ignores
+  whole, `load_patch` refuses before Vital is given it. Behind that, the instrument sets a marker
+  on the plugin before each load and reads it afterwards, and a load that left the marker is
+  refused. The marker never shows in `get`, `patch` or an event.
+- **A patch Vital crashes on kills the calling process** (issue #25). Three shapes were found,
+  each a section one entry longer than Vital holds, and `load_patch` refuses those. Only the
+  shapes found are refused.
+- **A patch Vital loads in part is not detected** (issue #25). Where it keeps a wavetable or a
+  sample it had, or makes something else of the one given, nothing read back from the plugin
+  tells.
+
+Known limits, each measured on Vital 1.6.4 through pedalboard 0.9.26 on arm64. The first two each
 wait on an issue of their own and come before the first experiment that puts an agent in front of
-the instrument, in this order; the fourth is a workaround no issue owns
+the instrument, in this order; the third is a workaround no issue owns
 (`agent-os/specs/2026-11-15-1448-the-instrument/shape.md` holds the measurements):
 
-- **A malformed preset section can hang the process** (issue #20). Vital answers a preset it cannot read with a
-  modal alert and never returns to its caller. `load_patch` refuses every shape of preset that was
-  seen to do this before Vital is given it, but the inside of a wavetable, an LFO or a sample
-  section passes through unread, and one Vital cannot read still blocks.
 - **A render of most presets opens with the preset sounding though no note was played** (issue
   #21). On the start preset this is a transient of about 2% of full scale that is over in about a
   tenth of a second; on presets Vital installs it reaches full scale and can last seconds.

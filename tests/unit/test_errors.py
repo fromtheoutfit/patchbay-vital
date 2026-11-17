@@ -23,6 +23,7 @@ from patchbay_vital.errors import (
     PluginLoadError,
     PluginRenderError,
     PluginStateError,
+    PluginThreadError,
     PresetFileError,
     RenderRefusedError,
     UnknownParameterError,
@@ -40,6 +41,7 @@ _ERRORS = (
     PluginStateError("no VST3 header"),
     PluginRenderError("6 samples of 7"),
     MapMismatchError("machine", "arm64", "x86_64"),
+    PluginThreadError("Thread-1 (work)"),
     UnknownParameterError("nope", "Vital"),
     ParameterRangeError("volume", 0.0, 1.0, 1.5),
     CensusError("Filter 1 Cutoff", "no curve fits"),
@@ -71,7 +73,7 @@ def test_each_part_has_its_own_branch() -> None:
     for format_error in _ERRORS[:3]:
         assert isinstance(format_error, VitalFormatError)
         assert not isinstance(format_error, VitalHostError)
-    for host_error in _ERRORS[3:7]:
+    for host_error in _ERRORS[3:8]:
         assert isinstance(host_error, VitalHostError)
         assert not isinstance(host_error, VitalFormatError)
 
@@ -123,6 +125,18 @@ def test_fields_are_attributes() -> None:
     assert (census.label, census.reason) == ("Filter 1 Cutoff", "no curve fits")
     mismatch = MapMismatchError("vital_version", "1.6.4", "1.7.0")
     assert (mismatch.what, mismatch.measured, mismatch.found) == ("vital_version", "1.6.4", "1.7.0")
+    assert PluginThreadError("Thread-1 (work)").thread == "Thread-1 (work)"
+
+
+def test_a_load_from_another_thread_is_no_state_error() -> None:
+    """It is the host's, and not `PluginStateError`: an instrument answers that with a rollback.
+
+    Nothing was touched when it is raised, so there is nothing to put back.
+    """
+    error = PluginThreadError("Thread-1 (work)")
+    assert isinstance(error, VitalHostError)
+    assert not isinstance(error, PluginStateError)
+    assert str(error) == "a state is loaded from the main thread only, not from 'Thread-1 (work)'"
 
 
 def test_a_reason_is_said_after_what_failed() -> None:

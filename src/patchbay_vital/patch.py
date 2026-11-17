@@ -84,7 +84,7 @@ from patchbay_vital.format import (
 )
 from patchbay_vital.parameters import MappedParameter, ParameterMap, parameter_map
 from patchbay_vital.preset import DECODER, MODULATION_SLOTS, SLOT_KEY, VitalPreset, VitalSettings
-from patchbay_vital.start import LFOS, OSCILLATORS, start_preset
+from patchbay_vital.start import LFOS, OSCILLATORS, RANDOMS, WARPS, start_preset
 
 PRESET_ENTRY = "preset"
 """The `opaque` key of the entry that makes a patch a whole preset."""
@@ -102,6 +102,8 @@ _SLOT_NUMBER = re.compile("[1-9][0-9]*")
 _VERSION = re.compile("[0-9]+([.][0-9]+)*")
 _SAMPLE_KEYS = frozenset({"length", "name", "sample_rate", "samples"})
 _SECTION_COUNTS = {"wavetables": OSCILLATORS, "lfos": LFOS}
+_HELD_COUNTS = {"custom_warps": WARPS, "random_values": RANDOMS}
+"""The sections a preset need not hold, and how many entries one that holds them has."""
 
 
 class _Entry(PatchbayModel, frozen=True):
@@ -338,9 +340,10 @@ def check_loadable(preset: VitalPreset, found: ParameterMap) -> None:
     """Raise PatchRefusedError unless a preset is one the plugin was seen to load whole.
 
     Vital reports no load it cannot use. It blocks its caller on a modal alert, ignores the whole
-    text without a word, or loads the floats and keeps the sections it had (the instrument spec's
-    `verification/probes.txt`), so what was seen to do so is refused here, before the plugin is
-    called, in this order:
+    text without a word, loads the floats and keeps the sections it had, or dies of a signal
+    inside its own reading of the text (the instrument spec's `verification/probes.txt`, and the
+    spec of issue #20's `verification/probes-4-counts.txt` and `arrays-seen.txt`), so what was
+    seen to do so is refused here, before the plugin is called, in this order:
 
     - a `synth_version` that is not digits and dots, which blocks, or is newer than the plugin's,
       `found.vital_version`, which is ignored whole; versions compared by their numbers, trailing
@@ -350,11 +353,19 @@ def check_loadable(preset: VitalPreset, found: ParameterMap) -> None:
       that is not an object holding `length`, `name`, `sample_rate` and `samples`: every preset
       Vital installs, of any version, holds them so, a text without them blocks, and an empty
       array keeps the sections of the preset before it;
+    - `custom_warps` and `random_values`, where the preset holds them, that are not arrays of
+      three objects. None of the 75 presets Vital installs holds either, and its own saves hold
+      three. One entry more killed the process, every time: with `custom_warps` in the first
+      load, with `random_values` in the second, the first having returned. One entry fewer, or
+      none, loaded without a word and was not held as the text gives it;
     - a parameter's float whose display is no finite number, which `get` could not return.
 
-    It judges a section's shape and not its inside, which this package does not read: a section
-    Vital cannot read inside still blocks. It needs no plugin, so a preset `preset_of` builds can
-    be checked where no Vital is installed.
+    It judges a section's shape and not its inside, which this package does not read. A section
+    Vital cannot read inside is answered with Vital's alert, which the host answers on macOS and
+    which blocks elsewhere (`patchbay_vital.host`). Only the shapes found are refused: a text
+    not tried that Vital dies on kills the calling process, and one it loads in part is not
+    detected (issue #25). It needs no plugin, so a preset `preset_of` builds can be checked
+    where no Vital is installed.
     """
     version, plugin = _version(preset.synth_version), _version(found.vital_version)
     if version is None:
@@ -371,19 +382,7 @@ def check_loadable(preset: VitalPreset, found: ParameterMap) -> None:
             f"synth_version {preset.synth_version} is newer than the plugin's {found.vital_version}"
         )
         raise PatchRefusedError(msg)
-    for name, count in _SECTION_COUNTS.items():
-        section = _section(preset, name)
-        if not (
-            isinstance(section, list)
-            and len(section) == count
-            and all(isinstance(entry, dict) for entry in section)
-        ):
-            msg = f"settings.{name}: a preset holds an array of {count} objects there"
-            raise PatchRefusedError(msg)
-    sample = _section(preset, "sample")
-    if not (isinstance(sample, dict) and sample.keys() >= _SAMPLE_KEYS):
-        msg = f"settings.sample: a preset holds an object there with {sorted(_SAMPLE_KEYS)}"
-        raise PatchRefusedError(msg)
+    _check_sections(preset)
     _, slots = split_modulations(preset.modulations)
     floats = {**preset.settings.values, **slots}
     for record in found.parameters:
@@ -391,6 +390,32 @@ def check_loadable(preset: VitalPreset, found: ParameterMap) -> None:
         if held is not None and not math.isfinite(record.to_display(held)):
             msg = f"{record.id}: {held!r} has no display that is a finite number"
             raise PatchRefusedError(msg)
+
+
+def _check_sections(preset: VitalPreset) -> None:
+    """Refuse the first section whose shape is not one `check_loadable` passes, by name."""
+    for name, count in _SECTION_COUNTS.items():
+        if not _objects(_section(preset, name), count):
+            msg = f"settings.{name}: a preset holds an array of {count} objects there"
+            raise PatchRefusedError(msg)
+    sample = _section(preset, "sample")
+    if not (isinstance(sample, dict) and sample.keys() >= _SAMPLE_KEYS):
+        msg = f"settings.sample: a preset holds an object there with {sorted(_SAMPLE_KEYS)}"
+        raise PatchRefusedError(msg)
+    for name, count in _HELD_COUNTS.items():
+        section = _section(preset, name)
+        if section is not None and not _objects(section, count):
+            msg = f"settings.{name}: a preset that holds it holds an array of {count} objects there"
+            raise PatchRefusedError(msg)
+
+
+def _objects(section: object, count: int) -> bool:
+    """Whether a section is an array of exactly `count` objects."""
+    return (
+        isinstance(section, list)
+        and len(section) == count
+        and all(isinstance(entry, dict) for entry in section)
+    )
 
 
 def _section(preset: VitalPreset, name: str) -> object:

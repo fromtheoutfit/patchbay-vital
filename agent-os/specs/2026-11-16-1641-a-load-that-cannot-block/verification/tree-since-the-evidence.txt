@@ -1,0 +1,670 @@
+The spec of issue #20 (a load that cannot block): the tree the four evidence runs of the remedy read against the tree now, every file that differs, and the code among them compared as syntax trees with docstrings left out, run 2026-11-17 10:38 EST on branch
+bugfix/20-the-host-a-preset-vital-cannot-read-blocks-the-calling-process-for-ever, Vital at /Library/Audio/Plug-Ins/VST3/Vital.vst3
+the machine before the run: arm64, Apple M4 Pro, 14 cores, macOS 26.6.2 (25G83), Python 3.12.16, load 2.87 3.49 3.54, at 2026-11-17 10:38 EST
+the tree before the run (this transcript is written outside the tree and copied in afterwards):
+  HEAD 0eac1dba4e0738d8b32d2b703ddfba0c09d11b18
+  git status --porcelain=v1 --untracked-files=all, 34 lines:
+     M CHANGELOG.md
+     M README.md
+     M agent-os/specs/2026-11-15-1448-the-instrument/shape.md
+     M agent-os/standards/index.yml
+     M agent-os/standards/vital/instrument.md
+     M agent-os/standards/vital/plugin-state.md
+     M agent-os/standards/vital/preset-tests.md
+     M src/patchbay_vital/__init__.py
+     M src/patchbay_vital/errors.py
+     M src/patchbay_vital/host.py
+     M src/patchbay_vital/instrument.py
+     M src/patchbay_vital/patch.py
+     M tests/integration/test_factory_round_trip.py
+     M tests/integration/test_vital_instrument.py
+     M tests/unit/builders.py
+     M tests/unit/test_errors.py
+     M tests/unit/test_host.py
+     M tests/unit/test_instrument.py
+     M tests/unit/test_package.py
+    ?? agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/plan.md
+    ?? agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/references.md
+    ?? agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/shape.md
+    ?? agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/standards.md
+    ?? agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/arrays-seen.txt
+    ?? agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/marker-count.txt
+    ?? agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/mutation.txt
+    ?? agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/probes-1-costs.txt
+    ?? agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/probes-2-alert.txt
+    ?? agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/probes-3-counts.txt
+    ?? agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/probes-3-crash-reports.txt
+    ?? agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/probes-4-counts.txt
+    ?? agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/remedy-run.txt
+    ?? agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/rollback-count.txt
+    ?? agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/silent-and-loaded.txt
+  git hash-object of each of those paths (a deleted one marked so):
+    cd751df88d30be59d9edfa23a88d864f76da12ff  CHANGELOG.md
+    1e402cdc3ee9d39f1d43610fc31ade93be1e62ce  README.md
+    ae44c46104b792f792e47728258dc5ed0c8b2eeb  agent-os/specs/2026-11-15-1448-the-instrument/shape.md
+    591cd32a08be01102faebf883aacf23bf01eb4e4  agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/plan.md
+    6085dde9b16dee9eda8a2c256f712e4bbac04225  agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/references.md
+    82d3b4b7414faad78f9e22bcaf25a1c06de8e2cb  agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/shape.md
+    dc2d17e44e7f13a6eb4911a880a958d6e67c31b8  agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/standards.md
+    97d63bacdf71c39778347a47a46f40f5bb0d9318  agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/arrays-seen.txt
+    62135b99759533170ede9990faf36a437b135816  agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/marker-count.txt
+    8e1d8b03e5170e41eed40858feb5f27f59c98c66  agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/mutation.txt
+    6345b0bc5cf2bb31e8a363312a9e69269b087048  agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/probes-1-costs.txt
+    53118aba5339dd7f467c3999bfa74d408aaa6335  agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/probes-2-alert.txt
+    54133d8744901c8b1467807bf83755bb5f4583a3  agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/probes-3-counts.txt
+    2615e8a958ad75443275dd697f13607e453383b7  agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/probes-3-crash-reports.txt
+    371444bcf8ac7ab79bff8a66ad59faebaf0ce04e  agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/probes-4-counts.txt
+    2a2d0bdc5bb18976897fc8f494f1b3dff001d226  agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/remedy-run.txt
+    1f95654bdf2808317fada22e8b501a07f7f3f4c8  agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/rollback-count.txt
+    335e2199fe58945dd7c06a95e7aae0d9c6e3f7c5  agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/silent-and-loaded.txt
+    822a81a2c00e96ca5cc959f04e00154569f17fa5  agent-os/standards/index.yml
+    080acf2cfdbcadc9b483a567486a1393177ca196  agent-os/standards/vital/instrument.md
+    620bed2584416ff51b2263b7737a793ef67ad981  agent-os/standards/vital/plugin-state.md
+    7e8875eb6b9dee909ce3c1b8402397f11e23d2db  agent-os/standards/vital/preset-tests.md
+    18d54517ba852feef38e291ca94c95d7ef845676  src/patchbay_vital/__init__.py
+    7cd183e5ff89daf5118ef17ab9f0b40dc0a2c30d  src/patchbay_vital/errors.py
+    918e2275cfbf68dd09c317e8331a93eed9366736  src/patchbay_vital/host.py
+    c0db0c4dd30918e9991091981a943e49a14444ec  src/patchbay_vital/instrument.py
+    a2bbd82dee07a5e8bfc7f07185dd982bdce35b08  src/patchbay_vital/patch.py
+    fd0969e351ffaa43d95ba2771d32247edb40cd1d  tests/integration/test_factory_round_trip.py
+    f06b7e1850008b83c7438fe7e0e44203cb3ca5fd  tests/integration/test_vital_instrument.py
+    f740dad7c551800f5b3d322d3a91c654fdc4b1c0  tests/unit/builders.py
+    d901fd31d39c2b62f28f9564cc3005c15fa34c4b  tests/unit/test_errors.py
+    e57891c98ec771558e1ebefb405a69c02d6c68ab  tests/unit/test_host.py
+    cc902ed62fa95b97a28ad0c3992305234daa66ab  tests/unit/test_instrument.py
+    8be89e3cad2103c7d7ac11e047fb72f38d0f9d91  tests/unit/test_package.py
+
+$ .venv/bin/python -B -I <scratchpad>/i20/tree_since.py <scratchpad>/i20/out/then agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/mutation.txt agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/marker-count.txt agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/rollback-count.txt agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/remedy-run.txt
+parsed by Python 3.12.16, the repository's own .venv/bin/python: True
+
+== 1. the tree then: what the four transcripts print before their runs
+  mutation.txt: HEAD 0eac1dba4e0738d8b32d2b703ddfba0c09d11b18, 25 paths, its tree did not move during its run
+  marker-count.txt: HEAD 0eac1dba4e0738d8b32d2b703ddfba0c09d11b18, 25 paths, its tree did not move during its run
+  rollback-count.txt: HEAD 0eac1dba4e0738d8b32d2b703ddfba0c09d11b18, 25 paths, its tree did not move during its run
+  remedy-run.txt: HEAD 0eac1dba4e0738d8b32d2b703ddfba0c09d11b18, 25 paths, its tree did not move during its run
+  the four print one tree: True
+
+== 2. the tree now
+  HEAD 0eac1dba4e0738d8b32d2b703ddfba0c09d11b18, 34 paths; HEAD is the HEAD then: True
+
+== 3. the comparison shown to tell, on copies of src/patchbay_vital/host.py as it was then
+  ok   the copy unchanged: equal, as it must be
+  ok   a docstring changed (the module's first line): equal, and must be equal
+  ok   a comment added on a line of its own: equal, and must be equal
+  ok   a number changed: _FIRST_BUTTON = 1000 made 1001: differs, and must differ
+  ok   the words of a raised message changed: 'Vital ignored the state' made 'Vital ignored a state': differs, and must differ
+  ok   a statement added: _FIRST_BUTTON given a second time: differs, and must differ
+
+== 4. every path that differs between the two trees
+  paths either tree names: 34; the same blob in both: 19; differing: 15
+  then                                       now                                        kind, path
+  89aaefabfff434b23401210aecf83ce552af9656   cd751df88d30be59d9edfa23a88d864f76da12ff   the changelog: CHANGELOG.md
+  09a93b786cf918df337b3f207aac92199baa83c1   1e402cdc3ee9d39f1d43610fc31ade93be1e62ce   the README: README.md
+  2f0b23c4c11d8c2d412ae26fe00274b3ac60b5b2   82d3b4b7414faad78f9e22bcaf25a1c06de8e2cb   this spec's folder: agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/shape.md
+  (as HEAD has it)                           62135b99759533170ede9990faf36a437b135816   this spec's folder: agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/marker-count.txt
+  (as HEAD has it)                           8e1d8b03e5170e41eed40858feb5f27f59c98c66   this spec's folder: agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/mutation.txt
+  (as HEAD has it)                           2a2d0bdc5bb18976897fc8f494f1b3dff001d226   this spec's folder: agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/remedy-run.txt
+  (as HEAD has it)                           1f95654bdf2808317fada22e8b501a07f7f3f4c8   this spec's folder: agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/rollback-count.txt
+  (as HEAD has it)                           335e2199fe58945dd7c06a95e7aae0d9c6e3f7c5   this spec's folder: agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/silent-and-loaded.txt
+  (as HEAD has it)                           822a81a2c00e96ca5cc959f04e00154569f17fa5   a standard, or the standards' index: agent-os/standards/index.yml
+  (as HEAD has it)                           080acf2cfdbcadc9b483a567486a1393177ca196   a standard, or the standards' index: agent-os/standards/vital/instrument.md
+  (as HEAD has it)                           620bed2584416ff51b2263b7737a793ef67ad981   a standard, or the standards' index: agent-os/standards/vital/plugin-state.md
+  (as HEAD has it)                           7e8875eb6b9dee909ce3c1b8402397f11e23d2db   a standard, or the standards' index: agent-os/standards/vital/preset-tests.md
+  aabcfe1bba5781199db038b01a4279fd41967873   918e2275cfbf68dd09c317e8331a93eed9366736   code: src/patchbay_vital/host.py
+  e60750b2169069fe4a66b15e319de833a6e97b34   c0db0c4dd30918e9991091981a943e49a14444ec   code: src/patchbay_vital/instrument.py
+  0098514847241b87ee4815f45ed2517c75798fe8   a2bbd82dee07a5e8bfc7f07185dd982bdce35b08   code: src/patchbay_vital/patch.py
+  code: 3; not code: 12; anything else: 0
+  not code, by kind:
+    the README: 1
+    the changelog: 1
+    a standard, or the standards' index: 4
+    this spec's folder: 6
+  the same blob in both, under src/ and tests/: 9 files, not compared further: a blob is the content
+
+== 5. each code file that differs: its syntax tree then and now, docstrings left out
+
+  src/patchbay_vital/host.py: EQUAL
+    the copy's blob is the one the transcripts print: aabcfe1bba5781199db038b01a4279fd41967873
+    then: 3358 nodes compared, 44 docstrings dropped, 74322 characters of dump
+    now:  3358 nodes compared, 44 docstrings dropped, 74322 characters of dump
+    the lines of text that differ (- then, + now):
+      @@ -69 +69 @@
+      -with a text that kills the process, nor with one Vital loads in part.
+      +with a text that kills the process, nor with one Vital loads in part: both are issue #25's.
+
+  src/patchbay_vital/instrument.py: EQUAL
+    the copy's blob is the one the transcripts print: e60750b2169069fe4a66b15e319de833a6e97b34
+    then: 1400 nodes compared, 19 docstrings dropped, 32089 characters of dump
+    now:  1400 nodes compared, 19 docstrings dropped, 32089 characters of dump
+    the lines of text that differ (- then, + now):
+      @@ -47,8 +47,11 @@
+      -- **A load Vital ignores.** The host sets a marker on the plugin before each load and reads it
+      -  after; one that was left is refused the same way as an alert. The marker is the plugin's
+      -  alone: `get`, `patch` and the bus never show it.
+      -- **A text Vital dies on kills the calling process.** Three shapes were found, each a section
+      -  one entry longer than Vital holds, and `check_loadable` refuses those. Only the shapes found
+      -  are refused: no text was tried with two faults, or with a fault past an array's first entry.
+      -- **A text Vital loads in part is not detected.** Where it keeps a wavetable or a sample it
+      -  had, or makes something else of the one given, nothing read back from the plugin tells.
+      +- **A load Vital ignores.** A preset newer than the plugin, the one kind seen ignored whole,
+      +  `check_loadable` refuses before Vital is given it. Behind that the host sets a marker on the
+      +  plugin before each load and reads it after; one that was left is refused the same way as an
+      +  alert. The marker is the plugin's alone: `get`, `patch` and the bus never show it.
+      +- **A text Vital dies on kills the calling process** (issue #25). Three shapes were found, each
+      +  a section one entry longer than Vital holds, and `check_loadable` refuses those. Only the
+      +  shapes found are refused: no text was tried with two faults, or with a fault past an array's
+      +  first entry.
+      +- **A text Vital loads in part is not detected** (issue #25). Where it keeps a wavetable or a
+      +  sample it had, or makes something else of the one given, nothing read back from the plugin
+      +  tells.
+      @@ -290 +293 @@
+      -        in part, keeping sections it had, is not detected.
+      +        in part, keeping sections it had, is not detected. Both are issue #25's.
+
+  src/patchbay_vital/patch.py: EQUAL
+    the copy's blob is the one the transcripts print: 0098514847241b87ee4815f45ed2517c75798fe8
+    then: 2258 nodes compared, 17 docstrings dropped, 47430 characters of dump
+    now:  2258 nodes compared, 17 docstrings dropped, 47430 characters of dump
+    the lines of text that differ (- then, + now):
+      @@ -367,2 +367,2 @@
+      -    detected. It needs no plugin, so a preset `preset_of` builds can be checked where no Vital
+      -    is installed.
+      +    detected (issue #25). It needs no plugin, so a preset `preset_of` builds can be checked
+      +    where no Vital is installed.
+
+  code files that differ: 3; syntax trees equal with docstrings left out: 3 of 3
+
+== 6. whether a docstring, or a file that differs, is read by the code or by a test
+  .py files git lists under src/ and tests/, each parsed: 35
+    src/patchbay_vital/census.py:383  the name __doc__, this module's own docstring; the module does not differ
+    src/patchbay_vital/census.py:75  a string that is a whole statement, no value, holding one of the five: 'Each suffix the plugin prints, the unit it becomes and the factor from the printed number to it: ...'
+    tests/integration/test_vital_instrument.py:101  a string that is a whole statement, no value, holding one of the five: 'What a set of the value `get` shows does to each float Vital upgrades, counted on Vital 1.6.4 thr...'
+    tests/unit/test_package.py  imports inspect, and uses of it: Parameter, signature
+    tests/unit/test_parameters.py:261  a string that is a whole statement, no value, holding one of the five: "A `volume` value in binade -80, far below its floor, found by a seeded search (the sixth review's..."
+  the five sought in a string: ('.py', '.md', 'README', 'CHANGELOG', 'agent-os')
+  strings that are whole statements and not `__doc__`, in all 35 files: 80; of them holding one of the five, printed above: 3
+  hits printed above: 5; of them, those that could read a docstring or a file that differs: 0
+  scripts/gate.sh runs: step "5/6  uv run --locked pytest -c pyproject.toml -p no:doctest ([tool.pytest.ini_options] of pyproject.toml, over tests/, once nothing pytest would read is one git ignores)"
+  scripts/gate.sh runs: uv run --locked pytest -c pyproject.toml -p no:doctest || fail 5/6 "a test failed, or pytest could not read its configuration (see above)"
+  pyproject.toml, [tool.pytest.ini_options]: testpaths = ["tests"]
+  pyproject.toml, [tool.pytest.ini_options]: addopts = "-q --strict-markers --strict-config"
+
+== 7. the answer
+  paths that differ: 15 = code 3 + not code 12 + anything else 0
+  code whose syntax tree differs: 0; paths that are neither code nor one of the four kinds named: 0
+  readers of a docstring or of a file that differs: 0
+  the code the four evidence runs read is the code of this tree, docstrings apart
+exit=0
+
+the tree after the run:
+  HEAD 0eac1dba4e0738d8b32d2b703ddfba0c09d11b18
+  git status --porcelain=v1 --untracked-files=all, 34 lines:
+     M CHANGELOG.md
+     M README.md
+     M agent-os/specs/2026-11-15-1448-the-instrument/shape.md
+     M agent-os/standards/index.yml
+     M agent-os/standards/vital/instrument.md
+     M agent-os/standards/vital/plugin-state.md
+     M agent-os/standards/vital/preset-tests.md
+     M src/patchbay_vital/__init__.py
+     M src/patchbay_vital/errors.py
+     M src/patchbay_vital/host.py
+     M src/patchbay_vital/instrument.py
+     M src/patchbay_vital/patch.py
+     M tests/integration/test_factory_round_trip.py
+     M tests/integration/test_vital_instrument.py
+     M tests/unit/builders.py
+     M tests/unit/test_errors.py
+     M tests/unit/test_host.py
+     M tests/unit/test_instrument.py
+     M tests/unit/test_package.py
+    ?? agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/plan.md
+    ?? agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/references.md
+    ?? agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/shape.md
+    ?? agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/standards.md
+    ?? agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/arrays-seen.txt
+    ?? agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/marker-count.txt
+    ?? agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/mutation.txt
+    ?? agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/probes-1-costs.txt
+    ?? agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/probes-2-alert.txt
+    ?? agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/probes-3-counts.txt
+    ?? agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/probes-3-crash-reports.txt
+    ?? agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/probes-4-counts.txt
+    ?? agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/remedy-run.txt
+    ?? agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/rollback-count.txt
+    ?? agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/silent-and-loaded.txt
+  git hash-object of each of those paths (a deleted one marked so):
+    cd751df88d30be59d9edfa23a88d864f76da12ff  CHANGELOG.md
+    1e402cdc3ee9d39f1d43610fc31ade93be1e62ce  README.md
+    ae44c46104b792f792e47728258dc5ed0c8b2eeb  agent-os/specs/2026-11-15-1448-the-instrument/shape.md
+    591cd32a08be01102faebf883aacf23bf01eb4e4  agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/plan.md
+    6085dde9b16dee9eda8a2c256f712e4bbac04225  agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/references.md
+    82d3b4b7414faad78f9e22bcaf25a1c06de8e2cb  agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/shape.md
+    dc2d17e44e7f13a6eb4911a880a958d6e67c31b8  agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/standards.md
+    97d63bacdf71c39778347a47a46f40f5bb0d9318  agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/arrays-seen.txt
+    62135b99759533170ede9990faf36a437b135816  agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/marker-count.txt
+    8e1d8b03e5170e41eed40858feb5f27f59c98c66  agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/mutation.txt
+    6345b0bc5cf2bb31e8a363312a9e69269b087048  agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/probes-1-costs.txt
+    53118aba5339dd7f467c3999bfa74d408aaa6335  agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/probes-2-alert.txt
+    54133d8744901c8b1467807bf83755bb5f4583a3  agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/probes-3-counts.txt
+    2615e8a958ad75443275dd697f13607e453383b7  agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/probes-3-crash-reports.txt
+    371444bcf8ac7ab79bff8a66ad59faebaf0ce04e  agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/probes-4-counts.txt
+    2a2d0bdc5bb18976897fc8f494f1b3dff001d226  agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/remedy-run.txt
+    1f95654bdf2808317fada22e8b501a07f7f3f4c8  agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/rollback-count.txt
+    335e2199fe58945dd7c06a95e7aae0d9c6e3f7c5  agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/silent-and-loaded.txt
+    822a81a2c00e96ca5cc959f04e00154569f17fa5  agent-os/standards/index.yml
+    080acf2cfdbcadc9b483a567486a1393177ca196  agent-os/standards/vital/instrument.md
+    620bed2584416ff51b2263b7737a793ef67ad981  agent-os/standards/vital/plugin-state.md
+    7e8875eb6b9dee909ce3c1b8402397f11e23d2db  agent-os/standards/vital/preset-tests.md
+    18d54517ba852feef38e291ca94c95d7ef845676  src/patchbay_vital/__init__.py
+    7cd183e5ff89daf5118ef17ab9f0b40dc0a2c30d  src/patchbay_vital/errors.py
+    918e2275cfbf68dd09c317e8331a93eed9366736  src/patchbay_vital/host.py
+    c0db0c4dd30918e9991091981a943e49a14444ec  src/patchbay_vital/instrument.py
+    a2bbd82dee07a5e8bfc7f07185dd982bdce35b08  src/patchbay_vital/patch.py
+    fd0969e351ffaa43d95ba2771d32247edb40cd1d  tests/integration/test_factory_round_trip.py
+    f06b7e1850008b83c7438fe7e0e44203cb3ca5fd  tests/integration/test_vital_instrument.py
+    f740dad7c551800f5b3d322d3a91c654fdc4b1c0  tests/unit/builders.py
+    d901fd31d39c2b62f28f9564cc3005c15fa34c4b  tests/unit/test_errors.py
+    e57891c98ec771558e1ebefb405a69c02d6c68ab  tests/unit/test_host.py
+    cc902ed62fa95b97a28ad0c3992305234daa66ab  tests/unit/test_instrument.py
+    8be89e3cad2103c7d7ac11e047fb72f38d0f9d91  tests/unit/test_package.py
+cmp: the tree after the run is the tree before it
+the machine after the run: arm64, Apple M4 Pro, 14 cores, macOS 26.6.2 (25G83), Python 3.12.16, load 2.87 3.49 3.54, at 2026-11-17 10:38 EST
+
+the scripts this run used, each embedded below with its blob:
+    0541e586dccaa71fd1b727df8c6203d499919d2b  <scratchpad>/i20/tree_since.py
+    e4c1a40cc3893ab50df6717e5a18e2a755914efd  <scratchpad>/i20/tree.sh
+    0dde01b338e9dbc221abc7e0d9b87bcf21acf1cf  <scratchpad>/i20/machine.sh
+    43532a582c6f20d5b140e66162c45647a16a4287  <scratchpad>/i20/transcript.sh
+
+--- <scratchpad>/i20/tree_since.py
+```
+"""The tree the four evidence runs read, and the tree now: every file that differs between the
+two, and whether any of them is code that differs.
+
+usage: tree_since.py <the files as they were then> <transcript>...   (from the repository root)
+
+The four evidence runs of the remedy (mutation.txt, marker-count.txt, rollback-count.txt and
+remedy-run.txt) ran before issue #25 had a number. The number was then written into three
+docstrings, the README, the changelog and two standards. This run says what that did to the
+tree those four read. It loads no plugin and runs no test.
+
+**The two trees.** Each transcript prints, before its run, HEAD and the blob of every path git's
+status named (tree.sh). The four must print one tree: that is the tree then. The tree now is
+read the same way, here. A path differs when the two trees give it two blobs, or when one names
+it and the other does not; a path neither names is as HEAD has it in both, HEAD being the same.
+
+**Every path that differs is one of three kinds, and all are listed.**
+
+- Code: under `src/` or `tests/`. Its text then and its text now are compared as syntax trees,
+  below. The text then is a copy set aside before the number was written, and is used only if
+  its blob is the one the transcripts print; a path the tree then did not name is read from HEAD.
+- Not code: `README.md`, `CHANGELOG.md`, anything under `agent-os/standards/`, and this spec's
+  own folder. Named, and not compared.
+- Anything else. One such path, or one syntax tree that differs, and this run ends in STOP and
+  exits 1: the four are then to be run again, not explained.
+
+**How two texts are compared.** Each is parsed whole by `ast.parse`, by the Python that runs the
+package. The parse itself keeps no comment, no blank line and no layout. From the parsed tree
+one thing is dropped: in the module, and in each class and each function, the first statement
+when it is a bare string, which is the string Python keeps as `__doc__` (the rule of
+`ast.get_docstring`). A bare string anywhere else is kept. What is left is written out by
+`ast.dump`, which leaves out line and column numbers, and the two texts are equal when the two
+dumps are the same string: every statement, name and number, and every other string.
+
+**The comparison is shown to tell, before its answer is read,** on copies of `host.py` as it was
+then: one with a docstring changed and one with a comment changed, which must compare equal, and
+one with a number changed, one with the words of a raised message changed and one with a
+statement added, each of which must differ. If any of the five answers otherwise, the run stops.
+
+**Whether a docstring is read by anything.** An equal result means the same behaviour only if
+no code and no test reads a docstring or a source file's text. Every `.py` file git lists under
+`src/` and `tests/` is parsed and searched for: the name or attribute `__doc__`; a call of
+`getdoc`, `getsource`, `getsourcelines`, `getcomments`, `findsource` or `help`; an import of
+`inspect`, `pydoc` or `doctest`, with what is then used of it; and, outside docstrings, any
+string that could name a file that differs (`.py`, `.md`, `README`, `CHANGELOG`, `agent-os`).
+Each hit is printed. The gate's own pytest line and the pytest options are printed beside them.
+
+A string that is a whole statement and not the first of its body, as the note this code writes
+under a constant is, is no value: Python keeps it nowhere, not as `__doc__`, and only a reader of
+the source's text could see it, which the search above is for. Such a string is compared in the
+syntax trees, where it is kept, and in this search it is printed and counted apart, as what it
+is. The first try of this script, not kept, counted two of them as strings that name a file
+that differs, each naming an earlier spec's `shape.md` in its words; the search was then made to
+tell a string that is a value from one that is a statement, and prints both.
+"""
+
+import ast
+import difflib
+import re
+import subprocess
+import sys
+from pathlib import Path
+
+SPEC = "agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/"
+CODE = ("src/", "tests/")
+NOT_CODE = (
+    ("README.md", "the README"),
+    ("CHANGELOG.md", "the changelog"),
+    ("agent-os/standards/", "a standard, or the standards' index"),
+    (SPEC, "this spec's folder"),
+)
+BLOB = re.compile(r"^    ([0-9a-f]{40}|\(deleted\))  (.+)$")
+HEAD = re.compile(r"^  HEAD ([0-9a-f]{40})$")
+READERS = {"getdoc", "getsource", "getsourcelines", "getcomments", "findsource", "help"}
+MODULES = {"inspect", "pydoc", "doctest"}
+NEEDLES = (".py", ".md", "README", "CHANGELOG", "agent-os")
+HOLDERS = (ast.Module, ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)
+
+
+def git(*arguments: str) -> str:
+    return subprocess.run(["git", *arguments], capture_output=True, text=True, check=True).stdout  # noqa: S603, S607
+
+
+def printed(transcript: Path) -> tuple[str, dict[str, str], bool]:
+    """The tree a transcript prints before its run, and whether it says the tree did not move."""
+    lines = transcript.read_text(encoding="utf-8").splitlines()
+    start = next(n for n, line in enumerate(lines) if line.startswith("the tree before the run"))
+    end = next(n for n in range(start, len(lines)) if lines[n].startswith("$ "))
+    head = next(m.group(1) for line in lines[start:end] if (m := HEAD.match(line)))
+    blobs = {m.group(2): m.group(1) for line in lines[start:end] if (m := BLOB.match(line))}
+    still = any(line == "cmp: the tree after the run is the tree before it" for line in lines)
+    return head, blobs, still
+
+
+def tree_now() -> tuple[str, dict[str, str]]:
+    """HEAD and the blob of every path git's status names, as tree.sh reads them."""
+    status = git("status", "--porcelain=v1", "--untracked-files=all").splitlines()
+    paths = sorted(line[3:] for line in status)
+    blobs = {path: git("hash-object", path).strip() if Path(path).exists() else "(deleted)" for path in paths}
+    return git("rev-parse", "HEAD").strip(), blobs
+
+
+def parsed_without_docstrings(text: str) -> tuple[ast.Module, int]:
+    """The text parsed, each `__doc__` string dropped; and how many were dropped."""
+    tree = ast.parse(text)
+    dropped = 0
+    for node in ast.walk(tree):
+        if not isinstance(node, HOLDERS) or not node.body:
+            continue
+        first = node.body[0]
+        if isinstance(first, ast.Expr) and isinstance(first.value, ast.Constant) and isinstance(first.value.value, str):
+            del node.body[0]
+            dropped += 1
+    return tree, dropped
+
+
+def dump(text: str) -> tuple[str, int, int]:
+    """What is compared: the dump, the number of nodes in it, the docstrings dropped."""
+    tree, dropped = parsed_without_docstrings(text)
+    return ast.dump(tree), sum(1 for _ in ast.walk(tree)), dropped
+
+
+def same(one: str, other: str) -> bool:
+    return dump(one)[0] == dump(other)[0]
+
+
+def changed_once(text: str, old: str, new: str) -> str:
+    if text.count(old) != 1:
+        sys.exit(f"a control's text is found {text.count(old)} times, not once: {old!r}")
+    return text.replace(old, new)
+
+
+def controls(host_then: str) -> bool:
+    """Five copies of host.py as it was then, each changed in one way; whether each answers as it must."""
+    first_line = host_then.splitlines()[0]
+    cases = (
+        ("a docstring changed (the module's first line)", changed_once(host_then, first_line + "\n", first_line + " And a word more.\n"), True),
+        ("a comment added on a line of its own", changed_once(host_then, "_FIRST_BUTTON = 1000\n", "# a comment that was not there\n_FIRST_BUTTON = 1000\n"), True),
+        ("a number changed: _FIRST_BUTTON = 1000 made 1001", changed_once(host_then, "_FIRST_BUTTON = 1000\n", "_FIRST_BUTTON = 1001\n"), False),
+        ("the words of a raised message changed: 'Vital ignored the state' made 'Vital ignored a state'", changed_once(host_then, 'f"Vital ignored the state: ', 'f"Vital ignored a state: '), False),
+        ("a statement added: _FIRST_BUTTON given a second time", changed_once(host_then, "_FIRST_BUTTON = 1000\n", "_FIRST_BUTTON = 1000\n_FIRST_BUTTON = 1000\n"), False),
+    )
+    told = same(host_then, host_then)
+    print(f"  {'ok ' if told else 'NOT'}  the copy unchanged: equal, as it must be")
+    for what, text, equal in cases:
+        answer = same(host_then, text)
+        told = told and answer == equal
+        print(f"  {'ok ' if answer == equal else 'NOT'}  {what}: {'equal' if answer else 'differs'}, and must {'be equal' if equal else 'differ'}")
+    return told
+
+
+def kind(path: str) -> str:
+    if path.startswith(CODE):
+        return "code"
+    for prefix, what in NOT_CODE:
+        if path == prefix or (prefix.endswith("/") and path.startswith(prefix)):
+            return what
+    return "ANYTHING ELSE"
+
+
+def text_then(path: str, blobs_then: dict[str, str], aside: Path) -> str | None:
+    """A code file's text as the tree then held it, or None when it cannot be had."""
+    if path not in blobs_then:
+        return git("show", f"HEAD:{path}")
+    copy = aside / path
+    if not copy.is_file() or git("hash-object", str(copy)).strip() != blobs_then[path]:
+        return None
+    return copy.read_text(encoding="utf-8")
+
+
+def readers(differing: set[str]) -> int:
+    """Print everything under src/ and tests/ that could read a docstring or a source file; count those that could matter."""
+    files = sorted(set(git("ls-files", "-co", "--exclude-standard", "--", "src", "tests").splitlines()))
+    python = [path for path in files if path.endswith(".py") and Path(path).is_file()]
+    print(f"  .py files git lists under src/ and tests/, each parsed: {len(python)}")
+    could_matter = 0
+    hits = 0
+    bare = 0
+    bare_hits = 0
+    for path in python:
+        text = Path(path).read_text(encoding="utf-8")
+        whole = ast.parse(text)
+        imported = set()
+        used: dict[str, set[str]] = {}
+        for node in ast.walk(whole):
+            found = None
+            if isinstance(node, ast.Name) and node.id == "__doc__":
+                matters = path in differing
+                found = f"the name __doc__, this module's own docstring; the module {'DIFFERS' if matters else 'does not differ'}"
+                could_matter += matters
+            elif isinstance(node, ast.Attribute) and node.attr == "__doc__":
+                found = "the attribute .__doc__ of something: COULD READ ANY DOCSTRING"
+                could_matter += 1
+            elif isinstance(node, ast.Call) and isinstance(node.func, ast.Name | ast.Attribute):
+                name = node.func.id if isinstance(node.func, ast.Name) else node.func.attr
+                if name in READERS:
+                    found = f"a call of {name}: COULD READ A DOCSTRING OR A SOURCE"
+                    could_matter += 1
+            elif isinstance(node, ast.Import):
+                imported |= {alias.name for alias in node.names if alias.name.split(".")[0] in MODULES}
+            elif isinstance(node, ast.ImportFrom) and (node.module or "").split(".")[0] in MODULES:
+                imported.add(node.module or "")
+                used.setdefault(node.module or "", set()).update(alias.name for alias in node.names)
+            if isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name) and node.value.id in MODULES:
+                used.setdefault(node.value.id, set()).add(node.attr)
+            if found:
+                hits += 1
+                print(f"    {path}:{getattr(node, 'lineno', '?')}  {found}")
+        for module in sorted(imported):
+            names = sorted(used.get(module, set()))
+            reads = sorted(set(names) & READERS)
+            hits += 1
+            could_matter += bool(reads) or module in {"pydoc", "doctest"}
+            print(f"    {path}  imports {module}, and uses of it: {', '.join(names) or 'nothing by name'}{'  COULD READ: ' + ', '.join(reads) if reads else ''}")
+        stripped, _ = parsed_without_docstrings(text)
+        statements = {id(node.value) for node in ast.walk(stripped) if isinstance(node, ast.Expr)}
+        for node in ast.walk(stripped):
+            if not (isinstance(node, ast.Constant) and isinstance(node.value, str)):
+                continue
+            bare += id(node) in statements
+            if not any(needle in node.value for needle in NEEDLES):
+                continue
+            hits += 1
+            names_differing = any(Path(other).name in node.value or other in node.value for other in differing)
+            shown = " ".join(node.value.split())
+            shown = shown if len(shown) <= 100 else shown[:97] + "..."
+            if id(node) in statements:
+                bare_hits += 1
+                print(f"    {path}:{node.lineno}  a string that is a whole statement, no value, holding one of the five: {shown!r}")
+            else:
+                could_matter += names_differing
+                print(f"    {path}:{node.lineno}  a string that is a value, holding one of the five: {shown!r}{'  NAMES A FILE THAT DIFFERS' if names_differing else ''}")
+    print(f"  the five sought in a string: {NEEDLES}")
+    print(f"  strings that are whole statements and not `__doc__`, in all {len(python)} files: {bare}; of them holding one of the five, printed above: {bare_hits}")
+    print(f"  hits printed above: {hits}; of them, those that could read a docstring or a file that differs: {could_matter}")
+    return could_matter
+
+
+def main(aside: Path, transcripts: list[Path]) -> int:
+    print(f"parsed by Python {sys.version.split()[0]}, the repository's own .venv/bin/python: {Path(sys.executable) == Path.cwd() / '.venv/bin/python'}")
+
+    print("\n== 1. the tree then: what the four transcripts print before their runs")
+    trees = {transcript.name: printed(transcript) for transcript in transcripts}
+    for name, (head, blobs, still) in trees.items():
+        print(f"  {name}: HEAD {head}, {len(blobs)} paths, {'its tree did not move during its run' if still else 'ITS TREE MOVED OR IT DOES NOT SAY'}")
+    head_then, blobs_then, _ = next(iter(trees.values()))
+    one_tree = all((head, blobs) == (head_then, blobs_then) for head, blobs, _ in trees.values())
+    all_still = all(still for _, _, still in trees.values())
+    print(f"  the four print one tree: {one_tree}")
+
+    print("\n== 2. the tree now")
+    head_now, blobs_now = tree_now()
+    print(f"  HEAD {head_now}, {len(blobs_now)} paths; HEAD is the HEAD then: {head_now == head_then}")
+    if not (one_tree and all_still and head_now == head_then):
+        print("\nSTOP: the four do not print one still tree on this HEAD; nothing below would mean anything")
+        return 1
+
+    print("\n== 3. the comparison shown to tell, on copies of src/patchbay_vital/host.py as it was then")
+    host_then = text_then("src/patchbay_vital/host.py", blobs_then, aside)
+    if host_then is None or not controls(host_then):
+        print("\nSTOP: the comparison does not tell a changed statement from a changed docstring")
+        return 1
+
+    print("\n== 4. every path that differs between the two trees")
+    paths = sorted(set(blobs_then) | set(blobs_now))
+    differing = [path for path in paths if blobs_then.get(path) != blobs_now.get(path)]
+    alike = [path for path in paths if blobs_then.get(path) == blobs_now.get(path)]
+    print(f"  paths either tree names: {len(paths)}; the same blob in both: {len(alike)}; differing: {len(differing)}")
+    print(f"  {'then':<42} {'now':<42} kind, path")
+    for path in differing:
+        then, now = blobs_then.get(path, "(as HEAD has it)"), blobs_now.get(path, "(as HEAD has it)")
+        print(f"  {then:<42} {now:<42} {kind(path)}: {path}")
+    kinds = {path: kind(path) for path in differing}
+    code = [path for path in differing if kinds[path] == "code"]
+    other = [path for path in differing if kinds[path] == "ANYTHING ELSE"]
+    not_code = [path for path in differing if kinds[path] not in {"code", "ANYTHING ELSE"}]
+    print(f"  code: {len(code)}; not code: {len(not_code)}; anything else: {len(other)}")
+    print("  not code, by kind:")
+    for _, what in NOT_CODE:
+        named = [path for path in not_code if kinds[path] == what]
+        print(f"    {what}: {len(named)}")
+    print(f"  the same blob in both, under src/ and tests/: {sum(path.startswith(CODE) for path in alike)} files, not compared further: a blob is the content")
+
+    print("\n== 5. each code file that differs: its syntax tree then and now, docstrings left out")
+    equal = 0
+    for path in code:
+        then = text_then(path, blobs_then, aside)
+        if then is None or not Path(path).is_file():
+            print(f"  {path}: NO TEXT TO COMPARE (no copy with the blob the transcripts print, or the file is gone)")
+            continue
+        now = Path(path).read_text(encoding="utf-8")
+        (dump_then, nodes_then, docs_then), (dump_now, nodes_now, docs_now) = dump(then), dump(now)
+        equal += dump_then == dump_now
+        print(f"\n  {path}: {'EQUAL' if dump_then == dump_now else 'DIFFERS'}")
+        print(f"    the copy's blob is the one the transcripts print: {blobs_then.get(path, 'read from HEAD')}")
+        print(f"    then: {nodes_then} nodes compared, {docs_then} docstrings dropped, {len(dump_then)} characters of dump")
+        print(f"    now:  {nodes_now} nodes compared, {docs_now} docstrings dropped, {len(dump_now)} characters of dump")
+        print("    the lines of text that differ (- then, + now):")
+        for line in difflib.unified_diff(then.splitlines(), now.splitlines(), lineterm="", n=0):
+            if not line.startswith(("---", "+++")):
+                print(f"      {line}")
+    print(f"\n  code files that differ: {len(code)}; syntax trees equal with docstrings left out: {equal} of {len(code)}")
+
+    print("\n== 6. whether a docstring, or a file that differs, is read by the code or by a test")
+    could_matter = readers(set(differing))
+    for line in Path("scripts/gate.sh").read_text(encoding="utf-8").splitlines():
+        if "pytest" in line and "uv run" in line and not line.lstrip().startswith("#"):
+            print(f"  scripts/gate.sh runs: {line.strip()}")
+    for line in Path("pyproject.toml").read_text(encoding="utf-8").splitlines():
+        if line.startswith(("addopts", "testpaths")):
+            print(f"  pyproject.toml, [tool.pytest.ini_options]: {line}")
+
+    print("\n== 7. the answer")
+    stop = bool(other) or equal != len(code) or could_matter > 0
+    print(f"  paths that differ: {len(differing)} = code {len(code)} + not code {len(not_code)} + anything else {len(other)}")
+    print(f"  code whose syntax tree differs: {len(code) - equal}; paths that are neither code nor one of the four kinds named: {len(other)}")
+    print(f"  readers of a docstring or of a file that differs: {could_matter}")
+    if stop:
+        print("  STOP: the four evidence runs are to be run again on this tree, at the owner's word")
+        return 1
+    print("  the code the four evidence runs read is the code of this tree, docstrings apart")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(Path(sys.argv[1]), [Path(argument) for argument in sys.argv[2:]]))
+```
+
+--- <scratchpad>/i20/tree.sh
+```
+#!/usr/bin/env bash
+# usage: tree.sh   (run from the repository root)
+# Prints HEAD, git's status of the work tree and the blob of every path that status names, so two
+# calls can be compared with cmp: the tree a run read, and the tree it left.
+set -euo pipefail
+echo "  HEAD $(git rev-parse HEAD)"
+git status --porcelain=v1 --untracked-files=all > "${TMPDIR:-/tmp}/tree.$$"
+echo "  git status --porcelain=v1 --untracked-files=all, $(wc -l < "${TMPDIR:-/tmp}/tree.$$" | tr -d ' ') lines:"
+sed 's/^/    /' "${TMPDIR:-/tmp}/tree.$$"
+echo "  git hash-object of each of those paths (a deleted one marked so):"
+cut -c4- "${TMPDIR:-/tmp}/tree.$$" | LC_ALL=C sort | while IFS= read -r path; do
+  if [ -e "$path" ]; then echo "    $(git hash-object "$path")  $path"; else echo "    (deleted)  $path"; fi
+done
+rm -f "${TMPDIR:-/tmp}/tree.$$"
+```
+
+--- <scratchpad>/i20/machine.sh
+```
+#!/usr/bin/env bash
+# usage: machine.sh   Prints one line: the machine, its system, the locked Python and the load.
+set -euo pipefail
+echo "$(uname -m), $(sysctl -n machdep.cpu.brand_string), $(sysctl -n hw.ncpu) cores, macOS $(sw_vers -productVersion) ($(sw_vers -buildVersion)), Python $(uv run --locked python -c 'import platform; print(platform.python_version())'), load $(sysctl -n vm.loadavg | tr -d '{}' | xargs), at $(date '+%Y-%m-%d %H:%M %Z')"
+```
+
+--- <scratchpad>/i20/transcript.sh
+```
+#!/usr/bin/env bash
+# usage: transcript.sh <out file> <title> <script to embed>... -- <command...>   (from the repository root)
+# Writes one transcript outside the tree: its date and branch, the machine and the tree before,
+# the command's whole output, the tree and the machine after, the two trees compared, and every
+# script it ran, embedded. The caller copies the file into the spec's verification/ afterwards.
+set -uo pipefail
+R=$(cd "$(dirname "$0")" && pwd)
+out=$1; title=$2; shift 2
+scripts=()
+while [ "$1" != "--" ]; do scripts+=("$1"); shift; done
+shift
+{
+  echo "$title, run $(date '+%Y-%m-%d %H:%M %Z') on branch"
+  echo "$(git branch --show-current), Vital at /Library/Audio/Plug-Ins/VST3/Vital.vst3"
+  echo "the machine before the run: $(bash "$R/machine.sh")"
+  echo "the tree before the run (this transcript is written outside the tree and copied in afterwards):"
+  bash "$R/tree.sh" | tee "$R/out/tree-before.txt"
+  echo
+  echo "\$ $*" | sed "s|$R|<scratchpad>/i20|g"
+  "$@" 2>&1
+  echo "exit=$?"
+  echo
+  echo "the tree after the run:"
+  bash "$R/tree.sh" | tee "$R/out/tree-after.txt"
+  if cmp -s "$R/out/tree-before.txt" "$R/out/tree-after.txt"; then echo "cmp: the tree after the run is the tree before it"; else echo "cmp: THE TREE CHANGED DURING THE RUN"; fi
+  echo "the machine after the run: $(bash "$R/machine.sh")"
+  echo
+  echo "the scripts this run used, each embedded below with its blob:"
+  for s in "${scripts[@]}" "$R/tree.sh" "$R/machine.sh" "$R/transcript.sh"; do echo "    $(git hash-object "$s")  <scratchpad>/i20/$(basename "$s")"; done
+  for s in "${scripts[@]}" "$R/tree.sh" "$R/machine.sh" "$R/transcript.sh"; do
+    echo; echo "--- <scratchpad>/i20/$(basename "$s")"; echo '```'; cat "$s"; echo '```'
+  done
+} > "$out"
+```

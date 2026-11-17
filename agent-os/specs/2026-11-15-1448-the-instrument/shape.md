@@ -821,7 +821,8 @@ fromtheoutfit/patchbay. None carries attribution.
     numbers of the three issues just filed on fromtheoutfit/patchbay filled in. File nothing
     until I say so."
 - **Three are filed, fromtheoutfit/patchbay#20, #21 and #22,** as they read below, each read
-  back from GitHub against the text sent. **The fourth, the 0.1.0 proposal, is held.**
+  back from GitHub against the text sent. **The fourth, the 0.1.0 proposal, is held.** (Filed
+  since, on 2026-11-16 after the merge, as fromtheoutfit/patchbay#26: see draft 4 below.)
 - **The numbers coincide.** fromtheoutfit/patchbay-vital#20, #21 and #22 are the three on the
   hosted plugin; fromtheoutfit/patchbay#20, #21 and #22 are the three for core. Where this file
   writes a bare number it is this repository's.
@@ -1156,7 +1157,7 @@ the instrument:**
 > This asks core to say so in `Instrument.render`, or to add a contract test for it, so the next
 > adapter does not have to read the fake to find out.
 
-### For fromtheoutfit/patchbay, 4: patchbay-core 0.1.0 (held by the owner until the pull request for #8 is merged)
+### For fromtheoutfit/patchbay, 4: patchbay-core 0.1.0 (held until the pull request for #8 merged; filed as fromtheoutfit/patchbay#26 on 2026-11-16)
 
 Written after the gate's clean run, which it cites, and shown to the owner with the other three.
 Held on 2026-11-16, in the owner's words: "Print draft 4 whole in your reply, as it would be
@@ -1222,6 +1223,50 @@ The line above under "The adapter's limits" stays, and no longer "asks core noth
 limit is the adapter's, and what an instrument does in that state is now asked of core as #25.
 The draft's line on fromtheoutfit/patchbay-vital#22 stands; that issue's body says, since the
 same day, that a set of the value `get` shows mends 42 of its 46 floats. The draft stays held.
+
+**Filed 2026-11-16 as fromtheoutfit/patchbay#26,** after the pull request for #8,
+fromtheoutfit/patchbay-vital#23, merged as `0eac1dba4e0738d8b32d2b703ddfba0c09d11b18` on `main`.
+The owner's words: "The pull request for issue #8 is merged. File draft 4, the patchbay-core
+0.1.0 proposal, on fromtheoutfit/patchbay, no attribution: cite the merged commit on main (git
+log -1 after pulling), the final gate and contract runs with their paths under that commit, and
+the issues it lists (patchbay #20 to #25 as they apply, patchbay-vital #20 to #22). Check every
+path and number in it resolves on main before filing, read it back, and record its number in the
+instrument spec's shape.md. Then close nothing and stop: the release itself is the owner's."
+
+The issue's body is the text below with what the notes above said would change. It was read back
+from GitHub and is identical to the text sent. It carries no attribution.
+
+- **"The run"** gives the figures of the gate run the merged commit carries, `scripts/gate.sh`
+  exit 0 with 803 tests passed and none skipped
+  (`agent-os/specs/2026-11-16-1509-revision-after-pr-23-second-review/verification/gate-run.txt`,
+  2026-11-16 15:47 EST), and cites that spec's `verification/contract-run.txt` (15:49 EST), each
+  by its full path.
+- **"Where the evidence is"** names the merged commit on `main` in place of the branch and of
+  "uncommitted when this was filed". It says the two runs were made on the branch before the
+  merge and that every file hash they print is that commit's, but for their own spec's
+  `shape.md`, written to after they ran. That was checked blob by blob against the commit.
+- **"What core does not say yet"** lists #23, #24 and #25 after #20 to #22.
+- **"The adapter's limits"** gains the lost step as a paragraph after the three, since it has no
+  issue on patchbay-vital, and points at #25 for what core is asked.
+- **Three wordings differ from the draft,** each so that the text reads true and its numbers link
+  where they should, and the owner is told:
+  - "patchbay-vital's issue #8" is written fromtheoutfit/patchbay-vital#8. A bare #8 in an issue
+    on fromtheoutfit/patchbay is core's own.
+  - "the same three as the issues above" is "those of the first three issues above", six being
+    listed now.
+  - "Against" adds that `eddba95404a9b633d358dc4d6b07b084a8f975ad` is core's `main` as the issue
+    is filed: checked, 0 commits ahead and 0 behind.
+- **Checked on `main` at the merged commit before filing:**
+  - each path the text names exists there, and `test_contract_against_vital` and
+    `test_contract_against_a_fake_plugin` are in the modules it says;
+  - the thirteen, counted in the installed core; 22 of 903 and 2,201 of 57,636
+    (`verification/off-grid-count.txt`); 35 (the first revision's `carrying-count.txt`);
+  - core's quoted words, in the installed package at `eddba95`, and a render of zero samples on
+    core's fake, run: an empty result, `(1, 0)`;
+  - the pin in `[tool.uv.sources]`, and `pyproject.toml` and `CHANGELOG.md` on core's `main`;
+  - fromtheoutfit/patchbay#20 to #25 and fromtheoutfit/patchbay-vital#20 to #22 open,
+    fromtheoutfit/patchbay-vital#8 closed and #23 merged, and no earlier proposal on file.
+- **Nothing was closed.** Cutting the release is the owner's.
 
 > **Title:** Propose patchbay-core 0.1.0: the contract suite passes against a real instrument, Vital
 >
@@ -1393,7 +1438,8 @@ gate reads has changed since the gate ran.
   filed, when the fourth is to be filed with its count checked, and the harness's second run
   with the first transcript's new name.
 - **What issue #8 asked for and is not done:** the 0.1.0 issue on fromtheoutfit/patchbay. It is
-  drafted, shown, and held at the owner's word.
+  drafted, shown, and held at the owner's word. (Done since: filed on 2026-11-16, after the pull
+  request merged, as fromtheoutfit/patchbay#26.)
 - No gate file changed: `scripts/`, `.github/`, `uv.lock` and the `[tool.*]` sections of
   `pyproject.toml` are as `main` has them.
 

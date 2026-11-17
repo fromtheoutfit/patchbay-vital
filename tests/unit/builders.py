@@ -1,12 +1,16 @@
-"""What the unit tests share: strategies, an empty slot, a preset, and what a set holds.
+"""What the unit tests share: strategies, an empty slot, a preset, what a set holds, a watch.
 
 What a set holds is worked out from primitives, for the instrument's tests and the patch's alike.
+The stand-in watch is what the host's and the instrument's tests put in place of the one that
+answers Vital's alert, so they run alike on macOS and where there is no AppKit.
 A plain module and not a conftest: a property test takes these at its decorator or under `@given`,
 where a function-scoped fixture fails hypothesis's health check, and the gate's negative test q
 writes a conftest of its own at tests/unit/conftest.py.
 """
 
 import struct
+from collections.abc import Iterator
+from contextlib import contextmanager
 from fractions import Fraction
 
 from hypothesis import strategies as st
@@ -34,6 +38,39 @@ _METADATA = {
     "preset_style": "",
     "synth_version": "1.6.4",
 }
+
+
+class StandInWatch:
+    """A watch in place of AppKit's: it says when it is in place, and notes a fake's alerts.
+
+    A fake plugin raises an alert by calling `alert`. With no watch in place that is its caller
+    waiting for ever, so it fails the test there, by name. `entered` counts the writes watched.
+    """
+
+    def __init__(self) -> None:
+        """Start out of place, on a platform where a load is the main thread's."""
+        self.main_thread_only = True
+        self.in_place = False
+        self.entered = 0
+        self._alerts: list[tuple[str, str]] | None = None
+
+    @contextmanager
+    def answered(self) -> Iterator[list[tuple[str, str]]]:
+        """Be in place for the length of the block; yield the list its alerts are noted in."""
+        alerts: list[tuple[str, str]] = []
+        self._alerts, self.in_place = alerts, True
+        self.entered += 1
+        try:
+            yield alerts
+        finally:
+            self._alerts, self.in_place = None, False
+
+    def alert(self, message: str, informative: str) -> None:
+        """Raise an alert, as Vital does for a text it cannot read."""
+        assert self._alerts is not None, (
+            "an alert with no watch in place: its caller waits for ever"
+        )
+        self._alerts.append((message, informative))
 
 
 def make_preset(**changes: object) -> VitalPreset:

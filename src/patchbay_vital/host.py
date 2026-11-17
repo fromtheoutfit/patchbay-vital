@@ -38,6 +38,35 @@ calls, the JSON a measurement parses among it, runs in the process's own environ
 the one the plugin left. The plugin's own processing still runs under the environment it sets for
 itself. A unit test with a plugin that changes the rounding mode on every call holds that each
 public method gives the environment back and that each call is entered with it.
+
+**A load.** Vital reports no state it cannot use (the spec of issue #20,
+`agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/`, whose `verification/` holds every
+count here; Vital 1.6.4 through pedalboard 0.9.26 on arm64, macOS 26.6.2). It answers a text it
+cannot read with a modal alert and its caller waits for ever, nothing in Python running
+meanwhile; it ignores a text newer than itself without a word; and a text can kill the process
+inside Vital's own reading of it. `load_state` does three things about the first two:
+
+- On macOS it answers the alert before it opens. For the length of each state write,
+  `-[NSAlert runModal]` is replaced by a function that notes the alert's two texts and returns
+  its first button at once, and is put back however the write ends, as the floating-point
+  environment is. A write in which an alert was answered is `PluginStateError`, the alert's own
+  words in it, and the plugin is then part-loaded: of 249 texts that alert, the text's floats
+  were already taken on 246. The Objective-C runtime is reached through `ctypes`, and the host
+  refuses to load on macOS where it cannot be. The method is replaced for the whole process
+  while a write runs, so any alert run on the main thread in that time is answered and counted
+  as the write's; none but Vital's own was seen. Each answered alert leaves one window object
+  in the application's list, never shown: 500 after 500 of them.
+- On macOS it makes a load on the main thread or not at all: `PluginThreadError` before the
+  plugin is called. From another thread AppKit refuses the alert's window, the load raises, the
+  parameters are then read stale, and the process died at its next render, 11 of 11.
+- It checks the load with a marker. Before the write `MARKER`, a switch, is set to the end of
+  its range the text does not hold, and read after it: a write that left it there was ignored,
+  and is `PluginStateError`. The marker is the plugin's alone: no model holds it. It needs the
+  map, so where the map is not the plugin's the load is made unchecked, as it was.
+
+On any other platform a write is made as it always was, and a text Vital cannot read may still
+block there: nothing was probed off macOS, nor in a process with no screen. Nothing here helps
+with a text that kills the process, nor with one Vital loads in part: both are issue #25's.
 """
 
 import ctypes
@@ -46,8 +75,9 @@ import importlib.metadata
 import math
 import operator
 import platform
+import threading
 from collections.abc import Callable, Iterator, Mapping, Sequence
-from contextlib import contextmanager
+from contextlib import AbstractContextManager, contextmanager
 from pathlib import Path
 from typing import NamedTuple, Protocol, cast
 
@@ -63,10 +93,11 @@ from patchbay_vital.errors import (
     PluginLoadError,
     PluginRenderError,
     PluginStateError,
+    PluginThreadError,
     UnknownParameterError,
     VitalHostError,
 )
-from patchbay_vital.parameters import ParameterMap, parameter_map
+from patchbay_vital.parameters import MappedParameter, ParameterMap, parameter_map
 from patchbay_vital.preset import DECODER
 from patchbay_vital.state import unwrap, wrap
 
@@ -76,8 +107,15 @@ DEFAULT_PATH = Path("/Library/Audio/Plug-Ins/VST3/Vital.vst3")
 INSTRUMENT = "Vital"
 """The plugin's name, as it reports it; a plugin at the path by another name is refused."""
 
+MARKER = ParameterId("filter_1_on")
+"""The parameter a load is checked with: a switch, so each end of its range is a value it holds
+exactly, and the two are the whole range apart."""
+
 type Midi = Sequence[tuple[bytes, float]]
 """MIDI as pedalboard takes it: each message's bytes and its time in seconds from the start."""
+
+type Alert = tuple[str, str]
+"""An alert as it was answered: its message, and the text under it."""
 
 _CHANNELS = 2
 
@@ -121,6 +159,132 @@ def _c_library() -> ctypes.CDLL | None:
 
 
 _LIBC = _c_library()
+
+_FIRST_BUTTON = 1000
+"""`NSAlertFirstButtonReturn`: what a modal alert gives back when its first button is pressed."""
+
+_RUNTIME_FUNCTIONS = (
+    "objc_getClass",
+    "sel_registerName",
+    "class_getInstanceMethod",
+    "method_setImplementation",
+    "objc_msgSend",
+)
+
+_ANSWER = ctypes.CFUNCTYPE(ctypes.c_long, ctypes.c_void_p, ctypes.c_void_p)
+"""`-[NSAlert runModal]` as a C function: the alert and the selector in, the button out."""
+
+
+class _AlertWatch(Protocol):
+    """What answers the alerts a state write raises, and says where a write may be made."""
+
+    @property
+    def main_thread_only(self) -> bool: ...
+
+    def answered(self) -> AbstractContextManager[list[Alert]]: ...
+
+
+class _NoWatch:
+    """Where no alert is answered, every platform but macOS: a write is made as it always was."""
+
+    main_thread_only = False
+
+    @contextmanager
+    def answered(self) -> Iterator[list[Alert]]:
+        """Watch nothing; the list stays empty."""
+        yield []
+
+
+class _AppKitWatch:
+    """Vital's alert answered before it opens, on macOS, through the Objective-C runtime.
+
+    While `answered` is entered, `-[NSAlert runModal]` is a function of this object's that notes
+    the alert's message and its informative text and returns the first button; on the way out the
+    method's own implementation is put back. The function is made once and kept, since the
+    runtime holds only its address. `ready` is False where AppKit has no such method to replace.
+    """
+
+    main_thread_only = True
+
+    def __init__(self, runtime: ctypes.CDLL) -> None:
+        """Look up the alert's method and the selectors its texts are read with."""
+        pointer = ctypes.c_void_p
+        runtime.objc_getClass.restype = pointer
+        runtime.objc_getClass.argtypes = [ctypes.c_char_p]
+        runtime.sel_registerName.restype = pointer
+        runtime.sel_registerName.argtypes = [ctypes.c_char_p]
+        runtime.class_getInstanceMethod.restype = pointer
+        runtime.class_getInstanceMethod.argtypes = [pointer, pointer]
+        runtime.method_setImplementation.restype = pointer
+        runtime.method_setImplementation.argtypes = [pointer, pointer]
+        self._runtime = runtime
+        self._object = ctypes.CFUNCTYPE(pointer, pointer, pointer)(("objc_msgSend", runtime))
+        self._bytes = ctypes.CFUNCTYPE(ctypes.c_char_p, pointer, pointer)(("objc_msgSend", runtime))
+        self._texts = tuple(
+            runtime.sel_registerName(name) for name in (b"messageText", b"informativeText")
+        )
+        self._utf8 = runtime.sel_registerName(b"UTF8String")
+        self._method = runtime.class_getInstanceMethod(
+            runtime.objc_getClass(b"NSAlert"), runtime.sel_registerName(b"runModal")
+        )
+        self._answer = _ANSWER(self._answered_at_once)
+        self._alerts: list[Alert] | None = None
+
+    @property
+    def ready(self) -> bool:
+        """Whether AppKit holds the method this replaces."""
+        return bool(self._method)
+
+    def _text(self, alert: int | None, selector: int | None) -> str:
+        """Return one of an alert's texts, empty where it has none."""
+        string = self._object(alert, selector)
+        raw = self._bytes(string, self._utf8) if string else None
+        return raw.decode("utf-8", "replace") if isinstance(raw, bytes) else ""
+
+    def _answered_at_once(self, alert: int | None, _selector: int | None) -> int:
+        """Stand in for `-[NSAlert runModal]`: note the alert's texts, return its first button."""
+        if self._alerts is not None:
+            message, informative = (self._text(alert, selector) for selector in self._texts)
+            self._alerts.append((message, informative))
+        return _FIRST_BUTTON
+
+    @contextmanager
+    def answered(self) -> Iterator[list[Alert]]:
+        """Answer every alert run while this is entered; yield the list they are noted in."""
+        alerts: list[Alert] = []
+        self._alerts = alerts
+        replacement = ctypes.cast(self._answer, ctypes.c_void_p)
+        original = self._runtime.method_setImplementation(self._method, replacement)
+        try:
+            yield alerts
+        finally:
+            self._runtime.method_setImplementation(self._method, original)
+            self._alerts = None
+
+
+def _alert_watch() -> _AlertWatch | None:
+    """Return what answers Vital's alert on this platform; None on macOS where nothing can.
+
+    Off macOS nothing is watched. On macOS the Objective-C runtime and AppKit are loaded by
+    name, and the watch is made only where the runtime holds every function it calls and AppKit
+    the method it replaces.
+    """
+    if platform.system() != "Darwin":
+        return _NoWatch()
+    names = [ctypes.util.find_library(name) for name in ("objc", "AppKit")]
+    if None in names:
+        return None
+    try:
+        runtime, _ = (ctypes.CDLL(name) for name in names)
+    except OSError:
+        return None
+    if not all(hasattr(runtime, function) for function in _RUNTIME_FUNCTIONS):
+        return None
+    watch = _AppKitWatch(runtime)
+    return watch if watch.ready else None
+
+
+_ALERTS = _alert_watch()
 
 
 @contextmanager
@@ -241,6 +405,23 @@ def _text_for(hosted: _HostedParameter, point: float) -> str:
         return hosted.get_text_for_raw_value(point)
 
 
+def _planted(record: MappedParameter, text: bytes) -> float:
+    """Return the normalized value the marker is set to before a text is loaded.
+
+    An end of its range, which the parameter holds exactly: the maximum, 1.0, unless the text's
+    own value for it is in the upper half of its scale, at the midpoint or above, and then the
+    minimum, 0.0. So what is planted is at least half the range from what the text holds, more
+    than a set can blur. A text without the key holds the parameter's default, as Vital gives it
+    one; a value there that is no number is read as absent. The text is one JSON object, its
+    state's validator having read it.
+    """
+    settings = DECODER.decode(text.decode("utf-8")).get("settings")
+    held = settings.get(record.preset_key) if isinstance(settings, dict) else None
+    if isinstance(held, bool) or not isinstance(held, int | float):
+        held = record.preset_default
+    return 0.0 if held >= (record.scale.minimum + record.scale.maximum) / 2 else 1.0
+
+
 def _moving_key(
     label: str, defaults: Mapping[str, float], rows: Sequence[Mapping[str, float]]
 ) -> str:
@@ -274,6 +455,9 @@ class VitalHost:
         if _LIBC is None:
             msg = "no library holds fegetenv and fesetenv to keep the floating-point environment"
             raise PluginLoadError(str(where), msg)
+        if _ALERTS is None:
+            msg = "the Objective-C runtime and AppKit cannot be reached to answer Vital's alert"
+            raise PluginLoadError(str(where), msg)
         try:
             with _environment_kept():
                 plugin = cast("_HostedPlugin", pedalboard.VST3Plugin(str(where)))
@@ -295,8 +479,11 @@ class VitalHost:
         self._plugin = plugin
         self._hosted = hosted
         self._containers = containers
+        self._alerts = _ALERTS
         self._map: ParameterMap | None = None
         self._by_host: dict[str, ParameterId] = {}
+        self._marker_sought = False
+        self._marker_found: tuple[_HostedParameter, MappedParameter] | None = None
 
     @property
     def name(self) -> str:
@@ -385,16 +572,87 @@ class VitalHost:
         """Return the preset text the plugin holds: a `.vital` file's, with its `tuning`."""
         return unwrap(self.preset_data()).text
 
+    def _marker(self) -> tuple[_HostedParameter, MappedParameter] | None:
+        """Return the marker's hosted parameter and its record, sought once.
+
+        None where the map is not this plugin's, measured on another machine or from another
+        Vital: the host cannot then tell which of the text's keys a hosted parameter is, and a
+        load is made unchecked.
+        """
+        if not self._marker_sought:
+            self._marker_sought = True
+            try:
+                record = self._parameter_map().find(MARKER)
+                self._marker_found = (self._hosted_parameter(MARKER), record)
+            except MapMismatchError:
+                self._marker_found = None
+        return self._marker_found
+
+    def _write(self, data: bytes) -> None:
+        """Give the plugin a state, answering any alert it raises with it.
+
+        PluginStateError for a state pedalboard refuses, chained, and for one the plugin answered
+        with an alert, the alert's own two texts in the reason.
+        """
+        with self._alerts.answered() as alerts, _reached(PluginStateError):
+            self._plugin.preset_data = data
+        if alerts:
+            message, informative = alerts[0]
+            msg = f"Vital answered the state with its alert, {message!r}: {informative!r}"
+            raise PluginStateError(msg)
+
+    def _unplanted(self, hosted: _HostedParameter, planted: float, before: float) -> bool:
+        """Set the marker back to what it was where a write left it as planted; say whether."""
+        with _reached(PluginStateError):
+            left = hosted.raw_value == planted
+        if left:
+            with _reached(PluginStateError):
+                hosted.raw_value = before
+        return left
+
     def load_state(self, text: bytes) -> None:
         """Load a preset's text into the plugin, inside the containers the plugin loaded with.
 
         The text is a `.vital` file's or `state`'s: one JSON object, and the one newline a file may
-        end in, which is not passed on. PluginStateError when it is anything else, which the plugin
-        could not read, or when the plugin refuses it, chained; the plugin is then unchanged.
+        end in, which is not passed on.
+
+        PluginThreadError on macOS when this is not the main thread, before the plugin is called.
+        PluginStateError when the text is anything but one JSON object, which the plugin could
+        not read, the plugin not called; when pedalboard refuses the state, chained; when Vital
+        answers it with its alert, the alert's words in the reason, the plugin then holding the
+        text in part; and when Vital ignores it, which the marker shows, the plugin then as it
+        was. On every platform but macOS no alert is answered, and a text Vital cannot read may
+        not return.
+
+        The marker (`MARKER`) is set before the write to an end of its range the text does not
+        hold, and where a write that failed left it there it is set back to the value it had.
+        Where the map is not this plugin's no marker is set and the load is not checked.
         """
-        loaded = wrap(self._containers.with_text(text.removesuffix(b"\n")))
+        if (
+            self._alerts.main_thread_only
+            and threading.current_thread() is not threading.main_thread()
+        ):
+            raise PluginThreadError(threading.current_thread().name)
+        body = text.removesuffix(b"\n")
+        loaded = wrap(self._containers.with_text(body))
+        marker = self._marker()
+        if marker is None:
+            self._write(loaded)
+            return
+        hosted, record = marker
+        planted = _planted(record, body)
         with _reached(PluginStateError):
-            self._plugin.preset_data = loaded
+            before = hosted.raw_value
+        with _reached(PluginStateError):
+            hosted.raw_value = planted
+        try:
+            self._write(loaded)
+        except PluginStateError:
+            self._unplanted(hosted, planted, before)
+            raise
+        if self._unplanted(hosted, planted, before):
+            msg = f"Vital ignored the state: {MARKER}, set before the load, was left as it was set"
+            raise PluginStateError(msg)
 
     def render(self, midi: Midi, samples: int, sample_rate: int) -> NDArray[np.float32]:
         """Render `samples` samples of the plugin playing `midi`, as `(2, samples)` float32.
@@ -472,8 +730,7 @@ class VitalHost:
                     )
                 )
         finally:
-            with _reached(PluginStateError):
-                self._plugin.preset_data = start
+            self._write(start)
         return tuple(measured)
 
 

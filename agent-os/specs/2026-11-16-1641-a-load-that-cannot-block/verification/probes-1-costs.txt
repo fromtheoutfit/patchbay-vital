@@ -1,0 +1,1111 @@
+The spec of issue #20 (a load that cannot block): probes, run 1, what a trial in a child costs and what a read after a load detects, run 2026-11-16 16:47 EST on branch
+bugfix/20-the-host-a-preset-vital-cannot-read-blocks-the-calling-process-for-ever, Vital at /Library/Audio/Plug-Ins/VST3/Vital.vst3
+the machine before the run: arm64, Apple M4 Pro, 14 cores, macOS 26.6.2 (25G83), Python 3.12.16, load 1.76 2.07 2.25, at 2026-11-16 16:47 EST
+the tree before the run (this transcript is written outside the tree and copied in afterwards):
+  HEAD 0eac1dba4e0738d8b32d2b703ddfba0c09d11b18
+  git status --porcelain=v1 --untracked-files=all, 5 lines:
+     M agent-os/specs/2026-11-15-1448-the-instrument/shape.md
+    ?? agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/plan.md
+    ?? agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/references.md
+    ?? agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/shape.md
+    ?? agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/standards.md
+  git hash-object of each of those paths (a deleted one marked so):
+    ae44c46104b792f792e47728258dc5ed0c8b2eeb  agent-os/specs/2026-11-15-1448-the-instrument/shape.md
+    4a33afdae42f645aa8749f2766996be553358743  agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/plan.md
+    6085dde9b16dee9eda8a2c256f712e4bbac04225  agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/references.md
+    2896ae71767f19e8ad2e9358d44b14f0cdefea8b  agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/shape.md
+    dc2d17e44e7f13a6eb4911a880a958d6e67c31b8  agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/standards.md
+
+$ bash <scratchpad>/i20/run1.sh
+Vital 1.6.4 at /Library/Audio/Plug-Ins/VST3/Vital.vst3, through pedalboard 0.9.26
+machine arm64, Python 3.12.16, numpy 2.5.4
+the map: Vital 1.6.4, pedalboard 0.9.26, arm64, 903 records
+the texts: the start preset (60875 bytes), the fixture (60856 bytes) and 75 installed presets, 119040 to 10126117 bytes, median 753731
+
+== 1a. a trial in a fresh child, start to verdict (ms): a labelled sample, not a count
+python -B, so no bytecode is written; the package's bytecode is cached: True
+the start preset (60875 bytes), 10 children:
+  interpreter        min 15.3, median 15.9, max 21.7
+  imports            min 81.0, median 84.3, max 91.4
+  VitalHost()        min 2155.1, median 2193.3, max 2275.7
+  reading the text   min 0.2, median 0.3, max 0.3
+  two loads          min 8.5, median 8.8, max 9.6
+  exit               min 68.2, median 71.8, max 79.4
+  the whole          min 2332.3, median 2378.6, max 2462.5
+  each whole: [2361, 2339, 2332, 2371, 2388, 2386, 2424, 2462, 2450, 2370]
+the smallest installed preset, Yuli Yolo/Presets/Factory Presets/Synthetic Quartet.vital (119040 bytes), 3 children:
+  reading the text   min 0.4, median 0.4, max 0.4
+  two loads          min 59.8, median 59.9, max 60.5
+  the whole          min 2411.0, median 2416.8, max 2452.5
+the median installed preset, In The Mix/Presets/Distant Majestic Lead.vital (753731 bytes), 3 children:
+  reading the text   min 2.4, median 2.7, max 3.0
+  two loads          min 83.9, median 85.2, max 85.4
+  the whole          min 2471.9, median 2480.5, max 2481.7
+the largest installed preset, Mr Bill/Presets/Float Chords.vital (10126117 bytes), 3 children:
+  reading the text   min 34.1, median 35.3, max 38.1
+  two loads          min 493.4, median 495.5, max 500.7
+  the whole          min 2906.8, median 2928.4, max 2932.7
+
+== 1b. a child kept up: its start, its memory, and each text's round trip against the same two loads in-process
+the child's start (ms): interpreter 15, imports 82, VitalHost() 2211, ready 2308 after it was started
+the child's resident memory once ready: 497 MiB; this process's, hosting its own Vital: 559 MiB
+each of the 77 texts, 3 rounds, medians in ms:
+      bytes  in-process (first+second)   the child's own   round trip   trip less in-process   text
+      60856        8.3 (4.2+4.1)             8.0          8.1                -0.2   the fixture
+      60875        9.4 (4.8+4.6)             8.7          8.9                -0.5   the start preset
+     119040       59.4 (30.0+30.1)            59.5         59.7                 0.3   Yuli Yolo/Presets/Factory Presets/Synthetic Quartet.vital
+     155111       64.6 (32.2+32.5)            63.9         64.1                -0.5   Mr Bill/Presets/Real Squarepusher Hours.vital
+     164228       31.3 (15.7+15.7)            31.0         31.2                -0.1   Navi Retlav Studio/Presets/Factory Presets/Physical Tension.vital
+     164981       31.7 (16.0+15.7)            31.3         31.5                -0.2   Unsystematic Fragmentation/Presets/Factory Presets/Fun Pulse.vital
+     167042       31.8 (15.8+15.9)            31.8         32.1                 0.3   Halcyon Future Riddim Vol 1/Presets/Oolacile/Boot Scre3n.vital
+     174089       14.0 (7.1+6.8)            14.0         14.2                 0.2   Factory/Presets/Shepard Tone Template.vital
+     174653       14.2 (7.3+6.9)            14.2         14.5                 0.2   Afro/Presets/Kick Drum 1.vital
+     174710       13.8 (6.9+6.9)            13.8         13.9                 0.1   In The Mix/Presets/Strings Section.vital
+     174758       14.9 (7.5+7.5)            15.1         15.3                 0.5   Glorkglunk/Presets/Squish Clicker.vital
+     175015       14.9 (7.6+7.2)            14.4         14.6                -0.3   Factory/Presets/FM Drum Circle.vital
+     176486       14.2 (7.2+7.0)            14.1         14.2                 0.0   Halcyon Future Riddim Vol 1/Presets/Oolacile/Space Station.vital
+     187784       28.7 (14.4+14.3)            28.8         29.1                 0.4   Yuli Yolo/Presets/Factory Presets/Keystation.vital
+     197581       48.8 (24.6+24.4)            48.3         48.5                -0.3   Yuli Yolo/Presets/Factory Presets/Easy Mallet.vital
+     208393       88.5 (44.3+44.0)            87.9         88.2                -0.3   Databroth/Presets/Factory Presets/Ceramic.vital
+     209615       53.6 (26.9+26.7)            52.7         52.9                -0.7   Factory/Presets/Ah Eh Ee Oh.vital
+     229997       24.0 (12.1+11.9)            24.1         24.4                 0.4   Yuli Yolo/Presets/Factory Presets/Jupiter Bass.vital
+     231144       26.3 (12.8+12.5)            26.4         26.7                 0.5   Factory/Presets/Touch Tone.vital
+     231188       58.8 (29.3+29.7)            58.6         58.8                -0.0   Navi Retlav Studio/Presets/Factory Presets/Dispersed Grit.vital
+     241415       42.5 (21.4+21.2)            41.9         42.1                -0.4   In The Mix/Presets/Growl Bass Sidechain.vital
+     248790       54.3 (27.2+27.4)            54.0         54.3                 0.1   Factory/Presets/Text To Wavetable Template.vital
+     268065       71.8 (35.9+35.0)            70.5         70.8                -1.0   In The Mix/Presets/Analog Pad.vital
+     284971       38.2 (19.1+19.1)            38.0         38.2                 0.1   Mr Bill/Presets/Remedial Shikari.vital
+     285350       38.2 (18.9+19.1)            37.5         37.8                -0.4   Mr Bill/Presets/Cursed Steps.vital
+     285737       38.4 (19.2+19.3)            37.8         38.1                -0.4   Mr Bill/Presets/LORN Style Lead.vital
+     293764       67.9 (33.8+34.1)            67.4         67.7                -0.2   inktome/Presets/Digital roller.vital
+     296255       94.0 (46.8+47.2)            93.4         93.7                -0.3   Navi Retlav Studio/Presets/Factory Presets/Phaser Man.vital
+     302074       85.4 (43.2+42.2)            85.0         85.3                -0.2   Glorkglunk/Presets/Special Glitch Thing.vital
+     315942       94.9 (47.8+47.1)            95.7         96.0                 1.1   Databroth/Presets/Factory Presets/Snowcrash.vital
+     327884       35.8 (18.0+17.8)            35.2         35.5                -0.3   In The Mix/Presets/Moog Pluck.vital
+     328794       67.4 (33.5+33.7)            67.0         67.2                -0.2   Unsystematic Fragmentation/Presets/Factory Presets/Moving Harmonics.vital
+     369311       30.1 (15.1+15.0)            29.7         30.0                -0.1   Halcyon Future Riddim Vol 1/Presets/Voltra/VLT Future Gun.vital
+     406912       66.3 (33.3+33.0)            66.2         66.5                 0.2   Level 8/Presets/Factory Presets/FM Mode.vital
+     427931       66.4 (33.4+33.0)            65.6         65.9                -0.5   Factory/Presets/Staggered Phrases.vital
+     504953       80.7 (40.1+40.6)            80.4         80.7                -0.1   inktome/Presets/Piano from the yard sale.vital
+     518960       49.0 (24.6+24.5)            49.2         49.5                 0.5   Navi Retlav Studio/Presets/Factory Presets/Skew Resandal.vital
+     676703       66.7 (33.6+33.2)            66.7         67.0                 0.3   Level 8/Presets/Factory Presets/Horror of Melbourne 1.vital
+     751303      105.1 (52.1+52.7)           105.0        105.4                 0.3   inktome/Presets/Big Stomp.vital
+     753731       84.6 (42.3+42.5)            84.2         84.5                -0.1   In The Mix/Presets/Distant Majestic Lead.vital
+     829406      113.6 (56.6+56.4)           111.5        111.9                -1.7   Yuli Yolo/Presets/Factory Presets/DIY.vital
+     846158       45.3 (22.7+22.5)            45.0         45.4                 0.1   Glorkglunk/Presets/THUNK.vital
+     943261       56.8 (28.3+28.4)            57.2         57.5                 0.6   Yuli Yolo/Presets/Factory Presets/Metal Head.vital
+    1073778      134.0 (67.4+66.7)           132.9        133.3                -0.8   Afro/Presets/Random Amp Growl.vital
+    1196598      110.8 (55.6+55.2)           110.9        111.4                 0.6   Afro/Presets/Banana Wob.vital
+    1249209      125.5 (62.6+62.6)           124.7        125.2                -0.3   Databroth/Presets/Factory Presets/Fleet.vital
+    1301114       90.9 (45.4+45.3)            91.0         91.5                 0.5   Level 8/Presets/Factory Presets/Damped Horn.vital
+    1354661       92.2 (46.5+45.7)            91.8         92.2                -0.0   Level 8/Presets/Factory Presets/Crescendo Bells.vital
+    1367913      143.9 (72.0+71.9)           145.3        145.7                 1.9   Yuli Yolo/Presets/Factory Presets/A Night in Kalyan.vital
+    1370066       64.4 (32.4+32.0)            63.4         63.9                -0.5   Mr Bill/Presets/E4 One Note Metallophone.vital
+    1373268      144.6 (72.8+72.4)           144.2        144.7                 0.1   Glorkglunk/Presets/Thumpus.vital
+    1426802      101.1 (50.2+50.8)           101.1        101.6                 0.5   Billain/Presets/Factory Presets/Railgun.vital
+    1477559      154.8 (77.1+77.6)           153.3        153.7                -1.1   Billain/Presets/Factory Presets/Cinema Bells.vital
+    1503327      130.3 (64.6+65.1)           130.0        130.4                 0.2   Databroth/Presets/Factory Presets/Gorgled.vital
+    1554373      145.2 (72.6+72.9)           144.5        145.0                -0.2   Navi Retlav Studio/Presets/Factory Presets/Drowning Machine.vital
+    1554943       96.8 (48.4+48.1)            97.3         97.7                 0.9   Yuli Yolo/Presets/Factory Presets/Abbysun.vital
+    1556063      148.6 (74.3+73.9)           147.6        148.0                -0.5   Unsystematic Fragmentation/Presets/Factory Presets/corrupted_...+=boot-_.vital
+    1563937       82.9 (41.5+41.6)            82.2         82.6                -0.3   Unsystematic Fragmentation/Presets/Factory Presets/Phaser Entropy .vital
+    1565345      141.4 (70.8+70.5)           140.8        141.2                -0.2   Yuli Yolo/Presets/Factory Presets/Salomon.vital
+    1574509      132.3 (66.1+66.3)           132.5        132.9                 0.6   Yuli Yolo/Presets/Factory Presets/Destruction.vital
+    1581585       81.4 (40.7+40.7)            80.8         81.3                -0.2   Factory/Presets/Plucked String.vital
+    1686403       93.5 (46.4+47.0)            93.1         93.5                 0.0   Mr Bill/Presets/Super Nice Pluck.vital
+    1698422      119.1 (59.7+59.8)           119.2        119.7                 0.6   Databroth/Presets/Factory Presets/Disrupt.vital
+    1743156       96.1 (48.2+48.2)            96.4         96.9                 0.8   Unsystematic Fragmentation/Presets/Factory Presets/Chorusy Keys.vital
+    2018609      122.9 (61.4+61.2)           122.8        123.3                 0.5   Level 8/Presets/Factory Presets/Complex Electro 1.vital
+    2023862      123.0 (61.6+61.5)           123.3        123.8                 0.8   Halcyon Future Riddim Vol 1/Presets/Aweminus/Swiss Army Knife.vital
+    2196216      125.7 (62.8+62.9)           125.6        126.1                 0.4   Glorkglunk/Presets/Digestive Trauma.vital
+    2422332      146.9 (74.1+72.9)           146.3        146.8                -0.1   Halcyon Future Riddim Vol 1/Presets/Oolacile/Memory Leak.vital
+    2749719      172.8 (86.6+85.4)           173.3        174.0                 1.2   Level 8/Presets/Factory Presets/Smoker's Lounge.vital
+    2915133      148.2 (74.5+73.8)           149.5        150.5                 2.3   Halcyon Future Riddim Vol 1/Presets/Oolacile/Satellites.vital
+    2950151      114.8 (57.4+57.4)           115.1        115.7                 0.9   Navi Retlav Studio/Presets/Factory Presets/Super Pluck.vital
+    3114585      153.3 (76.5+76.8)           151.9        152.6                -0.7   Unsystematic Fragmentation/Presets/Factory Presets/A happy ending of the world.vital
+    3884939      224.6 (112.2+112.5)           225.7        226.8                 2.2   Mr Bill/Presets/Honk Wub.vital
+    4454600      165.2 (83.4+82.4)           165.0        165.8                 0.6   Halcyon Future Riddim Vol 1/Presets/Phonon/Simple Weoum.vital
+    4480796      273.4 (136.8+136.6)           272.2        273.1                -0.2   Databroth/Presets/Factory Presets/Feeder.vital
+    5149253      228.7 (113.6+114.7)           228.3        229.3                 0.6   Halcyon Future Riddim Vol 1/Presets/Oolacile/Oolacile Evil Dubstep Bass.vital
+   10126117      489.4 (243.9+245.5)           494.4        496.2                 6.8   Mr Bill/Presets/Float Chords.vital
+the round trip less the in-process loads, over the 77: min -1.7, median 0.0, max 6.8
+  texts under 1 MiB (43): min -1.7, median -0.1, max 1.1 ms
+  texts of 1 MiB and more (34): min -0.8, median 0.1, max 1.4 ms per MiB of text
+the child's resident memory after the 231 trials: 967 MiB (it was 497)
+the child's exit once its input closed: 0
+
+== 1c. the floating-point environment around a trial
+this process's fegetenv bytes the same after a trial as before it: 231 of 231
+the child's own fegetenv bytes the same after its two loads through VitalHost: 231 of 231
+a subnormal result still a subnormal in the child after its loads: 231 of 231
+a subnormal result still a subnormal in this process, after its own 462 loads through VitalHost: True
+
+== 1d. two loads in-process by the text's size, for a time limit
+the slowest two loads: 489.4 ms, Mr Bill/Presets/Float Chords.vital (10126117 bytes)
+the slowest single load (a median of 3): 245.5 ms, Mr Bill/Presets/Float Chords.vital
+two loads, ms per MiB of text, over the 77: min 38.9, median 100.1, max 523.3
+    3884939 bytes     224.6 ms (112.2+112.5)  Mr Bill/Presets/Honk Wub.vital
+    4454600 bytes     165.2 ms (83.4+82.4)  Halcyon Future Riddim Vol 1/Presets/Phonon/Simple Weoum.vital
+    4480796 bytes     273.4 ms (136.8+136.6)  Databroth/Presets/Factory Presets/Feeder.vital
+    5149253 bytes     228.7 ms (113.6+114.7)  Halcyon Future Riddim Vol 1/Presets/Oolacile/Oolacile Evil Dubstep Bass.vital
+   10126117 bytes     489.4 ms (243.9+245.5)  Mr Bill/Presets/Float Chords.vital
+
+== 1e. the second question, on texts that return: what a read after two loads shows
+the markers, planted before the loads: ('filter_1_cutoff', 'filter_1_on'), each set to the end of its range the text's value is not near.
+for each text: the start preset loaded twice; (A) the text loaded twice, no marker; then the start preset twice,
+the markers planted, (B) the text loaded twice; then the markers planted again and the same text loaded twice over itself.
+      bytes  markers moved/exact (of 2)  over itself moved/exact  floats not the text's: A held+lacking, B held+lacking   sections not the text's   text
+      60856  2/2  2/2  A 0+0  B 0+0  ['sample']  the fixture
+      60875  2/2  2/2  A 0+0  B 0+0  ['sample']  the start preset
+     119040  2/2  2/2  A 0+0  B 0+0  ['sample', 'wavetables']  Yuli Yolo/Presets/Factory Presets/Synthetic Quartet.vital
+     155111  2/2  2/2  A 0+0  B 0+0  ['sample', 'wavetables']  Mr Bill/Presets/Real Squarepusher Hours.vital
+     164228  2/2  2/2  A 0+0  B 0+0  ['sample', 'wavetables']  Navi Retlav Studio/Presets/Factory Presets/Physical Tension.vital
+     164981  2/2  2/2  A 0+0  B 0+0  ['sample', 'wavetables']  Unsystematic Fragmentation/Presets/Factory Presets/Fun Pulse.vital
+     167042  2/2  2/2  A 2+0  B 2+0  ['sample', 'wavetables']  Halcyon Future Riddim Vol 1/Presets/Oolacile/Boot Scre3n.vital
+     174089  2/2  2/2  A 0+0  B 0+0  ['sample', 'wavetables']  Factory/Presets/Shepard Tone Template.vital
+     174653  2/2  2/2  A 0+0  B 0+0  ['sample', 'wavetables']  Afro/Presets/Kick Drum 1.vital
+     174710  2/2  2/2  A 0+0  B 0+0  ['sample', 'wavetables']  In The Mix/Presets/Strings Section.vital
+     174758  2/2  2/2  A 0+0  B 0+0  ['sample', 'wavetables']  Glorkglunk/Presets/Squish Clicker.vital
+     175015  2/2  2/2  A 0+0  B 0+0  ['sample', 'wavetables']  Factory/Presets/FM Drum Circle.vital
+     176486  2/2  2/2  A 0+0  B 0+0  ['sample', 'wavetables']  Halcyon Future Riddim Vol 1/Presets/Oolacile/Space Station.vital
+     187784  2/2  2/2  A 0+0  B 0+0  ['sample', 'wavetables']  Yuli Yolo/Presets/Factory Presets/Keystation.vital
+     197581  2/2  2/2  A 1+0  B 1+0  ['sample', 'wavetables']  Yuli Yolo/Presets/Factory Presets/Easy Mallet.vital
+     208393  2/2  2/2  A 0+0  B 0+0  ['sample', 'wavetables']  Databroth/Presets/Factory Presets/Ceramic.vital
+     209615  2/2  2/2  A 1+0  B 1+0  ['sample', 'wavetables']  Factory/Presets/Ah Eh Ee Oh.vital
+     229997  2/2  2/2  A 1+0  B 1+0  ['sample', 'wavetables']  Yuli Yolo/Presets/Factory Presets/Jupiter Bass.vital
+     231144  2/2  2/2  A 1+9  B 1+9  ['sample', 'wavetables']  Factory/Presets/Touch Tone.vital
+     231188  2/2  2/2  A 0+0  B 0+0  ['sample', 'wavetables']  Navi Retlav Studio/Presets/Factory Presets/Dispersed Grit.vital
+     241415  2/2  2/2  A 0+0  B 0+0  ['sample', 'wavetables']  In The Mix/Presets/Growl Bass Sidechain.vital
+     248790  2/2  2/2  A 0+0  B 0+0  ['sample', 'wavetables']  Factory/Presets/Text To Wavetable Template.vital
+     268065  2/2  2/2  A 0+0  B 0+0  ['sample', 'wavetables']  In The Mix/Presets/Analog Pad.vital
+     284971  2/2  2/2  A 0+0  B 0+0  ['sample', 'wavetables']  Mr Bill/Presets/Remedial Shikari.vital
+     285350  2/2  2/2  A 0+0  B 0+0  ['sample', 'wavetables']  Mr Bill/Presets/Cursed Steps.vital
+     285737  2/2  2/2  A 0+0  B 0+0  ['sample', 'wavetables']  Mr Bill/Presets/LORN Style Lead.vital
+     293764  2/2  2/2  A 0+0  B 0+0  ['sample', 'wavetables']  inktome/Presets/Digital roller.vital
+     296255  2/2  2/2  A 0+0  B 0+0  ['sample', 'wavetables']  Navi Retlav Studio/Presets/Factory Presets/Phaser Man.vital
+     302074  2/2  2/2  A 0+0  B 0+0  ['sample', 'wavetables']  Glorkglunk/Presets/Special Glitch Thing.vital
+     315942  2/2  2/2  A 1+0  B 1+0  ['sample', 'wavetables']  Databroth/Presets/Factory Presets/Snowcrash.vital
+     327884  2/2  2/2  A 0+0  B 0+0  ['sample', 'wavetables']  In The Mix/Presets/Moog Pluck.vital
+     328794  2/2  2/2  A 0+0  B 0+0  ['sample', 'wavetables']  Unsystematic Fragmentation/Presets/Factory Presets/Moving Harmonics.vital
+     369311  2/2  2/2  A 0+0  B 0+0  ['sample', 'wavetables']  Halcyon Future Riddim Vol 1/Presets/Voltra/VLT Future Gun.vital
+     406912  2/2  2/2  A 0+0  B 0+0  ['sample', 'wavetables']  Level 8/Presets/Factory Presets/FM Mode.vital
+     427931  2/2  2/2  A 0+0  B 0+0  ['sample', 'wavetables']  Factory/Presets/Staggered Phrases.vital
+     504953  2/2  2/2  A 1+0  B 1+0  ['sample', 'wavetables']  inktome/Presets/Piano from the yard sale.vital
+     518960  2/2  2/2  A 0+0  B 0+0  ['sample', 'wavetables']  Navi Retlav Studio/Presets/Factory Presets/Skew Resandal.vital
+     676703  2/2  2/2  A 0+0  B 0+0  ['sample', 'wavetables']  Level 8/Presets/Factory Presets/Horror of Melbourne 1.vital
+     751303  2/2  2/2  A 0+0  B 0+0  ['sample', 'wavetables']  inktome/Presets/Big Stomp.vital
+     753731  2/2  2/2  A 0+0  B 0+0  ['sample', 'wavetables']  In The Mix/Presets/Distant Majestic Lead.vital
+     829406  2/2  2/2  A 0+0  B 0+0  ['sample', 'wavetables']  Yuli Yolo/Presets/Factory Presets/DIY.vital
+     846158  2/2  2/2  A 0+0  B 0+0  ['sample', 'wavetables']  Glorkglunk/Presets/THUNK.vital
+     943261  2/2  2/2  A 1+0  B 1+0  ['sample', 'wavetables']  Yuli Yolo/Presets/Factory Presets/Metal Head.vital
+    1073778  2/2  2/2  A 0+0  B 0+0  ['sample', 'wavetables']  Afro/Presets/Random Amp Growl.vital
+    1196598  2/2  2/2  A 0+0  B 0+0  ['sample', 'wavetables']  Afro/Presets/Banana Wob.vital
+    1249209  2/2  2/2  A 0+0  B 0+0  ['sample', 'wavetables']  Databroth/Presets/Factory Presets/Fleet.vital
+    1301114  2/2  2/2  A 0+0  B 0+0  ['sample', 'wavetables']  Level 8/Presets/Factory Presets/Damped Horn.vital
+    1354661  2/2  2/2  A 0+0  B 0+0  ['sample', 'wavetables']  Level 8/Presets/Factory Presets/Crescendo Bells.vital
+    1367913  2/2  2/2  A 0+0  B 0+0  ['sample', 'wavetables']  Yuli Yolo/Presets/Factory Presets/A Night in Kalyan.vital
+    1370066  2/2  2/2  A 0+0  B 0+0  ['sample', 'wavetables']  Mr Bill/Presets/E4 One Note Metallophone.vital
+    1373268  2/2  2/2  A 0+0  B 0+0  ['sample', 'wavetables']  Glorkglunk/Presets/Thumpus.vital
+    1426802  2/2  2/2  A 0+0  B 0+0  ['sample', 'wavetables']  Billain/Presets/Factory Presets/Railgun.vital
+    1477559  2/2  2/2  A 0+0  B 0+0  ['sample', 'wavetables']  Billain/Presets/Factory Presets/Cinema Bells.vital
+    1503327  2/2  2/2  A 0+0  B 0+0  ['sample', 'wavetables']  Databroth/Presets/Factory Presets/Gorgled.vital
+    1554373  2/2  2/2  A 0+0  B 0+0  ['sample', 'wavetables']  Navi Retlav Studio/Presets/Factory Presets/Drowning Machine.vital
+    1554943  2/2  2/2  A 0+0  B 0+0  ['sample', 'wavetables']  Yuli Yolo/Presets/Factory Presets/Abbysun.vital
+    1556063  2/2  2/2  A 0+0  B 0+0  ['sample', 'wavetables']  Unsystematic Fragmentation/Presets/Factory Presets/corrupted_...+=boot-_.vital
+    1563937  2/2  2/2  A 0+0  B 0+0  ['sample', 'wavetables']  Unsystematic Fragmentation/Presets/Factory Presets/Phaser Entropy .vital
+    1565345  2/2  2/2  A 0+0  B 0+0  ['sample', 'wavetables']  Yuli Yolo/Presets/Factory Presets/Salomon.vital
+    1574509  2/2  2/2  A 0+0  B 0+0  ['sample', 'wavetables']  Yuli Yolo/Presets/Factory Presets/Destruction.vital
+    1581585  2/2  2/2  A 0+0  B 0+0  ['sample', 'wavetables']  Factory/Presets/Plucked String.vital
+    1686403  2/2  2/2  A 0+0  B 0+0  ['sample', 'wavetables']  Mr Bill/Presets/Super Nice Pluck.vital
+    1698422  2/2  2/2  A 0+0  B 0+0  ['sample', 'wavetables']  Databroth/Presets/Factory Presets/Disrupt.vital
+    1743156  2/2  2/2  A 0+0  B 0+0  ['sample', 'wavetables']  Unsystematic Fragmentation/Presets/Factory Presets/Chorusy Keys.vital
+    2018609  2/2  2/2  A 0+0  B 0+0  ['sample', 'wavetables']  Level 8/Presets/Factory Presets/Complex Electro 1.vital
+    2023862  2/2  2/2  A 0+0  B 0+0  ['sample', 'wavetables']  Halcyon Future Riddim Vol 1/Presets/Aweminus/Swiss Army Knife.vital
+    2196216  2/2  2/2  A 0+0  B 0+0  ['sample', 'wavetables']  Glorkglunk/Presets/Digestive Trauma.vital
+    2422332  2/2  2/2  A 2+10  B 2+10  ['sample', 'wavetables']  Halcyon Future Riddim Vol 1/Presets/Oolacile/Memory Leak.vital
+    2749719  2/2  2/2  A 0+0  B 0+0  ['sample', 'wavetables']  Level 8/Presets/Factory Presets/Smoker's Lounge.vital
+    2915133  2/2  2/2  A 0+0  B 0+0  ['sample', 'wavetables']  Halcyon Future Riddim Vol 1/Presets/Oolacile/Satellites.vital
+    2950151  2/2  2/2  A 0+0  B 0+0  ['sample', 'wavetables']  Navi Retlav Studio/Presets/Factory Presets/Super Pluck.vital
+    3114585  2/2  2/2  A 2+0  B 2+0  ['sample', 'wavetables']  Unsystematic Fragmentation/Presets/Factory Presets/A happy ending of the world.vital
+    3884939  2/2  2/2  A 0+0  B 0+0  ['sample', 'wavetables']  Mr Bill/Presets/Honk Wub.vital
+    4454600  2/2  2/2  A 0+0  B 0+0  ['sample', 'wavetables']  Halcyon Future Riddim Vol 1/Presets/Phonon/Simple Weoum.vital
+    4480796  2/2  2/2  A 0+0  B 0+0  ['sample', 'wavetables']  Databroth/Presets/Factory Presets/Feeder.vital
+    5149253  2/2  2/2  A 4+10  B 4+10  ['sample', 'wavetables']  Halcyon Future Riddim Vol 1/Presets/Oolacile/Oolacile Evil Dubstep Bass.vital
+   10126117  2/2  2/2  A 0+0  B 0+0  ['sample', 'wavetables']  Mr Bill/Presets/Float Chords.vital
+(i) every marker moved off the value planted: 77 of 77 texts; every marker reads the text's value exactly: 77 of 77
+    the same text loaded over itself: every marker moved 77 of 77; exact 77 of 77
+(ii) floats of the 903 not the text's after two loads, no marker: none on 66 texts, 46 floats on 11 (held by the text 17, keys it lacks not at the default 29)
+     with the markers planted first: none on 66 texts, 46 floats on 11; the same count as without, text by text: 77 of 77
+(iii) a section of the text the state does not hold as the text does, by name, texts of 77: {'sample': 77, 'wavetables': 75}
+      a section the state holds that the text lacks, by name, texts of 77: {'custom_warps': 75, 'random_values': 75}
+      the sections any of the 77 texts holds: ['custom_warps', 'lfos', 'modulations', 'random_values', 'sample', 'wavetables']; held as the text holds them on all 77: ['custom_warps', 'lfos', 'modulations', 'random_values']
+(iv) what each check costs, over the texts:
+      planting the 2 markers and reading them back: min 108.6, median 156.1, max 366.4 microseconds
+      host.state(): min 0.7, median 4.2, max 49.6 ms; reading its floats: min 0.1, median 0.5, max 4.7 ms; parsing it and comparing its sections: min 0.2, median 0.5, max 4.7 ms
+      on the largest text, Mr Bill/Presets/Float Chords.vital: state 49.6 ms, floats 4.7 ms, sections 4.7 ms
+
+== 1e, continued. the four texts section 5 saw return wrong, each in a child, 3 s a load
+before each: a fresh Vital, the start preset loaded twice, the markers planted; then the text loaded twice.
+
+-- synth_version 99.0.0
+    ABOUT TO LOAD: the first load
+    RETURNED in 3.4 ms
+    ABOUT TO LOAD: the second load
+    RETURNED in 3.3 ms
+    RESULT {"markers": 2, "moved": 0, "exact": 0, "floats_changed": 0, "floats_not_the_text_s": 2, "first_floats_not_the_text_s": ["filter_1_cutoff", "filter_1_on"], "sections_changed": [], "sections_not_the_text_s": ["sample"]}
+    the marker check (0 of 2 moved): FLAGS it, the load was not made
+    the floats check (2 of 903 not the text's): FLAGS it
+    the sections check, on the sections every good text comes back holding as given ([] not the text's): does not flag it
+
+-- wavetables an empty array
+    ABOUT TO LOAD: the first load
+    RETURNED in 3.9 ms
+    ABOUT TO LOAD: the second load
+    RETURNED in 3.7 ms
+    RESULT {"markers": 2, "moved": 2, "exact": 2, "floats_changed": 2, "floats_not_the_text_s": 0, "first_floats_not_the_text_s": [], "sections_changed": [], "sections_not_the_text_s": ["sample", "wavetables"]}
+    the marker check (2 of 2 moved): does not flag it
+    the floats check (0 of 903 not the text's): does not flag it
+    the sections check, on the sections every good text comes back holding as given ([] not the text's): does not flag it
+
+-- lfos an empty array
+    ABOUT TO LOAD: the first load
+    RETURNED in 4.1 ms
+    ABOUT TO LOAD: the second load
+    RETURNED in 4.0 ms
+    RESULT {"markers": 2, "moved": 2, "exact": 2, "floats_changed": 2, "floats_not_the_text_s": 0, "first_floats_not_the_text_s": [], "sections_changed": [], "sections_not_the_text_s": ["lfos", "sample"]}
+    the marker check (2 of 2 moved): does not flag it
+    the floats check (0 of 903 not the text's): does not flag it
+    the sections check, on the sections every good text comes back holding as given (['lfos'] not the text's): FLAGS it
+
+-- wavetables an array of one empty object
+    ABOUT TO LOAD: the first load
+    RETURNED in 3.9 ms
+    ABOUT TO LOAD: the second load
+    RETURNED in 3.6 ms
+    RESULT {"markers": 2, "moved": 2, "exact": 2, "floats_changed": 2, "floats_not_the_text_s": 0, "first_floats_not_the_text_s": [], "sections_changed": ["wavetables"], "sections_not_the_text_s": ["sample", "wavetables"]}
+    the marker check (2 of 2 moved): does not flag it
+    the floats check (0 of 903 not the text's): does not flag it
+    the sections check, on the sections every good text comes back holding as given ([] not the text's): does not flag it
+exit of run 1: 0
+exit=0
+
+the tree after the run:
+  HEAD 0eac1dba4e0738d8b32d2b703ddfba0c09d11b18
+  git status --porcelain=v1 --untracked-files=all, 5 lines:
+     M agent-os/specs/2026-11-15-1448-the-instrument/shape.md
+    ?? agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/plan.md
+    ?? agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/references.md
+    ?? agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/shape.md
+    ?? agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/standards.md
+  git hash-object of each of those paths (a deleted one marked so):
+    ae44c46104b792f792e47728258dc5ed0c8b2eeb  agent-os/specs/2026-11-15-1448-the-instrument/shape.md
+    4a33afdae42f645aa8749f2766996be553358743  agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/plan.md
+    6085dde9b16dee9eda8a2c256f712e4bbac04225  agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/references.md
+    2896ae71767f19e8ad2e9358d44b14f0cdefea8b  agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/shape.md
+    dc2d17e44e7f13a6eb4911a880a958d6e67c31b8  agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/standards.md
+cmp: the tree after the run is the tree before it
+the machine after the run: arm64, Apple M4 Pro, 14 cores, macOS 26.6.2 (25G83), Python 3.12.16, load 2.27 2.23 2.29, at 2026-11-16 16:49 EST
+
+the scripts this run used, each embedded below with its blob:
+    80c76bb51e2390e048071b3b307ed03550e438f8  <scratchpad>/i20/run1.sh
+    ad4d0596109df122fe66e86b5bd3be02a307eae0  <scratchpad>/i20/run1.py
+    1295559b22e26f48b2a1213c0847ac20b1f80702  <scratchpad>/i20/child.py
+    69ab39e9ed371e5c72b7893b04e6e1af2ba5b9fd  <scratchpad>/i20/common.py
+    73953dd1effce5091524918b1edb1264c27be90d  <scratchpad>/i20/runner.py
+    e4c1a40cc3893ab50df6717e5a18e2a755914efd  <scratchpad>/i20/tree.sh
+    0dde01b338e9dbc221abc7e0d9b87bcf21acf1cf  <scratchpad>/i20/machine.sh
+    43532a582c6f20d5b140e66162c45647a16a4287  <scratchpad>/i20/transcript.sh
+
+--- <scratchpad>/i20/run1.sh
+```
+#!/usr/bin/env bash
+# usage: run1.sh   (from the repository root): run 1 of the probes of issue #20.
+set -uo pipefail
+R=$(cd "$(dirname "$0")" && pwd)
+uv run --locked python -u -B "$R/run1.py"
+echo "exit of run 1: $?"
+```
+
+--- <scratchpad>/i20/run1.py
+```
+"""Issue #20, probes, run 1: what a trial in a child costs, and what a read after a load detects.
+
+Every text loaded in this process is one Vital is known to load: the start preset, the fixture
+and the 75 installed presets, which the integration tests load in their own process. The four
+texts section 5 saw return wrong are loaded in children under the time limit.
+"""
+
+import importlib.metadata
+import json
+import os
+import platform
+import statistics
+import struct
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+import common as c
+from patchbay_vital.host import DEFAULT_PATH
+from runner import CHILD, Child, memory, watch
+
+ROUNDS = 3
+MIB = 1024.0 * 1024.0
+
+
+def head(title: str) -> None:
+    print(f"\n== {title}", flush=True)
+
+
+def fresh_child(text: bytes) -> tuple[dict[str, float], dict[str, object]]:
+    """One trial in a child of its own; its stages in milliseconds and the child's own marks."""
+    spawned = time.time()
+    done = subprocess.run(  # noqa: S603  the probe's own interpreter and script
+        [sys.executable, "-u", "-B", CHILD, "fresh", "120", repr(spawned)],
+        input=text,
+        capture_output=True,
+        timeout=300,
+        check=False,
+    )
+    ended = time.time()
+    marks = json.loads(done.stdout.decode("utf-8").strip().splitlines()[-1])
+    stages = {
+        "interpreter": marks["main"] - spawned,
+        "imports": marks["imported"] - marks["main"],
+        "VitalHost()": marks["hosted"] - marks["imported"],
+        "reading the text": marks["read"] - marks["hosted"],
+        "two loads": marks["loaded"] - marks["read"],
+        "exit": ended - marks["done"],
+        "the whole": ended - spawned,
+    }
+    return {name: seconds * 1000.0 for name, seconds in stages.items()}, marks
+
+
+def section_1a(texts: list[tuple[str, bytes]]) -> None:
+    head("1a. a trial in a fresh child, start to verdict (ms): a labelled sample, not a count")
+    cached = (Path("src/patchbay_vital/__pycache__")).is_dir()
+    print(f"python -B, so no bytecode is written; the package's bytecode is cached: {cached}")
+    runs = [fresh_child(c.START)[0] for _ in range(10)]
+    print(f"the start preset ({len(c.START)} bytes), 10 children:")
+    for name in runs[0]:
+        print(f"  {name:<18} {c.spread([run[name] for run in runs])}")
+    print(f"  each whole: {[round(run['the whole']) for run in runs]}")
+    by_size = sorted(texts[2:], key=lambda item: len(item[1]))
+    picks = (("smallest", by_size[0]), ("median", by_size[len(by_size) // 2]), ("largest", by_size[-1]))
+    for what, (name, text) in picks:
+        runs = [fresh_child(text)[0] for _ in range(3)]
+        print(f"the {what} installed preset, {name} ({len(text)} bytes), 3 children:")
+        for stage in ("reading the text", "two loads", "the whole"):
+            print(f"  {stage:<18} {c.spread([run[stage] for run in runs])}")
+
+
+def section_1b_to_1d(texts: list[tuple[str, bytes]], host: c.VitalHost) -> None:
+    head("1b. a child kept up: its start, its memory, and each text's round trip against the same two loads in-process")
+    child = Child("kept", "120", stdin=True)
+    ready = json.loads(child.line(120.0) or "{}")
+    started = time.time()
+    print(
+        "the child's start (ms): "
+        f"interpreter {(ready['main'] - ready['spawned']) * 1000:.0f}, "
+        f"imports {(ready['imported'] - ready['main']) * 1000:.0f}, "
+        f"VitalHost() {(ready['hosted'] - ready['imported']) * 1000:.0f}, "
+        f"ready {(started - ready['spawned']) * 1000:.0f} after it was started"
+    )
+    resident = memory(child.process.pid)
+    print(f"the child's resident memory once ready: {resident:.0f} MiB; this process's, hosting its own Vital: {memory(os.getpid()):.0f} MiB")
+    assert child.process.stdin is not None
+    rows = []
+    environment_same = subnormals = child_environment = replies = 0
+    for name, text in texts:
+        trips, child_loads, firsts, seconds = [], [], [], []
+        for _ in range(ROUNDS):
+            before = c.environment()
+            start = time.perf_counter()
+            child.process.stdin.write(struct.pack(">Q", len(text)))
+            child.process.stdin.write(text)
+            child.process.stdin.flush()
+            reply = json.loads(child.line(300.0) or "{}")
+            trips.append((time.perf_counter() - start) * 1000.0)
+            environment_same += c.environment() == before
+            replies += 1
+            child_environment += bool(reply["environment_kept"])
+            subnormals += bool(reply["subnormals_kept"])
+            child_loads.append(reply["first_ms"] + reply["second_ms"])
+            first, _ = c.timed(lambda text=text: host.load_state(text))
+            second, _ = c.timed(lambda text=text: host.load_state(text))
+            firsts.append(first)
+            seconds.append(second)
+        here = [a + b for a, b in zip(firsts, seconds, strict=True)]
+        rows.append(
+            (
+                len(text),
+                statistics.median(here),
+                statistics.median(firsts),
+                statistics.median(seconds),
+                statistics.median(child_loads),
+                statistics.median(trips),
+                statistics.median(trips) - statistics.median(here),
+                name,
+            )
+        )
+    print(f"each of the {len(texts)} texts, {ROUNDS} rounds, medians in ms:")
+    print("      bytes  in-process (first+second)   the child's own   round trip   trip less in-process   text")
+    for size, here, first, second, own, trip, over, name in sorted(rows):
+        print(f"  {size:>9}  {here:>9.1f} ({first:.1f}+{second:.1f})  {own:>14.1f}  {trip:>11.1f}  {over:>18.1f}   {name}")
+    overs = [row[6] for row in rows]
+    print(f"the round trip less the in-process loads, over the {len(rows)}: {c.spread(overs)}")
+    small = [row[6] for row in rows if row[0] < MIB]
+    large = [row[6] / (row[0] / MIB) for row in rows if row[0] >= MIB]
+    print(f"  texts under 1 MiB ({len(small)}): {c.spread(small)} ms")
+    print(f"  texts of 1 MiB and more ({len(large)}): {c.spread(large)} ms per MiB of text")
+    print(f"the child's resident memory after the {replies} trials: {memory(child.process.pid):.0f} MiB (it was {resident:.0f})")
+    print(f"the child's exit once its input closed: {child.close()}")
+
+    head("1c. the floating-point environment around a trial")
+    print(f"this process's fegetenv bytes the same after a trial as before it: {environment_same} of {replies}")
+    print(f"the child's own fegetenv bytes the same after its two loads through VitalHost: {child_environment} of {replies}")
+    print(f"a subnormal result still a subnormal in the child after its loads: {subnormals} of {replies}")
+    print(f"a subnormal result still a subnormal in this process, after its own {2 * replies} loads through VitalHost: {c.subnormals_kept()}")
+
+    head("1d. two loads in-process by the text's size, for a time limit")
+    slowest = max(rows, key=lambda row: row[1])
+    print(f"the slowest two loads: {slowest[1]:.1f} ms, {slowest[7]} ({slowest[0]} bytes)")
+    slowest_one = max(rows, key=lambda row: max(row[2], row[3]))
+    print(f"the slowest single load (a median of {ROUNDS}): {max(slowest_one[2], slowest_one[3]):.1f} ms, {slowest_one[7]}")
+    per = [row[1] / (row[0] / MIB) for row in rows]
+    print(f"two loads, ms per MiB of text, over the {len(rows)}: {c.spread(per)}")
+    for size, here, first, second, *_rest, name in sorted(rows)[-5:]:
+        print(f"  {size:>9} bytes  {here:>8.1f} ms ({first:.1f}+{second:.1f})  {name}")
+
+
+def twice(host: c.VitalHost, text: bytes) -> None:
+    host.load_state(text)
+    host.load_state(text)
+
+
+def section_1e(texts: list[tuple[str, bytes]], host: c.VitalHost) -> set[str]:
+    head("1e. the second question, on texts that return: what a read after two loads shows")
+    print(f"the markers, planted before the loads: {c.MARKERS}, each set to the end of its range the text's value is not near.")
+    print("for each text: the start preset loaded twice; (A) the text loaded twice, no marker; then the start preset twice,")
+    print("the markers planted, (B) the text loaded twice; then the markers planted again and the same text loaded twice over itself.")
+    rows = []
+    differing: dict[str, int] = {}
+    only_state: dict[str, int] = {}
+    cost_markers, cost_state, cost_floats, cost_sections = [], [], [], []
+    for name, text in texts:
+        text_floats, text_sections = c.floats_of(text), c.sections_of(text)
+        twice(host, c.START)
+        twice(host, text)
+        plain_held, plain_lacking = c.floats_off(c.floats_of(host.state()), text_floats)
+        twice(host, c.START)
+        plant_ms, planted = c.timed(lambda text_floats=text_floats: c.plant(host, text_floats))
+        twice(host, text)
+        read_ms, (moved, exact) = c.timed(lambda planted=planted: c.markers_read(host, planted))
+        state_ms, state = c.timed(host.state)
+        floats_ms, state_floats = c.timed(lambda state=state: c.floats_of(state))
+        held, lacking = c.floats_off(state_floats, text_floats)
+        sections_ms, off = c.timed(lambda state=state, text_sections=text_sections: c.sections_off(c.sections_of(state), text_sections))
+        extra = sorted(set(c.sections_of(state)) - set(text_sections))
+        for section in off:
+            differing[section] = differing.get(section, 0) + 1
+        for section in extra:
+            only_state[section] = only_state.get(section, 0) + 1
+        again = c.plant(host, text_floats)
+        twice(host, text)
+        moved_again, exact_again = c.markers_read(host, again)
+        rows.append((len(text), moved, exact, moved_again, exact_again, len(plain_held), len(plain_lacking), len(held), len(lacking), off, name))
+        cost_markers.append((plant_ms + read_ms) * 1000.0)
+        cost_state.append(state_ms)
+        cost_floats.append(floats_ms)
+        cost_sections.append(sections_ms)
+    markers = len(c.MARKERS)
+    print(f"      bytes  markers moved/exact (of {markers})  over itself moved/exact  floats not the text's: A held+lacking, B held+lacking   sections not the text's   text")
+    for size, moved, exact, moved_again, exact_again, a_held, a_lacking, b_held, b_lacking, off, name in sorted(rows):
+        print(f"  {size:>9}  {moved}/{exact}  {moved_again}/{exact_again}  A {a_held}+{a_lacking}  B {b_held}+{b_lacking}  {off}  {name}")
+    count = len(rows)
+    print(f"(i) every marker moved off the value planted: {sum(row[1] == markers for row in rows)} of {count} texts; every marker reads the text's value exactly: {sum(row[2] == markers for row in rows)} of {count}")
+    print(f"    the same text loaded over itself: every marker moved {sum(row[3] == markers for row in rows)} of {count}; exact {sum(row[4] == markers for row in rows)} of {count}")
+    plain = [row[5] + row[6] for row in rows]
+    marked = [row[7] + row[8] for row in rows]
+    print(f"(ii) floats of the 903 not the text's after two loads, no marker: none on {sum(n == 0 for n in plain)} texts, {sum(plain)} floats on {sum(n > 0 for n in plain)} (held by the text {sum(row[5] for row in rows)}, keys it lacks not at the default {sum(row[6] for row in rows)})")
+    print(f"     with the markers planted first: none on {sum(n == 0 for n in marked)} texts, {sum(marked)} floats on {sum(n > 0 for n in marked)}; the same count as without, text by text: {sum(a == b for a, b in zip(plain, marked, strict=True))} of {count}")
+    print(f"(iii) a section of the text the state does not hold as the text does, by name, texts of {count}: {dict(sorted(differing.items()))}")
+    print(f"      a section the state holds that the text lacks, by name, texts of {count}: {dict(sorted(only_state.items()))}")
+    names = sorted({section for _, text in texts for section in c.sections_of(text)})
+    never = {section for section in names if section not in differing}
+    print(f"      the sections any of the {count} texts holds: {names}; held as the text holds them on all {count}: {sorted(never)}")
+    print("(iv) what each check costs, over the texts:")
+    print(f"      planting the {markers} markers and reading them back: {c.spread(cost_markers)} microseconds")
+    print(f"      host.state(): {c.spread(cost_state)} ms; reading its floats: {c.spread(cost_floats)} ms; parsing it and comparing its sections: {c.spread(cost_sections)} ms")
+    big = max(range(count), key=lambda index: len(texts[index][1]))
+    print(f"      on the largest text, {texts[big][0]}: state {cost_state[big]:.1f} ms, floats {cost_floats[big]:.1f} ms, sections {cost_sections[big]:.1f} ms")
+    return never
+
+
+def section_1e_children(never: set[str]) -> None:
+    head(f"1e, continued. the four texts section 5 saw return wrong, each in a child, {c.LIMIT:g} s a load")
+    print("before each: a fresh Vital, the start preset loaded twice, the markers planted; then the text loaded twice.")
+    for label in c.RETURNED_WRONG_IN_SECTION_5:
+        print(f"\n-- {label}")
+        returned, lines = watch(Child("detect", label), c.LIMIT)
+        result = next((json.loads(line.removeprefix("RESULT ")) for line in lines if line.startswith("RESULT ")), None)
+        if not returned or result is None:
+            print("    no result: the child did not finish")
+            continue
+        ignored = result["moved"] < result["markers"]
+        floats = result["floats_not_the_text_s"] > 0
+        kept = sorted(set(result["sections_not_the_text_s"]) & never)
+        print(f"    the marker check ({result['moved']} of {result['markers']} moved): {'FLAGS it, the load was not made' if ignored else 'does not flag it'}")
+        print(f"    the floats check ({result['floats_not_the_text_s']} of 903 not the text's): {'FLAGS it' if floats else 'does not flag it'}")
+        print(f"    the sections check, on the sections every good text comes back holding as given ({kept} not the text's): {'FLAGS it' if kept else 'does not flag it'}")
+
+
+def main() -> None:
+    host = c.VitalHost()
+    print(f"Vital {host.version} at {DEFAULT_PATH}, through {host.host}")
+    print(f"machine {platform.machine()}, Python {platform.python_version()}, numpy {importlib.metadata.version('numpy')}")
+    print(f"the map: Vital {c.MAP.vital_version}, {c.MAP.host}, {c.MAP.machine}, {len(c.MAP.parameters)} records")
+    texts = c.good_texts()
+    sizes = sorted(len(text) for _, text in texts[2:])
+    print(f"the texts: the start preset ({len(c.START)} bytes), the fixture ({len(texts[1][1])} bytes) and {len(texts) - 2} installed presets, {sizes[0]} to {sizes[-1]} bytes, median {sizes[len(sizes) // 2]}")
+    section_1a(texts)
+    section_1b_to_1d(texts, host)
+    never = section_1e(texts, host)
+    section_1e_children(never)
+
+
+if __name__ == "__main__":
+    main()
+```
+
+--- <scratchpad>/i20/child.py
+```
+"""A child of a probe run: it hosts its own Vital and makes the loads its parent must not.
+
+usage: child.py <mode> [<argument>...] <the time it was started, as the parent's time.time()>
+
+  fresh <dead-man seconds>    read one text from stdin, load it twice, print one line of marks
+  kept <dead-man seconds>     load each text sent on stdin twice, one line a text, until stdin ends
+  detect <case>               section 5's case loaded twice over the start preset, with markers
+
+Before a load that may block it says ABOUT TO LOAD and after it RETURNED; its parent kills it
+when the second does not follow the first in time. It also ends itself: a dead-man timer that
+needs no GIL (faulthandler's) exits the process when a load outlives it, parent or no parent.
+"""
+
+import time
+
+MAIN = time.time()
+
+import ctypes  # noqa: E402
+import faulthandler  # noqa: E402
+import json  # noqa: E402
+import struct  # noqa: E402
+import sys  # noqa: E402
+
+ABOUT_TO_LOAD = "ABOUT TO LOAD"
+RETURNED = "RETURNED"
+DEAD_MAN = 8.0
+"""Seconds a load that may block is given before this process ends itself."""
+
+
+def _environment(library: ctypes.CDLL) -> bytes:
+    saved = ctypes.create_string_buffer(512)
+    library.fegetenv(saved)
+    return saved.raw
+
+
+def _subnormals_kept() -> bool:
+    tiny = sys.float_info.min
+    return tiny / 4.0 != 0.0
+
+
+def _load(host: object, text: bytes, dead_man: float) -> float:
+    """One load under the dead-man timer; its milliseconds."""
+    faulthandler.dump_traceback_later(dead_man, exit=True)
+    start = time.perf_counter()
+    host.load_state(text)  # type: ignore[attr-defined]
+    taken = (time.perf_counter() - start) * 1000.0
+    faulthandler.cancel_dump_traceback_later()
+    return taken
+
+
+def said(host: object, text: bytes, what: str) -> float:
+    """One load that may block, said before and after."""
+    print(f"{ABOUT_TO_LOAD}: {what}", flush=True)
+    taken = _load(host, text, DEAD_MAN)
+    print(f"{RETURNED} in {taken:.1f} ms", flush=True)
+    return taken
+
+
+def fresh(dead_man: float, spawned: float) -> None:
+    """What a trial in a child of its own costs: only the host is imported, as a remedy would."""
+    from patchbay_vital.host import _LIBC, VitalHost  # noqa: PLC0415
+
+    marks: dict[str, object] = {"spawned": spawned, "main": MAIN, "imported": time.time()}
+    host = VitalHost()
+    marks["hosted"] = time.time()
+    text = sys.stdin.buffer.read()
+    marks["read"] = time.time()
+    before = _environment(_LIBC)
+    marks["first_ms"] = _load(host, text, dead_man)
+    marks["second_ms"] = _load(host, text, dead_man)
+    marks["loaded"] = time.time()
+    marks["environment_kept"] = _environment(_LIBC) == before
+    marks["subnormals_kept"] = _subnormals_kept()
+    marks["done"] = time.time()
+    print(json.dumps(marks), flush=True)
+
+
+def kept(dead_man: float, spawned: float) -> None:
+    """A child kept up: each text sent as an 8-byte length and its bytes, one line back."""
+    from patchbay_vital.host import _LIBC, VitalHost  # noqa: PLC0415
+
+    imported = time.time()
+    host = VitalHost()
+    ready = {"spawned": spawned, "main": MAIN, "imported": imported, "hosted": time.time()}
+    print(json.dumps(ready), flush=True)
+    stdin = sys.stdin.buffer
+    while True:
+        head = stdin.read(8)
+        if len(head) < 8:  # noqa: PLR2004
+            return
+        (size,) = struct.unpack(">Q", head)
+        text = stdin.read(size)
+        before = _environment(_LIBC)
+        first = _load(host, text, dead_man)
+        second = _load(host, text, dead_man)
+        reply = {
+            "first_ms": first,
+            "second_ms": second,
+            "environment_kept": _environment(_LIBC) == before,
+            "subnormals_kept": _subnormals_kept(),
+        }
+        print(json.dumps(reply), flush=True)
+
+
+def detect(label: str) -> None:
+    """A text section 5 saw return wrong: what each check through the diagnostic read sees."""
+    import common as c  # noqa: PLC0415
+
+    host = c.VitalHost()
+    host.load_state(c.START)
+    host.load_state(c.START)
+    text = c.CASES[label]()
+    text_floats, text_sections = c.floats_of(text), c.sections_of(text)
+    planted = c.plant(host, text_floats)
+    before = host.state()
+    before_floats, before_sections = c.floats_of(before), c.sections_of(before)
+    said(host, text, "the first load")
+    said(host, text, "the second load")
+    moved, exact = c.markers_read(host, planted)
+    after = host.state()
+    after_floats, after_sections = c.floats_of(after), c.sections_of(after)
+    changed = sorted(k for k in c.KEYS if after_floats.get(k) != before_floats.get(k))
+    held, lacking = c.floats_off(after_floats, text_floats)
+    result = {
+        "markers": len(planted),
+        "moved": moved,
+        "exact": exact,
+        "floats_changed": len(changed),
+        "floats_not_the_text_s": len(held) + len(lacking),
+        "first_floats_not_the_text_s": (held + lacking)[:4],
+        "sections_changed": sorted(
+            k for k in before_sections if after_sections.get(k) != before_sections[k]
+        ),
+        "sections_not_the_text_s": c.sections_off(after_sections, text_sections),
+    }
+    print(f"RESULT {json.dumps(result)}", flush=True)
+
+
+if __name__ == "__main__":
+    mode, *arguments, started = sys.argv[1:]
+    if mode == "fresh":
+        fresh(float(arguments[0]), float(started))
+    elif mode == "kept":
+        kept(float(arguments[0]), float(started))
+    elif mode == "detect":
+        detect(arguments[0])
+    else:
+        sys.exit(f"no such mode: {mode}")
+```
+
+--- <scratchpad>/i20/common.py
+```
+"""What the probes of issue #20 share: the texts, the reads of the plugin, and the checks.
+
+Run from the repository root. Nothing here loads a text into Vital; the callers do, and a load
+that may block is made in a child the caller can kill.
+"""
+
+import ctypes
+import json
+import statistics
+import sys
+import time
+from collections.abc import Callable
+from pathlib import Path
+
+from patchbay import ParameterId
+
+from patchbay_vital.host import _LIBC, VitalHost, _floats
+from patchbay_vital.parameters import parameter_map
+from patchbay_vital.start import start_text
+
+MAP = parameter_map()
+START = start_text(MAP).encode("utf-8")
+PRESETS = Path.home() / "Music" / "Vital"
+ROOT = Path.cwd()
+FIXTURE = ROOT / "tests" / "data" / "init-media-replaced.vital"
+MANIFEST = ROOT / "tests" / "data" / "factory-manifest.txt"
+KEYS = tuple(str(record.preset_key) for record in MAP.parameters)
+DEFAULTS = {str(record.preset_key): record.preset_default for record in MAP.parameters}
+LIMIT = 3.0
+"""Seconds a load is given, counted from the child saying it is about to make it."""
+MARKERS = ("filter_1_cutoff", "filter_1_on")
+"""The parameters planted before a load: one continuous, one a switch; Vital upgrades neither."""
+
+
+def good_texts() -> list[tuple[str, bytes]]:
+    """The 77 texts Vital is known to load: the start preset, the fixture, the 75 installed."""
+    manifest = [
+        line
+        for line in MANIFEST.read_text(encoding="utf-8").splitlines()
+        if line and not line.startswith("#")
+    ]
+    texts = [("the start preset", START), ("the fixture", FIXTURE.read_bytes())]
+    texts += [(name, (PRESETS / name).read_bytes()) for name in manifest]
+    return texts
+
+
+def variant(top: dict[str, object] | None = None, **settings: object) -> bytes:
+    """The start preset with settings replaced (None removes one) and top-level keys set."""
+    changed = json.loads(START)
+    for key, value in settings.items():
+        if value is None:
+            del changed["settings"][key]
+        else:
+            changed["settings"][key] = value
+    changed.update(top or {})
+    return json.dumps(changed, sort_keys=True, separators=(",", ":")).encode("utf-8")
+
+
+def no_sections() -> bytes:
+    changed = json.loads(START)
+    for name in ("wavetables", "lfos", "sample", "custom_warps", "random_values"):
+        del changed["settings"][name]
+    return json.dumps(changed, sort_keys=True, separators=(",", ":")).encode("utf-8")
+
+
+def routed(source: str, destination: str) -> bytes:
+    changed = json.loads(START)
+    changed["settings"]["modulations"][0] = {"source": source, "destination": destination}
+    return json.dumps(changed, sort_keys=True, separators=(",", ":")).encode("utf-8")
+
+
+_LFO = {"name": "x", "num_points": 2, "points": "x", "powers": [0.0, 0.0], "smooth": False}
+_SAMPLE = {"length": "x", "name": "x", "sample_rate": 44100, "samples": ""}
+
+CASES: dict[str, Callable[[], bytes]] = {
+    # The 20 texts of the instrument spec's probes.txt, section 5, built as they were there.
+    "the start preset rewritten by json.dumps (the control)": lambda: variant(),
+    "no section at all": no_sections,
+    "wavetables an empty array": lambda: variant(wavetables=[]),
+    "wavetables an array of one empty object": lambda: variant(wavetables=[{}]),
+    "wavetables an object": lambda: variant(wavetables={"x": 1}),
+    "lfos an empty array": lambda: variant(lfos=[]),
+    "sample an empty object": lambda: variant(sample={}),
+    "a routing whose source and destination are no names of Vital's": lambda: routed(
+        "nonsense", "nowhere"
+    ),
+    "synth_version 99.0.0": lambda: variant({"synth_version": "99.0.0"}),
+    "synth_version abc": lambda: variant({"synth_version": "abc"}),
+    "without filter_1_cutoff": lambda: variant(filter_1_cutoff=None),
+    "volume at 1e30, far outside its scale": lambda: variant(volume=1e30),
+    "three wavetables whose groups is a number": lambda: variant(wavetables=[{"groups": 5}] * 3),
+    "eight lfos whose points is a string": lambda: variant(lfos=[_LFO] * 8),
+    "a sample with its four keys, its length a string": lambda: variant(sample=_SAMPLE),
+    "an empty object": lambda: b"{}",
+    "settings empty": lambda: b'{"settings":{}}',
+    "a string where a float belongs": lambda: variant(volume="loud"),
+    "wavetables a string": lambda: variant(wavetables="x"),
+    "without modulations": lambda: variant(modulations=None),
+}
+
+BLOCKED_IN_SECTION_5 = (
+    "no section at all",
+    "wavetables an object",
+    "sample an empty object",
+    "synth_version abc",
+    "three wavetables whose groups is a number",
+    "eight lfos whose points is a string",
+    "a sample with its four keys, its length a string",
+    "an empty object",
+    "settings empty",
+    "a string where a float belongs",
+    "wavetables a string",
+)
+"""The 11 that never returned there."""
+
+RETURNED_WRONG_IN_SECTION_5 = (
+    "synth_version 99.0.0",
+    "wavetables an empty array",
+    "lfos an empty array",
+    "wavetables an array of one empty object",
+)
+"""The four that returned with no error and were not loaded as given."""
+
+
+def floats_of(text: bytes) -> dict[str, float]:
+    """A text's float settings by key, read as the package reads JSON; none where it has none."""
+    try:
+        return dict(_floats(text))
+    except Exception:  # noqa: BLE001  a probe's read of a text that may be malformed
+        return {}
+
+
+def sections_of(text: bytes) -> dict[str, object]:
+    """A text's settings that are not numbers: its sections, parsed."""
+    settings = json.loads(text).get("settings", {})
+    if not isinstance(settings, dict):
+        return {}
+    return {
+        key: value
+        for key, value in settings.items()
+        if isinstance(value, (dict, list, str))
+    }
+
+
+def environment() -> bytes:
+    """The process's floating-point environment, as fegetenv gives it."""
+    saved = ctypes.create_string_buffer(512)
+    _LIBC.fegetenv(saved)
+    return saved.raw
+
+
+def subnormals_kept() -> bool:
+    """Whether a subnormal result is still a subnormal, so flush-to-zero is off."""
+    tiny = sys.float_info.min
+    return tiny / 4.0 != 0.0
+
+
+def plant(host: VitalHost, text: dict[str, float]) -> dict[str, tuple[float, float]]:
+    """Set each marker to the end of its range the text's value is not near.
+
+    Returns, by marker, the normalized value planted and the one the text's value has, the
+    parameter's default where the text lacks the key.
+    """
+    planted = {}
+    for key in MARKERS:
+        record = MAP.find(ParameterId(key))
+        target = record.scale.to_normalized(text.get(key, record.preset_default))
+        normalized = 0.0 if target > 0.5 else 1.0
+        host.set(ParameterId(key), normalized)
+        planted[key] = (normalized, target)
+    return planted
+
+
+def markers_read(host: VitalHost, planted: dict[str, tuple[float, float]]) -> tuple[int, int]:
+    """How many markers moved off the planted value, and how many read the text's exactly."""
+    moved = exact = 0
+    for key, (normalized, target) in planted.items():
+        now = host.get(ParameterId(key))
+        moved += now != normalized
+        exact += now == target
+    return moved, exact
+
+
+def floats_off(state: dict[str, float], text: dict[str, float]) -> tuple[list[str], list[str]]:
+    """The map's keys whose float in the state is not the text's, and, for keys the text lacks,
+    those not at the parameter's default."""
+    held = [key for key in KEYS if key in text and state.get(key) != text[key]]
+    lacking = [key for key in KEYS if key not in text and state.get(key) != DEFAULTS[key]]
+    return held, lacking
+
+
+def sections_off(state: dict[str, object], text: dict[str, object]) -> list[str]:
+    """The names of the text's sections the state does not hold as the text does."""
+    return sorted(name for name in text if state.get(name) != text[name])
+
+
+def timed(call: Callable[[], object]) -> tuple[float, object]:
+    """Run a call; return its milliseconds and what it gave."""
+    start = time.perf_counter()
+    result = call()
+    return (time.perf_counter() - start) * 1000.0, result
+
+
+def spread(values: list[float]) -> str:
+    """A sample's least, median and greatest, to one decimal."""
+    return (
+        f"min {min(values):.1f}, median {statistics.median(values):.1f}, max {max(values):.1f}"
+    )
+```
+
+--- <scratchpad>/i20/runner.py
+```
+"""How a probe run starts a child, reads it under a time limit, and kills what does not return."""
+
+import queue
+import subprocess
+import sys
+import threading
+import time
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+CHILD = str(HERE / "child.py")
+ABOUT_TO_LOAD = "ABOUT TO LOAD"
+RETURNED = "RETURNED"
+START_UP = 60.0
+"""Seconds a child is given for everything that is not a load that may block."""
+
+
+class Child:
+    """A child process whose lines are read under a time limit."""
+
+    def __init__(self, *arguments: str, stdin: bool = False) -> None:
+        self.started = time.time()
+        self.process = subprocess.Popen(  # noqa: S603  the probe's own interpreter and script
+            [sys.executable, "-u", "-B", CHILD, *arguments, repr(self.started)],
+            stdin=subprocess.PIPE if stdin else subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+        )
+        self._lines: queue.Queue[bytes | None] = queue.Queue()
+        threading.Thread(target=self._read, daemon=True).start()
+
+    def _read(self) -> None:
+        assert self.process.stdout is not None
+        for line in self.process.stdout:
+            self._lines.put(line)
+        self._lines.put(None)
+
+    def line(self, limit: float) -> str | None:
+        """The child's next line, or None when it ended or said nothing within the limit."""
+        try:
+            line = self._lines.get(timeout=limit)
+        except queue.Empty:
+            return None
+        return None if line is None else line.decode("utf-8", "replace").rstrip("\n")
+
+    def kill(self) -> float:
+        """Kill the child; return the milliseconds until it was gone."""
+        start = time.perf_counter()
+        self.process.kill()
+        self.process.wait()
+        return (time.perf_counter() - start) * 1000.0
+
+    def close(self) -> int:
+        """Close the child's input and wait for it; kill it if it stays."""
+        if self.process.stdin is not None:
+            self.process.stdin.close()
+        try:
+            return self.process.wait(timeout=START_UP)
+        except subprocess.TimeoutExpired:
+            self.kill()
+            return self.process.returncode
+
+
+def watch(child: Child, limit: float, indent: str = "    ") -> tuple[bool, list[str]]:
+    """Print a child's lines until it ends; kill it when a load does not return within the limit.
+
+    The child says ABOUT TO LOAD before each load that may block and RETURNED after it. Returns
+    whether every load returned, and the lines.
+    """
+    lines: list[str] = []
+    waiting = False
+    while True:
+        line = child.line(limit if waiting else START_UP)
+        if line is None:
+            if child.process.poll() is not None and not waiting:
+                return True, lines
+            if child.process.poll() is not None:
+                print(f"{indent}THE CHILD ENDED DURING A LOAD, exit {child.process.returncode}")
+                return False, lines
+            what = f"within {limit:g} s" if waiting else f"within {START_UP:g} s of starting"
+            gone = child.kill()
+            print(
+                f"{indent}DID NOT RETURN {what}: the child is killed, by design "
+                f"(gone {gone:.0f} ms after the kill)"
+            )
+            return False, lines
+        if line.startswith(ABOUT_TO_LOAD):
+            waiting = True
+        elif line.startswith(RETURNED):
+            waiting = False
+        lines.append(line)
+        print(f"{indent}{line}", flush=True)
+
+
+def memory(pid: int) -> float:
+    """A process's resident memory in MiB, as ps gives it."""
+    done = subprocess.run(  # noqa: S603
+        ["/bin/ps", "-o", "rss=", "-p", str(pid)], capture_output=True, text=True, check=False
+    )
+    return int(done.stdout.strip() or 0) / 1024.0
+```
+
+--- <scratchpad>/i20/tree.sh
+```
+#!/usr/bin/env bash
+# usage: tree.sh   (run from the repository root)
+# Prints HEAD, git's status of the work tree and the blob of every path that status names, so two
+# calls can be compared with cmp: the tree a run read, and the tree it left.
+set -euo pipefail
+echo "  HEAD $(git rev-parse HEAD)"
+git status --porcelain=v1 --untracked-files=all > "${TMPDIR:-/tmp}/tree.$$"
+echo "  git status --porcelain=v1 --untracked-files=all, $(wc -l < "${TMPDIR:-/tmp}/tree.$$" | tr -d ' ') lines:"
+sed 's/^/    /' "${TMPDIR:-/tmp}/tree.$$"
+echo "  git hash-object of each of those paths (a deleted one marked so):"
+cut -c4- "${TMPDIR:-/tmp}/tree.$$" | LC_ALL=C sort | while IFS= read -r path; do
+  if [ -e "$path" ]; then echo "    $(git hash-object "$path")  $path"; else echo "    (deleted)  $path"; fi
+done
+rm -f "${TMPDIR:-/tmp}/tree.$$"
+```
+
+--- <scratchpad>/i20/machine.sh
+```
+#!/usr/bin/env bash
+# usage: machine.sh   Prints one line: the machine, its system, the locked Python and the load.
+set -euo pipefail
+echo "$(uname -m), $(sysctl -n machdep.cpu.brand_string), $(sysctl -n hw.ncpu) cores, macOS $(sw_vers -productVersion) ($(sw_vers -buildVersion)), Python $(uv run --locked python -c 'import platform; print(platform.python_version())'), load $(sysctl -n vm.loadavg | tr -d '{}' | xargs), at $(date '+%Y-%m-%d %H:%M %Z')"
+```
+
+--- <scratchpad>/i20/transcript.sh
+```
+#!/usr/bin/env bash
+# usage: transcript.sh <out file> <title> <script to embed>... -- <command...>   (from the repository root)
+# Writes one transcript outside the tree: its date and branch, the machine and the tree before,
+# the command's whole output, the tree and the machine after, the two trees compared, and every
+# script it ran, embedded. The caller copies the file into the spec's verification/ afterwards.
+set -uo pipefail
+R=$(cd "$(dirname "$0")" && pwd)
+out=$1; title=$2; shift 2
+scripts=()
+while [ "$1" != "--" ]; do scripts+=("$1"); shift; done
+shift
+{
+  echo "$title, run $(date '+%Y-%m-%d %H:%M %Z') on branch"
+  echo "$(git branch --show-current), Vital at /Library/Audio/Plug-Ins/VST3/Vital.vst3"
+  echo "the machine before the run: $(bash "$R/machine.sh")"
+  echo "the tree before the run (this transcript is written outside the tree and copied in afterwards):"
+  bash "$R/tree.sh" | tee "$R/out/tree-before.txt"
+  echo
+  echo "\$ $*" | sed "s|$R|<scratchpad>/i20|g"
+  "$@" 2>&1
+  echo "exit=$?"
+  echo
+  echo "the tree after the run:"
+  bash "$R/tree.sh" | tee "$R/out/tree-after.txt"
+  if cmp -s "$R/out/tree-before.txt" "$R/out/tree-after.txt"; then echo "cmp: the tree after the run is the tree before it"; else echo "cmp: THE TREE CHANGED DURING THE RUN"; fi
+  echo "the machine after the run: $(bash "$R/machine.sh")"
+  echo
+  echo "the scripts this run used, each embedded below with its blob:"
+  for s in "${scripts[@]}" "$R/tree.sh" "$R/machine.sh" "$R/transcript.sh"; do echo "    $(git hash-object "$s")  <scratchpad>/i20/$(basename "$s")"; done
+  for s in "${scripts[@]}" "$R/tree.sh" "$R/machine.sh" "$R/transcript.sh"; do
+    echo; echo "--- <scratchpad>/i20/$(basename "$s")"; echo '```'; cat "$s"; echo '```'
+  done
+} > "$out"
+```
