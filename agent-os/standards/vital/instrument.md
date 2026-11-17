@@ -11,7 +11,10 @@ through pedalboard 0.9.26 on arm64 (Apple M4 Pro, macOS 26.6.2): `probes.txt`, `
 the revision after PR 23's review (`agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/`): `overlap-probe.txt`, `overlap-probe-2.txt`, `carrying-count.txt`, `load-and-set-sample.txt`,
 `check-cost.txt`, `contract-run.txt` and `mutation.txt`, and of the revision after its second
 review (`agent-os/specs/2026-11-16-1509-revision-after-pr-23-second-review/`):
-`upgraded-set-count.txt`, `mutation.txt` and `contract-run.txt`. Each rule names
+`upgraded-set-count.txt`, `mutation.txt` and `contract-run.txt`, and of the spec of issue #20
+(`agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/`): `probes-4-counts.txt`,
+`arrays-seen.txt`, `rollback-count.txt`, `remedy-run.txt`, `silent-and-loaded.txt` and
+`mutation.txt`. Each rule names
 the test that holds it; a unit test runs over a fake plugin, so CI holds it, and a test of
 `tests/integration/test_vital_instrument.py` runs against the installed Vital.
 
@@ -150,22 +153,51 @@ the test that holds it; a unit test runs over a fake plugin, so CI holds it, and
 What Vital does with a load, measured, is `vital/plugin-state.md`'s. These are the instrument's
 rules on it.
 
-- **A preset seen to block, to be ignored or to keep old sections is refused before the plugin is
-  called.** The guard, `patch.check_loadable`, needs no plugin and judges a preset and the map
-  alone. It refuses a `synth_version` that is no version or is newer than the plugin's, versions
-  compared by their numbers less trailing zeros, and every preset where the plugin's own version
-  is no version; `wavetables` and `lfos` that are not arrays of three and of eight objects; a
-  `sample` without its four keys; and a float with no finite display. Verified against
-  `test_a_preset_the_plugin_was_seen_not_to_load_whole_is_refused_before_it_is_called`, fifteen
-  shapes, `test_the_guard_passes_what_vital_was_seen_to_load`,
+- **A preset seen to block, to be ignored, to keep old sections or to kill the process is refused
+  before the plugin is called.** The guard, `patch.check_loadable`, needs no plugin and judges a
+  preset and the map alone. It refuses a `synth_version` that is no version or is newer than the
+  plugin's, versions compared by their numbers less trailing zeros, and every preset where the
+  plugin's own version is no version; `wavetables` and `lfos` that are not arrays of three and of
+  eight objects; a `sample` without its four keys; `custom_warps` and `random_values` that are
+  not arrays of three objects, where the preset holds them; and a float with no finite display.
+  The last two sections one entry longer killed the process, and shorter or empty were not held
+  as given; none of the 75 installed presets holds either. A shape is guarded only once a
+  transcript shows what Vital does with it. Verified against
+  `test_a_preset_the_plugin_was_seen_not_to_load_whole_is_refused_before_it_is_called`,
+  twenty-five shapes, `test_the_guard_passes_what_vital_was_seen_to_load`,
+  `test_the_sections_are_judged_in_the_order_the_guard_gives`,
+  `test_every_installed_preset_passes_the_guard_and_holds_neither_optional_section`,
   `test_a_version_is_compared_by_its_numbers_less_trailing_zeros`,
-  `test_a_plugin_version_that_is_not_digits_and_dots_refuses_every_preset_by_name`, MG1 to MG4 and
-  the first revision's MV1 and MV2.
-- **The guard judges a section's shape, never its inside, so a malformed section can still hang the
-  process.** The instrument's docstring and the README say so in those words. Measured on Vital
-  1.6.4 through pedalboard 0.9.26 on arm64 (Apple M4 Pro, macOS 26.6.2): three texts pass the guard
-  and never return. The remedy is issue #20's, a load that cannot block. Verified against
-  `test_the_guard_does_not_read_inside_a_section` and `probes.txt` section 5.
+  `test_a_plugin_version_that_is_not_digits_and_dots_refuses_every_preset_by_name`, the spec of
+  issue #20's `arrays-seen.txt` and its MG1 to MG3, the instrument spec's MG1 to MG4 and the
+  first revision's MV1 and MV2.
+- **The guard judges a section's shape, never its inside; what gets past it Vital answers with its
+  alert, and the host answers that on macOS.** `load_patch` then raises the patch error with
+  Vital's own words. Of 335 texts, 249 raise the alert: the guard refuses 28 of them and the
+  watch the other 221, and none failed to return. On any other platform such a patch still
+  blocks the calling process, and the instrument's docstring and the README say so. A patch
+  Vital dies on kills the calling process, but for the shapes the guard refuses. A patch Vital
+  loads in part is not detected: of the 83 texts that raise no alert the guard refuses 19, and
+  64 still load, 54 of them as a patch, 10 held as given and 3 changing no section among the
+  64 (`vital/plugin-state.md`). The crash and the part load are issue #25's. Verified against
+  `test_the_guard_does_not_read_inside_a_section`, `remedy-run.txt`, `silent-and-loaded.txt` and
+  `test_a_patch_vital_answers_with_its_alert_is_refused_and_the_plugin_put_back`.
+- **A load Vital answers with its alert, or ignores, meets the rollback that was there.** The
+  host's `PluginStateError` is refused as a patch, chained, and the model's text loaded again:
+  after an alert the plugin had taken the patch in part, so it is put back, not left. With each
+  of the start preset, the fixture and the 75 installed presets as the model, the plugin then
+  held all 903 floats and every section as the model's own double load had left them, 77 of 77.
+  Verified against
+  `test_a_load_vital_answers_with_its_alert_or_ignores_is_refused_and_the_model_s_text_put_back`
+  and `rollback-count.txt`.
+- **A load from a thread that is not the main one changes nothing and is not a state error.**
+  On macOS the host's `PluginThreadError` leaves `load_patch` as itself: no rollback answers it,
+  the model, the plugin and the bus are as they were, and the instrument has not lost step.
+  Verified against `test_a_load_from_a_second_thread_changes_nothing_and_is_the_thread_s_error`.
+- **The host's marker never reaches the model.** It is set on the plugin and read there; `get`,
+  `patch`, the preset and the bus never show it, on a load that succeeds or on one that fails.
+  Verified against
+  `test_the_marker_is_the_plugin_s_alone_on_a_load_that_succeeds_and_on_one_that_fails`.
 - **Every load is made twice.** A measured workaround with no known cause, on Vital 1.6.4 through
   pedalboard 0.9.26 on arm64 (Apple M4 Pro, macOS 26.6.2). Verified against
   `test_one_load_after_a_set_leaves_the_off_grid_floats_off_and_a_second_holds_them`, which a Vital
@@ -181,13 +213,15 @@ rules on it.
   call is refused as a patch, chained from the host's error, and the plugin holds the model's
   floats. Verified against
   `test_a_load_the_plugin_refuses_puts_the_model_s_text_back_and_is_refused_as_a_patch` and ML1.
-- **When the plugin refuses the model's own text too, the instrument has lost step, and says so.**
-  Its state is unknown, so core's "changing nothing" cannot be claimed: `PluginStateError`, not
+- **When the plugin does not take the model's own text either, the instrument has lost step, and
+  says so.** Refused, answered with the alert or ignored, alike. Its state is unknown, so core's
+  "changing nothing" cannot be claimed: `PluginStateError`, not
   core's `PatchRejectedError`, names both refusals and says to build a new instrument. Every later
   `set`, `load_patch` and `render` is refused with it before any other check, the plugin not
   called and nothing published; `get` and `patch` answer from the model, which the plugin may no
   longer match. Verified against
   `test_a_plugin_that_refuses_the_model_s_own_text_too_leaves_the_instrument_out_of_step`,
+  `test_a_rollback_vital_answers_the_same_way_leaves_the_instrument_out_of_step`,
   `test_once_out_of_step_every_call_that_reaches_the_plugin_is_refused_before_anything_else`,
   `test_once_out_of_step_get_and_patch_answer_from_the_model` and MS1 to MS4.
 

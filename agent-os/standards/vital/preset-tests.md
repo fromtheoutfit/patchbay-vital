@@ -7,8 +7,9 @@ Vital. Written from `tests/integration/test_factory_round_trip.py`, `test_vital_
 is the `verification/probes.txt` of the spec of issue #2
 (`agent-os/specs/2026-11-09-1509-the-vital-format/`), for the skip on another machine the
 revision after the second review of PR 9 (`agent-os/specs/2026-11-10-1307-revision-after-pr-9-second-review/`),
-and for the start preset and the instrument's tests the spec of issue #8
-(`agent-os/specs/2026-11-15-1448-the-instrument/`).
+for the start preset and the instrument's tests the spec of issue #8
+(`agent-os/specs/2026-11-15-1448-the-instrument/`), and for a text Vital does not take the spec of
+issue #20 (`agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/`).
 
 - **No preset, sample, wavetable, or LFO of Vital's is committed.** Vital's EULA (updated 2024-02-29)
   bars redistributing "presets, samples, wavetables, skins, LFOs or other media created from any
@@ -55,10 +56,21 @@ and for the start preset and the instrument's tests the spec of issue #8
   `test_the_fixture_as_state_reads_back_but_its_sample_delayed`),
   `tests/integration/test_vital_instrument.py` (the `vital` fixture) and
   `src/patchbay_vital/data/parameters.json`.
-- **No test gives Vital a text it may not return from.** Vital answers a preset it cannot read with
-  a modal alert and never returns (`vital/plugin-state.md`), so every load a test sends passes the
-  instrument's guard first, and a load that blocks is run only in a transcript, in a process of its
-  own with a time limit. A test that hung would hang the gate. Verified against
-  `tests/integration/test_vital_instrument.py`, whose loads go through `load_patch`, the
-  instrument's construction or a text `check_loadable` passed, and `probes.txt` section 5 of the
-  spec of issue #8.
+- **No test gives Vital, in the test's own process, a text it may not return from; one that must
+  gives it in a child it can kill.** Vital answers a preset it cannot read with a modal alert,
+  which the host answers on macOS alone, and some texts kill the process
+  (`vital/plugin-state.md`). So every load a test sends in its own process is a text Vital was
+  seen to load, which passes the instrument's guard first. A test that holds the remedy against
+  Vital gives its text in a child of its own under a time limit, 20 s, and a test on a stand-in
+  that never returns holds the limit: the child is killed, the test fails by name, and the
+  process is gone. A test of the watch itself runs AppKit's own alert the same way, 10 s. No
+  test gives Vital a text that killed it: those are run only in a transcript. A test that hung
+  would hang the gate. Verified against `tests/integration/test_vital_instrument.py`
+  (`_in_a_child`,
+  `test_a_child_that_does_not_return_is_killed_at_its_limit_and_the_test_fails_by_name`,
+  `test_a_patch_vital_answers_with_its_alert_is_refused_and_the_plugin_put_back`,
+  `test_a_state_vital_ignores_is_refused_by_the_marker_and_the_plugin_left_as_it_was`),
+  `tests/unit/test_host.py`
+  (`test_the_watch_answers_a_real_alert_at_once_and_puts_the_method_back`), MW4 in the spec of
+  issue #20's `mutation.txt`, where a watch that answers nothing leaves that child to be killed
+  at its limit, and `probes.txt` section 5 of the spec of issue #8.
