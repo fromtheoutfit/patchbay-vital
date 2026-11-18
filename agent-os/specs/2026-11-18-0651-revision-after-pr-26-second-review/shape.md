@@ -468,7 +468,9 @@ spec folder names it by number.
 
 ### 4. Reply to the second review of PR 26, for the owner to post
 
-Not posted by an agent. Written after the single rerun, from its transcripts.
+Written after the single rerun, from its transcripts. Posted at the owner's word ("You can post
+the reply", 2026-11-18) as a comment on PR 26, issue comment 6983959320, and read back from
+GitHub: the body below, a paragraph a line.
 
 > Revised in `agent-os/specs/2026-11-18-0651-revision-after-pr-26-second-review/`. Each finding was checked against the code at `c8ed333` before it was decided. Nothing new was measured on Vital: the issue #20 evidence was run again on the final tree, and what a stand-in alone holds says so. The transcripts named are in that spec's `verification/` unless another spec is named; a mutant is one of its `mutation.txt`'s 54, each caught.
 >
