@@ -26,7 +26,10 @@ the spec of issue #8 (`agent-os/specs/2026-11-15-1448-the-instrument/`): `probes
 `silent-and-loaded.txt` and `mutation.txt`; and of the revision after the review of PR 26
 (`agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/`): `midpoint-probe.txt`, `costs.txt`,
 `marker-count.txt`, `rollback-count.txt`, `remedy-run.txt` and `mutation.txt`, the last four made on
-its final tree.
+its final tree; and of the revision after its second review
+(`agent-os/specs/2026-11-18-0651-revision-after-pr-26-second-review/`), which measured nothing new
+on Vital: `marker-count.txt`, `rollback-count.txt`, `remedy-run.txt` and `mutation.txt`, made again
+on its final tree.
 
 ## The state
 
@@ -111,21 +114,31 @@ its final tree.
   `silent-and-loaded.txt`, and issue #8's `probes.txt` sections 5 and 5b.
 - **A state is written under a watch that answers the alert, on macOS.** For the length of each
   write, a load's and the one a measurement ends on alike, `host.py` replaces `-[NSAlert runModal]`
-  with a callback that notes the alert, then its two texts, and returns its first button, and puts
-  the method back in a `finally`, as the floating-point environment is. The callback notes the alert
-  and fixes the button it returns before anything that can fail, and keeps what reading the texts
-  raises: nothing leaves it, since ctypes prints and drops an error raised there and returns 0, not
-  the first button (seen in memory, with no Vital; what Vital does with 0 was not measured). A write
-  in which an alert was answered is `PluginStateError` with the alert's words, "Error opening
-  preset" on every one whose words were read; one whose words could not be read is
-  `PluginStateError` saying so, chained from what the read raised; and one in which pedalboard
-  raised too is one `PluginStateError` carrying both, chained from pedalboard's error. The watch is
-  one object for the whole process and refuses to be entered while it is in place, so a nested entry
-  never saves the callback as the method's own; with every write the main thread's and nothing but
-  Vital and the callback running inside one, no lock is needed. The Objective-C runtime is reached
-  through `ctypes`, the standard library alone, and where it or `pthread_main_np` cannot be on macOS
-  the host refuses to load. The watch is built from three calls into the runtime and the C library,
-  so its own rules are held by unit tests on every platform with those calls stood in. Under the
+  with a callback that marks that an alert was answered, notes it, then its two texts, and returns
+  its first button, and puts the method back in a `finally`, as the floating-point environment is.
+  The method's own implementation is read once, with `method_getImplementation`, when the watch is
+  made, kept for its lifetime and never taken from a swap's return. The watch sets its own state and
+  installs the callback inside one `try`, whose `finally` puts the kept implementation back and
+  then clears the state, whatever happened before it: an interrupt in the install, or on the line
+  after it, leaves the method its own and the watch out of place, and putting the kept one back
+  twice changes nothing. The callback's mark comes first and stores an object that already exists in
+  an attribute that already does, so it cannot fail for want of memory. Everything after it is
+  guarded, what noting the alert raises dropped, the mark standing for it, and what reading the
+  texts raises kept: nothing leaves the callback, since ctypes prints and drops an error raised
+  there and returns 0, not the first button (seen in memory, with no Vital; what Vital does with 0
+  was not measured). A write in which the mark was made is `PluginStateError` with the words of
+  every alert answered, in the order they were answered, and how many where there is more than one,
+  "Error opening preset" on every one whose words were read; one whose words could not be read says
+  so in its place, the error chained from what the first such read raised; one that could not be
+  noted at all says that; and a write in which pedalboard raised too is one `PluginStateError`
+  carrying both, chained from pedalboard's error. No text was seen to make Vital raise two alerts in
+  one write: that rule is held by a stand-in alone. The watch is one object for the whole process
+  and refuses to be entered while it is in place, before its `try`, so the entry in place keeps its
+  state and its method; with every write the main thread's and nothing but Vital and the callback
+  running inside one, no lock is needed. The Objective-C runtime is reached through `ctypes`, the
+  standard library alone, and where it or `pthread_main_np` cannot be on macOS the host refuses to
+  load. The watch is built from what `_appkit_watch` reads and makes from the runtime and the C
+  library, so its own rules are held by unit tests on every platform with those stood in. Under the
   watch no load failed to return and no window showed: 383 children in the probes, and 335 and 77 on
   the shipped code. It costs a median of 31.5 microseconds a load. Its limits:
   - the method is replaced for the whole process while a write runs, so any alert run on the main
@@ -139,7 +152,7 @@ its final tree.
     Nothing was probed off macOS, nor in a process with no screen.
 
   Verified against `host.py` (`Alert`, `_AppKitWatch`, `_alert_texts`, `_appkit_watch`, `_NoWatch`,
-  `_alert_watch`, `VitalHost._write`, `_alert_said`), `tests/unit/test_host.py`
+  `_alert_watch`, `VitalHost._write`, `_alert_said`, `_alerts_said`), `tests/unit/test_host.py`
   (`test_the_watch_is_in_place_for_a_state_write_and_at_no_other_time`,
   `test_a_state_the_plugin_answers_with_its_alert_is_the_package_s_error_with_its_words`,
   `test_the_watch_answers_a_real_alert_at_once_and_puts_the_method_back`, which runs AppKit's own
@@ -148,11 +161,17 @@ its final tree.
   `test_the_watch_refuses_to_be_entered_while_it_is_in_place_and_puts_the_method_back`,
   `test_the_callback_notes_an_alert_whose_words_cannot_be_read_and_returns_the_first_button`,
   `test_an_alert_whose_words_could_not_be_read_is_the_package_s_error_chained_from_the_read`,
-  `test_an_alert_and_a_pedalboard_refusal_are_one_error_carrying_both`),
+  `test_an_alert_and_a_pedalboard_refusal_are_one_error_carrying_both`,
+  `test_an_interrupt_in_the_watch_s_install_leaves_the_method_its_own`,
+  `test_putting_the_method_s_own_implementation_back_twice_changes_nothing`,
+  `test_a_refused_nested_entry_leaves_the_first_entry_s_state_and_method_as_they_were`,
+  `test_the_callback_marks_an_alert_it_cannot_note_and_returns_the_first_button`,
+  `test_an_alert_that_could_not_be_noted_is_still_the_package_s_error`,
+  `test_every_alert_of_one_write_is_in_the_error_in_the_order_answered`),
   `test_a_patch_vital_answers_with_its_alert_is_refused_and_the_plugin_put_back`,
-  `probes-2-alert.txt`, `probes-4-counts.txt`, and the revision after the review of PR 26's
-  `remedy-run.txt`, made on its final tree, and MW1 to MW4, MR9 and MR12 to MR14 in its
-  `mutation.txt`.
+  `probes-2-alert.txt`, `probes-4-counts.txt`, and the revision after the second review of PR 26's
+  `remedy-run.txt`, made on its final tree, and MW1 to MW4, MR9, MR12 to MR14, MQ1 to MQ3 and MQ12
+  to MQ15 in its `mutation.txt`.
 - **A state is written on the process's main thread, on macOS.** `load_state` and `measure` ask
   first, before the plugin is touched, and `_write`, the one place the plugin's state is set, asks
   again, so a later caller that forgets cannot write elsewhere: from any other thread each raises
@@ -185,11 +204,24 @@ its final tree.
 - **A load is checked with a marker, which is the plugin's alone.** Before each write `host.py`
   sets `MARKER`, the switch `filter_1_on`, to the end of its range the text does not hold: the
   maximum, unless the text's value is at the scale's midpoint or above, and then the minimum. A
-  text without the key holds the default. After the write it is read: left as planted, the load was
-  ignored, `PluginStateError`. However the write ends, an error from outside the package, a
-  `KeyboardInterrupt` or a `MemoryError`, among the ways, the marker it left as planted is set back
-  to the value it had, and the write's own error leaves as itself; one raised while setting it back
-  is a note on it, never in its place. The marker is sought once, and settled only by a lookup that
+  text without the key holds the default. One that holds under the key what is no JSON number,
+  `true` and `false` among them, is `PluginStateError` naming the key and the value's kind, before
+  the marker is read or set: which end such a text holds is not known. Vital's reading of a
+  non-number there was not measured, because such a text is never sent: the file's reader refuses a
+  setting that is no float, so only a text given to a bare host can hold one, and the state's
+  validator, which asks only for one JSON object, passes it. After the write the marker is read:
+  left as planted, the load was ignored, `PluginStateError`. The value the marker had is read before
+  the `try` and the plant is inside it: however the plant or the write ends, an error from outside
+  the package, a `KeyboardInterrupt` or a `MemoryError`, among the ways, an interrupt in the plant
+  or on the line after it too, the marker left as planted is set back to the value it had, and the
+  error that ended it leaves as itself; one raised while setting it back is a note on it, never in
+  its place. `VitalHost.writes_begun`, read-only, counts the loads and measurements that have begun
+  to change the plugin. It is raised just before the first change each makes, the plant, the write
+  of an unchecked load or a measurement's first set, and never after it, so an interrupt between the
+  two leaves it raised with nothing changed, the safe side. A load refused before any change, by the
+  thread rule, the validator, the marker's own check or a read of the marker the plugin refuses,
+  leaves it as it was, which is how the instrument knows the plugin was given nothing
+  (`vital/instrument.md`). The marker is sought once, and settled only by a lookup that
   found it or by `MapMismatchError`: any other error leaves that load, and the next load seeks it
   again. For the marker, a switch, Vital's parameter read held every value given as given, the
   float32s either side of 0.5 and of each end among them, and only the state's own text rounds one
@@ -207,8 +239,8 @@ its final tree.
   text's by then, and the watch is what tells. Its cost is the probe's figure and no other:
   planting two markers and reading them back took a median of 156 microseconds, the text's
   decode apart (`probes-1-costs.txt`); `marker-count.txt` does not measure it. Verified against
-  `host.py` (`MARKER`, `_planted`,
-  `VitalHost._marker`, `_unplanted`, `load_state`),
+  `host.py` (`MARKER`, `_planted`, `_KINDS`,
+  `VitalHost._marker`, `_set_back`, `_unplanted`, `writes_begun`, `load_state`, `measure`),
   `test_the_marker_is_planted_at_the_end_of_its_range_the_text_does_not_hold`, its expected
   values from the scale's two ends,
   `test_a_load_the_plugin_ignores_is_refused_by_the_marker_it_left`,
@@ -220,9 +252,12 @@ its final tree.
   `test_a_marker_lookup_that_fails_is_sought_again_at_the_next_load`,
   `test_the_marker_is_never_planted_where_vital_holds_a_switch_s_value`,
   `test_the_settings_helper_refuses_a_text_one_level_past_the_decoder_s_limit`,
-  `test_a_text_past_the_decoder_s_limit_is_refused_by_the_validator_before_the_marker`, the revision
-  after the review of PR 26's `marker-count.txt`, made on its final tree, and MM1 to MM6, MR1, MR2,
-  MR4, MR15 and MR23 in its `mutation.txt`.
+  `test_a_text_past_the_decoder_s_limit_is_refused_by_the_validator_before_the_marker`,
+  `test_an_interrupt_in_the_marker_s_plant_leaves_as_itself_and_the_marker_is_as_it_was`,
+  `test_the_count_of_writes_begun_is_raised_by_a_change_and_by_nothing_refused_before_one`,
+  `test_a_marker_value_that_is_no_number_is_refused_before_anything_is_set`, the revision after the
+  second review of PR 26's `marker-count.txt`, made on its final tree, and MM1 to MM6, MR1, MR2,
+  MR4, MR15, MR23, MQ4 to MQ6 and MQ10 in its `mutation.txt`.
 - **What a load can still do, measured and not remedied.** A text Vital dies on kills the calling
   process: the guard refuses the three shapes found (`vital/instrument.md`) and no others. A text
   Vital loads in part is not detected. Of the 83 texts that raised no alert, the shipped guard
@@ -278,8 +313,13 @@ its final tree.
   its own native calls, and one guard from `VST3Plugin` on would enter it in the flush-to-zero the
   load left. A fake plugin that turns upward rounding on at every call holds both:
   after each public method the rounding mode is back, and no call finds the mode the one before
-  it set. Verified against `host.py` (`_c_library`, `_environment_kept`, `_reached`, `_name_of`,
-  `_text_for`, `VitalHost.__init__`), pedalboard 0.9.26's `AudioProcessorParameter.__init__` (read
+  it set. One piece of the package's Python does run under the plugin's environment: the callback
+  that answers Vital's alert, which Vital calls from inside a state write. It does no float
+  arithmetic, a comment at it saying so for a later edit, and it is not switched to the process's
+  own environment, since nothing may fail before the alert is noted. No test holds that it stays
+  so. Verified against `host.py` (`_c_library`, `_environment_kept`, `_reached`, `_name_of`,
+  `_text_for`, `VitalHost.__init__`, `_AppKitWatch._answered_at_once`), pedalboard 0.9.26's
+  `AudioProcessorParameter.__init__` (read
   for the fact), `tests/unit/test_host.py` (`test_every_public_method_gives_the_environment_back`,
   `test_every_call_into_the_plugin_is_entered_in_the_process_s_own_environment`) and
   `test_the_process_keeps_its_floating_point_environment`.

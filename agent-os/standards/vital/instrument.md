@@ -17,7 +17,10 @@ revision after PR 23's review (`agent-os/specs/2026-11-16-1334-revision-after-pr
 `arrays-seen.txt`, `rollback-count.txt`, `remedy-run.txt`, `silent-and-loaded.txt` and
 `mutation.txt`, and of the revision after the review of PR 26
 (`agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/`): `rollback-count.txt`,
-`remedy-run.txt` and `mutation.txt`, made on its final tree. Each rule names the test that holds it;
+`remedy-run.txt` and `mutation.txt`, made on its final tree, and of the revision after its second
+review (`agent-os/specs/2026-11-18-0651-revision-after-pr-26-second-review/`): `rollback-count.txt`,
+`remedy-run.txt` and `mutation.txt`, made again on its final tree. Each rule names the test that
+holds it;
 a unit test runs over a fake plugin, so CI holds it, and a test of
 `tests/integration/test_vital_instrument.py` runs against the installed Vital.
 
@@ -231,9 +234,11 @@ rules on it.
   `tests/data/upgraded-floats.txt`.
 - **When the plugin refuses a text after the checks pass, the model's own text is sent again.** The
   call is refused as a patch, chained from the host's error, and the plugin holds the model's
-  floats. Verified against
-  `test_a_load_the_plugin_refuses_puts_the_model_s_text_back_and_is_refused_as_a_patch` and the
-  instrument spec's ML1.
+  floats. That is once the plugin has been given any of the text; a refusal before that is the next
+  rule's. Verified against
+  `test_a_load_the_plugin_refuses_puts_the_model_s_text_back_and_is_refused_as_a_patch`,
+  `test_a_marker_read_the_plugin_refuses_after_the_first_load_s_change_is_rolled_back`, the
+  instrument spec's ML1, and MQ8 in the revision after the second review of PR 26's `mutation.txt`.
 - **When the plugin does not take the model's own text either, the instrument has lost step, and
   says so.** Refused, answered with the alert or ignored, alike. Its state is unknown, so core's
   "changing nothing" cannot be claimed: `PluginStateError`, not core's `PatchRejectedError`, names
@@ -243,17 +248,28 @@ rules on it.
   off by an error from outside the package,** a `KeyboardInterrupt` or a `MemoryError` among them,
   once the text is being sent, or while the model's own text is sent again: the plugin may hold part
   of a text the model does not, so the instrument loses step, no rollback is tried, and that error
-  leaves as itself, the same object. An error raised before the text is sent, by the checks or the
-  host's thread rule, changes nothing and loses no step; one from inside a load is told from it only
-  by where it leaves, so one that struck inside a load before the plugin was reached loses step too.
-  Verified against
+  leaves as itself, the same object. **An error raised before the plugin is given anything changes
+  nothing and loses no step:** the checks', the host's thread rule's, and any error that leaves the
+  host's count of state writes begun, `VitalHost.writes_begun`, as `load_patch` read it before the
+  first of its two loads. The host's own refusal is then `PatchRefusedError`, chained from it and
+  saying the plugin was not given the preset, with no rollback, which would meet the same refusal
+  and lose a step no load had taken; an error from outside the package leaves as itself, nothing
+  marked. Once the count has moved every error is met as above, one that strikes in the second load
+  before its own change among them, since the plugin then holds the first load's text; and an error
+  in the rollback's own loads loses the step whether or not the count moved again, the plugin
+  holding what the failed load left. The count is raised before the first change and never after it
+  (`vital/plugin-state.md`), so an interrupt between the two is treated as sent. Verified against
   `test_a_plugin_that_refuses_the_model_s_own_text_too_leaves_the_instrument_out_of_step`,
   `test_a_rollback_vital_answers_the_same_way_leaves_the_instrument_out_of_step`,
   `test_once_out_of_step_every_call_that_reaches_the_plugin_is_refused_before_anything_else`,
   `test_once_out_of_step_get_and_patch_answer_from_the_model`,
   `test_an_error_from_outside_the_package_mid_load_leaves_as_itself_and_the_step_is_lost` (in the
-  first write, when the second load first reaches the plugin and in the second write), the first
-  revision's MS1 to MS4, and MR3 in the revision after the review of PR 26's `mutation.txt`.
+  first write, when the second load first reaches the plugin and in the second write),
+  `test_a_marker_read_the_plugin_refuses_before_any_change_is_a_refused_patch_and_no_rollback`,
+  `test_an_error_from_outside_the_package_before_any_change_leaves_as_itself_and_marks_nothing`,
+  `test_an_error_in_the_rollback_before_its_own_change_still_loses_the_step`, the first
+  revision's MS1 to MS4, and MR3, MQ7 and MQ9 in the revision after the second review of PR 26's
+  `mutation.txt`.
 
 ## Events and errors
 
