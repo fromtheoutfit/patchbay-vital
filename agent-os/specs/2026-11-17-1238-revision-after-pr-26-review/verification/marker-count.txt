@@ -1,0 +1,683 @@
+The revision after the review of PR 26, the issue #20 spec's marker count run again on the final tree: the marker on every good load, and the two-load result with the check as without it, run 2026-11-17 15:55 EST on branch
+bugfix/20-the-host-a-preset-vital-cannot-read-blocks-the-calling-process-for-ever, Vital at /Library/Audio/Plug-Ins/VST3/Vital.vst3
+the machine before the run: arm64, Apple M4 Pro, 14 cores, macOS 26.6.2 (25G83), Python 3.12.16, load 2.47 3.49 3.44, at 2026-11-17 15:55 EST
+the tree before the run (this transcript is written outside the tree and copied in afterwards):
+  HEAD 9bc336c22b719062b46d485c041a3566c2ee40cf
+  git status --porcelain=v1 --untracked-files=all, 23 lines:
+     M CHANGELOG.md
+     M README.md
+     M agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/shape.md
+     M agent-os/standards/index.yml
+     M agent-os/standards/vital/instrument.md
+     M agent-os/standards/vital/plugin-state.md
+     M agent-os/standards/vital/preset-file.md
+     M agent-os/standards/vital/preset-tests.md
+     M src/patchbay_vital/errors.py
+     M src/patchbay_vital/host.py
+     M src/patchbay_vital/instrument.py
+     M src/patchbay_vital/preset.py
+     M tests/integration/test_vital_instrument.py
+     M tests/unit/builders.py
+     M tests/unit/test_host.py
+     M tests/unit/test_instrument.py
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/plan.md
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/references.md
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/shape.md
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/standards.md
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/alarm-probe.txt
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/costs.txt
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/midpoint-probe.txt
+  git hash-object of each of those paths (a deleted one marked so):
+    35f38799ae931678f2b5ac590dc46cff519062a3  CHANGELOG.md
+    60280e1fb8a9010699dc5620b4f4776589bb90e6  README.md
+    b48870126628514d18739c1cfde17e485389689b  agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/shape.md
+    1aede71497f7d42e6655e10406b648dbd8ad93ec  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/plan.md
+    943e9c7d3952eca1bf54ca103830d1cf5e4f5349  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/references.md
+    6c370887755c17eb7aaa45c5c10fa4f7ce8533b5  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/shape.md
+    bddbc3d3f156e6ec55bfb89afd36e33d198f8d2b  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/standards.md
+    40db52bd5e1adb9caf041a3d10b1edffb84113bc  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/alarm-probe.txt
+    d41d16a60992e5b0849220d033b2b0fbcae9f543  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/costs.txt
+    dedf517325fa9bd0db630d4389d71e8968b37b54  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/midpoint-probe.txt
+    6deb2df7daa253f81387cf2b1226229c949ff9e7  agent-os/standards/index.yml
+    f00e55523c32fb916d361b2d9e83e1ff0a063629  agent-os/standards/vital/instrument.md
+    90aa89feb0ad59dcb3fba7691ed46fa8d306c3bc  agent-os/standards/vital/plugin-state.md
+    b47f8c0b8542e7874ad87c6d93c07b6ead8ea3ab  agent-os/standards/vital/preset-file.md
+    5fb098ddac07ad43984ab30dba5ec1810df6f00a  agent-os/standards/vital/preset-tests.md
+    aa38b9f6abc520bf5c661715e4bb9cf4f254578c  src/patchbay_vital/errors.py
+    401a4579efa367ce4c59607f0a492693e28c3d61  src/patchbay_vital/host.py
+    f619b76eed2641abe6f5109ba3c5f60cb304a36f  src/patchbay_vital/instrument.py
+    fbf329ba7c14b90f3f46c637dcef0a1e4971c3c3  src/patchbay_vital/preset.py
+    54580dbc94c89ba6d6662150379b0ca979f006e8  tests/integration/test_vital_instrument.py
+    9ee7cefdef279313bcb1b85e89d1907b1d76363c  tests/unit/builders.py
+    5f83c630eaa0584e3752e8895353e88073cf90aa  tests/unit/test_host.py
+    1283a8537347cdd46d1de25246dc58d3bd45d278  tests/unit/test_instrument.py
+
+$ uv run --locked python -u -B <scratchpad>/i20/marker_count.py
+Vital 1.6.4 at /Library/Audio/Plug-Ins/VST3/Vital.vst3, through pedalboard 0.9.26
+machine arm64, Python 3.12.16, numpy 2.5.4
+the watch on a state write here: _AppKitWatch; the marker: filter_1_on, host id filter_1_switch, a boolean from 0 to 1, its default 0
+the texts: the start preset, the fixture and 75 installed presets, 77 in all
+
+== the history 'start': each text loaded twice with the check, and twice without it
+      bytes  floats of 903 that differ, with the check and without  sections that differ  floats not the text's, with the check   the text
+      60856                                                           0                    []                                      0   the fixture
+      60875                                                           0                    []                                      0   the start preset
+     119040                                                           0                    []                                      0   Yuli Yolo/Presets/Factory Presets/Synthetic Quartet.vital
+     155111                                                           0                    []                                      0   Mr Bill/Presets/Real Squarepusher Hours.vital
+     164228                                                           0                    []                                      0   Navi Retlav Studio/Presets/Factory Presets/Physical Tension.vital
+     164981                                                           0                    []                                      0   Unsystematic Fragmentation/Presets/Factory Presets/Fun Pulse.vital
+     167042                                                           0                    []                                      2   Halcyon Future Riddim Vol 1/Presets/Oolacile/Boot Scre3n.vital
+     174089                                                           0                    []                                      0   Factory/Presets/Shepard Tone Template.vital
+     174653                                                           0                    []                                      0   Afro/Presets/Kick Drum 1.vital
+     174710                                                           0                    []                                      0   In The Mix/Presets/Strings Section.vital
+     174758                                                           0                    []                                      0   Glorkglunk/Presets/Squish Clicker.vital
+     175015                                                           0                    []                                      0   Factory/Presets/FM Drum Circle.vital
+     176486                                                           0                    []                                      0   Halcyon Future Riddim Vol 1/Presets/Oolacile/Space Station.vital
+     187784                                                           0                    []                                      0   Yuli Yolo/Presets/Factory Presets/Keystation.vital
+     197581                                                           0                    []                                      1   Yuli Yolo/Presets/Factory Presets/Easy Mallet.vital
+     208393                                                           0                    []                                      0   Databroth/Presets/Factory Presets/Ceramic.vital
+     209615                                                           0                    []                                      1   Factory/Presets/Ah Eh Ee Oh.vital
+     229997                                                           0                    []                                      1   Yuli Yolo/Presets/Factory Presets/Jupiter Bass.vital
+     231144                                                           0                    []                                     10   Factory/Presets/Touch Tone.vital
+     231188                                                           0                    []                                      0   Navi Retlav Studio/Presets/Factory Presets/Dispersed Grit.vital
+     241415                                                           0                    []                                      0   In The Mix/Presets/Growl Bass Sidechain.vital
+     248790                                                           0                    []                                      0   Factory/Presets/Text To Wavetable Template.vital
+     268065                                                           0                    []                                      0   In The Mix/Presets/Analog Pad.vital
+     284971                                                           0                    []                                      0   Mr Bill/Presets/Remedial Shikari.vital
+     285350                                                           0                    []                                      0   Mr Bill/Presets/Cursed Steps.vital
+     285737                                                           0                    []                                      0   Mr Bill/Presets/LORN Style Lead.vital
+     293764                                                           0                    []                                      0   inktome/Presets/Digital roller.vital
+     296255                                                           0                    []                                      0   Navi Retlav Studio/Presets/Factory Presets/Phaser Man.vital
+     302074                                                           0                    []                                      0   Glorkglunk/Presets/Special Glitch Thing.vital
+     315942                                                           0                    []                                      1   Databroth/Presets/Factory Presets/Snowcrash.vital
+     327884                                                           0                    []                                      0   In The Mix/Presets/Moog Pluck.vital
+     328794                                                           0                    []                                      0   Unsystematic Fragmentation/Presets/Factory Presets/Moving Harmonics.vital
+     369311                                                           0                    []                                      0   Halcyon Future Riddim Vol 1/Presets/Voltra/VLT Future Gun.vital
+     406912                                                           0                    []                                      0   Level 8/Presets/Factory Presets/FM Mode.vital
+     427931                                                           0                    []                                      0   Factory/Presets/Staggered Phrases.vital
+     504953                                                           0                    []                                      1   inktome/Presets/Piano from the yard sale.vital
+     518960                                                           0                    []                                      0   Navi Retlav Studio/Presets/Factory Presets/Skew Resandal.vital
+     676703                                                           0                    []                                      0   Level 8/Presets/Factory Presets/Horror of Melbourne 1.vital
+     751303                                                           0                    []                                      0   inktome/Presets/Big Stomp.vital
+     753731                                                           0                    []                                      0   In The Mix/Presets/Distant Majestic Lead.vital
+     829406                                                           0                    []                                      0   Yuli Yolo/Presets/Factory Presets/DIY.vital
+     846158                                                           0                    []                                      0   Glorkglunk/Presets/THUNK.vital
+     943261                                                           0                    []                                      1   Yuli Yolo/Presets/Factory Presets/Metal Head.vital
+    1073778                                                           0                    []                                      0   Afro/Presets/Random Amp Growl.vital
+    1196598                                                           0                    []                                      0   Afro/Presets/Banana Wob.vital
+    1249209                                                           0                    []                                      0   Databroth/Presets/Factory Presets/Fleet.vital
+    1301114                                                           0                    []                                      0   Level 8/Presets/Factory Presets/Damped Horn.vital
+    1354661                                                           0                    []                                      0   Level 8/Presets/Factory Presets/Crescendo Bells.vital
+    1367913                                                           0                    []                                      0   Yuli Yolo/Presets/Factory Presets/A Night in Kalyan.vital
+    1370066                                                           0                    []                                      0   Mr Bill/Presets/E4 One Note Metallophone.vital
+    1373268                                                           0                    []                                      0   Glorkglunk/Presets/Thumpus.vital
+    1426802                                                           0                    []                                      0   Billain/Presets/Factory Presets/Railgun.vital
+    1477559                                                           0                    []                                      0   Billain/Presets/Factory Presets/Cinema Bells.vital
+    1503327                                                           0                    []                                      0   Databroth/Presets/Factory Presets/Gorgled.vital
+    1554373                                                           0                    []                                      0   Navi Retlav Studio/Presets/Factory Presets/Drowning Machine.vital
+    1554943                                                           0                    []                                      0   Yuli Yolo/Presets/Factory Presets/Abbysun.vital
+    1556063                                                           0                    []                                      0   Unsystematic Fragmentation/Presets/Factory Presets/corrupted_...+=boot-_.vital
+    1563937                                                           0                    []                                      0   Unsystematic Fragmentation/Presets/Factory Presets/Phaser Entropy .vital
+    1565345                                                           0                    []                                      0   Yuli Yolo/Presets/Factory Presets/Salomon.vital
+    1574509                                                           0                    []                                      0   Yuli Yolo/Presets/Factory Presets/Destruction.vital
+    1581585                                                           0                    []                                      0   Factory/Presets/Plucked String.vital
+    1686403                                                           0                    []                                      0   Mr Bill/Presets/Super Nice Pluck.vital
+    1698422                                                           0                    []                                      0   Databroth/Presets/Factory Presets/Disrupt.vital
+    1743156                                                           0                    []                                      0   Unsystematic Fragmentation/Presets/Factory Presets/Chorusy Keys.vital
+    2018609                                                           0                    []                                      0   Level 8/Presets/Factory Presets/Complex Electro 1.vital
+    2023862                                                           0                    []                                      0   Halcyon Future Riddim Vol 1/Presets/Aweminus/Swiss Army Knife.vital
+    2196216                                                           0                    []                                      0   Glorkglunk/Presets/Digestive Trauma.vital
+    2422332                                                           0                    []                                     12   Halcyon Future Riddim Vol 1/Presets/Oolacile/Memory Leak.vital
+    2749719                                                           0                    []                                      0   Level 8/Presets/Factory Presets/Smoker's Lounge.vital
+    2915133                                                           0                    []                                      0   Halcyon Future Riddim Vol 1/Presets/Oolacile/Satellites.vital
+    2950151                                                           0                    []                                      0   Navi Retlav Studio/Presets/Factory Presets/Super Pluck.vital
+    3114585                                                           0                    []                                      2   Unsystematic Fragmentation/Presets/Factory Presets/A happy ending of the world.vital
+    3884939                                                           0                    []                                      0   Mr Bill/Presets/Honk Wub.vital
+    4454600                                                           0                    []                                      0   Halcyon Future Riddim Vol 1/Presets/Phonon/Simple Weoum.vital
+    4480796                                                           0                    []                                      0   Databroth/Presets/Factory Presets/Feeder.vital
+    5149253                                                           0                    []                                     14   Halcyon Future Riddim Vol 1/Presets/Oolacile/Oolacile Evil Dubstep Bass.vital
+   10126117                                                           0                    []                                      0   Mr Bill/Presets/Float Chords.vital
+
+loads made with the check: 154; the marker read the text's value after the load on 154; a load raised: 0
+all 903 floats the same with the check as without: 77 of 77 texts; every section the same: 77 of 77
+floats not the text's after the two checked loads: none on 66 texts, 46 floats on 11 (issue #8 counted none on 66 and 46 on 11, with no check)
+a load's time with the check: min 4.2, median 43.1, max 263.6 ms; without: min 4.3, median 41.8, max 251.3 ms; the check's share, the medians apart: 1344 microseconds
+
+== the history 'sets': each text loaded twice with the check, and twice without it
+      bytes  floats of 903 that differ, with the check and without  sections that differ  floats not the text's, with the check   the text
+      60856                                                           0                    []                                      0   the fixture
+      60875                                                           0                    []                                      0   the start preset
+     119040                                                           0                    []                                      0   Yuli Yolo/Presets/Factory Presets/Synthetic Quartet.vital
+     155111                                                           0                    []                                      0   Mr Bill/Presets/Real Squarepusher Hours.vital
+     164228                                                           0                    []                                      0   Navi Retlav Studio/Presets/Factory Presets/Physical Tension.vital
+     164981                                                           0                    []                                      0   Unsystematic Fragmentation/Presets/Factory Presets/Fun Pulse.vital
+     167042                                                           0                    []                                      2   Halcyon Future Riddim Vol 1/Presets/Oolacile/Boot Scre3n.vital
+     174089                                                           0                    []                                      0   Factory/Presets/Shepard Tone Template.vital
+     174653                                                           0                    []                                      0   Afro/Presets/Kick Drum 1.vital
+     174710                                                           0                    []                                      0   In The Mix/Presets/Strings Section.vital
+     174758                                                           0                    []                                      0   Glorkglunk/Presets/Squish Clicker.vital
+     175015                                                           0                    []                                      0   Factory/Presets/FM Drum Circle.vital
+     176486                                                           0                    []                                      0   Halcyon Future Riddim Vol 1/Presets/Oolacile/Space Station.vital
+     187784                                                           0                    []                                      0   Yuli Yolo/Presets/Factory Presets/Keystation.vital
+     197581                                                           0                    []                                      1   Yuli Yolo/Presets/Factory Presets/Easy Mallet.vital
+     208393                                                           0                    []                                      0   Databroth/Presets/Factory Presets/Ceramic.vital
+     209615                                                           0                    []                                      1   Factory/Presets/Ah Eh Ee Oh.vital
+     229997                                                           0                    []                                      1   Yuli Yolo/Presets/Factory Presets/Jupiter Bass.vital
+     231144                                                           0                    []                                     10   Factory/Presets/Touch Tone.vital
+     231188                                                           0                    []                                      0   Navi Retlav Studio/Presets/Factory Presets/Dispersed Grit.vital
+     241415                                                           0                    []                                      0   In The Mix/Presets/Growl Bass Sidechain.vital
+     248790                                                           0                    []                                      0   Factory/Presets/Text To Wavetable Template.vital
+     268065                                                           0                    []                                      0   In The Mix/Presets/Analog Pad.vital
+     284971                                                           0                    []                                      0   Mr Bill/Presets/Remedial Shikari.vital
+     285350                                                           0                    []                                      0   Mr Bill/Presets/Cursed Steps.vital
+     285737                                                           0                    []                                      0   Mr Bill/Presets/LORN Style Lead.vital
+     293764                                                           0                    []                                      0   inktome/Presets/Digital roller.vital
+     296255                                                           0                    []                                      0   Navi Retlav Studio/Presets/Factory Presets/Phaser Man.vital
+     302074                                                           0                    []                                      0   Glorkglunk/Presets/Special Glitch Thing.vital
+     315942                                                           0                    []                                      1   Databroth/Presets/Factory Presets/Snowcrash.vital
+     327884                                                           0                    []                                      0   In The Mix/Presets/Moog Pluck.vital
+     328794                                                           0                    []                                      0   Unsystematic Fragmentation/Presets/Factory Presets/Moving Harmonics.vital
+     369311                                                           0                    []                                      0   Halcyon Future Riddim Vol 1/Presets/Voltra/VLT Future Gun.vital
+     406912                                                           0                    []                                      0   Level 8/Presets/Factory Presets/FM Mode.vital
+     427931                                                           0                    []                                      0   Factory/Presets/Staggered Phrases.vital
+     504953                                                           0                    []                                      1   inktome/Presets/Piano from the yard sale.vital
+     518960                                                           0                    []                                      0   Navi Retlav Studio/Presets/Factory Presets/Skew Resandal.vital
+     676703                                                           0                    []                                      0   Level 8/Presets/Factory Presets/Horror of Melbourne 1.vital
+     751303                                                           0                    []                                      0   inktome/Presets/Big Stomp.vital
+     753731                                                           0                    []                                      0   In The Mix/Presets/Distant Majestic Lead.vital
+     829406                                                           0                    []                                      0   Yuli Yolo/Presets/Factory Presets/DIY.vital
+     846158                                                           0                    []                                      0   Glorkglunk/Presets/THUNK.vital
+     943261                                                           0                    []                                      1   Yuli Yolo/Presets/Factory Presets/Metal Head.vital
+    1073778                                                           0                    []                                      0   Afro/Presets/Random Amp Growl.vital
+    1196598                                                           0                    []                                      0   Afro/Presets/Banana Wob.vital
+    1249209                                                           0                    []                                      0   Databroth/Presets/Factory Presets/Fleet.vital
+    1301114                                                           0                    []                                      0   Level 8/Presets/Factory Presets/Damped Horn.vital
+    1354661                                                           0                    []                                      0   Level 8/Presets/Factory Presets/Crescendo Bells.vital
+    1367913                                                           0                    []                                      0   Yuli Yolo/Presets/Factory Presets/A Night in Kalyan.vital
+    1370066                                                           0                    []                                      0   Mr Bill/Presets/E4 One Note Metallophone.vital
+    1373268                                                           0                    []                                      0   Glorkglunk/Presets/Thumpus.vital
+    1426802                                                           0                    []                                      0   Billain/Presets/Factory Presets/Railgun.vital
+    1477559                                                           0                    []                                      0   Billain/Presets/Factory Presets/Cinema Bells.vital
+    1503327                                                           0                    []                                      0   Databroth/Presets/Factory Presets/Gorgled.vital
+    1554373                                                           0                    []                                      0   Navi Retlav Studio/Presets/Factory Presets/Drowning Machine.vital
+    1554943                                                           0                    []                                      0   Yuli Yolo/Presets/Factory Presets/Abbysun.vital
+    1556063                                                           0                    []                                      0   Unsystematic Fragmentation/Presets/Factory Presets/corrupted_...+=boot-_.vital
+    1563937                                                           0                    []                                      0   Unsystematic Fragmentation/Presets/Factory Presets/Phaser Entropy .vital
+    1565345                                                           0                    []                                      0   Yuli Yolo/Presets/Factory Presets/Salomon.vital
+    1574509                                                           0                    []                                      0   Yuli Yolo/Presets/Factory Presets/Destruction.vital
+    1581585                                                           0                    []                                      0   Factory/Presets/Plucked String.vital
+    1686403                                                           0                    []                                      0   Mr Bill/Presets/Super Nice Pluck.vital
+    1698422                                                           0                    []                                      0   Databroth/Presets/Factory Presets/Disrupt.vital
+    1743156                                                           0                    []                                      0   Unsystematic Fragmentation/Presets/Factory Presets/Chorusy Keys.vital
+    2018609                                                           0                    []                                      0   Level 8/Presets/Factory Presets/Complex Electro 1.vital
+    2023862                                                           0                    []                                      0   Halcyon Future Riddim Vol 1/Presets/Aweminus/Swiss Army Knife.vital
+    2196216                                                           0                    []                                      0   Glorkglunk/Presets/Digestive Trauma.vital
+    2422332                                                           0                    []                                     12   Halcyon Future Riddim Vol 1/Presets/Oolacile/Memory Leak.vital
+    2749719                                                           0                    []                                      0   Level 8/Presets/Factory Presets/Smoker's Lounge.vital
+    2915133                                                           0                    []                                      0   Halcyon Future Riddim Vol 1/Presets/Oolacile/Satellites.vital
+    2950151                                                           0                    []                                      0   Navi Retlav Studio/Presets/Factory Presets/Super Pluck.vital
+    3114585                                                           0                    []                                      2   Unsystematic Fragmentation/Presets/Factory Presets/A happy ending of the world.vital
+    3884939                                                           0                    []                                      0   Mr Bill/Presets/Honk Wub.vital
+    4454600                                                           0                    []                                      0   Halcyon Future Riddim Vol 1/Presets/Phonon/Simple Weoum.vital
+    4480796                                                           0                    []                                      0   Databroth/Presets/Factory Presets/Feeder.vital
+    5149253                                                           0                    []                                     14   Halcyon Future Riddim Vol 1/Presets/Oolacile/Oolacile Evil Dubstep Bass.vital
+   10126117                                                           0                    []                                      0   Mr Bill/Presets/Float Chords.vital
+
+loads made with the check: 154; the marker read the text's value after the load on 154; a load raised: 0
+all 903 floats the same with the check as without: 77 of 77 texts; every section the same: 77 of 77
+floats not the text's after the two checked loads: none on 66 texts, 46 floats on 11 (issue #8 counted none on 66 and 46 on 11, with no check)
+a load's time with the check: min 5.6, median 51.5, max 286.8 ms; without: min 7.6, median 52.3, max 279.7 ms; the check's share, the medians apart: -540 microseconds
+the history itself, a labelled sample: the 903 sets min 28.4, median 30.1, max 56.4 ms; the render of 4800 samples min 10053.8, median 10109.3, max 10439.1 ms
+exit=0
+
+the tree after the run:
+  HEAD 9bc336c22b719062b46d485c041a3566c2ee40cf
+  git status --porcelain=v1 --untracked-files=all, 23 lines:
+     M CHANGELOG.md
+     M README.md
+     M agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/shape.md
+     M agent-os/standards/index.yml
+     M agent-os/standards/vital/instrument.md
+     M agent-os/standards/vital/plugin-state.md
+     M agent-os/standards/vital/preset-file.md
+     M agent-os/standards/vital/preset-tests.md
+     M src/patchbay_vital/errors.py
+     M src/patchbay_vital/host.py
+     M src/patchbay_vital/instrument.py
+     M src/patchbay_vital/preset.py
+     M tests/integration/test_vital_instrument.py
+     M tests/unit/builders.py
+     M tests/unit/test_host.py
+     M tests/unit/test_instrument.py
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/plan.md
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/references.md
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/shape.md
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/standards.md
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/alarm-probe.txt
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/costs.txt
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/midpoint-probe.txt
+  git hash-object of each of those paths (a deleted one marked so):
+    35f38799ae931678f2b5ac590dc46cff519062a3  CHANGELOG.md
+    60280e1fb8a9010699dc5620b4f4776589bb90e6  README.md
+    b48870126628514d18739c1cfde17e485389689b  agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/shape.md
+    1aede71497f7d42e6655e10406b648dbd8ad93ec  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/plan.md
+    943e9c7d3952eca1bf54ca103830d1cf5e4f5349  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/references.md
+    6c370887755c17eb7aaa45c5c10fa4f7ce8533b5  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/shape.md
+    bddbc3d3f156e6ec55bfb89afd36e33d198f8d2b  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/standards.md
+    40db52bd5e1adb9caf041a3d10b1edffb84113bc  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/alarm-probe.txt
+    d41d16a60992e5b0849220d033b2b0fbcae9f543  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/costs.txt
+    dedf517325fa9bd0db630d4389d71e8968b37b54  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/midpoint-probe.txt
+    6deb2df7daa253f81387cf2b1226229c949ff9e7  agent-os/standards/index.yml
+    f00e55523c32fb916d361b2d9e83e1ff0a063629  agent-os/standards/vital/instrument.md
+    90aa89feb0ad59dcb3fba7691ed46fa8d306c3bc  agent-os/standards/vital/plugin-state.md
+    b47f8c0b8542e7874ad87c6d93c07b6ead8ea3ab  agent-os/standards/vital/preset-file.md
+    5fb098ddac07ad43984ab30dba5ec1810df6f00a  agent-os/standards/vital/preset-tests.md
+    aa38b9f6abc520bf5c661715e4bb9cf4f254578c  src/patchbay_vital/errors.py
+    401a4579efa367ce4c59607f0a492693e28c3d61  src/patchbay_vital/host.py
+    f619b76eed2641abe6f5109ba3c5f60cb304a36f  src/patchbay_vital/instrument.py
+    fbf329ba7c14b90f3f46c637dcef0a1e4971c3c3  src/patchbay_vital/preset.py
+    54580dbc94c89ba6d6662150379b0ca979f006e8  tests/integration/test_vital_instrument.py
+    9ee7cefdef279313bcb1b85e89d1907b1d76363c  tests/unit/builders.py
+    5f83c630eaa0584e3752e8895353e88073cf90aa  tests/unit/test_host.py
+    1283a8537347cdd46d1de25246dc58d3bd45d278  tests/unit/test_instrument.py
+cmp: the tree after the run is the tree before it
+the machine after the run: arm64, Apple M4 Pro, 14 cores, macOS 26.6.2 (25G83), Python 3.12.16, load 5.46 4.94 5.01, at 2026-11-17 16:21 EST
+
+the scripts this run used, each embedded below with its blob:
+    cca5de320e9f3fd41e09a234742e2468e214b11e  <scratchpad>/i20/marker_count.py
+    69ab39e9ed371e5c72b7893b04e6e1af2ba5b9fd  <scratchpad>/i20/common.py
+    e4c1a40cc3893ab50df6717e5a18e2a755914efd  <scratchpad>/i20/tree.sh
+    0dde01b338e9dbc221abc7e0d9b87bcf21acf1cf  <scratchpad>/i20/machine.sh
+    43532a582c6f20d5b140e66162c45647a16a4287  <scratchpad>/i20/transcript.sh
+
+--- <scratchpad>/i20/marker_count.py
+```
+"""Issue #20, the shipped remedy: the marker on every good load, and the two-load result with it.
+
+For the start preset, the fixture and each of the 75 installed presets, on one Vital in this
+process: these are texts Vital loads, the ones the integration tests load in their own process.
+Each is loaded twice by the host as shipped, every load checked with the marker, and twice by the
+same host with the check off, as a load was made before issue #20; the plugin's state after each
+is read, and the two compared: all 903 floats and every section. Under two histories:
+
+  start   the start preset loaded twice before the text, in the same way as the text
+  sets    every parameter set to an end of its range and a short render before the text, the
+          history under which issue #8 found one load is not enough
+
+With the check on, the marker is read after each load: it reads the text's value where the load
+was made. The check is turned off by telling the host it sought the marker and found none, which
+is what it does where the map is not the plugin's.
+"""
+
+import importlib.metadata
+import platform
+import time
+
+import common as c
+from patchbay import ParameterId
+from patchbay_vital import host as host_module
+from patchbay_vital.errors import PluginStateError
+from patchbay_vital.host import DEFAULT_PATH, MARKER, VitalHost
+
+SHORT = 4_800
+ENDS = {
+    record.id: 1.0 if record.scale.to_normalized(record.preset_default) < 0.5 else 0.0  # noqa: PLR2004
+    for record in c.MAP.parameters
+}
+
+
+def head(title: str) -> None:
+    print(f"\n== {title}", flush=True)
+
+
+def checking(host: VitalHost, on: bool) -> None:
+    """Turn the host's marker check on, by having it seek the marker again, or off."""
+    host._marker_sought = not on  # noqa: SLF001 - the probe's reach, to compare with and without
+    host._marker_found = None  # noqa: SLF001
+
+
+def history(host: VitalHost, which: str) -> tuple[float, float]:
+    """Make a history before a text; the milliseconds its sets took, and its render."""
+    if which == "start":
+        host.load_state(c.START)
+        host.load_state(c.START)
+        return 0.0, 0.0
+    began = time.perf_counter()
+    for parameter_id, normalized in ENDS.items():
+        host.set(ParameterId(parameter_id), normalized)
+    sets = time.perf_counter()
+    host.render([], SHORT, 48_000)
+    return (sets - began) * 1000.0, (time.perf_counter() - sets) * 1000.0
+
+
+def main() -> None:
+    host = VitalHost()
+    record = c.MAP.find(MARKER)
+    print(f"Vital {host.version} at {DEFAULT_PATH}, through {host.host}")
+    print(f"machine {platform.machine()}, Python {platform.python_version()}, numpy {importlib.metadata.version('numpy')}")
+    print(f"the watch on a state write here: {type(host_module._ALERTS).__name__}; the marker: {MARKER}, host id {record.host_id}, a {record.parameter.kind} from {record.scale.minimum:g} to {record.scale.maximum:g}, its default {record.preset_default:g}")  # noqa: SLF001
+    texts = c.good_texts()
+    print(f"the texts: the start preset, the fixture and {len(texts) - 2} installed presets, {len(texts)} in all")
+    for which in ("start", "sets"):
+        head(f"the history {which!r}: each text loaded twice with the check, and twice without it")
+        rows = []
+        moved = loads = raised = 0
+        with_ms, without_ms, sets_ms, render_ms = [], [], [], []
+        for name, text in texts:
+            text_floats = c.floats_of(text)
+            target = record.scale.to_normalized(text_floats.get(str(record.preset_key), record.preset_default))
+            states = {}
+            for on in (True, False):
+                checking(host, on)
+                took_sets, took_render = history(host, which)
+                sets_ms.append(took_sets)
+                render_ms.append(took_render)
+                for _ in range(2):
+                    began = time.perf_counter()
+                    try:
+                        host.load_state(text)
+                    except PluginStateError as error:
+                        raised += 1
+                        print(f"  RAISED on {name}: {error}")
+                    (with_ms if on else without_ms).append((time.perf_counter() - began) * 1000.0)
+                    if on:
+                        loads += 1
+                        moved += host.get(MARKER) == target
+                states[on] = host.state()
+            checked, plain = c.floats_of(states[True]), c.floats_of(states[False])
+            floats_differ = sum(checked.get(key) != plain.get(key) for key in c.KEYS)
+            sections_differ = c.sections_off(c.sections_of(states[True]), c.sections_of(states[False]))
+            held, lacking = c.floats_off(checked, text_floats)
+            rows.append((len(text), floats_differ, sections_differ, len(held) + len(lacking), name))
+        checking(host, True)
+        print("      bytes  floats of 903 that differ, with the check and without  sections that differ  floats not the text's, with the check   the text")
+        for size, floats_differ, sections_differ, off, name in sorted(rows):
+            print(f"  {size:>9}  {floats_differ:>58}  {sections_differ!s:>20}  {off:>37}   {name}")
+        count = len(rows)
+        print(f"\nloads made with the check: {loads}; the marker read the text's value after the load on {moved}; a load raised: {raised}")
+        print(f"all 903 floats the same with the check as without: {sum(row[1] == 0 for row in rows)} of {count} texts; every section the same: {sum(not row[2] for row in rows)} of {count}")
+        off = [row[3] for row in rows]
+        print(f"floats not the text's after the two checked loads: none on {sum(n == 0 for n in off)} texts, {sum(off)} floats on {sum(n > 0 for n in off)} (issue #8 counted none on 66 and 46 on 11, with no check)")
+        print(f"a load's time with the check: {c.spread(with_ms)} ms; without: {c.spread(without_ms)} ms; the check's share, the medians apart: {(sorted(with_ms)[len(with_ms) // 2] - sorted(without_ms)[len(without_ms) // 2]) * 1000:.0f} microseconds")
+        if which == "sets":
+            print(f"the history itself, a labelled sample: the 903 sets {c.spread(sets_ms)} ms; the render of {SHORT} samples {c.spread(render_ms)} ms")
+
+
+if __name__ == "__main__":
+    main()
+```
+
+--- <scratchpad>/i20/common.py
+```
+"""What the probes of issue #20 share: the texts, the reads of the plugin, and the checks.
+
+Run from the repository root. Nothing here loads a text into Vital; the callers do, and a load
+that may block is made in a child the caller can kill.
+"""
+
+import ctypes
+import json
+import statistics
+import sys
+import time
+from collections.abc import Callable
+from pathlib import Path
+
+from patchbay import ParameterId
+
+from patchbay_vital.host import _LIBC, VitalHost, _floats
+from patchbay_vital.parameters import parameter_map
+from patchbay_vital.start import start_text
+
+MAP = parameter_map()
+START = start_text(MAP).encode("utf-8")
+PRESETS = Path.home() / "Music" / "Vital"
+ROOT = Path.cwd()
+FIXTURE = ROOT / "tests" / "data" / "init-media-replaced.vital"
+MANIFEST = ROOT / "tests" / "data" / "factory-manifest.txt"
+KEYS = tuple(str(record.preset_key) for record in MAP.parameters)
+DEFAULTS = {str(record.preset_key): record.preset_default for record in MAP.parameters}
+LIMIT = 3.0
+"""Seconds a load is given, counted from the child saying it is about to make it."""
+MARKERS = ("filter_1_cutoff", "filter_1_on")
+"""The parameters planted before a load: one continuous, one a switch; Vital upgrades neither."""
+
+
+def good_texts() -> list[tuple[str, bytes]]:
+    """The 77 texts Vital is known to load: the start preset, the fixture, the 75 installed."""
+    manifest = [
+        line
+        for line in MANIFEST.read_text(encoding="utf-8").splitlines()
+        if line and not line.startswith("#")
+    ]
+    texts = [("the start preset", START), ("the fixture", FIXTURE.read_bytes())]
+    texts += [(name, (PRESETS / name).read_bytes()) for name in manifest]
+    return texts
+
+
+def variant(top: dict[str, object] | None = None, **settings: object) -> bytes:
+    """The start preset with settings replaced (None removes one) and top-level keys set."""
+    changed = json.loads(START)
+    for key, value in settings.items():
+        if value is None:
+            del changed["settings"][key]
+        else:
+            changed["settings"][key] = value
+    changed.update(top or {})
+    return json.dumps(changed, sort_keys=True, separators=(",", ":")).encode("utf-8")
+
+
+def no_sections() -> bytes:
+    changed = json.loads(START)
+    for name in ("wavetables", "lfos", "sample", "custom_warps", "random_values"):
+        del changed["settings"][name]
+    return json.dumps(changed, sort_keys=True, separators=(",", ":")).encode("utf-8")
+
+
+def routed(source: str, destination: str) -> bytes:
+    changed = json.loads(START)
+    changed["settings"]["modulations"][0] = {"source": source, "destination": destination}
+    return json.dumps(changed, sort_keys=True, separators=(",", ":")).encode("utf-8")
+
+
+_LFO = {"name": "x", "num_points": 2, "points": "x", "powers": [0.0, 0.0], "smooth": False}
+_SAMPLE = {"length": "x", "name": "x", "sample_rate": 44100, "samples": ""}
+
+CASES: dict[str, Callable[[], bytes]] = {
+    # The 20 texts of the instrument spec's probes.txt, section 5, built as they were there.
+    "the start preset rewritten by json.dumps (the control)": lambda: variant(),
+    "no section at all": no_sections,
+    "wavetables an empty array": lambda: variant(wavetables=[]),
+    "wavetables an array of one empty object": lambda: variant(wavetables=[{}]),
+    "wavetables an object": lambda: variant(wavetables={"x": 1}),
+    "lfos an empty array": lambda: variant(lfos=[]),
+    "sample an empty object": lambda: variant(sample={}),
+    "a routing whose source and destination are no names of Vital's": lambda: routed(
+        "nonsense", "nowhere"
+    ),
+    "synth_version 99.0.0": lambda: variant({"synth_version": "99.0.0"}),
+    "synth_version abc": lambda: variant({"synth_version": "abc"}),
+    "without filter_1_cutoff": lambda: variant(filter_1_cutoff=None),
+    "volume at 1e30, far outside its scale": lambda: variant(volume=1e30),
+    "three wavetables whose groups is a number": lambda: variant(wavetables=[{"groups": 5}] * 3),
+    "eight lfos whose points is a string": lambda: variant(lfos=[_LFO] * 8),
+    "a sample with its four keys, its length a string": lambda: variant(sample=_SAMPLE),
+    "an empty object": lambda: b"{}",
+    "settings empty": lambda: b'{"settings":{}}',
+    "a string where a float belongs": lambda: variant(volume="loud"),
+    "wavetables a string": lambda: variant(wavetables="x"),
+    "without modulations": lambda: variant(modulations=None),
+}
+
+BLOCKED_IN_SECTION_5 = (
+    "no section at all",
+    "wavetables an object",
+    "sample an empty object",
+    "synth_version abc",
+    "three wavetables whose groups is a number",
+    "eight lfos whose points is a string",
+    "a sample with its four keys, its length a string",
+    "an empty object",
+    "settings empty",
+    "a string where a float belongs",
+    "wavetables a string",
+)
+"""The 11 that never returned there."""
+
+RETURNED_WRONG_IN_SECTION_5 = (
+    "synth_version 99.0.0",
+    "wavetables an empty array",
+    "lfos an empty array",
+    "wavetables an array of one empty object",
+)
+"""The four that returned with no error and were not loaded as given."""
+
+
+def floats_of(text: bytes) -> dict[str, float]:
+    """A text's float settings by key, read as the package reads JSON; none where it has none."""
+    try:
+        return dict(_floats(text))
+    except Exception:  # noqa: BLE001  a probe's read of a text that may be malformed
+        return {}
+
+
+def sections_of(text: bytes) -> dict[str, object]:
+    """A text's settings that are not numbers: its sections, parsed."""
+    settings = json.loads(text).get("settings", {})
+    if not isinstance(settings, dict):
+        return {}
+    return {
+        key: value
+        for key, value in settings.items()
+        if isinstance(value, (dict, list, str))
+    }
+
+
+def environment() -> bytes:
+    """The process's floating-point environment, as fegetenv gives it."""
+    saved = ctypes.create_string_buffer(512)
+    _LIBC.fegetenv(saved)
+    return saved.raw
+
+
+def subnormals_kept() -> bool:
+    """Whether a subnormal result is still a subnormal, so flush-to-zero is off."""
+    tiny = sys.float_info.min
+    return tiny / 4.0 != 0.0
+
+
+def plant(host: VitalHost, text: dict[str, float]) -> dict[str, tuple[float, float]]:
+    """Set each marker to the end of its range the text's value is not near.
+
+    Returns, by marker, the normalized value planted and the one the text's value has, the
+    parameter's default where the text lacks the key.
+    """
+    planted = {}
+    for key in MARKERS:
+        record = MAP.find(ParameterId(key))
+        target = record.scale.to_normalized(text.get(key, record.preset_default))
+        normalized = 0.0 if target > 0.5 else 1.0
+        host.set(ParameterId(key), normalized)
+        planted[key] = (normalized, target)
+    return planted
+
+
+def markers_read(host: VitalHost, planted: dict[str, tuple[float, float]]) -> tuple[int, int]:
+    """How many markers moved off the planted value, and how many read the text's exactly."""
+    moved = exact = 0
+    for key, (normalized, target) in planted.items():
+        now = host.get(ParameterId(key))
+        moved += now != normalized
+        exact += now == target
+    return moved, exact
+
+
+def floats_off(state: dict[str, float], text: dict[str, float]) -> tuple[list[str], list[str]]:
+    """The map's keys whose float in the state is not the text's, and, for keys the text lacks,
+    those not at the parameter's default."""
+    held = [key for key in KEYS if key in text and state.get(key) != text[key]]
+    lacking = [key for key in KEYS if key not in text and state.get(key) != DEFAULTS[key]]
+    return held, lacking
+
+
+def sections_off(state: dict[str, object], text: dict[str, object]) -> list[str]:
+    """The names of the text's sections the state does not hold as the text does."""
+    return sorted(name for name in text if state.get(name) != text[name])
+
+
+def timed(call: Callable[[], object]) -> tuple[float, object]:
+    """Run a call; return its milliseconds and what it gave."""
+    start = time.perf_counter()
+    result = call()
+    return (time.perf_counter() - start) * 1000.0, result
+
+
+def spread(values: list[float]) -> str:
+    """A sample's least, median and greatest, to one decimal."""
+    return (
+        f"min {min(values):.1f}, median {statistics.median(values):.1f}, max {max(values):.1f}"
+    )
+```
+
+--- <scratchpad>/i20/tree.sh
+```
+#!/usr/bin/env bash
+# usage: tree.sh   (run from the repository root)
+# Prints HEAD, git's status of the work tree and the blob of every path that status names, so two
+# calls can be compared with cmp: the tree a run read, and the tree it left.
+set -euo pipefail
+echo "  HEAD $(git rev-parse HEAD)"
+git status --porcelain=v1 --untracked-files=all > "${TMPDIR:-/tmp}/tree.$$"
+echo "  git status --porcelain=v1 --untracked-files=all, $(wc -l < "${TMPDIR:-/tmp}/tree.$$" | tr -d ' ') lines:"
+sed 's/^/    /' "${TMPDIR:-/tmp}/tree.$$"
+echo "  git hash-object of each of those paths (a deleted one marked so):"
+cut -c4- "${TMPDIR:-/tmp}/tree.$$" | LC_ALL=C sort | while IFS= read -r path; do
+  if [ -e "$path" ]; then echo "    $(git hash-object "$path")  $path"; else echo "    (deleted)  $path"; fi
+done
+rm -f "${TMPDIR:-/tmp}/tree.$$"
+```
+
+--- <scratchpad>/i20/machine.sh
+```
+#!/usr/bin/env bash
+# usage: machine.sh   Prints one line: the machine, its system, the locked Python and the load.
+set -euo pipefail
+echo "$(uname -m), $(sysctl -n machdep.cpu.brand_string), $(sysctl -n hw.ncpu) cores, macOS $(sw_vers -productVersion) ($(sw_vers -buildVersion)), Python $(uv run --locked python -c 'import platform; print(platform.python_version())'), load $(sysctl -n vm.loadavg | tr -d '{}' | xargs), at $(date '+%Y-%m-%d %H:%M %Z')"
+```
+
+--- <scratchpad>/i20/transcript.sh
+```
+#!/usr/bin/env bash
+# usage: transcript.sh <out file> <title> <script to embed>... -- <command...>   (from the repository root)
+# Writes one transcript outside the tree: its date and branch, the machine and the tree before,
+# the command's whole output, the tree and the machine after, the two trees compared, and every
+# script it ran, embedded. The caller copies the file into the spec's verification/ afterwards.
+set -uo pipefail
+R=$(cd "$(dirname "$0")" && pwd)
+out=$1; title=$2; shift 2
+scripts=()
+while [ "$1" != "--" ]; do scripts+=("$1"); shift; done
+shift
+{
+  echo "$title, run $(date '+%Y-%m-%d %H:%M %Z') on branch"
+  echo "$(git branch --show-current), Vital at /Library/Audio/Plug-Ins/VST3/Vital.vst3"
+  echo "the machine before the run: $(bash "$R/machine.sh")"
+  echo "the tree before the run (this transcript is written outside the tree and copied in afterwards):"
+  bash "$R/tree.sh" | tee "$R/out/tree-before.txt"
+  echo
+  echo "\$ $*" | sed "s|$R|<scratchpad>/i20|g"
+  "$@" 2>&1
+  echo "exit=$?"
+  echo
+  echo "the tree after the run:"
+  bash "$R/tree.sh" | tee "$R/out/tree-after.txt"
+  if cmp -s "$R/out/tree-before.txt" "$R/out/tree-after.txt"; then echo "cmp: the tree after the run is the tree before it"; else echo "cmp: THE TREE CHANGED DURING THE RUN"; fi
+  echo "the machine after the run: $(bash "$R/machine.sh")"
+  echo
+  echo "the scripts this run used, each embedded below with its blob:"
+  for s in "${scripts[@]}" "$R/tree.sh" "$R/machine.sh" "$R/transcript.sh"; do echo "    $(git hash-object "$s")  <scratchpad>/i20/$(basename "$s")"; done
+  for s in "${scripts[@]}" "$R/tree.sh" "$R/machine.sh" "$R/transcript.sh"; do
+    echo; echo "--- <scratchpad>/i20/$(basename "$s")"; echo '```'; cat "$s"; echo '```'
+  done
+} > "$out"
+```

@@ -1234,3 +1234,15 @@ same, character for character.
   `test_the_watch_answers_a_real_alert_at_once_and_puts_the_method_back`) and the README's "A
   patch Vital cannot use". Proposed, not applied; filed as
   fromtheoutfit/patchbay-standards#45.
+
+## Revised 2026-11-17, after the review of PR 26
+
+The review of PR 26 changed code on the path of this spec's four evidence runs, so all four were
+run again on the final tree of the revision that answered it,
+`agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/`: `remedy-run.txt`,
+`rollback-count.txt` and `marker-count.txt` from the scripts embedded here, at the blobs listed
+here, and `mutation.txt` with this spec's 16 mutants adapted to the moved code beside that
+revision's own. The transcripts here stay as they ran. That revision also reverses Decision 14
+for `load_patch` alone: a load from a thread that is not the process's main one is now refused
+there as `PatchRefusedError`, chained from `PluginThreadError`; Decision 14 is left as written,
+and the revision's `shape.md` says why.

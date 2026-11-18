@@ -14,6 +14,51 @@ writes the entry, in that commit
 
 ### Changed
 
+- Revision after the review of PR 26, `agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/`:
+  17 findings at `9bc336c`, each checked against the code first; 12 fixed, 2 declined on a kept
+  measurement, 1 that did not hold as stated fixed all the same, 1 deferred to an issue, and 1
+  that probing showed needs no change. The issue #20 entry under "Fixed" reads as the revision
+  leaves it. Measured on Vital 1.6.4 through pedalboard 0.9.26 on arm64, macOS 26.6.2, and on
+  no other platform. The version stays 0.0.1.
+  - **The marker is set back however a write ends** (finding 1): an error from outside the
+    package, a `KeyboardInterrupt` or a `MemoryError`, leaves as itself, and one raised while
+    setting the marker back is a note on it. Such an error while `load_patch` sends a text marks
+    the instrument out of step, as a failed rollback does, with no rollback tried.
+  - **The marker is sought again** after a first lookup that met any error but
+    `MapMismatchError` (finding 2), where every later load had been made unchecked.
+  - **A load from the wrong thread is refused as a patch:** `load_patch` raises
+    `PatchRefusedError`, core's `PatchRejectedError`, chained from `PluginThreadError`, saying
+    the patch passed the package's checks and was not given to Vital (finding 3).
+    `VitalHost.load_state` and `VitalInstrument.__init__` still raise `PluginThreadError`.
+  - **Every state write is the process's main thread's,** by `pthread_main_np` and not
+    `threading.main_thread()`: `measure` is refused from another thread before it sets
+    anything, and the write itself asks too (findings 4 and 6). The watch refuses to be entered
+    while it is in place (finding 5); no lock is needed beyond that.
+  - **An alert's words always reach the error** (findings 7 and 14): the callback notes the
+    alert and returns the first button before anything that can fail, an alert whose words
+    could not be read is still refused, chained from what the read raised, and an alert together
+    with a pedalboard refusal is one error carrying both.
+  - **The tests' children end themselves** at a watchdog past their parent's limit,
+    faulthandler's, a C thread that needs no GIL, so a pytest killed outright leaves none behind
+    (finding 8; `verification/alarm-probe.txt`, where it and SIGALRM each ended a child blocked
+    in Vital's alert and in AppKit's). The stand-in test checks a lock its child holds, never a
+    pid, at a 3 s limit (finding 9).
+  - **A switch between its ends needs no new rule** (finding 10): Vital's parameter read holds
+    every value given, and only its own text rounds one, below 0.5 to 0 and from 0.5 to 1, so
+    the marker is never planted on what the read holds (`verification/midpoint-probe.txt`).
+  - **The settings of a text are read through the one guarded decoder** (finding 13), though
+    the finding did not hold as stated: the validator refuses at a depth 3 below the second
+    decode's, 9994 against 9997 on Python 3.12.16 (`verification/costs.txt`).
+  - **Declined on `verification/costs.txt`:** the second decode a load makes, 0.60 ms on a
+    median-sized installed preset and 5.19 ms on the largest (finding 12); and loading AppKit at
+    import, which pedalboard's native module links already, the watch then built in 0.123 ms
+    (finding 15).
+  - **The README and the docstrings name the platform** each measurement was made on, and say
+    of any other only that nothing was probed there (finding 17); `vital/instrument.md` gives the
+    two splits of the 64 texts that load apart (finding 16).
+  - **Deferred:** the window object each answered alert leaves in the application's list
+    (finding 11), to issue #27, unverified.
+
 - Revision after the second review of PR 23,
   `agent-os/specs/2026-11-16-1509-revision-after-pr-23-second-review/`: the two correctness
   findings of the review at `64863c6` and three of its nine later items. `set` and every other
@@ -352,13 +397,14 @@ writes the entry, in that commit
     `PluginStateError` with the alert's own words, and `load_patch` its patch error, the model's
     text loaded again: the plugin had taken the patch in part. Of 335 texts tried, 249 raise the
     alert; under the watch every one returned, with nothing on screen. **On any other platform
-    nothing answers the alert and such a preset still blocks.** Nothing was probed there, nor in
-    a process with no screen. Each answered alert leaves one window object in the application's
+    nothing answers the alert, so such a preset may block there.** Nothing was probed there, nor
+    in a process with no screen. Each answered alert leaves one window object in the application's
     list, never shown, and the method is replaced for the whole process while a write runs.
-  - **A load is made on the main thread or not at all, on macOS.** `PluginThreadError`, a new
-    error, is raised before the plugin is called. From another thread the alert cannot open: the
-    load raised, the parameters were then read stale, and the process died at its next render,
-    11 of 11.
+  - **A state is written on the process's main thread or not at all, on macOS.**
+    `PluginThreadError`, a new error, is raised by `load_state` and `measure` before the plugin
+    is called, and `load_patch` refuses such a call as a patch, chained from it. From another
+    thread the alert cannot open: the load raised, the parameters were then read stale, and the
+    process died at its next render, 11 of 11.
   - **A load Vital ignores is refused.** The host sets a marker on the plugin before each state
     write, `filter_1_on` at the end of its range the text does not hold, and reads it after: a
     write that left it there is `PluginStateError`. No model, `get`, `patch` or event shows the

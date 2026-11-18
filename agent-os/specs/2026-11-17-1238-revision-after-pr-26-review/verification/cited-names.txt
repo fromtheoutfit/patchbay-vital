@@ -1,0 +1,716 @@
+The revision after the review of PR 26: every test, function and class name, mutant and transcript the four standards it edited cite, searched for in the tree, run 2026-11-17 16:42 EST on branch
+bugfix/20-the-host-a-preset-vital-cannot-read-blocks-the-calling-process-for-ever, Vital at /Library/Audio/Plug-Ins/VST3/Vital.vst3
+the machine before the run: arm64, Apple M4 Pro, 14 cores, macOS 26.6.2 (25G83), Python 3.12.16, load 4.06 4.85 5.26, at 2026-11-17 16:42 EST
+the tree before the run (this transcript is written outside the tree and copied in afterwards):
+  HEAD 9bc336c22b719062b46d485c041a3566c2ee40cf
+  git status --porcelain=v1 --untracked-files=all, 27 lines:
+     M CHANGELOG.md
+     M README.md
+     M agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/shape.md
+     M agent-os/standards/index.yml
+     M agent-os/standards/vital/instrument.md
+     M agent-os/standards/vital/plugin-state.md
+     M agent-os/standards/vital/preset-file.md
+     M agent-os/standards/vital/preset-tests.md
+     M src/patchbay_vital/errors.py
+     M src/patchbay_vital/host.py
+     M src/patchbay_vital/instrument.py
+     M src/patchbay_vital/preset.py
+     M tests/integration/test_vital_instrument.py
+     M tests/unit/builders.py
+     M tests/unit/test_host.py
+     M tests/unit/test_instrument.py
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/plan.md
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/references.md
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/shape.md
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/standards.md
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/alarm-probe.txt
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/costs.txt
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/marker-count.txt
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/midpoint-probe.txt
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/mutation.txt
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/remedy-run.txt
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/rollback-count.txt
+  git hash-object of each of those paths (a deleted one marked so):
+    35f38799ae931678f2b5ac590dc46cff519062a3  CHANGELOG.md
+    60280e1fb8a9010699dc5620b4f4776589bb90e6  README.md
+    b48870126628514d18739c1cfde17e485389689b  agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/shape.md
+    1aede71497f7d42e6655e10406b648dbd8ad93ec  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/plan.md
+    943e9c7d3952eca1bf54ca103830d1cf5e4f5349  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/references.md
+    6c370887755c17eb7aaa45c5c10fa4f7ce8533b5  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/shape.md
+    bddbc3d3f156e6ec55bfb89afd36e33d198f8d2b  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/standards.md
+    40db52bd5e1adb9caf041a3d10b1edffb84113bc  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/alarm-probe.txt
+    d41d16a60992e5b0849220d033b2b0fbcae9f543  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/costs.txt
+    f8a686d950057f551ee4e1f41132c0ebb1175b40  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/marker-count.txt
+    dedf517325fa9bd0db630d4389d71e8968b37b54  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/midpoint-probe.txt
+    64c49a0000bc15eb228b1797733e2dd305b3938b  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/mutation.txt
+    aef4260f2124c02b3b289d7f744733a4af9e89c0  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/remedy-run.txt
+    a1331a5c6ca2e422b5197ca4422418a62837e933  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/rollback-count.txt
+    6deb2df7daa253f81387cf2b1226229c949ff9e7  agent-os/standards/index.yml
+    f00e55523c32fb916d361b2d9e83e1ff0a063629  agent-os/standards/vital/instrument.md
+    90aa89feb0ad59dcb3fba7691ed46fa8d306c3bc  agent-os/standards/vital/plugin-state.md
+    b47f8c0b8542e7874ad87c6d93c07b6ead8ea3ab  agent-os/standards/vital/preset-file.md
+    5fb098ddac07ad43984ab30dba5ec1810df6f00a  agent-os/standards/vital/preset-tests.md
+    aa38b9f6abc520bf5c661715e4bb9cf4f254578c  src/patchbay_vital/errors.py
+    401a4579efa367ce4c59607f0a492693e28c3d61  src/patchbay_vital/host.py
+    f619b76eed2641abe6f5109ba3c5f60cb304a36f  src/patchbay_vital/instrument.py
+    fbf329ba7c14b90f3f46c637dcef0a1e4971c3c3  src/patchbay_vital/preset.py
+    54580dbc94c89ba6d6662150379b0ca979f006e8  tests/integration/test_vital_instrument.py
+    9ee7cefdef279313bcb1b85e89d1907b1d76363c  tests/unit/builders.py
+    5f83c630eaa0584e3752e8895353e88073cf90aa  tests/unit/test_host.py
+    1283a8537347cdd46d1de25246dc58d3bd45d278  tests/unit/test_instrument.py
+
+$ env PYTHONDONTWRITEBYTECODE=1 uv run --locked python -B <scratchpad>/p26/cited_names.py agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/mutation.txt
+== agent-os/standards/vital/plugin-state.md
+test names cited: 74; not found: 0
+  found    test_a_library_without_the_two_functions_is_passed_over  tests/unit/test_host.py
+  found    test_a_load_from_a_second_thread_changes_nothing_and_is_refused_as_a_patch  tests/unit/test_instrument.py
+  found    test_a_load_from_a_second_thread_is_refused_before_the_plugin_is_called  tests/unit/test_host.py
+  found    test_a_load_from_another_thread_is_no_state_error  tests/unit/test_errors.py
+  found    test_a_load_holds_volume_s_unheld_float32_as_its_neighbour_and_chorus_feedback_as_given  tests/integration/test_vital_plugin.py
+  found    test_a_load_reuses_the_containers_read_when_the_plugin_loaded  tests/unit/test_host.py
+  found    test_a_load_the_plugin_ignores_is_refused_by_the_marker_it_left  tests/unit/test_host.py
+  found    test_a_marker_a_failed_write_left_is_set_back_to_the_value_it_had  tests/unit/test_host.py
+  found    test_a_marker_lookup_that_fails_is_sought_again_at_the_next_load  tests/unit/test_host.py
+  found    test_a_marker_that_cannot_be_set_back_is_noted_on_the_write_s_own_error  tests/unit/test_host.py
+  found    test_a_measurement_from_a_second_thread_is_refused_before_any_parameter_is_set  tests/unit/test_host.py
+  found    test_a_measurement_puts_each_parameter_back_and_loads_the_state_once  tests/unit/test_host.py
+  found    test_a_measurement_restores_the_state_however_it_ends  tests/unit/test_host.py
+  found    test_a_normalized_value_that_is_no_number_is_refused_as_the_package  tests/unit/test_host.py
+  found    test_a_note_lands_on_the_sample_core_s_rule_gives_it  tests/integration/test_vital_instrument.py
+  found    test_a_note_sounds_from_its_time_and_not_before  tests/integration/test_vital_plugin.py
+  found    test_a_parameter_that_changes_the_preset_s_keys_is_named  tests/unit/test_host.py
+  found    test_a_patch_vital_answers_with_its_alert_is_refused_and_the_plugin_put_back  tests/integration/test_vital_instrument.py
+  found    test_a_plugin_state_comes_back_byte_for_byte  tests/unit/test_format.py
+  found    test_a_plugin_whose_state_the_codec_cannot_read_is_refused_at_load  tests/unit/test_host.py
+  found    test_a_render_is_the_first_samples_asked_for_in_one_block  tests/unit/test_host.py
+  found    test_a_render_is_the_length_asked_for_and_finite  tests/integration/test_vital_plugin.py
+  found    test_a_render_length_or_rate_that_is_not_a_positive_whole_number_is_refused  tests/unit/test_host.py
+  found    test_a_render_of_no_notes_on_an_installed_preset_opens_with_the_preset_sounding  tests/integration/test_vital_instrument.py
+  found    test_a_render_of_no_notes_on_the_start_preset_is_its_small_transient_and_no_warning  tests/integration/test_vital_instrument.py
+  found    test_a_render_that_clips_carries_one_warning_and_the_event_carries_it  tests/integration/test_vital_instrument.py
+  found    test_a_restore_the_plugin_refuses_is_the_package_s_error_after_the_read_s  tests/unit/test_host.py
+  found    test_a_routing_only_in_the_preset_text_is_heard  tests/integration/test_vital_plugin.py
+  found    test_a_state_holding_no_settings_object_is_the_package_s_error  tests/unit/test_host.py
+  found    test_a_state_the_plugin_answers_with_its_alert_is_the_package_s_error_with_its_words  tests/unit/test_host.py
+  found    test_a_state_vital_ignores_is_refused_by_the_marker_and_the_plugin_left_as_it_was  tests/integration/test_vital_instrument.py
+  found    test_a_state_write_from_a_second_thread_is_refused_by_the_write_itself  tests/unit/test_host.py
+  found    test_a_text_past_the_decoder_s_limit_is_refused_by_the_validator_before_the_marker  tests/unit/test_host.py
+  found    test_a_text_that_is_not_one_object_is_refused  tests/unit/test_state.py
+  found    test_an_alert_and_a_pedalboard_refusal_are_one_error_carrying_both  tests/unit/test_host.py
+  found    test_an_alert_whose_words_could_not_be_read_is_the_package_s_error_chained_from_the_read  tests/unit/test_host.py
+  found    test_an_error_from_outside_the_package_in_a_write_leaves_as_itself_and_the_marker_is_set_back  tests/unit/test_host.py
+  found    test_display_texts_for_a_host_id_not_hosted_is_named  tests/unit/test_host.py
+  found    test_each_layer_is_refused_by_name  tests/unit/test_state.py
+  found    test_every_call_into_the_plugin_is_entered_in_the_process_s_own_environment  tests/unit/test_host.py
+  found    test_every_installed_preset_loads_as_state  tests/integration/test_vital_plugin.py
+  found    test_every_public_method_gives_the_environment_back  tests/unit/test_host.py
+  found    test_every_reach_the_plugin_refuses_is_the_package_s_error  tests/unit/test_host.py
+  found    test_off_macos_no_alert_is_watched  tests/unit/test_host.py
+  found    test_on_macos_a_library_that_is_not_found_leaves_no_watch  tests/unit/test_host.py
+  found    test_on_macos_pthread_main_np_answers_the_main_thread_and_no_other  tests/unit/test_host.py
+  found    test_one_load_after_a_set_leaves_the_off_grid_floats_off_and_a_second_holds_them  tests/integration/test_vital_instrument.py
+  found    test_the_callback_notes_an_alert_whose_words_cannot_be_read_and_returns_the_first_button  tests/unit/test_host.py
+  found    test_the_census_regenerates_the_three_committed_files  tests/integration/test_vital_plugin.py
+  found    test_the_codec_reads_and_writes_the_plugin_s_own_bytes  tests/integration/test_vital_plugin.py
+  found    test_the_environment_comes_back_however_the_block_changed_it  tests/unit/test_host.py
+  found    test_the_fixture_as_state_reads_back_but_its_sample_delayed  tests/integration/test_vital_plugin.py
+  found    test_the_layers_are_where_the_plugin_put_them  tests/unit/test_state.py
+  found    test_the_longest_render_is_given_and_one_sample_more_is_refused  tests/integration/test_vital_instrument.py
+  found    test_the_map_is_refused_on_another_machine_where_it_is_first_used  tests/unit/test_host.py
+  found    test_the_map_is_refused_on_another_vital_version_where_it_is_first_used  tests/unit/test_host.py
+  found    test_the_marker_is_never_planted_where_vital_holds_a_switch_s_value  tests/unit/test_host.py
+  found    test_the_marker_is_planted_at_the_end_of_its_range_the_text_does_not_hold  tests/unit/test_host.py
+  found    test_the_next_instrument_starts_clean  tests/integration/test_vital_instrument.py
+  found    test_the_process_keeps_its_floating_point_environment  tests/integration/test_vital_plugin.py
+  found    test_the_settings_helper_refuses_a_text_one_level_past_the_decoder_s_limit  tests/unit/test_host.py
+  found    test_the_two_functions_are_found_where_the_tests_run  tests/unit/test_host.py
+  found    test_the_watch_answers_a_real_alert_at_once_and_puts_the_method_back  tests/unit/test_host.py
+  found    test_the_watch_is_in_place_for_a_state_write_and_at_no_other_time  tests/unit/test_host.py
+  found    test_the_watch_lets_a_state_be_written_only_where_pthread_main_np_says_main  tests/unit/test_host.py
+  found    test_the_watch_refuses_to_be_entered_while_it_is_in_place_and_puts_the_method_back  tests/unit/test_host.py
+  found    test_two_loads_leave_only_what_vital_makes_of_an_older_preset_and_a_third_changes_none  tests/integration/test_vital_instrument.py
+  found    test_two_notes_of_one_pitch_that_overlap_each_sound_for_their_own_length  tests/integration/test_vital_instrument.py
+  found    test_what_pedalboard_raises_is_the_package_s_error  tests/unit/test_host.py
+  found    test_where_no_alert_is_answered_a_load_is_made_from_any_thread  tests/unit/test_host.py
+  found    test_where_the_map_is_not_the_plugin_s_a_load_is_made_unchecked  tests/unit/test_host.py
+  found    test_without_the_runtime_the_host_refuses_to_load  tests/unit/test_host.py
+  found    test_without_the_two_functions_the_host_refuses_to_load  tests/unit/test_host.py
+  found    test_wrap_reverses_unwrap  tests/unit/test_state.py
+function and class names cited: 60; defined in src or tests: 42; the rest classed below
+  found      Alert  src/patchbay_vital/host.py
+  not ours   AudioProcessorParameter.__getattr__  held by pedalboard
+  found      AudioProcessorParameter.__init__  src/patchbay_vital/errors.py, src/patchbay_vital/host.py, src/patchbay_vital/instrument.py, tests/unit/builders.py, tests/unit/test_census.py, tests/unit/test_host.py, tests/unit/test_instrument.py
+  a literal  CcnK  in src/patchbay_vital/state.py
+  found      CensusError  src/patchbay_vital/errors.py
+  a literal  Comp  in src/patchbay_vital/instrument.py, src/patchbay_vital/parameters.py, src/patchbay_vital/state.py
+  a literal  Cont  in src/patchbay_vital/host.py, src/patchbay_vital/state.py
+  found      DEFAULT_PATH  src/patchbay_vital/host.py
+  a literal  FBCh  in src/patchbay_vital/state.py
+  a literal  JUCEPrivateData  in src/patchbay_vital/state.py
+  not ours   KeyboardInterrupt  a Python built-in
+  found      MARKER  src/patchbay_vital/host.py
+  found      MapMismatchError  src/patchbay_vital/errors.py
+  not ours   MemoryError  a Python built-in
+  found      ParameterRangeError  src/patchbay_vital/errors.py
+  found      PluginLoadError  src/patchbay_vital/errors.py
+  found      PluginRenderError  src/patchbay_vital/errors.py
+  found      PluginStateError  src/patchbay_vital/errors.py
+  found      PluginThreadError  src/patchbay_vital/errors.py
+  not ours   RecursionError  a Python built-in
+  not ours   RuntimeError  a Python built-in
+  not ours   TypeError  a Python built-in
+  found      UnknownParameterError  src/patchbay_vital/errors.py
+  not ours   VST3  in pedalboard's _pedalboard.py
+  not ours   VST3Plugin  held by pedalboard
+  not ours   ValueError  a Python built-in
+  found      VitalHost.__init__  src/patchbay_vital/errors.py, src/patchbay_vital/host.py, src/patchbay_vital/instrument.py, tests/unit/builders.py, tests/unit/test_census.py, tests/unit/test_host.py, tests/unit/test_instrument.py
+  found      VitalHost._marker  src/patchbay_vital/host.py
+  found      VitalHost._on_a_writing_thread  src/patchbay_vital/host.py
+  found      VitalHost._write  src/patchbay_vital/host.py
+  found      VitalPreset.tuning  src/patchbay_vital/preset.py, tests/unit/test_patch.py, tests/unit/test_preset.py
+  a literal  VstW  in src/patchbay_vital/state.py
+  found      _AppKitWatch  src/patchbay_vital/host.py
+  found      _AppKitWatch.may_write_here  src/patchbay_vital/host.py, tests/unit/builders.py, tests/unit/test_instrument.py
+  found      _HostedParameter  src/patchbay_vital/host.py
+  found      _HostedPlugin  src/patchbay_vital/host.py
+  found      _NoWatch  src/patchbay_vital/host.py
+  found      _PEDALBOARD_ERRORS  src/patchbay_vital/host.py
+  NOWHERE    _VOLUME_FLOOR  the standard: ...xt`'s `volume_floor` set (issue #15's probe transcript prints them as `_VOLUME_FLOOR`, the integration module's constant until the revision after PR 14's s...
+  found      _alert_said  src/patchbay_vital/host.py
+  found      _alert_texts  src/patchbay_vital/host.py
+  found      _alert_watch  src/patchbay_vital/host.py
+  found      _appkit_watch  src/patchbay_vital/host.py
+  found      _c_library  src/patchbay_vital/host.py
+  found      _environment_kept  src/patchbay_vital/host.py
+  found      _floats  src/patchbay_vital/host.py, tests/unit/test_patch.py
+  not ours   _get_parameters  in pedalboard's _pedalboard.py
+  found      _moving_key  src/patchbay_vital/host.py
+  found      _name_of  src/patchbay_vital/host.py
+  found      _normalized  src/patchbay_vital/host.py
+  found      _parameter_map  src/patchbay_vital/host.py
+  found      _planted  src/patchbay_vital/host.py
+  found      _reached  src/patchbay_vital/host.py
+  found      _settings  src/patchbay_vital/host.py
+  found      _text_for  src/patchbay_vital/host.py
+  found      _unplanted  src/patchbay_vital/host.py
+  found      _whole  src/patchbay_vital/host.py, src/patchbay_vital/patch.py
+  found      _write  src/patchbay_vital/host.py
+  not ours   math.isfinite  held by math
+  found      preset.decode_end  src/patchbay_vital/preset.py
+other identifiers, not searched for: 37: chorus_cutoff, chorus_feedback, ctypes, custom_warps, display_texts, dumps, env_1_decay_power, fegetenv, fesetenv, filter_1_on, filter_1_style, finally, flanger_center, initial, lfos, load_state, machine, measure, modulations, mpe_enabled, osc_1_stack_style, preset_data, pthread_main_np, random_values, render, sample, samples, set, settings, synth_version, tuning, velocity_track, vital, vital_version, volume, volume_floor, wavetables
+mutants cited: 26; in no spec's mutation transcript: []
+  2026-11-15-1448-the-instrument, 2026-11-16-1641-a-load-that-cannot-block, 2026-11-17-1238-revision-after-pr-26-review: ME1, MM1, MM2, MM3, MM4
+  2026-11-15-1448-the-instrument, 2026-11-17-1238-revision-after-pr-26-review: MR1
+  2026-11-16-1334-revision-after-pr-23-review, 2026-11-16-1641-a-load-that-cannot-block, 2026-11-17-1238-revision-after-pr-26-review: MM5, MM6
+  2026-11-16-1641-a-load-that-cannot-block, 2026-11-17-1238-revision-after-pr-26-review: MT1, MT2, MW1, MW2, MW3, MW4
+  2026-11-17-1238-revision-after-pr-26-review: MR10, MR11, MR12, MR13, MR14, MR15, MR2, MR23, MR4, MR7, MR8, MR9
+transcripts cited: 24; in no spec's verification/: []
+
+== agent-os/standards/vital/instrument.md
+test names cited: 69; not found: 0
+  found    test_a_built_preset_comes_back_byte_for_byte_through_a_patch_and_through_json  tests/unit/test_patch.py
+  found    test_a_display_that_is_an_off_grid_float_s_own_is_restored_by_a_load_and_not_by_a_set  tests/unit/test_instrument.py
+  found    test_a_factory_preset_round_trips_through_a_patch  tests/integration/test_factory_round_trip.py
+  found    test_a_float_is_in_values_or_in_the_entry_and_never_in_both  tests/unit/test_patch.py
+  found    test_a_float_its_display_cannot_carry_rides_in_the_entry_though_it_is_in_range  tests/unit/test_patch.py
+  found    test_a_load_from_a_second_thread_changes_nothing_and_is_refused_as_a_patch  tests/unit/test_instrument.py
+  found    test_a_load_the_plugin_refuses_puts_the_model_s_text_back_and_is_refused_as_a_patch  tests/unit/test_instrument.py
+  found    test_a_load_vital_answers_with_its_alert_or_ignores_is_refused_and_the_model_s_text_put_back  tests/unit/test_instrument.py
+  found    test_a_note_lands_on_the_sample_core_s_rule_gives_it  tests/integration/test_vital_instrument.py
+  found    test_a_pack_preset_round_trips_through_a_patch  tests/integration/test_factory_round_trip.py
+  found    test_a_parameter_carried_in_both_places_is_refused_by_name  tests/unit/test_patch.py
+  found    test_a_patch_of_values_alone_loads_as_the_start_preset_with_those_values  tests/integration/test_vital_instrument.py, tests/unit/test_instrument.py
+  found    test_a_patch_refused_part_way_leaves_the_model_the_plugin_and_the_bus_as_they_were  tests/unit/test_instrument.py
+  found    test_a_patch_the_guard_refuses_is_refused_for_the_guard_s_reason_from_any_thread  tests/unit/test_instrument.py
+  found    test_a_patch_vital_answers_with_its_alert_is_refused_and_the_plugin_put_back  tests/integration/test_vital_instrument.py
+  found    test_a_plugin_that_refuses_the_model_s_own_text_too_leaves_the_instrument_out_of_step  tests/unit/test_instrument.py
+  found    test_a_plugin_version_that_is_not_digits_and_dots_refuses_every_preset_by_name  tests/unit/test_instrument.py
+  found    test_a_preset_holding_a_float_outside_its_bounds_is_shown_refused_on_set_and_carried  tests/unit/test_instrument.py
+  found    test_a_preset_the_plugin_was_seen_not_to_load_whole_is_refused_before_it_is_called  tests/unit/test_instrument.py
+  found    test_a_rename_failing_at_the_start_preset_puts_the_key_list_and_the_map_back  tests/unit/test_census.py
+  found    test_a_render_of_no_notes_on_an_installed_preset_opens_with_the_preset_sounding  tests/integration/test_vital_instrument.py
+  found    test_a_render_of_no_notes_on_the_start_preset_is_its_small_transient_and_no_warning  tests/integration/test_vital_instrument.py
+  found    test_a_render_of_no_samples_is_an_empty_result_and_the_plugin_is_not_called  tests/unit/test_instrument.py
+  found    test_a_render_past_a_limit_is_refused_naming_the_limit_and_its_value  tests/unit/test_instrument.py
+  found    test_a_render_that_clips_carries_one_warning_and_the_event_carries_it  tests/integration/test_vital_instrument.py
+  found    test_a_render_that_reaches_full_scale_carries_one_warning_saying_the_peak_and_where  tests/unit/test_instrument.py
+  found    test_a_render_whose_largest_sample_is_exactly_full_scale_carries_the_warning  tests/unit/test_instrument.py
+  found    test_a_rollback_vital_answers_the_same_way_leaves_the_instrument_out_of_step  tests/unit/test_instrument.py
+  found    test_a_set_holds_the_value_vital_holds_which_need_not_be_the_nearest  tests/integration/test_vital_instrument.py, tests/unit/test_instrument.py
+  found    test_a_set_it_refuses_is_the_package_s_error_with_core_s_fields_and_core_s_error_its_cause  tests/unit/test_instrument.py
+  found    test_a_set_of_the_value_already_shown_keeps_what_is_held  tests/unit/test_instrument.py
+  found    test_a_set_of_the_value_already_shown_on_a_float_a_set_lands_on_reaches_the_plugin  tests/unit/test_instrument.py
+  found    test_a_set_of_the_value_shown_mends_42_of_the_upgraded_floats_is_refused_on_3_and_kept_on_1  tests/integration/test_vital_instrument.py
+  found    test_a_set_of_the_value_shown_on_an_upgraded_float_no_set_lands_on_leaves_the_plugin_upgraded  tests/unit/test_instrument.py
+  found    test_a_set_of_the_value_shown_on_an_upgraded_float_sets_vital_to_the_model_s  tests/integration/test_vital_instrument.py
+  found    test_a_subscriber_that_raises_leaves_the_set_made_and_published  tests/unit/test_instrument.py
+  found    test_a_value_between_steps_is_taken_and_the_nearest_step_held  tests/unit/test_instrument.py
+  found    test_a_value_goes_to_the_float_a_set_of_it_holds_unless_it_names_a_float  tests/unit/test_patch.py
+  found    test_a_version_is_compared_by_its_numbers_less_trailing_zeros  tests/unit/test_instrument.py
+  found    test_after_a_set_at_each_bound_the_plugin_holds_the_model_s_float  tests/integration/test_vital_instrument.py
+  found    test_an_arbitrary_display_in_a_patch_holds_what_a_set_of_it_holds  tests/unit/test_instrument.py
+  found    test_an_entry_without_the_preset_entry_it_belongs_to_is_refused  tests/unit/test_patch.py
+  found    test_an_error_from_outside_the_package_mid_load_leaves_as_itself_and_the_step_is_lost  tests/unit/test_instrument.py
+  found    test_an_off_grid_float_set_back_after_another_value_holds_its_neighbour  tests/unit/test_instrument.py
+  found    test_an_off_grid_float_set_back_after_another_value_holds_its_neighbour_on_vital  tests/integration/test_vital_instrument.py
+  found    test_an_opaque_key_that_is_no_entry_of_a_vital_patch_is_refused_by_name  tests/unit/test_patch.py
+  found    test_contract_against_a_fake_plugin  tests/unit/test_instrument.py
+  found    test_contract_against_vital  tests/integration/test_vital_instrument.py
+  found    test_each_installed_preset_loads_through_a_patch_and_comes_back_byte_for_byte  tests/integration/test_vital_instrument.py
+  found    test_every_bound_of_every_parameter_comes_back_exactly  tests/unit/test_instrument.py
+  found    test_every_installed_preset_passes_the_guard_and_holds_neither_optional_section  tests/integration/test_factory_round_trip.py
+  found    test_every_refusal_is_the_package_s_error_and_core_s  tests/unit/test_instrument.py
+  found    test_it_starts_on_the_start_preset_loaded_into_the_plugin_twice  tests/unit/test_instrument.py
+  found    test_once_out_of_step_every_call_that_reaches_the_plugin_is_refused_before_anything_else  tests/unit/test_instrument.py
+  found    test_once_out_of_step_get_and_patch_answer_from_the_model  tests/unit/test_instrument.py
+  found    test_one_load_after_a_set_leaves_the_off_grid_floats_off_and_a_second_holds_them  tests/integration/test_vital_instrument.py
+  found    test_parameter_count_is_the_number_of_values_in_the_patch_given  tests/unit/test_instrument.py
+  found    test_the_census_regenerates_the_three_committed_files  tests/integration/test_vital_plugin.py
+  found    test_the_first_value_to_refuse_is_the_first_by_id  tests/unit/test_patch.py
+  found    test_the_guard_does_not_read_inside_a_section  tests/unit/test_instrument.py
+  found    test_the_guard_passes_what_vital_was_seen_to_load  tests/unit/test_instrument.py
+  found    test_the_longest_render_is_given_and_one_sample_more_is_refused  tests/integration/test_vital_instrument.py
+  found    test_the_marker_is_the_plugin_s_alone_on_a_load_that_succeeds_and_on_one_that_fails  tests/unit/test_instrument.py
+  found    test_the_next_instrument_starts_clean  tests/integration/test_vital_instrument.py
+  found    test_the_sections_are_judged_in_the_order_the_guard_gives  tests/unit/test_instrument.py
+  found    test_the_three_committed_files_are_what_the_census_writes_from_the_committed_map  tests/unit/test_census.py
+  found    test_two_loads_leave_only_what_vital_makes_of_an_older_preset_and_a_third_changes_none  tests/integration/test_vital_instrument.py
+  found    test_two_notes_of_one_pitch_that_overlap_each_sound_for_their_own_length  tests/integration/test_vital_instrument.py
+  found    test_what_opaque_holds_is_under_its_fixed_keys  tests/unit/test_patch.py
+function and class names cited: 21; defined in src or tests: 16; the rest classed below
+  not ours   KeyboardInterrupt  a Python built-in
+  found      MAX_SAMPLES  src/patchbay_vital/instrument.py
+  found      MappedParameter.to_preset  src/patchbay_vital/parameters.py
+  not ours   MemoryError  a Python built-in
+  not ours   Note  held by patchbay
+  not ours   Parameter  held by patchbay
+  found      Parameter.check  tests/integration/test_vital_instrument.py, tests/unit/test_host.py
+  found      ParameterChanged.new  src/patchbay_vital/format.py, src/patchbay_vital/instrument.py, src/patchbay_vital/preset.py
+  found      PatchLoaded.parameter_count  src/patchbay_vital/instrument.py
+  found      PatchRefusedError  src/patchbay_vital/errors.py
+  not ours   PatchRejectedError  held by patchbay
+  found      PluginStateError  src/patchbay_vital/errors.py
+  found      PluginThreadError  src/patchbay_vital/errors.py
+  found      RenderRefusedError  src/patchbay_vital/errors.py
+  found      VitalHost  src/patchbay_vital/host.py
+  found      VitalHost.load_state  src/patchbay_vital/host.py
+  found      VitalInstrument  src/patchbay_vital/instrument.py
+  found      VitalInstrument.__init__  src/patchbay_vital/errors.py, src/patchbay_vital/host.py, src/patchbay_vital/instrument.py, tests/unit/builders.py, tests/unit/test_census.py, tests/unit/test_host.py, tests/unit/test_instrument.py
+  found      VitalPreset  src/patchbay_vital/preset.py
+  found      instrument.preset  src/patchbay_vital/instrument.py
+  found      patch.check_loadable  src/patchbay_vital/patch.py
+other identifiers, not searched for: 27: beats_per_minute, bus, chorus_voices, custom_warps, flanger_center, flanger_dry_wet, get, get_after_set_returns_what_was_set, lfos, load_patch, modulation_10_amount, new, old, opaque, osc_1_stack_style, oversampling, random_values, render, sample, set, synth_version, to_preset, tuning, values, vital, volume, wavetables
+mutants cited: 46; in no spec's mutation transcript: []
+  2026-11-14-1509-to-preset-returns-a-held-preset, 2026-11-15-0811-revision-after-pr-19-review, 2026-11-15-1448-the-instrument: ML1, ML2, ML3
+  2026-11-14-1509-to-preset-returns-a-held-preset, 2026-11-15-0811-revision-after-pr-19-review, 2026-11-15-1448-the-instrument, 2026-11-16-1509-revision-after-pr-23-second-review: MN1
+  2026-11-14-1509-to-preset-returns-a-held-preset, 2026-11-15-0811-revision-after-pr-19-review, 2026-11-15-1448-the-instrument, 2026-11-16-1641-a-load-that-cannot-block, 2026-11-17-1238-revision-after-pr-26-review: MG1, MG2
+  2026-11-15-1448-the-instrument: MG4, MN2, MN3, MN4, MP1, MP2, MP3, MP5, MP6, MP7
+  2026-11-15-1448-the-instrument, 2026-11-16-1334-revision-after-pr-23-review: MC1, MS1, MS2, MV1
+  2026-11-15-1448-the-instrument, 2026-11-16-1334-revision-after-pr-23-review, 2026-11-16-1509-revision-after-pr-23-second-review: MK1
+  2026-11-15-1448-the-instrument, 2026-11-16-1641-a-load-that-cannot-block, 2026-11-17-1238-revision-after-pr-26-review: ME1, MG3, MM1, MM2, MM3, MM4
+  2026-11-15-1448-the-instrument, 2026-11-17-1238-revision-after-pr-26-review: MR1
+  2026-11-16-1334-revision-after-pr-23-review: MD2, MD3, MK2, MK3, MM10, MM7, MM8, MS3, MS4, MV2
+  2026-11-16-1334-revision-after-pr-23-review, 2026-11-16-1509-revision-after-pr-23-second-review: MD1, MM9
+  2026-11-16-1334-revision-after-pr-23-review, 2026-11-16-1641-a-load-that-cannot-block, 2026-11-17-1238-revision-after-pr-26-review: MM5, MM6
+  2026-11-16-1509-revision-after-pr-23-second-review: MD4
+  2026-11-17-1238-revision-after-pr-26-review: MR3, MR5, MR6
+transcripts cited: 16; in no spec's verification/: []
+
+== agent-os/standards/vital/preset-tests.md
+test names cited: 14; not found: 0
+  found    test_a_1_6_4_preset_reads_as_its_models  tests/unit/test_format.py
+  found    test_a_child_ended_itself_only_by_all_three_checks  tests/integration/test_vital_instrument.py, tests/unit/test_host.py
+  found    test_a_child_its_parent_never_kills_ends_itself_at_its_watchdog  tests/integration/test_vital_instrument.py, tests/unit/test_host.py
+  found    test_a_child_that_does_not_return_is_killed_at_its_limit_and_the_test_fails_by_name  tests/integration/test_vital_instrument.py
+  found    test_a_patch_vital_answers_with_its_alert_is_refused_and_the_plugin_put_back  tests/integration/test_vital_instrument.py
+  found    test_a_preset_comes_back_byte_for_byte  tests/unit/test_format.py
+  found    test_a_state_vital_ignores_is_refused_by_the_marker_and_the_plugin_left_as_it_was  tests/integration/test_vital_instrument.py
+  found    test_each_child_s_watchdog_is_past_its_parent_s_limit  tests/integration/test_vital_instrument.py
+  found    test_every_installed_preset_loads_as_state  tests/integration/test_vital_plugin.py
+  found    test_the_fixture_as_state_reads_back_but_its_sample_delayed  tests/integration/test_vital_plugin.py
+  found    test_the_installed_presets_are_the_manifest_s  tests/integration/test_factory_round_trip.py
+  found    test_the_real_alert_child_s_watchdog_is_past_its_parent_s_limit  tests/unit/test_host.py
+  found    test_the_watch_answers_a_real_alert_at_once_and_puts_the_method_back  tests/unit/test_host.py
+  found    test_what_the_data_file_of_upgraded_floats_holds  tests/integration/test_vital_instrument.py
+function and class names cited: 7; defined in src or tests: 6; the rest classed below
+  found      DEFAULT_PATH  src/patchbay_vital/host.py
+  found      _armed  tests/integration/test_vital_instrument.py, tests/unit/test_host.py
+  found      _child_failed  tests/integration/test_vital_instrument.py, tests/unit/test_host.py
+  found      _ended_itself  tests/integration/test_vital_instrument.py, tests/unit/test_host.py
+  found      _in_a_child  tests/integration/test_vital_instrument.py
+  found      _upgraded  tests/integration/test_vital_instrument.py
+  not ours   signal.alarm  held by signal
+other identifiers, not searched for: 1: vital
+mutants cited: 8; in no spec's mutation transcript: []
+  2026-11-16-1641-a-load-that-cannot-block, 2026-11-17-1238-revision-after-pr-26-review: MW4
+  2026-11-17-1238-revision-after-pr-26-review: MR16, MR17, MR18, MR19, MR20, MR21, MR22
+transcripts cited: 3; in no spec's verification/: []
+
+== agent-os/standards/vital/preset-file.md
+test names cited: 34; not found: 0
+  found    test_a_1_6_4_preset_reads_as_its_models  tests/unit/test_format.py
+  found    test_a_diff_is_empty_exactly_when_the_presets_write_the_same  tests/unit/test_format.py
+  found    test_a_diff_reports_the_tuning_after_the_sections  tests/unit/test_format.py
+  found    test_a_directory_that_cannot_be_synced_leaves_every_file_replaced  tests/unit/test_files.py
+  found    test_a_failed_write_leaves_the_file_as_it_was_and_no_temporary  tests/unit/test_files.py
+  found    test_a_file_that_cannot_be_read_is_still_replaced  tests/unit/test_files.py
+  found    test_a_file_that_did_not_exist_is_removed_again_when_a_later_rename_fails  tests/unit/test_files.py
+  found    test_a_file_without_a_tuning_is_written_without_one  tests/unit/test_format.py
+  found    test_a_file_without_the_newer_keys_comes_back_without_them  tests/unit/test_format.py
+  found    test_a_malformed_preset_is_refused_as_the_package  tests/unit/test_format.py
+  found    test_a_new_key_in_a_routing_entry_is_named  tests/unit/test_format.py
+  found    test_a_non_float_under_an_unknown_name_is_named  tests/unit/test_format.py
+  found    test_a_plugin_state_comes_back_byte_for_byte  tests/unit/test_format.py
+  found    test_a_rename_failing_after_an_earlier_one_puts_the_earlier_file_back  tests/unit/test_files.py
+  found    test_a_section_that_nests_too_deeply_is_refused_as_the_package  tests/unit/test_preset.py
+  found    test_a_section_under_settings_named_tuning_is_told_from_the_preset_s  tests/unit/test_format.py
+  found    test_a_set_reaches_a_slot_s_float_and_the_model_stays_a_preset_that_reads_back  tests/unit/test_instrument.py
+  found    test_a_trailing_newline_survives  tests/unit/test_format.py
+  found    test_a_tuning_that_is_not_an_object_is_malformed  tests/unit/test_format.py
+  found    test_a_value_left_on_an_empty_slot_survives  tests/unit/test_format.py
+  found    test_an_unknown_float_is_named  tests/unit/test_format.py
+  found    test_an_unknown_section_is_kept_and_written_back  tests/unit/test_format.py
+  found    test_an_unknown_top_level_key_is_named  tests/unit/test_format.py
+  found    test_every_directory_is_synced_once_after_every_rename  tests/unit/test_files.py
+  found    test_only_a_file_a_later_rename_could_force_back_is_read  tests/unit/test_files.py
+  found    test_several_files_are_staged_before_any_is_renamed  tests/unit/test_files.py
+  found    test_split_reverses_join_over_arbitrary_slot_contents  tests/unit/test_format.py
+  found    test_the_decoder_s_end_names_what_nests_too_deeply  tests/unit/test_preset.py
+  found    test_the_format_s_key_list_is_derived_from_the_committed_map  tests/unit/test_parameters.py
+  found    test_the_known_keys_are_a_plain_sorted_list  tests/unit/test_preset.py
+  found    test_the_settings_helper_refuses_a_text_one_level_past_the_decoder_s_limit  tests/unit/test_host.py
+  found    test_whitespace_inside_a_preset_is_read_and_not_written_back  tests/unit/test_format.py
+  found    test_writing_over_a_file_keeps_its_permissions  tests/unit/test_files.py, tests/unit/test_format.py
+  found    test_writing_through_a_symlink_keeps_the_link  tests/unit/test_files.py, tests/unit/test_format.py
+function and class names cited: 22; defined in src or tests: 19; the rest classed below
+  found      KNOWN_SETTINGS  src/patchbay_vital/preset.py
+  found      Modulation  src/patchbay_vital/preset.py
+  not ours   None  a Python built-in
+  found      OpaqueChange.where  src/patchbay_vital/format.py, src/patchbay_vital/host.py, src/patchbay_vital/instrument.py, src/patchbay_vital/preset.py, tests/unit/test_instrument.py
+  not ours   RecursionError  a Python built-in
+  found      SLOT_KEY  src/patchbay_vital/preset.py
+  found      UnknownSettingError  src/patchbay_vital/errors.py
+  not ours   ValueError  a Python built-in
+  found      VitalPreset  src/patchbay_vital/preset.py
+  found      VitalPreset.opaque  src/patchbay_vital/format.py, src/patchbay_vital/patch.py, src/patchbay_vital/preset.py, tests/unit/test_instrument.py, tests/unit/test_patch.py, tests/unit/test_preset.py
+  found      VitalPreset.tuning  src/patchbay_vital/preset.py, tests/unit/test_patch.py, tests/unit/test_preset.py
+  found      _json_section  src/patchbay_vital/preset.py
+  found      _parse  src/patchbay_vital/format.py
+  found      _read_settings  src/patchbay_vital/format.py
+  found      _settings  src/patchbay_vital/host.py
+  found      files.replace_file  src/patchbay_vital/files.py
+  found      format.writes_same  src/patchbay_vital/format.py
+  found      host._settings  src/patchbay_vital/host.py
+  found      patchbay.Patch.opaque  src/patchbay_vital/format.py, src/patchbay_vital/patch.py, src/patchbay_vital/preset.py, tests/unit/test_instrument.py, tests/unit/test_patch.py, tests/unit/test_preset.py
+  found      preset.decoded  src/patchbay_vital/preset.py
+  found      preset.slot_key  src/patchbay_vital/preset.py
+  found      preset.slot_place  src/patchbay_vital/preset.py
+other identifiers, not searched for: 33: author, chorus_damping, comments, custom_warps, decode_end, decoded, destination, diff, dump, dumps, join_modulations, lfos, license, line_mapping, macro1, macro4, modulations, null, preset_name, preset_style, ramp_down, ramp_up, random_values, replace_files, sample, settings, source, split_modulations, synth_version, trailing_newline, tuning, wavetables, writes_same
+mutants cited: 3; in no spec's mutation transcript: []
+  2026-11-14-1509-to-preset-returns-a-held-preset, 2026-11-15-0811-revision-after-pr-19-review, 2026-11-16-1334-revision-after-pr-23-review: MF2
+  2026-11-16-1334-revision-after-pr-23-review: MF1
+  2026-11-17-1238-revision-after-pr-26-review: MR15
+transcripts cited: 1; in no spec's verification/: []
+
+in all, cited and found nowhere: 1
+exit=0
+
+the tree after the run:
+  HEAD 9bc336c22b719062b46d485c041a3566c2ee40cf
+  git status --porcelain=v1 --untracked-files=all, 27 lines:
+     M CHANGELOG.md
+     M README.md
+     M agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/shape.md
+     M agent-os/standards/index.yml
+     M agent-os/standards/vital/instrument.md
+     M agent-os/standards/vital/plugin-state.md
+     M agent-os/standards/vital/preset-file.md
+     M agent-os/standards/vital/preset-tests.md
+     M src/patchbay_vital/errors.py
+     M src/patchbay_vital/host.py
+     M src/patchbay_vital/instrument.py
+     M src/patchbay_vital/preset.py
+     M tests/integration/test_vital_instrument.py
+     M tests/unit/builders.py
+     M tests/unit/test_host.py
+     M tests/unit/test_instrument.py
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/plan.md
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/references.md
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/shape.md
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/standards.md
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/alarm-probe.txt
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/costs.txt
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/marker-count.txt
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/midpoint-probe.txt
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/mutation.txt
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/remedy-run.txt
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/rollback-count.txt
+  git hash-object of each of those paths (a deleted one marked so):
+    35f38799ae931678f2b5ac590dc46cff519062a3  CHANGELOG.md
+    60280e1fb8a9010699dc5620b4f4776589bb90e6  README.md
+    b48870126628514d18739c1cfde17e485389689b  agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/shape.md
+    1aede71497f7d42e6655e10406b648dbd8ad93ec  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/plan.md
+    943e9c7d3952eca1bf54ca103830d1cf5e4f5349  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/references.md
+    6c370887755c17eb7aaa45c5c10fa4f7ce8533b5  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/shape.md
+    bddbc3d3f156e6ec55bfb89afd36e33d198f8d2b  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/standards.md
+    40db52bd5e1adb9caf041a3d10b1edffb84113bc  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/alarm-probe.txt
+    d41d16a60992e5b0849220d033b2b0fbcae9f543  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/costs.txt
+    f8a686d950057f551ee4e1f41132c0ebb1175b40  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/marker-count.txt
+    dedf517325fa9bd0db630d4389d71e8968b37b54  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/midpoint-probe.txt
+    64c49a0000bc15eb228b1797733e2dd305b3938b  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/mutation.txt
+    aef4260f2124c02b3b289d7f744733a4af9e89c0  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/remedy-run.txt
+    a1331a5c6ca2e422b5197ca4422418a62837e933  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/rollback-count.txt
+    6deb2df7daa253f81387cf2b1226229c949ff9e7  agent-os/standards/index.yml
+    f00e55523c32fb916d361b2d9e83e1ff0a063629  agent-os/standards/vital/instrument.md
+    90aa89feb0ad59dcb3fba7691ed46fa8d306c3bc  agent-os/standards/vital/plugin-state.md
+    b47f8c0b8542e7874ad87c6d93c07b6ead8ea3ab  agent-os/standards/vital/preset-file.md
+    5fb098ddac07ad43984ab30dba5ec1810df6f00a  agent-os/standards/vital/preset-tests.md
+    aa38b9f6abc520bf5c661715e4bb9cf4f254578c  src/patchbay_vital/errors.py
+    401a4579efa367ce4c59607f0a492693e28c3d61  src/patchbay_vital/host.py
+    f619b76eed2641abe6f5109ba3c5f60cb304a36f  src/patchbay_vital/instrument.py
+    fbf329ba7c14b90f3f46c637dcef0a1e4971c3c3  src/patchbay_vital/preset.py
+    54580dbc94c89ba6d6662150379b0ca979f006e8  tests/integration/test_vital_instrument.py
+    9ee7cefdef279313bcb1b85e89d1907b1d76363c  tests/unit/builders.py
+    5f83c630eaa0584e3752e8895353e88073cf90aa  tests/unit/test_host.py
+    1283a8537347cdd46d1de25246dc58d3bd45d278  tests/unit/test_instrument.py
+cmp: the tree after the run is the tree before it
+the machine after the run: arm64, Apple M4 Pro, 14 cores, macOS 26.6.2 (25G83), Python 3.12.16, load 4.21 4.86 5.26, at 2026-11-17 16:42 EST
+
+the scripts this run used, each embedded below with its blob:
+    76ba266b057c7b48ff830487bdd95fbd77652377  <scratchpad>/p26/cited_names.py
+    e4c1a40cc3893ab50df6717e5a18e2a755914efd  <scratchpad>/p26/tree.sh
+    0dde01b338e9dbc221abc7e0d9b87bcf21acf1cf  <scratchpad>/p26/machine.sh
+    ad21c0070c92f4ea20cc2c1f8f0c3960252e3a77  <scratchpad>/p26/transcript.sh
+
+--- <scratchpad>/p26/cited_names.py
+```
+"""Every test, function and class name the four standards cite, searched for in the tree.
+
+usage: cited_names.py <the revision's mutation.txt>   (from the repository root)
+
+The four are the standards the revision after the review of PR 26 edited: `vital/plugin-state.md`,
+`vital/instrument.md`, `vital/preset-tests.md` and `vital/preset-file.md`. Every span in
+backticks that is one identifier, or identifiers joined by dots, is a candidate:
+
+- a test name, `test_...`, is found where git lists a `tests/` file holding `def <name>(`;
+- a name of a function or a class, a span whose last part begins with an underscore or a capital
+  or is followed by `(` in the standard, or a dotted span, is found where git lists a `src/` or
+  `tests/` file holding `def <last part>(`, `class <last part>` or `<last part> =` at the start of
+  a line, after its indent; a dotted span's first part, where it names a module of the package,
+  must hold it;
+- any other identifier, a preset key or a constant's value among them, is listed as not
+  searched for, with the rule that set it aside.
+
+A name not found so is then classed, in this order: a Python built-in; a name a library holds,
+pedalboard, patchbay core or the standard library, found by importing it; a literal the package's
+source holds as text, a container's magic bytes among them; and otherwise found nowhere, listed
+with the standard's own words around it, so a name cited as gone can be read as such.
+
+Also every mutant name the four cite (`MW1`, `MR12` and the like), against every mutation
+transcript under `agent-os/specs/`, naming the specs that hold it, and every transcript name they
+cite (`name.txt`), against the `verification/` directories of the specs there.
+
+(The first run of this listing, kept as `cited-names-first.txt`, ended with exit 0 and reported a
+built-in, a library's name or a literal as not found alike, and searched two mutation transcripts
+alone; this one classes them, and searches them all.)
+"""
+
+import re
+import subprocess
+import sys
+from pathlib import Path
+
+STANDARDS = [
+    Path("agent-os/standards/vital") / f"{name}.md"
+    for name in ("plugin-state", "instrument", "preset-tests", "preset-file")
+]
+SPAN = re.compile(r"`([A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*)`(\()?")
+MUTANT = re.compile(r"\b(M[A-Z]{1,2}\d+)\b")
+RANGE = re.compile(r"\b(M[A-Z]{1,2})(\d+) to (?:M[A-Z]{1,2})?(\d+)\b")
+TRANSCRIPT = re.compile(r"`([a-z0-9-]+\.txt)`")
+MODULES = {path.stem for path in Path("src/patchbay_vital").glob("*.py")}
+FILE_SUFFIXES = (".py", ".md", ".txt", ".json", ".yml", ".toml", ".vital", ".sh")
+
+
+def listed(*prefixes: str) -> list[Path]:
+    out = subprocess.run(["git", "ls-files", "-co", "--exclude-standard", *prefixes], capture_output=True, text=True, check=True).stdout  # noqa: S603, S607
+    return [Path(line) for line in out.splitlines() if line.endswith(".py")]
+
+
+SOURCE = {path: path.read_text(encoding="utf-8") for path in listed("src", "tests")}
+
+
+def defined(name: str, where: list[Path] | None = None) -> list[str]:
+    pattern = re.compile(rf"^\s*(?:def {re.escape(name)}\(|async def {re.escape(name)}\(|class {re.escape(name)}\b|{re.escape(name)}\s*(?::[^=]*)?=)", re.MULTILINE)
+    paths = where if where is not None else list(SOURCE)
+    return sorted(str(path) for path in paths if path in SOURCE and pattern.search(SOURCE[path]))
+
+
+def library(span: str) -> str | None:
+    """The library that holds a name, by importing it; None where none does."""
+    import builtins
+    import importlib
+
+    parts = span.split(".")
+    if len(parts) == 1 and hasattr(builtins, parts[0]):
+        return "a Python built-in"
+    for module in ("pedalboard", "patchbay", "patchbay.contracts", "patchbay.errors", parts[0]):
+        try:
+            found = importlib.import_module(module)
+        except ImportError:
+            continue
+        rest = parts[1:] if module == parts[0] else parts
+        for part in rest:
+            found = getattr(found, part, None)
+            if found is None:
+                break
+        if found is not None and rest:
+            return f"held by {module}"
+    native = Path(importlib.import_module("pedalboard").__file__).parent
+    for path in native.glob("*.py"):
+        if re.search(rf"\b{re.escape(parts[-1])}\b", path.read_text(encoding="utf-8")):
+            return f"in pedalboard's {path.name}"
+    return None
+
+
+def literal(span: str) -> list[str]:
+    """The package's source files that hold a span as text, not as a definition."""
+    return sorted(str(p) for p, text in SOURCE.items() if str(p).startswith("src/") and span in text)
+
+
+def context(flat: str, span: str) -> str:
+    at = flat.index(f"`{span}`")
+    return flat[max(0, at - 70) : at + len(span) + 72]
+
+
+def main() -> int:
+    del sys.argv[1:]  # the mutation transcript given is among those found below
+    runs = {path: path.read_text(encoding="utf-8") for path in Path("agent-os/specs").glob("*/verification/mutation*.txt")}
+    transcripts = {path.name: path for path in Path("agent-os/specs").glob("*/verification/*.txt")}
+    missing_total = 0
+    for standard in STANDARDS:
+        text = standard.read_text(encoding="utf-8")
+        flat = " ".join(text.split())
+        tests, names, skipped = {}, {}, {}
+        for match in SPAN.finditer(flat):
+            span, called = match.group(1), match.group(2) is not None
+            last = span.split(".")[-1]
+            if span.endswith(FILE_SUFFIXES) or span in MODULES:
+                continue
+            if last.startswith("test_"):
+                tests[span] = [str(p) for p in SOURCE if str(p).startswith("tests/") and f"def {last}(" in SOURCE[p]]
+            elif "." in span or last.startswith("_") or last[:1].isupper() or called:
+                first = span.split(".")[0]
+                where = [Path(f"src/patchbay_vital/{first}.py")] if "." in span and first in MODULES else None
+                names[span] = defined(last, where)
+            else:
+                skipped[span] = "one lower-case identifier, not called: a key, a value or a word, not searched for"
+        print(f"== {standard}")
+        print(f"test names cited: {len(tests)}; not found: {sum(not found for found in tests.values())}")
+        for span, found in sorted(tests.items()):
+            print(f"  {'found  ' if found else 'NOT FOUND'}  {span}  {', '.join(found)}")
+        print(f"function and class names cited: {len(names)}; defined in src or tests: {sum(bool(found) for found in names.values())}; the rest classed below")
+        nowhere_names = 0
+        for span, found in sorted(names.items()):
+            if found:
+                print(f"  found      {span}  {', '.join(found)}")
+                continue
+            held = library(span)
+            text = literal(span)
+            if held:
+                print(f"  not ours   {span}  {held}")
+            elif text:
+                print(f"  a literal  {span}  in {', '.join(text)}")
+            else:
+                nowhere_names += 1
+                print(f"  NOWHERE    {span}  the standard: ...{context(flat, span)}...")
+        print(f"other identifiers, not searched for: {len(skipped)}: {', '.join(sorted(skipped))}")
+        cited = set(MUTANT.findall(flat))
+        for prefix, low, high in RANGE.findall(flat):
+            cited |= {f"{prefix}{n}" for n in range(int(low), int(high) + 1)}
+        holders: dict[str, list[str]] = {}
+        for m in sorted(cited):
+            holders[m] = sorted(path.parts[2] for path, text in runs.items() if re.search(rf"^\s*{m}\b", text, re.MULTILINE))
+        nowhere = [m for m, held in holders.items() if not held]
+        print(f"mutants cited: {len(cited)}; in no spec's mutation transcript: {nowhere}")
+        by_spec: dict[str, list[str]] = {}
+        for m, held in holders.items():
+            by_spec.setdefault(", ".join(held) or "none", []).append(m)
+        for spec, ms in sorted(by_spec.items()):
+            print(f"  {spec}: {', '.join(ms)}")
+        cited_transcripts = sorted(set(TRANSCRIPT.findall(flat)))
+        absent = [name for name in cited_transcripts if name not in transcripts]
+        print(f"transcripts cited: {len(cited_transcripts)}; in no spec's verification/: {absent}")
+        missing_total += sum(not f for f in tests.values()) + nowhere_names + len(nowhere) + len(absent)
+        print()
+    print(f"in all, cited and found nowhere: {missing_total}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
+```
+
+--- <scratchpad>/p26/tree.sh
+```
+#!/usr/bin/env bash
+# usage: tree.sh   (run from the repository root)
+# Prints HEAD, git's status of the work tree and the blob of every path that status names, so two
+# calls can be compared with cmp: the tree a run read, and the tree it left.
+set -euo pipefail
+echo "  HEAD $(git rev-parse HEAD)"
+git status --porcelain=v1 --untracked-files=all > "${TMPDIR:-/tmp}/tree.$$"
+echo "  git status --porcelain=v1 --untracked-files=all, $(wc -l < "${TMPDIR:-/tmp}/tree.$$" | tr -d ' ') lines:"
+sed 's/^/    /' "${TMPDIR:-/tmp}/tree.$$"
+echo "  git hash-object of each of those paths (a deleted one marked so):"
+cut -c4- "${TMPDIR:-/tmp}/tree.$$" | LC_ALL=C sort | while IFS= read -r path; do
+  if [ -e "$path" ]; then echo "    $(git hash-object "$path")  $path"; else echo "    (deleted)  $path"; fi
+done
+rm -f "${TMPDIR:-/tmp}/tree.$$"
+```
+
+--- <scratchpad>/p26/machine.sh
+```
+#!/usr/bin/env bash
+# usage: machine.sh   Prints one line: the machine, its system, the locked Python and the load.
+set -euo pipefail
+echo "$(uname -m), $(sysctl -n machdep.cpu.brand_string), $(sysctl -n hw.ncpu) cores, macOS $(sw_vers -productVersion) ($(sw_vers -buildVersion)), Python $(uv run --locked python -c 'import platform; print(platform.python_version())'), load $(sysctl -n vm.loadavg | tr -d '{}' | xargs), at $(date '+%Y-%m-%d %H:%M %Z')"
+```
+
+--- <scratchpad>/p26/transcript.sh
+```
+#!/usr/bin/env bash
+# usage: transcript.sh <out file> <title> <script to embed>... -- <command...>   (from the repository root)
+# Writes one transcript outside the tree: its date and branch, the machine and the tree before,
+# the command's whole output, the tree and the machine after, the two trees compared, and every
+# script it ran, embedded. The caller copies the file into the spec's verification/ afterwards.
+set -uo pipefail
+R=$(cd "$(dirname "$0")" && pwd)
+out=$1; title=$2; shift 2
+scripts=()
+while [ "$1" != "--" ]; do scripts+=("$1"); shift; done
+shift
+{
+  echo "$title, run $(date '+%Y-%m-%d %H:%M %Z') on branch"
+  echo "$(git branch --show-current), Vital at /Library/Audio/Plug-Ins/VST3/Vital.vst3"
+  echo "the machine before the run: $(bash "$R/machine.sh")"
+  echo "the tree before the run (this transcript is written outside the tree and copied in afterwards):"
+  bash "$R/tree.sh" | tee "$R/out/tree-before.txt"
+  echo
+  echo "\$ $*" | sed "s|$R|<scratchpad>/p26|g"
+  "$@" 2>&1
+  echo "exit=$?"
+  echo
+  echo "the tree after the run:"
+  bash "$R/tree.sh" | tee "$R/out/tree-after.txt"
+  if cmp -s "$R/out/tree-before.txt" "$R/out/tree-after.txt"; then echo "cmp: the tree after the run is the tree before it"; else echo "cmp: THE TREE CHANGED DURING THE RUN"; fi
+  echo "the machine after the run: $(bash "$R/machine.sh")"
+  echo
+  echo "the scripts this run used, each embedded below with its blob:"
+  for s in "${scripts[@]}" "$R/tree.sh" "$R/machine.sh" "$R/transcript.sh"; do echo "    $(git hash-object "$s")  <scratchpad>/p26/$(basename "$s")"; done
+  for s in "${scripts[@]}" "$R/tree.sh" "$R/machine.sh" "$R/transcript.sh"; do
+    echo; echo "--- <scratchpad>/p26/$(basename "$s")"; echo '```'; cat "$s"; echo '```'
+  done
+} > "$out"
+```

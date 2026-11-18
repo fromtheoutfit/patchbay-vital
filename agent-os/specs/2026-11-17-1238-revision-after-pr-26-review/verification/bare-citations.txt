@@ -1,0 +1,307 @@
+The revision after the review of PR 26: every mutant the four standards cite with no spec named, before the citation fix (the copies the rerun's tree holds, by blob) and now (its first try, bare-citations-first.txt, was given its eight arguments as one and stopped), run 2026-11-17 19:58 EST on branch
+bugfix/20-the-host-a-preset-vital-cannot-read-blocks-the-calling-process-for-ever, Vital at /Library/Audio/Plug-Ins/VST3/Vital.vst3
+the machine before the run: arm64, Apple M4 Pro, 14 cores, macOS 26.6.2 (25G83), Python 3.12.16, load 10.35 6.27 5.19, at 2026-11-17 19:58 EST
+the tree before the run (this transcript is written outside the tree and copied in afterwards):
+  HEAD 9bc336c22b719062b46d485c041a3566c2ee40cf
+  git status --porcelain=v1 --untracked-files=all, 32 lines:
+     M CHANGELOG.md
+     M README.md
+     M agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/shape.md
+     M agent-os/standards/index.yml
+     M agent-os/standards/vital/instrument.md
+     M agent-os/standards/vital/plugin-state.md
+     M agent-os/standards/vital/preset-file.md
+     M agent-os/standards/vital/preset-tests.md
+     M src/patchbay_vital/errors.py
+     M src/patchbay_vital/host.py
+     M src/patchbay_vital/instrument.py
+     M src/patchbay_vital/preset.py
+     M tests/integration/test_vital_instrument.py
+     M tests/unit/builders.py
+     M tests/unit/test_host.py
+     M tests/unit/test_instrument.py
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/plan.md
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/references.md
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/shape.md
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/standards.md
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/alarm-probe.txt
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/cited-names-first.txt
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/cited-names.txt
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/costs.txt
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/gate-run-first.txt
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/gate-run.txt
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/marker-count.txt
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/midpoint-probe.txt
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/mutation.txt
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/remedy-run.txt
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/rollback-count.txt
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/tree-since-the-rerun.txt
+  git hash-object of each of those paths (a deleted one marked so):
+    35f38799ae931678f2b5ac590dc46cff519062a3  CHANGELOG.md
+    60280e1fb8a9010699dc5620b4f4776589bb90e6  README.md
+    b48870126628514d18739c1cfde17e485389689b  agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/shape.md
+    1aede71497f7d42e6655e10406b648dbd8ad93ec  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/plan.md
+    943e9c7d3952eca1bf54ca103830d1cf5e4f5349  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/references.md
+    867d99f55e8b4cf293f45f19266cb806a50fe744  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/shape.md
+    bddbc3d3f156e6ec55bfb89afd36e33d198f8d2b  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/standards.md
+    40db52bd5e1adb9caf041a3d10b1edffb84113bc  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/alarm-probe.txt
+    dd8c22cebde357d62c1211563b786f6669517db3  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/cited-names-first.txt
+    58de0a27c9fe81927b85014f9073ee404e96571c  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/cited-names.txt
+    d41d16a60992e5b0849220d033b2b0fbcae9f543  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/costs.txt
+    73b68e4c4cd65d3fab41f5614891fd754a573515  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/gate-run-first.txt
+    e88ff9f1cf590f0b526aff3f35ff53faa4dd1bda  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/gate-run.txt
+    f8a686d950057f551ee4e1f41132c0ebb1175b40  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/marker-count.txt
+    dedf517325fa9bd0db630d4389d71e8968b37b54  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/midpoint-probe.txt
+    64c49a0000bc15eb228b1797733e2dd305b3938b  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/mutation.txt
+    aef4260f2124c02b3b289d7f744733a4af9e89c0  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/remedy-run.txt
+    a1331a5c6ca2e422b5197ca4422418a62837e933  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/rollback-count.txt
+    4015d938f0367f113c54d0d78bbbd0349aa85466  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/tree-since-the-rerun.txt
+    6deb2df7daa253f81387cf2b1226229c949ff9e7  agent-os/standards/index.yml
+    39e60dcc5581b9bf4c8379c93103ee39bef2bb01  agent-os/standards/vital/instrument.md
+    13ffe3c75720c5e45ed4e1f22bdead4252dfc0fa  agent-os/standards/vital/plugin-state.md
+    2bc68a4c311c3a6849121d134c1cbc66df1e7c03  agent-os/standards/vital/preset-file.md
+    137dabf37c2a9eaedddb085b5d82e716a0f7bc40  agent-os/standards/vital/preset-tests.md
+    aa38b9f6abc520bf5c661715e4bb9cf4f254578c  src/patchbay_vital/errors.py
+    401a4579efa367ce4c59607f0a492693e28c3d61  src/patchbay_vital/host.py
+    f619b76eed2641abe6f5109ba3c5f60cb304a36f  src/patchbay_vital/instrument.py
+    fbf329ba7c14b90f3f46c637dcef0a1e4971c3c3  src/patchbay_vital/preset.py
+    54580dbc94c89ba6d6662150379b0ca979f006e8  tests/integration/test_vital_instrument.py
+    9ee7cefdef279313bcb1b85e89d1907b1d76363c  tests/unit/builders.py
+    5f83c630eaa0584e3752e8895353e88073cf90aa  tests/unit/test_host.py
+    1283a8537347cdd46d1de25246dc58d3bd45d278  tests/unit/test_instrument.py
+
+$ python3 -I -B <scratchpad>/p26/bare_citations.py before-the-fix=/private/tmp/claude-501/-Users-michaelwitwicki-Code-Audio-patchbay-vital/d257554f-06fc-429b-8627-8359a389c51c/scratchpad/retro/cite/old/instrument.md before-the-fix=/private/tmp/claude-501/-Users-michaelwitwicki-Code-Audio-patchbay-vital/d257554f-06fc-429b-8627-8359a389c51c/scratchpad/retro/cite/old/preset-file.md before-the-fix=/private/tmp/claude-501/-Users-michaelwitwicki-Code-Audio-patchbay-vital/d257554f-06fc-429b-8627-8359a389c51c/scratchpad/retro/cite/old/plugin-state.md before-the-fix=/private/tmp/claude-501/-Users-michaelwitwicki-Code-Audio-patchbay-vital/d257554f-06fc-429b-8627-8359a389c51c/scratchpad/retro/cite/old/preset-tests.md now=agent-os/standards/vital/instrument.md now=agent-os/standards/vital/preset-file.md now=agent-os/standards/vital/plugin-state.md now=agent-os/standards/vital/preset-tests.md
+
+== before-the-fix: instrument.md, blob f00e55523c32fb916d361b2d9e83e1ff0a063629: 25 mutants or ranges cited bare
+  MS1          ...e_failing_at_the_start_preset_puts_the_key_list_and_the_map_back` and 
+  MS2          ...ling_at_the_start_preset_puts_the_key_list_and_the_map_back` and MS1, 
+  MC1          ...the_start_preset_puts_the_key_list_and_the_map_back` and MS1, MS2 and 
+  MR1          ...arest`, in both test modules, its expected value from primitives, and 
+  MP1          ...ge`, `test_a_parameter_carried_in_both_places_is_refused_by_name` and 
+  MP2          ...`test_a_parameter_carried_in_both_places_is_refused_by_name` and MP1, 
+  MP3          ...parameter_carried_in_both_places_is_refused_by_name` and MP1, MP2 and 
+  MP5          ...`test_an_entry_without_the_preset_entry_it_belongs_to_is_refused` and 
+  MP6          ...ey_were`, which unlike core's contract test carries its sections, and 
+  MR5          ...the_guard_refuses_is_refused_for_the_guard_s_reason_from_any_thread`, 
+  MR6          ...d_refuses_is_refused_for_the_guard_s_reason_from_any_thread`, MR5 and 
+  ML2          ...lds_them`, which a Vital needing one load or three fails by name, and 
+  MV1          ...`, which a Vital needing one load or three fails by name, and ML2 and 
+  ML1          ...gin_refuses_puts_the_model_s_text_back_and_is_refused_as_a_patch` and 
+  MS1 to MS4   ...en the second load first reaches the plugin and in the second write), 
+  MR3          ...oad first reaches the plugin and in the second write), MS1 to MS4 and 
+  ME1          ...`test_parameter_count_is_the_number_of_values_in_the_patch_given` and 
+  ML3          ...rameter_count_is_the_number_of_values_in_the_patch_given` and ME1 and 
+  MP7          ...he_package_s_error_with_core_s_fields_and_core_s_error_its_cause` and 
+  MN2          ...`test_the_longest_render_is_given_and_one_sample_more_is_refused` and 
+  MN3          ...e_longest_render_is_given_and_one_sample_more_is_refused` and MN2 and 
+  MN1          ...er_of_no_samples_is_an_empty_result_and_the_plugin_is_not_called` and 
+  MN4          ...a_render_that_clips_carries_one_warning_and_the_event_carries_it` and 
+  MM1 to MM4   ...ves_it`, at a sample where the two differ, `probes.txt` section 1 and 
+  MM5 to MM10  ...ith a named tolerance, `overlap-probe.txt`, `overlap-probe-2.txt` and 
+
+== before-the-fix: preset-file.md, blob b47f8c0b8542e7874ad87c6d93c07b6ead8ea3ab: 1 mutants or ranges cited bare
+  MR15         ..._settings_helper_refuses_a_text_one_level_past_the_decoder_s_limit`), 
+
+== before-the-fix: plugin-state.md, blob 90aa89feb0ad59dcb3fba7691ed46fa8d306c3bc: 0 mutants or ranges cited bare
+
+== before-the-fix: preset-tests.md, blob 5fb098ddac07ad43984ab30dba5ec1810df6f00a: 0 mutants or ranges cited bare
+
+== now: instrument.md, blob 39e60dcc5581b9bf4c8379c93103ee39bef2bb01: 0 mutants or ranges cited bare
+
+== now: preset-file.md, blob 2bc68a4c311c3a6849121d134c1cbc66df1e7c03: 0 mutants or ranges cited bare
+
+== now: plugin-state.md, blob 13ffe3c75720c5e45ed4e1f22bdead4252dfc0fa: 0 mutants or ranges cited bare
+
+== now: preset-tests.md, blob 137dabf37c2a9eaedddb085b5d82e716a0f7bc40: 0 mutants or ranges cited bare
+exit=0
+
+the tree after the run:
+  HEAD 9bc336c22b719062b46d485c041a3566c2ee40cf
+  git status --porcelain=v1 --untracked-files=all, 32 lines:
+     M CHANGELOG.md
+     M README.md
+     M agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/shape.md
+     M agent-os/standards/index.yml
+     M agent-os/standards/vital/instrument.md
+     M agent-os/standards/vital/plugin-state.md
+     M agent-os/standards/vital/preset-file.md
+     M agent-os/standards/vital/preset-tests.md
+     M src/patchbay_vital/errors.py
+     M src/patchbay_vital/host.py
+     M src/patchbay_vital/instrument.py
+     M src/patchbay_vital/preset.py
+     M tests/integration/test_vital_instrument.py
+     M tests/unit/builders.py
+     M tests/unit/test_host.py
+     M tests/unit/test_instrument.py
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/plan.md
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/references.md
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/shape.md
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/standards.md
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/alarm-probe.txt
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/cited-names-first.txt
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/cited-names.txt
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/costs.txt
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/gate-run-first.txt
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/gate-run.txt
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/marker-count.txt
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/midpoint-probe.txt
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/mutation.txt
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/remedy-run.txt
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/rollback-count.txt
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/tree-since-the-rerun.txt
+  git hash-object of each of those paths (a deleted one marked so):
+    35f38799ae931678f2b5ac590dc46cff519062a3  CHANGELOG.md
+    60280e1fb8a9010699dc5620b4f4776589bb90e6  README.md
+    b48870126628514d18739c1cfde17e485389689b  agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/shape.md
+    1aede71497f7d42e6655e10406b648dbd8ad93ec  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/plan.md
+    943e9c7d3952eca1bf54ca103830d1cf5e4f5349  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/references.md
+    867d99f55e8b4cf293f45f19266cb806a50fe744  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/shape.md
+    bddbc3d3f156e6ec55bfb89afd36e33d198f8d2b  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/standards.md
+    40db52bd5e1adb9caf041a3d10b1edffb84113bc  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/alarm-probe.txt
+    dd8c22cebde357d62c1211563b786f6669517db3  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/cited-names-first.txt
+    58de0a27c9fe81927b85014f9073ee404e96571c  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/cited-names.txt
+    d41d16a60992e5b0849220d033b2b0fbcae9f543  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/costs.txt
+    73b68e4c4cd65d3fab41f5614891fd754a573515  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/gate-run-first.txt
+    e88ff9f1cf590f0b526aff3f35ff53faa4dd1bda  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/gate-run.txt
+    f8a686d950057f551ee4e1f41132c0ebb1175b40  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/marker-count.txt
+    dedf517325fa9bd0db630d4389d71e8968b37b54  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/midpoint-probe.txt
+    64c49a0000bc15eb228b1797733e2dd305b3938b  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/mutation.txt
+    aef4260f2124c02b3b289d7f744733a4af9e89c0  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/remedy-run.txt
+    a1331a5c6ca2e422b5197ca4422418a62837e933  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/rollback-count.txt
+    4015d938f0367f113c54d0d78bbbd0349aa85466  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/tree-since-the-rerun.txt
+    6deb2df7daa253f81387cf2b1226229c949ff9e7  agent-os/standards/index.yml
+    39e60dcc5581b9bf4c8379c93103ee39bef2bb01  agent-os/standards/vital/instrument.md
+    13ffe3c75720c5e45ed4e1f22bdead4252dfc0fa  agent-os/standards/vital/plugin-state.md
+    2bc68a4c311c3a6849121d134c1cbc66df1e7c03  agent-os/standards/vital/preset-file.md
+    137dabf37c2a9eaedddb085b5d82e716a0f7bc40  agent-os/standards/vital/preset-tests.md
+    aa38b9f6abc520bf5c661715e4bb9cf4f254578c  src/patchbay_vital/errors.py
+    401a4579efa367ce4c59607f0a492693e28c3d61  src/patchbay_vital/host.py
+    f619b76eed2641abe6f5109ba3c5f60cb304a36f  src/patchbay_vital/instrument.py
+    fbf329ba7c14b90f3f46c637dcef0a1e4971c3c3  src/patchbay_vital/preset.py
+    54580dbc94c89ba6d6662150379b0ca979f006e8  tests/integration/test_vital_instrument.py
+    9ee7cefdef279313bcb1b85e89d1907b1d76363c  tests/unit/builders.py
+    5f83c630eaa0584e3752e8895353e88073cf90aa  tests/unit/test_host.py
+    1283a8537347cdd46d1de25246dc58d3bd45d278  tests/unit/test_instrument.py
+cmp: the tree after the run is the tree before it
+the machine after the run: arm64, Apple M4 Pro, 14 cores, macOS 26.6.2 (25G83), Python 3.12.16, load 10.35 6.27 5.19, at 2026-11-17 19:58 EST
+
+the scripts this run used, each embedded below with its blob:
+    509f54abe4f3d45040f88e00b408e3faaaacd977  <scratchpad>/p26/bare_citations.py
+    e4c1a40cc3893ab50df6717e5a18e2a755914efd  <scratchpad>/p26/tree.sh
+    0dde01b338e9dbc221abc7e0d9b87bcf21acf1cf  <scratchpad>/p26/machine.sh
+    252191f62a20a551a3c7394183754fc5679da6c4  <scratchpad>/p26/transcript.sh
+
+--- <scratchpad>/p26/bare_citations.py
+```
+"""Every mutant a standard cites with no spec named for it: the four standards before the fix and now.
+
+usage: bare_citations.py <label=path>...   (from the repository root)
+
+A mutant is a name like `ML2` or a range like `MS1 to MS4`, counted once either way. It is cited
+with its spec where the clause that holds it names one: after it, up to the next ";", a
+`mutation.txt`, a spec's or a revision's name, or "the revision after"; or before it, in the same
+sentence and after the last ";", a spec's or a revision's name, "the spec of issue #N's", "in its"
+or "and its", or a `mutation.txt` followed by "where". Any other is bare. Each path is printed with
+its blob, so the copy read is the one named.
+"""
+
+import re
+import subprocess
+import sys
+from pathlib import Path
+
+TOKEN = re.compile(r"\b(M[A-Z]{1,2}\d+)(?: to (?:M[A-Z]{1,2})?\d+)?\b")
+AFTER = re.compile(r"mutation\.txt|spec's|revision's|spec of issue|revision after|first revision|second review")
+BEFORE = re.compile(r"(?:spec's|revision's|spec of issue #\d+'s|issue #\d+'s|in its|and its|mutation\.txt`, where) [^.;]*$|(?:and its|in its|where) $")
+
+
+def bare(text: str) -> list[tuple[str, str]]:
+    flat = " ".join(text.split())
+    found = []
+    for match in TOKEN.finditer(flat):
+        start = max(flat.rfind(". ", 0, match.start()), flat.rfind("- **", 0, match.start()))
+        after = flat[match.end() : match.end() + 160].split(";")[0]
+        before = flat[max(start, match.start() - 200) : match.start()].split(";")[-1]
+        if not (AFTER.search(after) or BEFORE.search(before)):
+            found.append((match.group(0), before[-70:]))
+    return found
+
+
+def main() -> int:
+    for argument in sys.argv[1:]:
+        label, path = argument.split("=", 1)
+        blob = subprocess.run(["git", "hash-object", path], capture_output=True, text=True, check=True).stdout.strip()  # noqa: S603, S607
+        found = bare(Path(path).read_text(encoding="utf-8"))
+        print(f"\n== {label}: {Path(path).name}, blob {blob}: {len(found)} mutants or ranges cited bare")
+        for token, before in found:
+            print(f"  {token:<12} ...{before}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
+```
+
+--- <scratchpad>/p26/tree.sh
+```
+#!/usr/bin/env bash
+# usage: tree.sh   (run from the repository root)
+# Prints HEAD, git's status of the work tree and the blob of every path that status names, so two
+# calls can be compared with cmp: the tree a run read, and the tree it left.
+set -euo pipefail
+echo "  HEAD $(git rev-parse HEAD)"
+git status --porcelain=v1 --untracked-files=all > "${TMPDIR:-/tmp}/tree.$$"
+echo "  git status --porcelain=v1 --untracked-files=all, $(wc -l < "${TMPDIR:-/tmp}/tree.$$" | tr -d ' ') lines:"
+sed 's/^/    /' "${TMPDIR:-/tmp}/tree.$$"
+echo "  git hash-object of each of those paths (a deleted one marked so):"
+cut -c4- "${TMPDIR:-/tmp}/tree.$$" | LC_ALL=C sort | while IFS= read -r path; do
+  if [ -e "$path" ]; then echo "    $(git hash-object "$path")  $path"; else echo "    (deleted)  $path"; fi
+done
+rm -f "${TMPDIR:-/tmp}/tree.$$"
+```
+
+--- <scratchpad>/p26/machine.sh
+```
+#!/usr/bin/env bash
+# usage: machine.sh   Prints one line: the machine, its system, the locked Python and the load.
+set -euo pipefail
+echo "$(uname -m), $(sysctl -n machdep.cpu.brand_string), $(sysctl -n hw.ncpu) cores, macOS $(sw_vers -productVersion) ($(sw_vers -buildVersion)), Python $(uv run --locked python -c 'import platform; print(platform.python_version())'), load $(sysctl -n vm.loadavg | tr -d '{}' | xargs), at $(date '+%Y-%m-%d %H:%M %Z')"
+```
+
+--- <scratchpad>/p26/transcript.sh
+```
+#!/usr/bin/env bash
+# usage: transcript.sh <out file> <title> <script to embed>... -- <command...>   (from the repository root)
+# Writes one transcript outside the tree: its date and branch, the machine and the tree before,
+# the command's whole output, the tree and the machine after, the two trees compared, and every
+# script it ran, embedded. The caller copies the file into the spec's verification/ afterwards.
+set -uo pipefail
+R=$(cd "$(dirname "$0")" && pwd)
+out=$1; title=$2; shift 2
+scripts=()
+while [ "$1" != "--" ]; do scripts+=("$1"); shift; done
+shift
+{
+  echo "$title, run $(date '+%Y-%m-%d %H:%M %Z') on branch"
+  echo "$(git branch --show-current), Vital at /Library/Audio/Plug-Ins/VST3/Vital.vst3"
+  echo "the machine before the run: $(bash "$R/machine.sh")"
+  echo "the tree before the run (this transcript is written outside the tree and copied in afterwards):"
+  bash "$R/tree.sh" | tee "$R/out/tree-before.txt"
+  echo
+  echo "\$ $*" | sed "s|$R|<scratchpad>/p26|g"
+  "$@" 2>&1
+  echo "exit=$?"
+  echo
+  echo "the tree after the run:"
+  bash "$R/tree.sh" | tee "$R/out/tree-after.txt"
+  if cmp -s "$R/out/tree-before.txt" "$R/out/tree-after.txt"; then echo "cmp: the tree after the run is the tree before it"; else echo "cmp: THE TREE CHANGED DURING THE RUN"; fi
+  echo "the machine after the run: $(bash "$R/machine.sh")"
+  echo
+  echo "the scripts this run used, each embedded below with its blob:"
+  for s in ${scripts[@]+"${scripts[@]}"} "$R/tree.sh" "$R/machine.sh" "$R/transcript.sh"; do echo "    $(git hash-object "$s")  <scratchpad>/p26/$(basename "$s")"; done
+  for s in ${scripts[@]+"${scripts[@]}"} "$R/tree.sh" "$R/machine.sh" "$R/transcript.sh"; do
+    echo; echo "--- <scratchpad>/p26/$(basename "$s")"; echo '```'; cat "$s"; echo '```'
+  done
+} > "$out"
+```

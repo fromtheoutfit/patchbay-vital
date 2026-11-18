@@ -30,7 +30,7 @@ import threading
 import types
 from collections.abc import Callable, Iterator
 from pathlib import Path
-from typing import ClassVar
+from typing import ClassVar, NoReturn
 
 import numpy as np
 import pedalboard
@@ -50,8 +50,19 @@ from patchbay_vital.errors import (
     PluginThreadError,
     UnknownParameterError,
 )
-from patchbay_vital.host import DEFAULT_PATH, VitalHost, _c_library, _environment_kept, _planted
+from patchbay_vital.host import (
+    DEFAULT_PATH,
+    Alert,
+    VitalHost,
+    _AppKitWatch,
+    _c_library,
+    _environment_kept,
+    _floats,
+    _planted,
+    _settings,
+)
 from patchbay_vital.parameters import parameter_map
+from patchbay_vital.preset import DECODER
 from patchbay_vital.state import PluginState, unwrap, wrap
 
 _FE_UPWARD = {"x86_64": 0x800, "arm64": 0x400000, "aarch64": 0x400000}
@@ -271,8 +282,11 @@ class _FakePlugin:
     short = False  # whether a render gives three samples whatever was asked
     version_text = "1.6.4"
     watch: ClassVar[StandInWatch]
-    alerting = ""  # "after the floats" or "before the floats": where a state write raises an alert
+    alerting = ""  # "after the floats", "before the floats", "then refused" or "unreadable"
     ignoring = False  # whether a state write changes nothing and says nothing
+    raising: BaseException | None = None  # an error from outside the package a state write raises
+    refuse_after_write: frozenset[str] = frozenset()  # calls refused once a state write begins
+    unread: BaseException = UnicodeDecodeError("utf-8", b"\xff", 0, 1, "a stand-in's read")
 
     def __init__(self, path: str) -> None:
         self.path = path
@@ -325,16 +339,24 @@ class _FakePlugin:
     @preset_data.setter
     def preset_data(self, data: bytes) -> None:
         self.watched.append(self.watch.in_place)
+        self.refusing |= self.refuse_after_write
         self.touch("set_preset_data")
+        if self.raising is not None:
+            raise self.raising
         if self.ignoring:
             return
-        if self.alerting == "before the floats":
+        if self.alerting in {"before the floats", "then refused"}:
             self.watch.alert(*_ALERT)
+            if self.alerting == "then refused":
+                msg = "the plugin refuses the state after its alert"
+                raise RuntimeError(msg)
             return
         settings = json.loads(unwrap(data).text)["settings"]
         self.value = (settings[_HOST_ID] - 8.0) / 128.0
         if self.alerting == "after the floats":
             self.watch.alert(*_ALERT)
+        if self.alerting == "unreadable":
+            self.watch.unreadable_alert(self.unread)
 
     def process(
         self, _midi: list[tuple[bytes, float]], duration: float, sample_rate: int
@@ -885,36 +907,440 @@ def test_where_the_map_is_not_the_plugin_s_a_load_is_made_unchecked(fake: _Maker
 def test_without_the_runtime_the_host_refuses_to_load(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """On macOS where the runtime cannot be reached the host is refused, saying why."""
+    """On macOS where the runtime or pthread_main_np cannot be reached the host is refused."""
     monkeypatch.setattr(host, "_ALERTS", None)
     with pytest.raises(PluginLoadError) as caught:
         VitalHost(tmp_path)
     assert caught.value.path == str(tmp_path)
     assert "Objective-C runtime and AppKit" in caught.value.reason
+    assert "pthread_main_np" in caught.value.reason
 
 
 def test_off_macos_no_alert_is_watched(monkeypatch: pytest.MonkeyPatch) -> None:
-    """On any other platform the watch does nothing, and a load is any thread's, as before."""
+    """On any other platform the watch does nothing, and a write is any thread's, as before."""
     monkeypatch.setattr(platform, "system", lambda: "Linux")
     watch = host._alert_watch()  # noqa: SLF001 - the choice the module makes when it loads
     assert watch is not None
-    assert not watch.main_thread_only
+    elsewhere: list[bool] = []
+    thread = threading.Thread(target=lambda: elsewhere.append(watch.may_write_here()))
+    thread.start()
+    thread.join()
+    assert (watch.may_write_here(), elsewhere) == (True, [True])
     with watch.answered() as alerts:
         pass
     assert alerts == []
 
 
-@pytest.mark.parametrize("missing", ["objc", "AppKit"])
+@pytest.mark.parametrize("missing", ["objc", "AppKit", "c"])
 def test_on_macos_a_library_that_is_not_found_leaves_no_watch(
     monkeypatch: pytest.MonkeyPatch, missing: str
 ) -> None:
-    """Where the runtime or AppKit is not found by name there is no watch, and the host says so."""
+    """Where the runtime, AppKit or the C library is not found by name there is no watch.
+
+    The C library is where `pthread_main_np` is looked up; without the watch the host refuses
+    to load, saying why.
+    """
     monkeypatch.setattr(platform, "system", lambda: "Darwin")
     found = ctypes.util.find_library
     monkeypatch.setattr(
         ctypes.util, "find_library", lambda name: None if name == missing else found(name)
     )
     assert host._alert_watch() is None  # noqa: SLF001 - the choice the module makes when it loads
+
+
+# --- the revision after the review of PR 26 ------------------------------------------------------
+
+
+def _from_a_second_thread(call: Callable[[], object]) -> PluginThreadError:
+    """Run a call on a thread named "a second thread"; return the PluginThreadError it raised."""
+    caught: list[PluginThreadError] = []
+
+    def run() -> None:
+        try:
+            call()
+        except PluginThreadError as error:
+            caught.append(error)
+
+    thread = threading.Thread(target=run, name="a second thread")
+    thread.start()
+    thread.join()
+    (error,) = caught
+    return error
+
+
+def test_a_measurement_from_a_second_thread_is_refused_before_any_parameter_is_set(
+    fake: _Maker,
+) -> None:
+    """Finding 4: `measure` ends on a state write, so it is the main thread's, asked first.
+
+    Refused before the plugin is touched at all: no parameter is set, no state read or written.
+    """
+    hosted, plugin = fake()
+    made, value, entered = len(plugin.calls), plugin.value, _FakePlugin.watch.entered
+    error = _from_a_second_thread(lambda: hosted.measure([0.0, 1.0]))
+    assert error.thread == "a second thread"
+    assert (plugin.calls[made:], plugin.value, _FakePlugin.watch.entered) == ([], value, entered)
+
+
+def test_a_state_write_from_a_second_thread_is_refused_by_the_write_itself(fake: _Maker) -> None:
+    """Every caller asks first, and `_write` asks again: a caller that forgot still cannot write.
+
+    `_write` is the one place the plugin's state is set; `load_state` and `measure` call it.
+    """
+    hosted, plugin = fake()
+    data = hosted.preset_data()
+    made, entered = len(plugin.calls), _FakePlugin.watch.entered
+    error = _from_a_second_thread(lambda: hosted._write(data))  # noqa: SLF001 - the one writer
+    assert error.thread == "a second thread"
+    assert (plugin.calls[made:], _FakePlugin.watch.entered) == ([], entered)
+
+
+class _StandInMethod:
+    """`-[NSAlert runModal]`'s implementation, as `method_setImplementation` holds and swaps it."""
+
+    own = 0x5EED
+    """The method's own implementation, by a stand-in address."""
+
+    def __init__(self) -> None:
+        self.current: int | None = self.own
+        self.installed: list[int | None] = []
+
+    def install(self, implementation: int | None) -> int | None:
+        """Set the implementation; return the one it replaced, as the runtime does."""
+        self.installed.append(implementation)
+        before, self.current = self.current, implementation
+        return before
+
+
+def _watch_over(
+    method: _StandInMethod,
+    texts: Callable[[int | None], tuple[str, str]] = lambda _alert: ("its message", "its words"),
+    on_main: Callable[[], int] = lambda: 1,
+) -> _AppKitWatch:
+    """Return the real watch, its three calls into the runtime and the C library stood in."""
+    return _AppKitWatch(method.install, texts, on_main)
+
+
+def test_the_watch_refuses_to_be_entered_while_it_is_in_place_and_puts_the_method_back() -> None:
+    """Finding 5: a nested entry is refused by name, before anything is replaced.
+
+    So the callback is never saved as the method's own implementation: the method is the
+    callback while the watch is entered and its own afterwards, a block that raised included, and
+    the method was set twice for each entry, in and out.
+    """
+    method = _StandInMethod()
+    watch = _watch_over(method)
+    callback = ctypes.cast(watch._answer, ctypes.c_void_p).value  # noqa: SLF001 - its address
+    with watch.answered():
+        assert method.current == callback
+        with (
+            pytest.raises(PluginStateError, match="the alert watch is already in place"),
+            watch.answered(),
+        ):
+            pass
+        assert method.current == callback
+    assert (method.current, method.installed) == (method.own, [callback, method.own])
+    message = "a write that raises"
+    with pytest.raises(KeyError, match=message), watch.answered():
+        raise KeyError(message)
+    assert method.current == method.own
+
+
+def test_the_watch_lets_a_state_be_written_only_where_pthread_main_np_says_main() -> None:
+    """Finding 6: the process's main thread, as AppKit needs, not the one that started Python.
+
+    `pthread_main_np` gives 1 on the main thread and 0 on any other; the watch writes on 1 alone.
+    """
+    method = _StandInMethod()
+    assert _watch_over(method, on_main=lambda: 1).may_write_here()
+    assert not _watch_over(method, on_main=lambda: 0).may_write_here()
+
+
+def test_on_macos_pthread_main_np_answers_the_main_thread_and_no_other() -> None:
+    """The real check, through `ctypes`, with no plugin: true here, false on a second thread.
+
+    The case it is chosen for, an interpreter embedded and started off the main thread, is
+    reasoned from what `pthread_main_np` means and not measured.
+    """
+    if platform.system() != "Darwin":
+        pytest.skip(f"pthread_main_np is asked on macOS alone; this is {platform.system()}")
+    watch = host._alert_watch()  # noqa: SLF001 - the choice the module makes when it loads
+    assert watch is not None
+    elsewhere: list[bool] = []
+    thread = threading.Thread(target=lambda: elsewhere.append(watch.may_write_here()))
+    thread.start()
+    thread.join()
+    assert (watch.may_write_here(), elsewhere) == (True, [False])
+
+
+def test_the_callback_notes_an_alert_whose_words_cannot_be_read_and_returns_the_first_button(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Finding 7: nothing leaves the callback, which ctypes would print, returning 0.
+
+    Called through its own C function, as Vital calls it, with a stand-in alert whose text read
+    raises: the alert is noted with what the read raised, and the first button comes back. With
+    texts it can read it notes them; with no watch in place it notes nothing. Whatever ctypes
+    would print goes to `sys.unraisablehook`, which sees nothing.
+    """
+    leaked: list[object] = []
+    monkeypatch.setattr(sys, "unraisablehook", leaked.append)
+    unread = UnicodeDecodeError("utf-8", b"\xff", 0, 1, "a stand-in alert's text")
+
+    def texts(_alert: int | None) -> tuple[str, str]:
+        raise unread
+
+    method = _StandInMethod()
+    watch = _watch_over(method, texts=texts)
+    with watch.answered() as alerts:
+        button = watch._answer(None, None)  # noqa: SLF001 - the C function the runtime is given
+    assert (button, alerts, leaked) == (1000, [Alert("", "", unread)], [])
+    assert alerts[0].unread is unread
+    readable = _watch_over(method)
+    with readable.answered() as alerts:
+        assert readable._answer(None, None) == 1000  # noqa: SLF001, PLR2004 - its first button
+    assert alerts == [Alert("its message", "its words")]
+    assert (watch._answer(None, None), leaked) == (1000, [])  # noqa: SLF001 - no watch in place
+
+
+class _ThroughTheCallback:
+    """In the fake plugin's hands in place of the stand-in watch: an alert is the real callback's.
+
+    The fake raises an alert by calling `alert` or `unreadable_alert`; here either calls the
+    real watch's C function, as Vital's `-[NSAlert runModal]` would.
+    """
+
+    def __init__(self, watch: _AppKitWatch) -> None:
+        self._watch = watch
+        self.buttons: list[int] = []
+
+    @property
+    def in_place(self) -> bool:
+        return self._watch._alerts is not None  # noqa: SLF001 - whether it is entered
+
+    def alert(self, _message: str, _informative: str) -> None:
+        self.buttons.append(self._watch._answer(None, None))  # noqa: SLF001 - as Vital calls it
+
+    def unreadable_alert(self, _unread: BaseException) -> None:
+        self.buttons.append(self._watch._answer(None, None))  # noqa: SLF001 - as Vital calls it
+
+
+def test_an_alert_whose_words_could_not_be_read_is_the_package_s_error_chained_from_the_read(
+    fake: _Maker, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Finding 7: still PluginStateError, saying an alert was answered and its words were not read.
+
+    Chained from what the read raised. First on the stand-in watch, then through the real
+    watch's callback, whose text read raises. The floats were taken before the alert, so the
+    marker is not set back: the last call is its read.
+    """
+    hosted, plugin = fake()
+    plugin.alerting = "unreadable"
+    made = len(plugin.calls)
+    with pytest.raises(PluginStateError) as caught:
+        hosted.load_state(_text_holding(104.0))
+    assert caught.value.reason == (
+        "Vital answered the state with an alert, and its words could not be read "
+        f"(UnicodeDecodeError: {plugin.unread})"
+    )
+    assert caught.value.__cause__ is plugin.unread
+    assert plugin.calls[made:] == [*_MAP, *_LOAD]
+    unread = UnicodeDecodeError("utf-8", b"\xff", 0, 1, "a real callback's read")
+
+    def texts(_alert: int | None) -> tuple[str, str]:
+        raise unread
+
+    real = _watch_over(_StandInMethod(), texts=texts)
+    through = _ThroughTheCallback(real)
+    monkeypatch.setattr(host, "_ALERTS", real)
+    monkeypatch.setattr(_FakePlugin, "watch", through)
+    again, plugin = fake()
+    plugin.alerting = "unreadable"
+    with pytest.raises(PluginStateError, match="its words could not be read") as caught:
+        again.load_state(_text_holding(104.0))
+    assert (caught.value.__cause__, through.buttons) == (unread, [1000])
+
+
+def test_an_alert_and_a_pedalboard_refusal_are_one_error_carrying_both(fake: _Maker) -> None:
+    """Finding 14: the alert's words are kept when pedalboard raises in the same write.
+
+    One PluginStateError carrying the alert's two texts and pedalboard's, chained from
+    pedalboard's own error. The write took nothing, so the marker is set back.
+    """
+    hosted, plugin = fake()
+    hosted.set(ParameterId(_HOST_ID), 0.25)
+    plugin.alerting = "then refused"
+    made = len(plugin.calls)
+    with pytest.raises(PluginStateError) as caught:
+        hosted.load_state(_text_holding(104.0))
+    assert caught.value.reason == (
+        f"Vital answered the state with its alert, {_ALERT[0]!r}: {_ALERT[1]!r}; pedalboard "
+        "refused the state too: the plugin refuses the state after its alert"
+    )
+    assert type(caught.value.__cause__) is RuntimeError
+    assert plugin.calls[made:] == [*_LOAD, "set_raw_value"]
+    assert plugin.value == 0.25  # noqa: PLR2004 - the value it had
+
+
+@pytest.mark.parametrize(
+    "raised",
+    [KeyboardInterrupt("a stand-in's interrupt"), MemoryError("a stand-in's memory")],
+    ids=["KeyboardInterrupt", "MemoryError"],
+)
+def test_an_error_from_outside_the_package_in_a_write_leaves_as_itself_and_the_marker_is_set_back(
+    fake: _Maker, raised: BaseException
+) -> None:
+    """Finding 1: the marker is set back on every way out of a write, not on a state error alone.
+
+    Neither error is one `_reached` turns into the package's; each leaves as itself, the same
+    object, and the marker the write left as planted is set to the value it had.
+    """
+    hosted, plugin = fake()
+    hosted.set(ParameterId(_HOST_ID), 0.25)
+    plugin.raising = raised
+    made = len(plugin.calls)
+    with pytest.raises(type(raised)) as caught:
+        hosted.load_state(_text_holding(104.0))
+    assert caught.value is raised
+    assert plugin.calls[made:] == [*_LOAD, "set_raw_value"]
+    assert plugin.value == 0.25  # noqa: PLR2004 - the value it had
+
+
+def test_a_marker_that_cannot_be_set_back_is_noted_on_the_write_s_own_error(fake: _Maker) -> None:
+    """Finding 1: the write's error leaves, and the one raised setting the marker back is a note.
+
+    pedalboard refuses the write, and then the set that would put the marker back.
+    """
+    hosted, plugin = fake()
+    hosted.set(ParameterId(_HOST_ID), 0.25)
+    plugin.refusing = {"set_preset_data"}
+    plugin.refuse_after_write = frozenset({"set_raw_value"})
+    with pytest.raises(PluginStateError) as caught:
+        hosted.load_state(_text_holding(104.0))
+    assert caught.value.reason == "the plugin refuses set_preset_data"
+    assert caught.value.__notes__ == [
+        (
+            "and the marker could not be set back: PluginStateError: plugin state: the plugin "
+            "refuses set_raw_value"
+        )
+    ]
+
+
+def test_a_marker_lookup_that_fails_is_sought_again_at_the_next_load(fake: _Maker) -> None:
+    """Finding 2: a first lookup that meets another error leaves that load and settles nothing.
+
+    The plugin refuses its version, read to check the map: the load is refused before anything
+    is planted, and the next load looks the marker up again and is checked. MapMismatchError
+    alone settles it unchecked (`test_where_the_map_is_not_the_plugin_s_a_load_is_made_unchecked`).
+    """
+    hosted, plugin = fake()
+    text = hosted.state()
+    plugin.refusing = {"version"}
+    made = len(plugin.calls)
+    with pytest.raises(PluginStateError, match="the plugin refuses version"):
+        hosted.load_state(text)
+    assert plugin.calls[made:] == _MAP
+    plugin.refusing = set()
+    made = len(plugin.calls)
+    hosted.load_state(text)
+    assert plugin.calls[made:] == [*_MAP, *_LOAD]
+
+
+def _nested(depth: int) -> str:
+    """Return a preset's text with one key whose value is `depth` arrays, one in the other."""
+    return '{"a":' + "[" * depth + "]" * depth + "}"
+
+
+def _first_depth_the_decoder_refuses() -> int:
+    """Return the least depth of `_nested` the package's decoder cannot read, bisected here.
+
+    Measured, so the tests that use it hold on another Python, whose limit may differ; on Python
+    3.12.16 it is 9997 (`verification/costs.txt` of the revision after the review of PR 26).
+    """
+
+    def reads(depth: int) -> bool:
+        try:
+            DECODER.decode(_nested(depth))
+        except RecursionError:
+            return False
+        return True
+
+    low, high = 1, 1 << 20
+    assert reads(low)
+    assert not reads(high)
+    while high - low > 1:
+        middle = (low + high) // 2
+        if reads(middle):
+            low = middle
+        else:
+            high = middle
+    return high
+
+
+def test_the_settings_helper_refuses_a_text_one_level_past_the_decoder_s_limit() -> None:
+    """Finding 13: `_planted` and `_floats` read through the one guarded decoder.
+
+    At the decoder's own limit, bisected from it in this test, the text is the package's
+    PluginStateError, chained from the guard's ValueError, chained from the RecursionError, and
+    no RecursionError leaves.
+    """
+    text = _nested(_first_depth_the_decoder_refuses()).encode("utf-8")
+    record = parameter_map().find(host.MARKER)
+    for read in (_settings, lambda text: _planted(record, text), _floats):
+        with pytest.raises(PluginStateError, match="nests too deeply to read") as caught:
+            read(text)
+        guard = caught.value.__cause__
+        assert isinstance(guard, ValueError)
+        assert isinstance(guard.__cause__, RecursionError)
+
+
+def test_a_text_past_the_decoder_s_limit_is_refused_by_the_validator_before_the_marker(
+    fake: _Maker,
+) -> None:
+    """The order alone: the state's validator reads every text first and refuses this one.
+
+    So nothing is planted and the plugin is not called: not even its name and version, read
+    when the marker is first sought. This does not exercise `_settings`, which the validator's
+    lower limit leaves unreached here (`verification/costs.txt`: 9994 through the validator,
+    9997 direct, on Python 3.12.16).
+    """
+    hosted, plugin = fake()
+    made = len(plugin.calls)
+    with pytest.raises(PluginStateError) as caught:
+        hosted.load_state(_nested(_first_depth_the_decoder_refuses()).encode("utf-8"))
+    assert isinstance(caught.value.__cause__, PatchbayValidationError)
+    assert plugin.calls[made:] == []
+
+
+_SWITCH_BETWEEN_ITS_ENDS = (
+    # (the text's value, what Vital's parameter read held after the load, what its own text held),
+    # each on Vital 1.6.4 (verification/midpoint-probe.txt of the revision after PR 26's review)
+    (0.0, 0.0, 0.0),
+    (1.401298464324817e-45, 1.401298464324817e-45, 0.0),  # the least float32 above 0
+    (0.4999999701976776, 0.4999999701976776, 0.0),  # the float32 below the midpoint
+    (0.5, 0.5, 1.0),
+    (0.5000000596046448, 0.5000000596046448, 1.0),  # the float32 above it
+    (0.9999999403953552, 0.9999999403953552, 1.0),  # the float32 below 1
+    (1.0, 1.0, 1.0),
+)
+
+
+@pytest.mark.parametrize(("value", "read", "text"), _SWITCH_BETWEEN_ITS_ENDS)
+def test_the_marker_is_never_planted_where_vital_holds_a_switch_s_value(
+    value: float, read: float, text: float
+) -> None:
+    """Finding 10: on Vital, the parameter read holds a switch's value as given.
+
+    Only Vital's own text rounds it, below the midpoint to 0 and from it to 1: the boundaries
+    the probe located, each between two adjacent float32s, are written out above. The end
+    planted is the other end from the one Vital's text holds, so never what the parameter reads
+    after a load Vital took. Expected values from the scale's two ends and the transcript.
+    """
+    record = parameter_map().find(host.MARKER)
+    low, high = record.scale.minimum, record.scale.maximum
+    planted = _planted(record, json.dumps({"settings": {"filter_1_on": value}}).encode("utf-8"))
+    assert planted == record.scale.to_normalized(high if text == low else low)
+    assert record.scale.to_preset(planted) != read
 
 
 _REAL_ALERT = """
@@ -967,29 +1393,143 @@ raised = runtime.method_getImplementation(method)
 print((type(watch).__name__, button, alerts, during != own, after == own, raised == own))
 """
 _REAL_ALERT_SECONDS = 10
+"""What the real-alert child is given before this test kills it: answered, it ends at once."""
+
+_REAL_ALERT_WATCHDOG_SECONDS = 30
+"""What a child of this module gives itself, past its parent's limit: while the parent lives its
+kill comes first; where the parent is gone, killed with no chance to kill its child, the child
+ends itself here. Armed by `_armed` with faulthandler's watchdog, a C thread that needs no GIL,
+which ended a child blocked in AppKit's alert, and one in Vital's, 0.052 to 0.070 s past a 3 s
+limit (`verification/alarm-probe.txt` of the revision after the review of PR 26; `signal.alarm`
+did too, and was not used, as it is not on every platform)."""
+
+_STAND_IN_WATCHDOG_SECONDS = 1
+_STAND_IN_PARENT_SECONDS = 20
+"""For the stand-in no parent kills: its watchdog, short, and the parent's limit far past it, at
+which the parent kills it and the test fails, saying the watchdog did not end it."""
+
+_WATCHDOG_HEADER = "Timeout ("
+"""How faulthandler's watchdog begins what it writes to stderr: `Timeout (0:00:01)!`. CPython's,
+and not documented as a format; the stand-in watchdog test below is the one that fails if it
+changes."""
+
+
+def _armed(script: str, seconds: int) -> str:
+    """Return a child's script with faulthandler's watchdog armed as its first statements.
+
+    Before anything that could block is imported: the child exits with status 1 after `seconds`,
+    every thread's stack on its stderr, whatever its main thread is doing.
+    """
+    return f"import faulthandler\nfaulthandler.dump_traceback_later({seconds}, exit=True)\n{script}"
+
+
+def _ended_itself(returncode: int | None, stderr: str, *, killed: bool) -> bool:
+    """Whether a child ended itself at its watchdog's limit: three things together.
+
+    Exit status 1, a line of its stderr beginning `_WATCHDOG_HEADER`, and its parent not having
+    killed it. Status 1 alone is also what an uncaught error gives. The same function, by the same
+    name and with the same checks, is in tests/integration/test_vital_instrument.py, as no module
+    can import from the other suite: a change to one is made to both.
+    """
+    timed_out = any(line.startswith(_WATCHDOG_HEADER) for line in stderr.splitlines())
+    return not killed and returncode == 1 and timed_out
+
+
+def _child_failed(why: str, stderr: str | bytes | None) -> NoReturn:
+    """Fail the test saying why, with the child's stderr, where a watchdog's stack would be.
+
+    The same function is in tests/integration/test_vital_instrument.py: a change to one is made
+    to both.
+    """
+    said = stderr.decode("utf-8", "replace") if isinstance(stderr, bytes) else (stderr or "")
+    pytest.fail(f"{why}; the child's stderr:\n{said}")
 
 
 def test_the_watch_answers_a_real_alert_at_once_and_puts_the_method_back() -> None:
     """AppKit's own `-[NSAlert runModal]`, in a child this test can kill, on macOS.
 
-    The child makes an alert and runs it modally under the watch. Answered, it returns the first
-    button at once with the alert's two texts noted, and the method's implementation is the
-    watch's while it is entered and AppKit's own afterwards, a block that raised included. Not
-    answered, the alert would wait for a click: the child is then killed at the time limit and
-    the test fails by name. It loads no plugin.
+    The child arms its watchdog first, then makes an alert and runs it modally under the watch.
+    Answered, it returns the first button at once with the alert's two texts noted, and the
+    method's implementation is the watch's while it is entered and AppKit's own afterwards, a
+    block that raised included. Not answered, the alert would wait for a click: the child is
+    then killed at the time limit and the test fails by name, or, where this test was itself
+    killed, the child ends itself at its watchdog. It loads no plugin.
     """
     if platform.system() != "Darwin":
         pytest.skip(f"the watch that answers Vital's alert is macOS's; this is {platform.system()}")
     try:
         child = subprocess.run(  # noqa: S603 - this interpreter, and the script above
-            [sys.executable, "-c", _REAL_ALERT],
+            [sys.executable, "-c", _armed(_REAL_ALERT, _REAL_ALERT_WATCHDOG_SECONDS)],
             capture_output=True,
             text=True,
             timeout=_REAL_ALERT_SECONDS,
             check=False,
         )
-    except subprocess.TimeoutExpired:
-        pytest.fail(f"the alert was not answered: its child waited {_REAL_ALERT_SECONDS} s, killed")
-    assert child.returncode == 0, child.stderr
-    answered = ("_AppKitWatch", 1000, [("a test's alert", "its words")], True, True, True)
+    except subprocess.TimeoutExpired as expired:
+        why = f"the alert was not answered: its child waited {_REAL_ALERT_SECONDS} s, killed"
+        _child_failed(why, expired.stderr)
+    if _ended_itself(child.returncode, child.stderr, killed=False):
+        why = f"the child ended itself at its {_REAL_ALERT_WATCHDOG_SECONDS} s watchdog: it waited"
+        _child_failed(why, child.stderr)
+    if child.returncode != 0:
+        _child_failed(f"the child ended with status {child.returncode}", child.stderr)
+    alerts = [Alert("a test's alert", "its words")]
+    answered = ("_AppKitWatch", 1000, alerts, True, True, True)
     assert child.stdout.strip() == repr(answered)
+
+
+_SLEEPS = """
+import time
+
+time.sleep(600)
+"""
+
+
+def test_a_child_its_parent_never_kills_ends_itself_at_its_watchdog() -> None:
+    """The watchdog this module's child arms ends it where no parent does: three checks together.
+
+    A stand-in that sleeps for ten minutes, armed for `_STAND_IN_WATCHDOG_SECONDS`, its parent
+    killing it only at `_STAND_IN_PARENT_SECONDS`, which fails the test. It ended itself: status
+    1, a stderr line beginning `_WATCHDOG_HEADER`, and no kill. That header is CPython's and not
+    documented, so this is the test that fails if it changes. It needs no plugin and no macOS.
+    """
+    assert _STAND_IN_PARENT_SECONDS > _STAND_IN_WATCHDOG_SECONDS
+    try:
+        child = subprocess.run(  # noqa: S603 - this interpreter, and a script of this module
+            [sys.executable, "-c", _armed(_SLEEPS, _STAND_IN_WATCHDOG_SECONDS)],
+            capture_output=True,
+            text=True,
+            timeout=_STAND_IN_PARENT_SECONDS,
+            check=False,
+        )
+    except subprocess.TimeoutExpired as expired:
+        why = (
+            "the watchdog did not end the child: its parent killed it at "
+            f"{_STAND_IN_PARENT_SECONDS} s"
+        )
+        _child_failed(why, expired.stderr)
+    if not _ended_itself(child.returncode, child.stderr, killed=False):
+        _child_failed(f"the child did not end itself: status {child.returncode}", child.stderr)
+
+
+def test_the_real_alert_child_s_watchdog_is_past_its_parent_s_limit() -> None:
+    """While the parent lives its kill comes first, and the test fails by the parent's name."""
+    assert _REAL_ALERT_WATCHDOG_SECONDS > _REAL_ALERT_SECONDS
+
+
+@pytest.mark.parametrize(
+    ("returncode", "stderr", "killed", "ended_itself"),
+    [
+        (1, "Timeout (0:00:01)!\nThread 0x1 (most recent call first):\n", False, True),
+        (1, "Traceback (most recent call last):\nKeyError: 'a'\n", False, False),
+        (1, "Timeout (0:00:01)!\n", True, False),
+        (-9, "Timeout (0:00:01)!\n", False, False),
+        (0, "", False, False),
+    ],
+    ids=["the watchdog", "an uncaught error", "killed", "another status", "returned"],
+)
+def test_a_child_ended_itself_only_by_all_three_checks(
+    returncode: int, stderr: str, *, killed: bool, ended_itself: bool
+) -> None:
+    """Status 1, the watchdog's header, and no kill by the parent: each check is needed."""
+    assert _ended_itself(returncode, stderr, killed=killed) is ended_itself

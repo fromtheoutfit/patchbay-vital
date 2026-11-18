@@ -1,0 +1,506 @@
+The revision after the review of PR 26, finding 8: a child blocked in an alert nothing answers, ended by SIGALRM's default action or by faulthandler's watchdog, run 2026-11-17 12:57 EST on branch
+bugfix/20-the-host-a-preset-vital-cannot-read-blocks-the-calling-process-for-ever, Vital at /Library/Audio/Plug-Ins/VST3/Vital.vst3
+the machine before the run: arm64, Apple M4 Pro, 14 cores, macOS 26.6.2 (25G83), Python 3.12.16, load 2.00 4.89 4.32, at 2026-11-17 12:57 EST
+the tree before the run (this transcript is written outside the tree and copied in afterwards):
+  HEAD 9bc336c22b719062b46d485c041a3566c2ee40cf
+  git status --porcelain=v1 --untracked-files=all, 5 lines:
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/plan.md
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/references.md
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/shape.md
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/standards.md
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/midpoint-probe.txt
+  git hash-object of each of those paths (a deleted one marked so):
+    1aede71497f7d42e6655e10406b648dbd8ad93ec  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/plan.md
+    943e9c7d3952eca1bf54ca103830d1cf5e4f5349  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/references.md
+    89cef49d87ca8a9374b3c38c5dcb6483874f5514  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/shape.md
+    bddbc3d3f156e6ec55bfb89afd36e33d198f8d2b  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/standards.md
+    dedf517325fa9bd0db630d4389d71e8968b37b54  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/midpoint-probe.txt
+
+$ uv run --locked python <scratchpad>/p26/alarm_run.py 12:58:55 12:59:15 12:59:35 12:59:55
+-- appkit under alarm: started at 12:58:55.006 (scheduled 12:58:55.000)
+   | 12:58:55.146 armed signal.alarm(3); entering -[NSAlert runModal], unwatched
+   the child's window is on screen at 12:58:55.233: [[28874, 0, 8, 6]]
+   the child's window is gone at 12:58:58.158
+   the child ended at 12:58:58.162: the signal SIGALRM
+   its limit was armed at 12:58:55.146 and due at 12:58:58.146; it ended +0.016 s from then (to the parent's poll, every 50 ms)
+   its window was on screen from 12:58:55.233 to 12:58:58.158, 2.924 s
+   THE MECHANISM ENDED THE CHILD AT ITS LIMIT
+-- vital under alarm: started at 12:59:15.012 (scheduled 12:59:15.000)
+   | 12:59:17.428 Vital loaded, the watch replaced by _NoWatch
+   | 12:59:17.428 armed signal.alarm(3); entering load_state of {"settings":{}}, unwatched
+   the child's window is on screen at 12:59:17.682: [[29112, 0, 12, 10]]
+   the child's window is gone at 12:59:20.465
+   the child ended at 12:59:20.468: the signal SIGALRM
+   its limit was armed at 12:59:17.428 and due at 12:59:20.428; it ended +0.040 s from then (to the parent's poll, every 50 ms)
+   its window was on screen from 12:59:17.682 to 12:59:20.465, 2.783 s
+   THE MECHANISM ENDED THE CHILD AT ITS LIMIT
+-- appkit under faulthandler: started at 12:59:35.004 (scheduled 12:59:35.000)
+   | 12:59:35.096 armed faulthandler.dump_traceback_later(3, exit=True); entering -[NSAlert runModal], unwatched
+   the child's window is on screen at 12:59:35.167: [[29284, 0, 4, 4]]
+   | Timeout (0:00:03)!
+   | Thread 0x00000001f4a62180 (most recent call first):
+   |   File "/private/tmp/claude-501/-Users-michaelwitwicki-Code-Audio-patchbay-vital/d257554f-06fc-429b-8627-8359a389c51c/scratchpad/p26/alarm_child.py", line 59 in send
+   |   File "/private/tmp/claude-501/-Users-michaelwitwicki-Code-Audio-patchbay-vital/d257554f-06fc-429b-8627-8359a389c51c/scratchpad/p26/alarm_child.py", line 72 in <module>
+   the child's window is gone at 12:59:38.146
+   the child ended at 12:59:38.148: exit status 1, the watchdog's first line 'Timeout (0:00:03)!'
+   its limit was armed at 12:59:35.096 and due at 12:59:38.096; it ended +0.052 s from then (to the parent's poll, every 50 ms)
+   its window was on screen from 12:59:35.167 to 12:59:38.146, 2.979 s
+   THE MECHANISM ENDED THE CHILD AT ITS LIMIT
+-- vital under faulthandler: started at 12:59:55.004 (scheduled 12:59:55.000)
+   | 12:59:57.461 Vital loaded, the watch replaced by _NoWatch
+   | 12:59:57.461 armed faulthandler.dump_traceback_later(3, exit=True); entering load_state of {"settings":{}}, unwatched
+   the child's window is on screen at 12:59:57.663: [[29301, 0, 6, 4]]
+   | Timeout (0:00:03)!
+   | Thread 0x00000001f4a62180 (most recent call first):
+   |   File "/Users/michaelwitwicki/Code/Audio/patchbay-vital/.venv/lib/python3.12/site-packages/pedalboard/_pedalboard.py", line 737 in __setattr__
+   |   File "/Users/michaelwitwicki/Code/Audio/patchbay-vital/src/patchbay_vital/host.py", line 598 in _write
+   |   File "/Users/michaelwitwicki/Code/Audio/patchbay-vital/src/patchbay_vital/host.py", line 649 in load_state
+   |   File "/private/tmp/claude-501/-Users-michaelwitwicki-Code-Audio-patchbay-vital/d257554f-06fc-429b-8627-8359a389c51c/scratchpad/p26/alarm_child.py", line 83 in <module>
+   the child's window is gone at 13:00:00.470
+   the child ended at 13:00:00.531: exit status 1, the watchdog's first line 'Timeout (0:00:03)!'
+   its limit was armed at 12:59:57.461 and due at 13:00:00.461; it ended +0.070 s from then (to the parent's poll, every 50 ms)
+   its window was on screen from 12:59:57.663 to 13:00:00.470, 2.807 s
+   THE MECHANISM ENDED THE CHILD AT ITS LIMIT
+
+all four children ended themselves at their limit, their parent killing none: [('appkit', 'alarm', True), ('vital', 'alarm', True), ('appkit', 'faulthandler', True), ('vital', 'faulthandler', True)]
+exit=0
+
+the tree after the run:
+  HEAD 9bc336c22b719062b46d485c041a3566c2ee40cf
+  git status --porcelain=v1 --untracked-files=all, 5 lines:
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/plan.md
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/references.md
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/shape.md
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/standards.md
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/midpoint-probe.txt
+  git hash-object of each of those paths (a deleted one marked so):
+    1aede71497f7d42e6655e10406b648dbd8ad93ec  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/plan.md
+    943e9c7d3952eca1bf54ca103830d1cf5e4f5349  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/references.md
+    89cef49d87ca8a9374b3c38c5dcb6483874f5514  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/shape.md
+    bddbc3d3f156e6ec55bfb89afd36e33d198f8d2b  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/standards.md
+    dedf517325fa9bd0db630d4389d71e8968b37b54  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/midpoint-probe.txt
+cmp: the tree after the run is the tree before it
+the machine after the run: arm64, Apple M4 Pro, 14 cores, macOS 26.6.2 (25G83), Python 3.12.16, load 3.90 4.56 4.26, at 2026-11-17 13:00 EST
+
+the scripts this run used, each embedded below with its blob:
+    365db336f4b9c16828d53828f121895440055316  <scratchpad>/p26/alarm_run.py
+    9e7b1f5a25f727d7d0b100b0308074ea0c730d0e  <scratchpad>/p26/alarm_child.py
+    8a66f6deb176d6bf50ef1ff5c299f39f4f1b1822  <scratchpad>/p26/poller.py
+    e4c1a40cc3893ab50df6717e5a18e2a755914efd  <scratchpad>/p26/tree.sh
+    0dde01b338e9dbc221abc7e0d9b87bcf21acf1cf  <scratchpad>/p26/machine.sh
+    ad21c0070c92f4ea20cc2c1f8f0c3960252e3a77  <scratchpad>/p26/transcript.sh
+
+--- <scratchpad>/p26/alarm_run.py
+```
+"""The alarm probe (PR 26 review, finding 8): does a child blocked in a modal alert nothing answers
+end itself at its limit, by either of two mechanisms that need no Python to run?
+
+usage: alarm_run.py <HH:MM:SS> <HH:MM:SS> <HH:MM:SS> <HH:MM:SS>   (the four children's starts, today)
+
+Four children (alarm_child.py), each started at the clock time given so the owner can be told
+before each window opens: AppKit's own alert and Vital's, each under `signal.alarm` (SIGALRM's
+default action) and under `faulthandler.dump_traceback_later(exit=True)` (a C watchdog thread).
+Each arms a 3 s limit immediately before the call that blocks.
+
+The parent never kills a child to end it. It lists the windows on screen 20 times a second
+(poller.windows), notes when the child's window opened and when it was gone, and reports how the
+child ended: the signal it died of, or its exit status and the first line the watchdog wrote. If
+the child is alive, or its window up, GRACE seconds after its limit was due, the parent kills it,
+reports that the mechanism did not end it, and stops.
+"""
+
+import signal
+import subprocess
+import sys
+import threading
+import time
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE))
+
+import poller  # noqa: E402
+
+CHILD = str(HERE / "alarm_child.py")
+LIMIT = 3
+GRACE = 5.0
+"""Seconds past the limit's due time after which the parent kills the child and stops."""
+START_UP = 60.0
+CHILDREN = (
+    ("appkit", "alarm"),
+    ("vital", "alarm"),
+    ("appkit", "faulthandler"),
+    ("vital", "faulthandler"),
+)
+WATCHDOG_FIRST = "Timeout ("
+"""How faulthandler's dump begins: `Timeout (0:00:03)!`."""
+
+
+def clock(moment: float) -> str:
+    return time.strftime("%H:%M:%S", time.localtime(moment)) + f".{int(moment * 1000) % 1000:03d}"
+
+
+def at(hhmmss: str) -> float:
+    today = time.strftime("%Y-%m-%d")
+    return time.mktime(time.strptime(f"{today} {hhmmss}", "%Y-%m-%d %H:%M:%S"))
+
+
+def one(which: str, mechanism: str, start_at: float) -> bool:
+    """Run one child to its end; whether its mechanism ended it at its limit."""
+    while time.time() < start_at:
+        time.sleep(0.01)
+    started = time.time()
+    print(f"-- {which} under {mechanism}: started at {clock(started)} (scheduled {clock(start_at)})", flush=True)
+    child = subprocess.Popen(  # noqa: S603  the probe's own interpreter and script
+        [sys.executable, "-u", "-B", CHILD, which, mechanism, str(LIMIT)],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+    )
+    lines: list[tuple[float, str]] = []
+    armed: list[float] = []
+
+    def read() -> None:
+        assert child.stdout is not None
+        for raw in child.stdout:
+            line = raw.decode("utf-8", "replace").rstrip("\n")
+            lines.append((time.time(), line))
+            print(f"   | {line}", flush=True)
+            if " armed " in line and not armed:
+                armed.append(time.time())
+
+    reader = threading.Thread(target=read, daemon=True)
+    reader.start()
+    opened = gone = None
+    killed = False
+    while True:
+        now = time.time()
+        mine = [w for w in poller.windows() if w[0] == child.pid]
+        if mine and opened is None:
+            opened = now
+            print(f"   the child's window is on screen at {clock(now)}: {mine}", flush=True)
+        if not mine and opened is not None and gone is None:
+            gone = now
+            print(f"   the child's window is gone at {clock(now)}", flush=True)
+        if child.poll() is not None:
+            if opened is not None and gone is None:
+                gone = now
+                print(f"   the child's window is gone at {clock(now)}, with the child", flush=True)
+            break
+        due = (armed[0] + LIMIT) if armed else None
+        if (due is not None and now > due + GRACE) or (due is None and now > started + START_UP):
+            child.kill()
+            child.wait()
+            killed = True
+            print(f"   KILLED BY THE PARENT at {clock(time.time())}: the mechanism did not end the child", flush=True)
+            break
+        time.sleep(poller.PERIOD)
+    reader.join(timeout=5)
+    code = child.returncode
+    ended = time.time()
+    died_of = signal.Signals(-code).name if code < 0 else None
+    due = (armed[0] + LIMIT) if armed else None
+    watchdog = [line for _, line in lines if line.startswith(WATCHDOG_FIRST)]
+    how = f"the signal {died_of}" if died_of else f"exit status {code}"
+    if mechanism == "faulthandler":
+        how += f", the watchdog's first line {watchdog[0]!r}" if watchdog else ", no line from the watchdog"
+    print(f"   the child ended at {clock(ended)}: {how}")
+    if due is not None:
+        print(f"   its limit was armed at {clock(armed[0])} and due at {clock(due)}; it ended {ended - due:+.3f} s from then (to the parent's poll, every {poller.PERIOD * 1000:.0f} ms)")
+    if opened is not None:
+        print(f"   its window was on screen from {clock(opened)} to {clock(gone or ended)}, {((gone or ended) - opened):.3f} s")
+    else:
+        print("   no window of the child's was seen on screen")
+    if mechanism == "alarm":
+        ok = not killed and died_of == "SIGALRM"
+    else:
+        ok = not killed and code == 1 and bool(watchdog)
+    print(f"   {'THE MECHANISM ENDED THE CHILD AT ITS LIMIT' if ok else 'THE MECHANISM DID NOT END THE CHILD'}", flush=True)
+    return ok
+
+
+def main() -> int:
+    starts = [at(argument) for argument in sys.argv[1:5]]
+    results = []
+    for (which, mechanism), start_at in zip(CHILDREN, starts, strict=True):
+        ok = one(which, mechanism, start_at)
+        results.append((which, mechanism, ok))
+        if not ok:
+            print(f"STOP: {mechanism} did not end the {which} child")
+            return 1
+    print()
+    print(f"all four children ended themselves at their limit, their parent killing none: {results}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
+```
+
+--- <scratchpad>/p26/alarm_child.py
+```
+"""A child of the alarm probe: a modal alert nothing answers, and an alarm armed before it.
+
+usage: alarm_child.py appkit <mechanism> <seconds>
+       alarm_child.py vital <mechanism> <seconds>
+
+mechanism: alarm         `signal.alarm(seconds)`, SIGALRM's action left at the default, which is
+                         the kernel's to carry out: the process dies of SIGALRM;
+           faulthandler  `faulthandler.dump_traceback_later(seconds, exit=True)`, a C watchdog
+                         thread that takes no GIL: it writes "Timeout (...)!" and every thread's
+                         stack to stderr, then exits the process with status 1.
+
+appkit: AppKit's own alert, made as the unit test's real-alert child makes it, run modally with
+        no watch in place.
+vital:  Vital loaded by the host with the watch replaced by `_NoWatch`, then given a text Vital
+        answers with its alert, `{"settings":{}}`, which the issue #20 probes saw block.
+
+Immediately before the call that blocks, the child arms the mechanism; neither needs Python to
+run while it waits: pedalboard and AppKit's modal loop hold the main thread, and pedalboard the
+GIL. It prints when it armed it and entered the call; a line after the call means the mechanism
+did not end it.
+"""
+
+import signal
+import sys
+import time
+
+which, mechanism, seconds = sys.argv[1], sys.argv[2], int(sys.argv[3])
+assert signal.getsignal(signal.SIGALRM) == signal.SIG_DFL, signal.getsignal(signal.SIGALRM)
+
+
+def arm() -> str:
+    """Arm the mechanism; say what was armed."""
+    if mechanism == "alarm":
+        signal.alarm(seconds)
+        return f"signal.alarm({seconds})"
+    import faulthandler
+
+    faulthandler.dump_traceback_later(seconds, exit=True)
+    return f"faulthandler.dump_traceback_later({seconds}, exit=True)"
+
+
+def say(line: str) -> None:
+    print(f"{time.strftime('%H:%M:%S')}.{int(time.time() * 1000) % 1000:03d} {line}", flush=True)
+
+
+if which == "appkit":
+    import ctypes
+    import ctypes.util
+
+    runtime = ctypes.CDLL(ctypes.util.find_library("objc"))
+    pointer = ctypes.c_void_p
+    runtime.objc_getClass.restype = pointer
+    runtime.objc_getClass.argtypes = [ctypes.c_char_p]
+    runtime.sel_registerName.restype = pointer
+    runtime.sel_registerName.argtypes = [ctypes.c_char_p]
+
+    def send(receiver, selector, *arguments, result=pointer, kinds=()):  # noqa: ANN001, ANN202
+        call = ctypes.CFUNCTYPE(result, pointer, pointer, *kinds)(("objc_msgSend", runtime))
+        return call(receiver, runtime.sel_registerName(selector), *arguments)
+
+    def words(text: bytes):  # noqa: ANN202
+        string = runtime.objc_getClass(b"NSString")
+        return send(string, b"stringWithUTF8String:", text, kinds=(ctypes.c_char_p,))
+
+    ctypes.CDLL(ctypes.util.find_library("AppKit"))
+    send(runtime.objc_getClass(b"NSApplication"), b"sharedApplication")
+    alert = send(send(runtime.objc_getClass(b"NSAlert"), b"alloc"), b"init")
+    send(alert, b"setMessageText:", words(b"the alarm probe's alert"), kinds=(pointer,))
+    send(alert, b"setInformativeText:", words(b"it ends when the alarm does"), kinds=(pointer,))
+    armed = arm()
+    say(f"armed {armed}; entering -[NSAlert runModal], unwatched")
+    button = send(alert, b"runModal", result=ctypes.c_long)
+    say(f"RETURNED FROM THE ALERT with {button}: the mechanism did not end the child")
+elif which == "vital":
+    from patchbay_vital import host as host_module
+
+    host_module._ALERTS = host_module._NoWatch()  # noqa: SLF001  the probe's unwatched write
+    loaded = host_module.VitalHost()
+    say("Vital loaded, the watch replaced by _NoWatch")
+    armed = arm()
+    say(f"armed {armed}; entering load_state of {{\"settings\":{{}}}}, unwatched")
+    try:
+        loaded.load_state(b'{"settings":{}}')
+        say("RETURNED FROM THE LOAD: the mechanism did not end the child")
+    except Exception as error:  # noqa: BLE001  a probe reports whatever the load raised
+        say(f"THE LOAD RAISED {type(error).__name__}: {error}")
+```
+
+--- <scratchpad>/p26/poller.py
+```
+"""A second process that watches the screen while a probe run's children load.
+
+usage: poller.py <out file> [new]
+
+With `new`, only the windows of processes that owned none at the first poll are written: those
+of a run's children, and not those of what was on screen before it.
+
+20 times a second it writes one JSON line: the time, the front application's pid (lsappinfo),
+and every window on screen as [owner pid, layer, width, height] (CGWindowListCopyWindowInfo,
+which gives a window's owner and bounds without the Screen Recording permission). It ends when
+its input closes. It loads no plugin and opens no window.
+"""
+
+import ctypes
+import ctypes.util
+import json
+import subprocess
+import sys
+import threading
+import time
+
+_cg = ctypes.CDLL(ctypes.util.find_library("CoreGraphics"))
+_cf = ctypes.CDLL(ctypes.util.find_library("CoreFoundation"))
+
+_cg.CGWindowListCopyWindowInfo.restype = ctypes.c_void_p
+_cg.CGWindowListCopyWindowInfo.argtypes = [ctypes.c_uint32, ctypes.c_uint32]
+_cf.CFArrayGetCount.restype = ctypes.c_long
+_cf.CFArrayGetCount.argtypes = [ctypes.c_void_p]
+_cf.CFArrayGetValueAtIndex.restype = ctypes.c_void_p
+_cf.CFArrayGetValueAtIndex.argtypes = [ctypes.c_void_p, ctypes.c_long]
+_cf.CFDictionaryGetValue.restype = ctypes.c_void_p
+_cf.CFDictionaryGetValue.argtypes = [ctypes.c_void_p, ctypes.c_void_p]
+_cf.CFNumberGetValue.restype = ctypes.c_bool
+_cf.CFNumberGetValue.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_void_p]
+_cf.CFRelease.argtypes = [ctypes.c_void_p]
+
+
+class _Rect(ctypes.Structure):
+    _fields_ = (("x", ctypes.c_double), ("y", ctypes.c_double), ("w", ctypes.c_double), ("h", ctypes.c_double))
+
+
+_cg.CGRectMakeWithDictionaryRepresentation.restype = ctypes.c_bool
+_cg.CGRectMakeWithDictionaryRepresentation.argtypes = [ctypes.c_void_p, ctypes.POINTER(_Rect)]
+
+ON_SCREEN_ONLY = 1
+LONG_LONG = 11
+"""kCFNumberLongLongType."""
+PERIOD = 0.05
+
+
+def _key(name: str) -> int:
+    return int(ctypes.c_void_p.in_dll(_cg, name).value or 0)
+
+
+OWNER, LAYER, BOUNDS = _key("kCGWindowOwnerPID"), _key("kCGWindowLayer"), _key("kCGWindowBounds")
+
+
+def _number(dictionary: int, key: int) -> int:
+    value = ctypes.c_longlong(0)
+    number = _cf.CFDictionaryGetValue(dictionary, key)
+    if number:
+        _cf.CFNumberGetValue(number, LONG_LONG, ctypes.byref(value))
+    return int(value.value)
+
+
+def windows(everything: bool = False) -> list[list[int]]:
+    """Every window on screen, or every window there is: owner's pid, layer, width, height."""
+    found = []
+    array = _cg.CGWindowListCopyWindowInfo(0 if everything else ON_SCREEN_ONLY, 0)
+    if not array:
+        return found
+    for index in range(_cf.CFArrayGetCount(array)):
+        entry = _cf.CFArrayGetValueAtIndex(array, index)
+        rect = _Rect()
+        bounds = _cf.CFDictionaryGetValue(entry, BOUNDS)
+        if bounds:
+            _cg.CGRectMakeWithDictionaryRepresentation(bounds, ctypes.byref(rect))
+        found.append([_number(entry, OWNER), _number(entry, LAYER), round(rect.w), round(rect.h)])
+    _cf.CFRelease(array)
+    return found
+
+
+def front() -> int | None:
+    """The front application's pid, as lsappinfo gives it."""
+    asn = subprocess.run(["/usr/bin/lsappinfo", "front"], capture_output=True, text=True, check=False).stdout.strip()  # noqa: S603
+    if not asn:
+        return None
+    line = subprocess.run(["/usr/bin/lsappinfo", "info", "-only", "pid", asn], capture_output=True, text=True, check=False).stdout  # noqa: S603
+    digits = line.strip().rpartition("=")[2]
+    return int(digits) if digits.isdigit() else None
+
+
+def main(out: str, new_only: bool = False) -> None:
+    known: set[int] | None = None
+    done = threading.Event()
+    threading.Thread(target=lambda: (sys.stdin.read(), done.set()), daemon=True).start()
+    with open(out, "w", encoding="utf-8") as log:  # noqa: PTH123
+        print("ready", flush=True)
+        while not done.is_set():
+            started = time.time()
+            found = windows()
+            if new_only:
+                if known is None:
+                    known = {window[0] for window in found}
+                found = [window for window in found if window[0] not in known]
+            log.write(json.dumps({"t": started, "front": front(), "windows": found}) + "\n")
+            log.flush()
+            time.sleep(max(0.0, PERIOD - (time.time() - started)))
+
+
+if __name__ == "__main__":
+    main(sys.argv[1], new_only=sys.argv[2:] == ["new"])
+```
+
+--- <scratchpad>/p26/tree.sh
+```
+#!/usr/bin/env bash
+# usage: tree.sh   (run from the repository root)
+# Prints HEAD, git's status of the work tree and the blob of every path that status names, so two
+# calls can be compared with cmp: the tree a run read, and the tree it left.
+set -euo pipefail
+echo "  HEAD $(git rev-parse HEAD)"
+git status --porcelain=v1 --untracked-files=all > "${TMPDIR:-/tmp}/tree.$$"
+echo "  git status --porcelain=v1 --untracked-files=all, $(wc -l < "${TMPDIR:-/tmp}/tree.$$" | tr -d ' ') lines:"
+sed 's/^/    /' "${TMPDIR:-/tmp}/tree.$$"
+echo "  git hash-object of each of those paths (a deleted one marked so):"
+cut -c4- "${TMPDIR:-/tmp}/tree.$$" | LC_ALL=C sort | while IFS= read -r path; do
+  if [ -e "$path" ]; then echo "    $(git hash-object "$path")  $path"; else echo "    (deleted)  $path"; fi
+done
+rm -f "${TMPDIR:-/tmp}/tree.$$"
+```
+
+--- <scratchpad>/p26/machine.sh
+```
+#!/usr/bin/env bash
+# usage: machine.sh   Prints one line: the machine, its system, the locked Python and the load.
+set -euo pipefail
+echo "$(uname -m), $(sysctl -n machdep.cpu.brand_string), $(sysctl -n hw.ncpu) cores, macOS $(sw_vers -productVersion) ($(sw_vers -buildVersion)), Python $(uv run --locked python -c 'import platform; print(platform.python_version())'), load $(sysctl -n vm.loadavg | tr -d '{}' | xargs), at $(date '+%Y-%m-%d %H:%M %Z')"
+```
+
+--- <scratchpad>/p26/transcript.sh
+```
+#!/usr/bin/env bash
+# usage: transcript.sh <out file> <title> <script to embed>... -- <command...>   (from the repository root)
+# Writes one transcript outside the tree: its date and branch, the machine and the tree before,
+# the command's whole output, the tree and the machine after, the two trees compared, and every
+# script it ran, embedded. The caller copies the file into the spec's verification/ afterwards.
+set -uo pipefail
+R=$(cd "$(dirname "$0")" && pwd)
+out=$1; title=$2; shift 2
+scripts=()
+while [ "$1" != "--" ]; do scripts+=("$1"); shift; done
+shift
+{
+  echo "$title, run $(date '+%Y-%m-%d %H:%M %Z') on branch"
+  echo "$(git branch --show-current), Vital at /Library/Audio/Plug-Ins/VST3/Vital.vst3"
+  echo "the machine before the run: $(bash "$R/machine.sh")"
+  echo "the tree before the run (this transcript is written outside the tree and copied in afterwards):"
+  bash "$R/tree.sh" | tee "$R/out/tree-before.txt"
+  echo
+  echo "\$ $*" | sed "s|$R|<scratchpad>/p26|g"
+  "$@" 2>&1
+  echo "exit=$?"
+  echo
+  echo "the tree after the run:"
+  bash "$R/tree.sh" | tee "$R/out/tree-after.txt"
+  if cmp -s "$R/out/tree-before.txt" "$R/out/tree-after.txt"; then echo "cmp: the tree after the run is the tree before it"; else echo "cmp: THE TREE CHANGED DURING THE RUN"; fi
+  echo "the machine after the run: $(bash "$R/machine.sh")"
+  echo
+  echo "the scripts this run used, each embedded below with its blob:"
+  for s in "${scripts[@]}" "$R/tree.sh" "$R/machine.sh" "$R/transcript.sh"; do echo "    $(git hash-object "$s")  <scratchpad>/p26/$(basename "$s")"; done
+  for s in "${scripts[@]}" "$R/tree.sh" "$R/machine.sh" "$R/transcript.sh"; do
+    echo; echo "--- <scratchpad>/p26/$(basename "$s")"; echo '```'; cat "$s"; echo '```'
+  done
+} > "$out"
+```

@@ -9,10 +9,10 @@ a plugin that cannot be loaded is `PluginLoadError`, state bytes the codec canno
 a state or a value the plugin refuses, a state it answers with its alert and a state it ignores
 are `PluginStateError`, a render the plugin cannot give is `PluginRenderError`, a parameter map
 measured on another machine, or from another plugin, than this one is `MapMismatchError`, naming
-what differs, and a state loaded from a thread that is not the main one, where the host makes no
-load, is `PluginThreadError`; nothing pedalboard raises leaves the host. `CensusError` is the
-generator's, naming a parameter it cannot fit. A model built directly refuses as patchbay's
-`PatchbayValidationError`, as every model on `PatchbayModel` does.
+what differs, and a state written from a thread that is not the process's main one, where the
+host makes no write, is `PluginThreadError`; nothing pedalboard raises leaves the host.
+`CensusError` is the generator's, naming a parameter it cannot fit. A model built directly
+refuses as patchbay's `PatchbayValidationError`, as every model on `PatchbayModel` does.
 
 A failure core's protocol names derives from the root and from core's own error for it as well:
 `UnknownParameterError` is a `ParameterNotFoundError`, `ParameterRangeError` a
@@ -156,13 +156,15 @@ class MapMismatchError(VitalHostError):
 
 
 class PluginThreadError(VitalHostError):
-    """A state was to be loaded from a thread that is not the main one, and was not.
+    """A state was to be written from a thread that is not the process's main one, and was not.
 
     On macOS Vital answers a text it cannot read with an alert, which only the main thread can
     open. From another thread the load raises instead, the plugin's parameters are then read
     stale, and the process dies at its next render (the spec of issue #20's
-    `verification/probes-3-counts.txt`). So the host makes no load there: this is raised before
-    the plugin is called, and nothing is changed. `thread` is the name of the thread that asked.
+    `verification/probes-3-counts.txt`); a good text loaded there leaves them stale too. So the
+    host writes no state there, by `pthread_main_np`: `load_state` and `measure` raise this
+    before the plugin is called, and nothing is changed. `VitalInstrument.load_patch` refuses
+    such a call as a patch, chained from this. `thread` is the name of the thread that asked.
     """
 
     def __init__(self, thread: str) -> None:

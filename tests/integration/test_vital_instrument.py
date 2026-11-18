@@ -22,9 +22,9 @@ live only in the transcripts of the spec of issue #20
 (`agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/`), each run in a process of its own.
 """
 
+import importlib.util
 import json
 import math
-import os
 import platform
 import struct
 import subprocess
@@ -32,6 +32,7 @@ import sys
 import time
 from fractions import Fraction
 from pathlib import Path
+from typing import NoReturn
 
 import numpy as np
 import pytest
@@ -838,6 +839,50 @@ _CHILD_SECONDS = 20
 """What a child is given: Vital loads in about two seconds, and a load it takes in milliseconds.
 A child still running then is killed, so neither test below can wait on an alert past it."""
 
+_CHILD_WATCHDOG_SECONDS = 40
+"""What a child gives itself, past `_CHILD_SECONDS`: while its parent lives, the parent's kill
+comes first; where the parent is gone, killed with no chance to kill its child, the child ends
+itself here. Armed by `_armed` with faulthandler's watchdog, a C thread that needs no GIL, which
+ended a child blocked in Vital's alert, and one in AppKit's, 0.052 to 0.070 s past a 3 s limit
+(`verification/alarm-probe.txt` of the revision after the review of PR 26; `signal.alarm` did
+too, and was not used, as it is not on every platform)."""
+
+_WATCHDOG_HEADER = "Timeout ("
+"""How faulthandler's watchdog begins what it writes to stderr: `Timeout (0:00:03)!`. CPython's,
+and not documented as a format; the stand-in watchdog test below is the one that fails if it
+changes."""
+
+
+def _armed(script: str, seconds: int) -> str:
+    """Return a child's script with faulthandler's watchdog armed as its first statements.
+
+    Before anything that could block is imported: the child exits with status 1 after `seconds`,
+    every thread's stack on its stderr, whatever its main thread is doing.
+    """
+    return f"import faulthandler\nfaulthandler.dump_traceback_later({seconds}, exit=True)\n{script}"
+
+
+def _ended_itself(returncode: int | None, stderr: str, *, killed: bool) -> bool:
+    """Whether a child ended itself at its watchdog's limit: three things together.
+
+    Exit status 1, a line of its stderr beginning `_WATCHDOG_HEADER`, and its parent not having
+    killed it. Status 1 alone is also what an uncaught error gives. The same function, by the same
+    name and with the same checks, is in tests/unit/test_host.py, as no module can import from
+    the other suite: a change to one is made to both.
+    """
+    timed_out = any(line.startswith(_WATCHDOG_HEADER) for line in stderr.splitlines())
+    return not killed and returncode == 1 and timed_out
+
+
+def _child_failed(why: str, stderr: str | bytes | None) -> NoReturn:
+    """Fail the test saying why, with the child's stderr, where a watchdog's stack would be.
+
+    The same function is in tests/unit/test_host.py: a change to one is made to both.
+    """
+    said = stderr.decode("utf-8", "replace") if isinstance(stderr, bytes) else (stderr or "")
+    pytest.fail(f"{why}; the child's stderr:\n{said}")
+
+
 _ALERTING = """
 import json
 import sys
@@ -904,33 +949,58 @@ print(json.dumps(outcome))
 def _in_a_child(script: str, *arguments: str) -> dict[str, object]:
     """Run a script in a child of this interpreter; return what it printed, or fail by name.
 
-    A child that has not ended in `_CHILD_SECONDS` is killed, by `subprocess.run`, and the test
-    fails saying so: a load that waited on Vital's alert is what that would be.
+    The child arms its watchdog first (`_armed`). One that has not ended in `_CHILD_SECONDS` is
+    killed, by `subprocess.run`, and the test fails saying so: a load that waited on Vital's
+    alert is what that would be. One that ended itself at its watchdog fails the test saying
+    that; any other ending but status 0 fails it too, each with the child's stderr.
     """
     try:
         child = subprocess.run(  # noqa: S603 - this interpreter, and a script of this module
-            [sys.executable, "-c", script, *arguments],
+            [sys.executable, "-c", _armed(script, _CHILD_WATCHDOG_SECONDS), *arguments],
             capture_output=True,
             text=True,
             timeout=_CHILD_SECONDS,
             check=False,
         )
-    except subprocess.TimeoutExpired:
-        pytest.fail(f"the child did not return in {_CHILD_SECONDS} s and was killed: a load waited")
-    assert child.returncode == 0, child.stderr
+    except subprocess.TimeoutExpired as expired:
+        why = f"the child did not return in {_CHILD_SECONDS} s and was killed: a load waited"
+        _child_failed(why, expired.stderr)
+    if _ended_itself(child.returncode, child.stderr, killed=False):
+        why = f"the child ended itself at its {_CHILD_WATCHDOG_SECONDS} s watchdog: a load waited"
+        _child_failed(why, child.stderr)
+    if child.returncode != 0:
+        _child_failed(f"the child ended with status {child.returncode}", child.stderr)
     printed: dict[str, object] = json.loads(child.stdout.splitlines()[-1])
     return printed
 
 
 _NEVER_RETURNS = """
-import os
+import fcntl
 import sys
 import time
 
-with open(sys.argv[1], "w", encoding="utf-8") as noted:
-    noted.write(str(os.getpid()))
-time.sleep(600)
+with open(sys.argv[1], "r+", encoding="utf-8") as held:
+    fcntl.flock(held, fcntl.LOCK_EX)
+    held.write("started")
+    held.flush()
+    time.sleep(600)
 """
+"""A stand-in that blocks: it takes an exclusive lock on the file it is given, says so in it, and
+sleeps for ten minutes. The lock is the kernel's, so it is let go only when the process is gone."""
+
+_STAND_IN_SECONDS = 3
+"""The limit the stand-in is killed at: past any interpreter's start, far short of its sleep."""
+
+_STAND_IN_WATCHDOG_SECONDS = 2
+_STAND_IN_PARENT_SECONDS = 30
+"""For the stand-in no parent kills: its watchdog, and the parent's limit far past it, at which
+the parent kills it and the test fails, saying the watchdog did not end it."""
+
+
+def _no_lock_here() -> None:
+    """Skip, by name, where the standard library has no `fcntl`, which the stand-in locks with."""
+    if importlib.util.find_spec("fcntl") is None:
+        pytest.skip(f"the stand-in locks with fcntl, which {platform.system()} does not have")
 
 
 def test_a_child_that_does_not_return_is_killed_at_its_limit_and_the_test_fails_by_name(
@@ -939,17 +1009,86 @@ def test_a_child_that_does_not_return_is_killed_at_its_limit_and_the_test_fails_
     """A stand-in that blocks, in place of a load waiting on Vital's alert: nothing hangs.
 
     The two tests below reach Vital only through `_in_a_child`. Here its child sleeps for ten
-    minutes and the limit is a second: the child is killed at the limit, the test that ran it
-    fails saying so, and the process is gone. It needs no Vital, so it runs everywhere.
+    minutes and the limit is `_STAND_IN_SECONDS`: the child is killed at the limit, the test that
+    ran it fails saying so, and the process is gone. That is held by the child's own lock, never
+    by its pid, which another process may have by then: the file says the child started, and the
+    lock is free. A child that never started, and one still holding its lock, each fail the test
+    by a name of their own. It needs no Vital, so it runs wherever there is `fcntl`.
     """
-    noted = tmp_path / "pid"
-    monkeypatch.setattr(sys.modules[__name__], "_CHILD_SECONDS", 1)
+    _no_lock_here()
+    import fcntl  # noqa: PLC0415 - POSIX alone; skipped above where it is not
+
+    noted = tmp_path / "lock"
+    noted.write_text("", encoding="utf-8")
+    monkeypatch.setattr(sys.modules[__name__], "_CHILD_SECONDS", _STAND_IN_SECONDS)
     began = time.perf_counter()
-    with pytest.raises(pytest.fail.Exception, match="did not return in 1 s and was killed"):
+    with pytest.raises(pytest.fail.Exception, match=f"did not return in {_STAND_IN_SECONDS} s"):
         _in_a_child(_NEVER_RETURNS, str(noted))
-    assert time.perf_counter() - began < 10  # noqa: PLR2004 - far short of the child's ten minutes
-    with pytest.raises(ProcessLookupError):
-        os.kill(int(noted.read_text(encoding="utf-8")), 0)
+    assert time.perf_counter() - began < 10 * _STAND_IN_SECONDS
+    with noted.open("r+", encoding="utf-8") as held:
+        if held.read() != "started":
+            pytest.fail(f"the child never started within its {_STAND_IN_SECONDS} s limit")
+        try:
+            fcntl.flock(held, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            pytest.fail("the child did not end: it still holds its lock")
+
+
+_SLEEPS = """
+import time
+
+time.sleep(600)
+"""
+
+
+def test_a_child_its_parent_never_kills_ends_itself_at_its_watchdog() -> None:
+    """The watchdog every child arms ends it where no parent does: the three checks together.
+
+    A stand-in that sleeps for ten minutes, armed for `_STAND_IN_WATCHDOG_SECONDS`, its parent
+    killing it only at `_STAND_IN_PARENT_SECONDS`, which fails the test. It ended itself: status
+    1, a stderr line beginning `_WATCHDOG_HEADER`, and no kill. That header is CPython's and not
+    documented, so this is the test that fails if it changes. It needs no Vital and no POSIX.
+    """
+    assert _STAND_IN_PARENT_SECONDS > _STAND_IN_WATCHDOG_SECONDS
+    try:
+        child = subprocess.run(  # noqa: S603 - this interpreter, and a script of this module
+            [sys.executable, "-c", _armed(_SLEEPS, _STAND_IN_WATCHDOG_SECONDS)],
+            capture_output=True,
+            text=True,
+            timeout=_STAND_IN_PARENT_SECONDS,
+            check=False,
+        )
+    except subprocess.TimeoutExpired as expired:
+        why = (
+            "the watchdog did not end the child: its parent killed it at "
+            f"{_STAND_IN_PARENT_SECONDS} s"
+        )
+        _child_failed(why, expired.stderr)
+    if not _ended_itself(child.returncode, child.stderr, killed=False):
+        _child_failed(f"the child did not end itself: status {child.returncode}", child.stderr)
+
+
+def test_each_child_s_watchdog_is_past_its_parent_s_limit() -> None:
+    """While the parent lives its kill comes first, and the test fails by the parent's name."""
+    assert _CHILD_WATCHDOG_SECONDS > _CHILD_SECONDS
+
+
+@pytest.mark.parametrize(
+    ("returncode", "stderr", "killed", "ended_itself"),
+    [
+        (1, "Timeout (0:00:02)!\nThread 0x1 (most recent call first):\n", False, True),
+        (1, "Traceback (most recent call last):\nKeyError: 'a'\n", False, False),
+        (1, "Timeout (0:00:02)!\n", True, False),
+        (-9, "Timeout (0:00:02)!\n", False, False),
+        (0, "", False, False),
+    ],
+    ids=["the watchdog", "an uncaught error", "killed", "another status", "returned"],
+)
+def test_a_child_ended_itself_only_by_all_three_checks(
+    returncode: int, stderr: str, *, killed: bool, ended_itself: bool
+) -> None:
+    """Status 1, the watchdog's header, and no kill by the parent: each check is needed."""
+    assert _ended_itself(returncode, stderr, killed=killed) is ended_itself
 
 
 def test_a_patch_vital_answers_with_its_alert_is_refused_and_the_plugin_put_back(

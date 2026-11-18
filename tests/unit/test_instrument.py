@@ -143,7 +143,9 @@ class _FakeVital:
     at its default where the text lacks it. `refusing` names the calls it raises on;
     `load_script`, while it has entries, says load by load what becomes of it: False, taken;
     True, refused by pedalboard; "alert", taken and then answered with the alert; "alert first",
-    answered with the alert and not taken; "ignore", nothing at all. `audio` makes what a render
+    answered with the alert and not taken; "ignore", nothing at all; an error from outside the
+    package, raised as itself, nothing taken. `raising_at_read`, a count and an error, raises the
+    error at that read of the marker, counted by `marker_reads`. `audio` makes what a render
     gives.
     """
 
@@ -158,7 +160,9 @@ class _FakeVital:
         self.sets: list[tuple[str, float]] = []
         self.renders: list[tuple[list[tuple[bytes, float]], float, int]] = []
         self.refusing: set[str] = set()
-        self.load_script: list[bool | str] = []
+        self.load_script: list[bool | str | BaseException] = []
+        self.marker_reads = 0
+        self.raising_at_read: tuple[int, BaseException] | None = None
         self.audio: Callable[[int], NDArray[np.float32]] | None = None
         self._hosted = {
             record.host_id: _FakeParameter(self, record) for record in parameter_map().parameters
@@ -170,6 +174,10 @@ class _FakeVital:
 
     def read(self, record: MappedParameter) -> float:
         """Return a parameter's normalized value: what was set, or what the text holds for it."""
+        if record.id == MARKER:
+            self.marker_reads += 1
+            if self.raising_at_read is not None and self.raising_at_read[0] == self.marker_reads:
+                raise self.raising_at_read[1]
         if record.id in self.normalized:
             return self.normalized[record.id]
         held = json.loads(self.text)["settings"].get(record.preset_key, record.preset_default)
@@ -193,6 +201,8 @@ class _FakeVital:
     @preset_data.setter
     def preset_data(self, data: bytes) -> None:
         how = self.load_script.pop(0) if self.load_script else "load" in self.refusing
+        if isinstance(how, BaseException):
+            raise how
         if how is True:
             msg = "the plugin refuses the state"
             raise RuntimeError(msg)
@@ -1106,33 +1116,54 @@ def test_the_marker_is_the_plugin_s_alone_on_a_load_that_succeeds_and_on_one_tha
     assert not any(isinstance(event, ParameterChanged) for event in recorder.events)
 
 
-def test_a_load_from_a_second_thread_changes_nothing_and_is_the_thread_s_error(
+def _on_a_second_thread(call: Callable[[], object]) -> VitalError:
+    """Run a call on a thread named "a second thread"; return the VitalError it raised."""
+    caught: list[VitalError] = []
+
+    def run() -> None:
+        try:
+            call()
+        except VitalError as error:
+            caught.append(error)
+
+    thread = threading.Thread(target=run, name="a second thread")
+    thread.start()
+    thread.join()
+    (error,) = caught
+    return error
+
+
+def test_a_load_from_a_second_thread_changes_nothing_and_is_refused_as_a_patch(
     bus: EventBus, instrument: VitalInstrument, plugin: _FakeVital
 ) -> None:
-    """`PluginThreadError` leaves `load_patch` as itself, before the plugin is called.
+    """The review of PR 26, finding 3: core's PatchRejectedError, chained from PluginThreadError.
 
-    It is not a state error, so no rollback answers it and the instrument has not lost step:
-    the same patch then loads from the main thread.
+    It says, in this order, that the call came from a thread the plugin cannot be loaded from
+    on macOS, naming it; that the patch passed the package's own checks; and that it was not
+    given to Vital, so whether Vital takes it is unknown. It is no state error, so no rollback
+    answers it: nothing is changed or published, and the instrument has not lost step, so the
+    same patch then loads from the main thread.
     """
     before, state = instrument.preset, _state_floats(instrument)
     reached = (len(plugin.loads), len(plugin.sets))
     recorder = _recorder(bus)
     patch = Patch(instrument="Vital", values={ParameterId("volume"): _quantity(-80.0, Unit.db)})
-    caught: list[VitalError] = []
-
-    def load() -> None:
-        try:
-            instrument.load_patch(patch)
-        except VitalError as error:
-            caught.append(error)
-
-    thread = threading.Thread(target=load, name="a second thread")
-    thread.start()
-    thread.join()
-    (error,) = caught
-    assert type(error) is PluginThreadError
-    assert not isinstance(error, PatchRejectedError | PluginStateError)
-    assert error.thread == "a second thread"
+    error = _on_a_second_thread(lambda: instrument.load_patch(patch))
+    assert type(error) is PatchRefusedError
+    assert isinstance(error, PatchRejectedError)
+    cause = error.__cause__
+    assert type(cause) is PluginThreadError
+    assert cause.thread == "a second thread"
+    said = [
+        (
+            "the call came from the thread 'a second thread', which the plugin cannot be loaded "
+            "from on macOS"
+        ),
+        "the patch passed the package's own checks",
+        "it was not given to Vital, so whether Vital takes it is unknown",
+    ]
+    assert all(statement in error.reason for statement in said)
+    assert sorted(said, key=error.reason.index) == said
     assert instrument.preset is before
     assert _state_floats(instrument) == state
     assert (len(plugin.loads), len(plugin.sets)) == reached
@@ -1140,6 +1171,88 @@ def test_a_load_from_a_second_thread_changes_nothing_and_is_the_thread_s_error(
     instrument.load_patch(patch)
     assert instrument.get(ParameterId("volume")) == _quantity(-80.0, Unit.db)
     assert len(recorder.of_type(PatchLoaded)) == 1
+
+
+def test_a_patch_the_guard_refuses_is_refused_for_the_guard_s_reason_from_any_thread(
+    instrument: VitalInstrument, plugin: _FakeVital, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The guard comes first: from a second thread its refusal is the one raised.
+
+    The thread is never asked, and the plugin is not called.
+    """
+    asked: list[str] = []
+    asks = plugin.watch.may_write_here
+
+    def may_write_here() -> bool:
+        asked.append("asked")
+        return asks()
+
+    monkeypatch.setattr(plugin.watch, "may_write_here", may_write_here)
+    loads_made = len(plugin.loads)
+    error = _on_a_second_thread(
+        lambda: instrument.load_patch(patch_of(_reshaped(custom_warps=[_LINE] * 4)))
+    )
+    assert type(error) is PatchRefusedError
+    assert error.reason == _NO_WARPS
+    assert not isinstance(error.__cause__, PluginThreadError)
+    assert (asked, len(plugin.loads)) == ([], loads_made)
+
+
+_OUTSIDE = (KeyboardInterrupt("a stand-in's interrupt"), MemoryError("a stand-in's memory"))
+_MID_LOAD = (
+    "in the first write",
+    "when the second load first reaches the plugin",
+    "in the second write",
+)
+
+
+@pytest.mark.parametrize("where", _MID_LOAD)
+@pytest.mark.parametrize("raised", _OUTSIDE, ids=["KeyboardInterrupt", "MemoryError"])
+def test_an_error_from_outside_the_package_mid_load_leaves_as_itself_and_the_step_is_lost(
+    bus: EventBus,
+    instrument: VitalInstrument,
+    plugin: _FakeVital,
+    raised: BaseException,
+    where: str,
+) -> None:
+    """The review of PR 26, finding 1: the plugin may hold part of a text the model does not.
+
+    The error leaves `load_patch` as itself, the same object, and no rollback is tried. The
+    marker is not left planted: the start preset and the patch both hold it at 0, so it was
+    planted at 1, and it reads 0. The instrument has lost step: `set`, `load_patch` and `render`
+    are refused naming the error, `get` and `patch` answer from the model, the preset before,
+    and nothing is published.
+    """
+    before, shown = instrument.preset, instrument.get(ParameterId("volume"))
+    patch_before = instrument.patch()
+    recorder = _recorder(bus)
+    if where == "in the first write":
+        plugin.load_script = [raised]
+    elif where == "in the second write":
+        plugin.load_script = [False, raised]
+    else:
+        plugin.raising_at_read = (
+            plugin.marker_reads + 3,
+            raised,
+        )  # its marker read, before the plant
+    patch = Patch(instrument="Vital", values={ParameterId("volume"): _quantity(-80.0, Unit.db)})
+    with pytest.raises(type(raised)) as caught:
+        instrument.load_patch(patch)
+    assert caught.value is raised
+    assert instrument.host.get(MARKER) == 0.0
+    reason = f"a load was cut off by {type(raised).__name__}"
+    calls: list[Callable[[], object]] = [
+        lambda: instrument.set(ParameterId("volume"), _quantity(0.0, Unit.db)),
+        lambda: instrument.load_patch(patch),
+        lambda: instrument.render(_PATTERN, _REQUEST),
+    ]
+    for call in calls:
+        with pytest.raises(PluginStateError, match=reason):
+            call()
+    assert instrument.preset is before
+    assert instrument.patch() == patch_before
+    assert instrument.get(ParameterId("volume")) == shown
+    assert recorder.events == ()
 
 
 # --- the guard -----------------------------------------------------------------------------------

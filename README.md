@@ -79,32 +79,38 @@ not said what the group holds.
   a new instrument.** Its state is then unknown, and the instrument refuses every later call that
   would reach it.
 
-**A patch Vital cannot use.** Vital reports none. What the instrument does about each kind, on
-Vital 1.6.4 through pedalboard 0.9.26 on arm64 (issue #20;
-`agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/shape.md` holds the measurements):
+**A patch Vital cannot use.** Vital reports none. What the instrument does about each kind, each
+measured on Vital 1.6.4 through pedalboard 0.9.26 on arm64, macOS 26.6.2, and on no other
+platform: nothing was probed on any other, nor in a process with no screen (issue #20;
+`agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/shape.md` holds the measurements, and
+`agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/shape.md` those of the revision after
+the review of PR 26):
 
 - **One Vital cannot read** it answers with a modal alert, and never returns to its caller. On
   macOS the instrument answers that alert before it opens: `load_patch` raises
   `PatchRefusedError` with Vital's own words and loads its own preset again. **On any other
-  platform nothing answers the alert, and such a patch still blocks the calling process.**
-  Nothing was measured there, nor in a process with no screen.
-- **From a thread that is not the main one,** on macOS, a load is refused with
-  `PluginThreadError` and nothing is touched. The alert cannot open there, and the process was
-  seen to die at its next render.
-- **One Vital ignores is refused too.** A preset newer than the plugin, which Vital ignores
-  whole, `load_patch` refuses before Vital is given it. Behind that, the instrument sets a marker
-  on the plugin before each load and reads it afterwards, and a load that left the marker is
-  refused. The marker never shows in `get`, `patch` or an event.
+  platform nothing answers the alert, so such a patch may block the calling process there.**
+- **From a thread that is not the process's main one,** on macOS, `load_patch` raises
+  `PatchRefusedError`, chained from the host's `PluginThreadError`, and nothing is touched. The
+  alert cannot open there, and the process was seen to die at its next render.
+- **One Vital ignores is refused too.** A preset newer than the plugin, which Vital was seen to
+  ignore whole, `load_patch` refuses before Vital is given it. Behind that, the instrument sets a
+  marker on the plugin before each load and reads it afterwards, and a load that left the marker
+  is refused. The marker never shows in `get`, `patch` or an event.
 - **A patch Vital crashes on kills the calling process** (issue #25). Three shapes were found,
   each a section one entry longer than Vital holds, and `load_patch` refuses those. Only the
   shapes found are refused.
 - **A patch Vital loads in part is not detected** (issue #25). Where it keeps a wavetable or a
   sample it had, or makes something else of the one given, nothing read back from the plugin
   tells.
+- **If a load is cut off by an error from outside the package,** a `KeyboardInterrupt` or a
+  `MemoryError` among them, the plugin may hold part of the patch: the error leaves `load_patch`
+  as itself and the instrument refuses every later call that would reach the plugin, as when a
+  rollback fails. Build a new instrument.
 
-Known limits, each measured on Vital 1.6.4 through pedalboard 0.9.26 on arm64. The first two each
-wait on an issue of their own and come before the first experiment that puts an agent in front of
-the instrument, in this order; the third is a workaround no issue owns
+Known limits, each measured on Vital 1.6.4 through pedalboard 0.9.26 on arm64, macOS 26.6.2. The
+first two each wait on an issue of their own and come before the first experiment that puts an
+agent in front of the instrument, in this order; the third is a workaround no issue owns
 (`agent-os/specs/2026-11-15-1448-the-instrument/shape.md` holds the measurements):
 
 - **A render of most presets opens with the preset sounding though no note was played** (issue

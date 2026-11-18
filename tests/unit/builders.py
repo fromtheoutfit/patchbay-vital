@@ -9,12 +9,15 @@ writes a conftest of its own at tests/unit/conftest.py.
 """
 
 import struct
+import threading
 from collections.abc import Iterator
 from contextlib import contextmanager
 from fractions import Fraction
 
 from hypothesis import strategies as st
 
+from patchbay_vital.errors import PluginStateError
+from patchbay_vital.host import Alert
 from patchbay_vital.preset import (
     KNOWN_SETTINGS,
     MODULATION_SLOTS,
@@ -43,8 +46,10 @@ _METADATA = {
 class StandInWatch:
     """A watch in place of AppKit's: it says when it is in place, and notes a fake's alerts.
 
-    A fake plugin raises an alert by calling `alert`. With no watch in place that is its caller
-    waiting for ever, so it fails the test there, by name. `entered` counts the writes watched.
+    A fake plugin raises an alert by calling `alert`, or `unreadable_alert` for one whose words
+    the watch could not read. With no watch in place that is its caller waiting for ever, so it
+    fails the test there, by name. `entered` counts the writes watched. Like the real watch, it
+    refuses to be entered while it is in place, and `may_write_here` follows `main_thread_only`.
     """
 
     def __init__(self) -> None:
@@ -52,12 +57,19 @@ class StandInWatch:
         self.main_thread_only = True
         self.in_place = False
         self.entered = 0
-        self._alerts: list[tuple[str, str]] | None = None
+        self._alerts: list[Alert] | None = None
+
+    def may_write_here(self) -> bool:
+        """Whether a state may be written from this thread: any, unless `main_thread_only`."""
+        return not self.main_thread_only or threading.current_thread() is threading.main_thread()
 
     @contextmanager
-    def answered(self) -> Iterator[list[tuple[str, str]]]:
+    def answered(self) -> Iterator[list[Alert]]:
         """Be in place for the length of the block; yield the list its alerts are noted in."""
-        alerts: list[tuple[str, str]] = []
+        if self._alerts is not None:
+            msg = "the alert watch is already in place: a state write was begun inside another"
+            raise PluginStateError(msg)
+        alerts: list[Alert] = []
         self._alerts, self.in_place = alerts, True
         self.entered += 1
         try:
@@ -70,7 +82,14 @@ class StandInWatch:
         assert self._alerts is not None, (
             "an alert with no watch in place: its caller waits for ever"
         )
-        self._alerts.append((message, informative))
+        self._alerts.append(Alert(message, informative))
+
+    def unreadable_alert(self, unread: BaseException) -> None:
+        """Raise an alert whose words the watch could not read, what the read raised kept."""
+        assert self._alerts is not None, (
+            "an alert with no watch in place: its caller waits for ever"
+        )
+        self._alerts.append(Alert("", "", unread))
 
 
 def make_preset(**changes: object) -> VitalPreset:
