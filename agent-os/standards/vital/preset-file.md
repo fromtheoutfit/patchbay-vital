@@ -1,14 +1,16 @@
 # The preset file
 
 What a `.vital` file holds and how this package holds it. A rule here is about Vital's file; what
-any adapter's models do is `base/python/models.md`'s. Written from `src/patchbay_vital/preset.py` and
-`format.py`; the evidence is the `verification/discovery.md` of the spec of issue #2
+any adapter's models do is `base/python/models.md`'s. Written from `src/patchbay_vital/preset.py`
+and `format.py`; the evidence is the `verification/discovery.md` of the spec of issue #2
 (`agent-os/specs/2026-11-09-1509-the-vital-format/`), measured over 75 installed presets and two
-saves from Vital 1.6.4, for the plugin state's `tuning` and the derived key list the
-`verification/` of the spec of issue #7 (`agent-os/specs/2026-11-09-1907-the-host-and-the-parameter-map/`),
-and for the files module the revisions after PR 9's three reviews, the second at
+saves from Vital 1.6.4, for the plugin state's `tuning` and the derived key list the `verification/`
+of the spec of issue #7 (`agent-os/specs/2026-11-09-1907-the-host-and-the-parameter-map/`), and for
+the files module the revisions after PR 9's three reviews, the second at
 `agent-os/specs/2026-11-10-1307-revision-after-pr-9-second-review/` and the third at
-`agent-os/specs/2026-11-10-1438-revision-after-pr-9-third-review/`.
+`agent-os/specs/2026-11-10-1438-revision-after-pr-9-third-review/`, and for the one guarded decoder
+the revision after the review of PR 26
+(`agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/`): `costs.txt` and `mutation.txt`.
 
 ## Where each part lives
 
@@ -79,15 +81,22 @@ and for the files module the revisions after PR 9's three reviews, the second at
 ## What is left unread
 
 - **A section this package does not interpret is held as the text the file held, as bytes**, in
-  `VitalPreset.opaque`, the form `patchbay.Patch.opaque` takes, and `line_mapping` the same way. They
-  are 98% of a preset's bytes, base64 inside JSON, up to 10 MB. Keeping the text is what makes them
-  byte-for-byte; re-encoding parsed JSON is not. A section is checked to be one JSON value and
-  nothing after it; one that nests too deeply to read is refused through `preset.decode_end`,
-  the one place the decoder's `RecursionError` becomes `ValueError`, which the plugin state's
-  codec uses too. Verified against `format.py`, `preset.py` (`_json_section`, `decode_end`),
+  `VitalPreset.opaque`, the form `patchbay.Patch.opaque` takes, and `line_mapping` the same way.
+  They are 98% of a preset's bytes, base64 inside JSON, up to 10 MB. Keeping the text is what makes
+  them byte-for-byte; re-encoding parsed JSON is not. A section is checked to be one JSON value and
+  nothing after it; one that nests too deeply to read is refused through `preset.decoded`, which
+  `decode_end` reads through, the one place the decoder's `RecursionError` becomes `ValueError`; the
+  plugin state's codec uses it too, and so do the host's reads of a state's settings
+  (`host._settings`), the revision after the review of PR 26's finding 13, and the guard's read of
+  a section (`patch._section`), its second review's finding 7. Verified against
+  `format.py`, `preset.py` (`_json_section`, `decoded`, `decode_end`), `host.py` (`_settings`),
+  `patch.py` (`_section`),
   `tests/unit/test_preset.py` (`test_a_section_that_nests_too_deeply_is_refused_as_the_package`,
-  `test_the_decoder_s_end_names_what_nests_too_deeply`) and
-  `tests/integration/test_factory_round_trip.py`.
+  `test_the_decoder_s_end_names_what_nests_too_deeply`), `tests/unit/test_host.py`
+  (`test_the_settings_helper_refuses_a_text_one_level_past_the_decoder_s_limit`),
+  `tests/unit/test_patch.py` (`test_a_section_past_the_decoder_s_limit_is_refused_as_a_patch`),
+  MR15 in the revision after the review of PR 26's `mutation.txt`, MQ11 in the revision after the
+  second review of PR 26's `mutation.txt`, and `tests/integration/test_factory_round_trip.py`.
 - **The file writes keys sorted at every depth, no whitespace, UTF-8 raw**, and three of Vital's own
   presets end in a newline, which `trailing_newline` keeps. `dumps(loads(text)) == text` for a file
   Vital saved. How a float is written is `vital/float-writer.md`'s. Verified against `format.py`

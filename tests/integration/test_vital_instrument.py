@@ -13,16 +13,26 @@ spec, `agent-os/specs/2026-11-15-1448-the-instrument/`); none compares samples. 
 is written out or worked out from primitives, never by the map's `to_preset` or the instrument.
 
 No test here may hang the gate. Vital answers a text it cannot read with a modal alert and never
-returns to its caller (issue #20), so every load a test sends passes the instrument's guard first,
-and the loads that block live only in that spec's transcripts, each run in a process of its own.
+returns to its caller, which the host answers on macOS alone (issue #20), and some texts kill the
+process. So every load a test sends Vital in this process is a text Vital was seen to load, which
+passes the instrument's guard first. Two tests give Vital a text it does not take, one it answers
+with its alert and one it ignores: each does so in a child of its own, killed at a time limit, so
+a remedy that stopped working fails here by name and hangs nothing. The texts that block or kill
+live only in the transcripts of the spec of issue #20
+(`agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/`), each run in a process of its own.
 """
 
+import importlib.util
 import json
 import math
 import platform
 import struct
+import subprocess
+import sys
+import time
 from fractions import Fraction
 from pathlib import Path
+from typing import NoReturn
 
 import numpy as np
 import pytest
@@ -821,3 +831,314 @@ def test_what_the_data_file_of_upgraded_floats_holds(pytestconfig: pytest.Config
     assert json.dumps(sorted(recorded["Factory/Presets/Ah Eh Ee Oh.vital"].items())) == (
         '[["osc_1_stack_style", [9.0, 10.0]]]'
     )
+
+
+# --- a text Vital does not take, each in a child this module can kill ----------------------------
+
+_CHILD_SECONDS = 20
+"""What a child is given: Vital loads in about two seconds, and a load it takes in milliseconds.
+A child still running then is killed, so neither test below can wait on an alert past it."""
+
+_CHILD_WATCHDOG_SECONDS = 40
+"""What a child gives itself, past `_CHILD_SECONDS`: while its parent lives, the parent's kill
+comes first; where the parent is gone, killed with no chance to kill its child, the child ends
+itself here. Armed by `_armed` with faulthandler's watchdog, a C thread that needs no GIL, which
+ended a child blocked in Vital's alert, and one in AppKit's, 0.052 to 0.070 s past a 3 s limit
+(`verification/alarm-probe.txt` of the revision after the review of PR 26; `signal.alarm` did
+too, and was not used, as it is not on every platform)."""
+
+_WATCHDOG_HEADER = "Timeout ("
+"""How faulthandler's watchdog begins what it writes to stderr: `Timeout (0:00:03)!`. CPython's,
+and not documented as a format; the stand-in watchdog test below is the one that fails if it
+changes."""
+
+
+def _armed(script: str, seconds: int) -> str:
+    """Return a child's script with faulthandler's watchdog armed as its first statements.
+
+    Before anything that could block is imported: the child exits with status 1 after `seconds`,
+    every thread's stack on its stderr, whatever its main thread is doing.
+    """
+    return f"import faulthandler\nfaulthandler.dump_traceback_later({seconds}, exit=True)\n{script}"
+
+
+def _ended_itself(returncode: int | None, stderr: str, *, killed: bool) -> bool:
+    """Whether a child ended itself at its watchdog's limit: three things together.
+
+    Exit status 1, a line of its stderr beginning `_WATCHDOG_HEADER`, and its parent not having
+    killed it. Status 1 alone is also what an uncaught error gives. The same function, by the same
+    name and with the same checks, is in tests/unit/test_host.py, as no module can import from
+    the other suite: a change to one is made to both.
+    """
+    timed_out = any(line.startswith(_WATCHDOG_HEADER) for line in stderr.splitlines())
+    return not killed and returncode == 1 and timed_out
+
+
+def _child_failed(why: str, stderr: str | bytes | None) -> NoReturn:
+    """Fail the test saying why, with the child's stderr, where a watchdog's stack would be.
+
+    The same function is in tests/unit/test_host.py: a change to one is made to both.
+    """
+    said = stderr.decode("utf-8", "replace") if isinstance(stderr, bytes) else (stderr or "")
+    pytest.fail(f"{why}; the child's stderr:\n{said}")
+
+
+_ALERTING = """
+import json
+import sys
+
+from patchbay import EventBus, PresetKey
+
+from patchbay_vital import dumps, loads
+from patchbay_vital.errors import PatchRefusedError
+from patchbay_vital.host import _floats
+from patchbay_vital.instrument import VitalInstrument
+from patchbay_vital.patch import patch_of
+
+
+def sections(state):
+    settings = json.loads(state)["settings"]
+    return {key: value for key, value in settings.items() if not isinstance(value, float)}
+
+
+model = loads(open(sys.argv[1], encoding="utf-8").read())
+instrument = VitalInstrument(EventBus())
+instrument.load_patch(patch_of(model))
+before = instrument.host.state()
+sample = {"length": "x", "name": "x", "sample_rate": 44100, "samples": ""}
+unread = {**model.opaque, PresetKey("sample"): json.dumps(sample).encode("utf-8")}
+outcome = {"refused": False}
+try:
+    instrument.load_patch(patch_of(model.model_copy(update={"opaque": unread})))
+except PatchRefusedError as error:
+    outcome = {"refused": True, "reason": error.reason, "cause": type(error.__cause__).__name__}
+after = instrument.host.state()
+outcome["floats"] = len(_floats(before))
+outcome["floats_as_before"] = _floats(after) == _floats(before)
+outcome["sections_as_before"] = sections(after) == sections(before)
+outcome["model_kept"] = dumps(instrument.preset) == dumps(model)
+print(json.dumps(outcome))
+"""
+
+_IGNORED = """
+import json
+
+from patchbay_vital import dumps
+from patchbay_vital.errors import PluginStateError
+from patchbay_vital.host import VitalHost, _floats
+from patchbay_vital.start import start_preset
+
+start = start_preset()
+host = VitalHost()
+text = dumps(start).encode("utf-8")
+host.load_state(text)
+host.load_state(text)
+before = _floats(host.state())
+newer = dumps(start.model_copy(update={"synth_version": "99.0.0"})).encode("utf-8")
+outcome = {"refused": False}
+try:
+    host.load_state(newer)
+except PluginStateError as error:
+    outcome = {"refused": True, "reason": error.reason}
+outcome["floats"] = len(before)
+outcome["floats_as_before"] = _floats(host.state()) == before
+print(json.dumps(outcome))
+"""
+
+
+def _in_a_child(script: str, *arguments: str) -> dict[str, object]:
+    """Run a script in a child of this interpreter; return what it printed, or fail by name.
+
+    The child arms its watchdog first (`_armed`). One that has not ended in `_CHILD_SECONDS` is
+    killed, by `subprocess.run`, and the test fails saying so: a load that waited on Vital's
+    alert is what that would be. One that ended itself at its watchdog fails the test saying
+    that; any other ending but status 0 fails it too, each with the child's stderr.
+    """
+    try:
+        child = subprocess.run(  # noqa: S603 - this interpreter, and a script of this module
+            [sys.executable, "-c", _armed(script, _CHILD_WATCHDOG_SECONDS), *arguments],
+            capture_output=True,
+            text=True,
+            timeout=_CHILD_SECONDS,
+            check=False,
+        )
+    except subprocess.TimeoutExpired as expired:
+        why = f"the child did not return in {_CHILD_SECONDS} s and was killed: a load waited"
+        _child_failed(why, expired.stderr)
+    if _ended_itself(child.returncode, child.stderr, killed=False):
+        why = f"the child ended itself at its {_CHILD_WATCHDOG_SECONDS} s watchdog: a load waited"
+        _child_failed(why, child.stderr)
+    if child.returncode != 0:
+        _child_failed(f"the child ended with status {child.returncode}", child.stderr)
+    printed: dict[str, object] = json.loads(child.stdout.splitlines()[-1])
+    return printed
+
+
+_NEVER_RETURNS = """
+import fcntl
+import sys
+import time
+
+with open(sys.argv[1], "r+", encoding="utf-8") as held:
+    fcntl.flock(held, fcntl.LOCK_EX)
+    held.write("started")
+    held.flush()
+    time.sleep(600)
+"""
+"""A stand-in that blocks: it takes an exclusive lock on the file it is given, says so in it, and
+sleeps for ten minutes. The lock is the kernel's, so it is let go only when the process is gone."""
+
+_STAND_IN_SECONDS = 3
+"""The limit the stand-in is killed at: past any interpreter's start, far short of its sleep."""
+
+_STAND_IN_WATCHDOG_SECONDS = 2
+_STAND_IN_PARENT_SECONDS = 30
+"""For the stand-in no parent kills: its watchdog, and the parent's limit far past it, at which
+the parent kills it and the test fails, saying the watchdog did not end it."""
+
+
+def _no_lock_here() -> None:
+    """Skip, by name, where the standard library has no `fcntl`, which the stand-in locks with."""
+    if importlib.util.find_spec("fcntl") is None:
+        pytest.skip(f"the stand-in locks with fcntl, which {platform.system()} does not have")
+
+
+def test_a_child_that_does_not_return_is_killed_at_its_limit_and_the_test_fails_by_name(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A stand-in that blocks, in place of a load waiting on Vital's alert: nothing hangs.
+
+    The two tests below reach Vital only through `_in_a_child`. Here its child sleeps for ten
+    minutes and the limit is `_STAND_IN_SECONDS`: the child is killed at the limit, the test that
+    ran it fails saying so, and the process is gone. That is held by the child's own lock, never
+    by its pid, which another process may have by then: the file says the child started, and the
+    lock is free. A child that never started, and one still holding its lock, each fail the test
+    by a name of their own. It needs no Vital, so it runs wherever there is `fcntl`.
+    """
+    _no_lock_here()
+    import fcntl  # noqa: PLC0415 - POSIX alone; skipped above where it is not
+
+    noted = tmp_path / "lock"
+    noted.write_text("", encoding="utf-8")
+    monkeypatch.setattr(sys.modules[__name__], "_CHILD_SECONDS", _STAND_IN_SECONDS)
+    began = time.perf_counter()
+    with pytest.raises(pytest.fail.Exception, match=f"did not return in {_STAND_IN_SECONDS} s"):
+        _in_a_child(_NEVER_RETURNS, str(noted))
+    assert time.perf_counter() - began < 10 * _STAND_IN_SECONDS
+    with noted.open("r+", encoding="utf-8") as held:
+        if held.read() != "started":
+            pytest.fail(f"the child never started within its {_STAND_IN_SECONDS} s limit")
+        try:
+            fcntl.flock(held, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            pytest.fail("the child did not end: it still holds its lock")
+
+
+_SLEEPS = """
+import time
+
+time.sleep(600)
+"""
+
+
+def test_a_child_its_parent_never_kills_ends_itself_at_its_watchdog() -> None:
+    """The watchdog every child arms ends it where no parent does: the three checks together.
+
+    A stand-in that sleeps for ten minutes, armed for `_STAND_IN_WATCHDOG_SECONDS`, its parent
+    killing it only at `_STAND_IN_PARENT_SECONDS`, which fails the test. It ended itself: status
+    1, a stderr line beginning `_WATCHDOG_HEADER`, and no kill. That header is CPython's and not
+    documented, so this is the test that fails if it changes. It needs no Vital and no POSIX.
+    """
+    assert _STAND_IN_PARENT_SECONDS > _STAND_IN_WATCHDOG_SECONDS
+    try:
+        child = subprocess.run(  # noqa: S603 - this interpreter, and a script of this module
+            [sys.executable, "-c", _armed(_SLEEPS, _STAND_IN_WATCHDOG_SECONDS)],
+            capture_output=True,
+            text=True,
+            timeout=_STAND_IN_PARENT_SECONDS,
+            check=False,
+        )
+    except subprocess.TimeoutExpired as expired:
+        why = (
+            "the watchdog did not end the child: its parent killed it at "
+            f"{_STAND_IN_PARENT_SECONDS} s"
+        )
+        _child_failed(why, expired.stderr)
+    if not _ended_itself(child.returncode, child.stderr, killed=False):
+        _child_failed(f"the child did not end itself: status {child.returncode}", child.stderr)
+
+
+def test_each_child_s_watchdog_is_past_its_parent_s_limit() -> None:
+    """While the parent lives its kill comes first, and the test fails by the parent's name."""
+    assert _CHILD_WATCHDOG_SECONDS > _CHILD_SECONDS
+
+
+@pytest.mark.parametrize(
+    ("returncode", "stderr", "killed", "ended_itself"),
+    [
+        (1, "Timeout (0:00:02)!\nThread 0x1 (most recent call first):\n", False, True),
+        (1, "Traceback (most recent call last):\nKeyError: 'a'\n", False, False),
+        (1, "Timeout (0:00:02)!\n", True, False),
+        (-9, "Timeout (0:00:02)!\n", False, False),
+        (0, "", False, False),
+    ],
+    ids=["the watchdog", "an uncaught error", "killed", "another status", "returned"],
+)
+def test_a_child_ended_itself_only_by_all_three_checks(
+    returncode: int, stderr: str, *, killed: bool, ended_itself: bool
+) -> None:
+    """Status 1, the watchdog's header, and no kill by the parent: each check is needed."""
+    assert _ended_itself(returncode, stderr, killed=killed) is ended_itself
+
+
+def test_a_patch_vital_answers_with_its_alert_is_refused_and_the_plugin_put_back(
+    vital: VitalHost, pytestconfig: pytest.Config
+) -> None:
+    """Issue #20, on Vital, in a child: the alert is answered and the patch refused, on macOS.
+
+    The model is the fixture, loaded through a patch. The patch then given is the fixture with a
+    sample whose `length` is a string, which the guard passes and Vital answers with its alert
+    (the instrument spec's `verification/probes.txt`). `load_patch` raises the package's patch
+    error with Vital's words, and the plugin, which had taken the patch in part, holds every one
+    of its 903 floats and every section as before it. The model is the fixture still.
+    """
+    del vital  # asked for so that this skips where the module's Vital does
+    if platform.system() != "Darwin":
+        pytest.skip(f"Vital's alert is answered on macOS alone; this is {platform.system()}")
+    fixture = pytestconfig.rootpath / "tests" / "data" / "init-media-replaced.vital"
+    outcome = _in_a_child(_ALERTING, str(fixture))
+    assert outcome == {
+        "refused": True,
+        "reason": (
+            "the plugin refused the preset: Vital answered the state with its alert, "
+            "'Error opening preset': 'There was an error open the preset. Preset file is "
+            "corrupted.'"
+        ),
+        "cause": "PluginStateError",
+        "floats": _PARAMETERS,
+        "floats_as_before": True,
+        "sections_as_before": True,
+        "model_kept": True,
+    }
+
+
+def test_a_state_vital_ignores_is_refused_by_the_marker_and_the_plugin_left_as_it_was(
+    vital: VitalHost,
+) -> None:
+    """A text newer than the plugin, given to the host in a child: refused, nothing changed.
+
+    Vital ignores it whole and says nothing (the instrument spec's `verification/probes.txt`).
+    The instrument's guard refuses such a version before the plugin is called; this is the host
+    alone, whose marker was left as it was set. All 903 floats are then what they were, the
+    marker set back among them.
+    """
+    del vital  # asked for so that this skips where the module's Vital does
+    outcome = _in_a_child(_IGNORED)
+    assert outcome == {
+        "refused": True,
+        "reason": (
+            "Vital ignored the state: filter_1_on, set before the load, was left as it was set"
+        ),
+        "floats": _PARAMETERS,
+        "floats_as_before": True,
+    }

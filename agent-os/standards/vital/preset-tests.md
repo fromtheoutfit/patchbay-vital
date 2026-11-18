@@ -3,12 +3,15 @@
 What this repository's tests may hold of Vital's and how they read the rest. The general form, a
 test over an instrument's installed content, is proposed upstream; what is here is the part about
 Vital. Written from `tests/integration/test_factory_round_trip.py`, `test_vital_plugin.py` and
-`tests/data/`; the evidence
-is the `verification/probes.txt` of the spec of issue #2
-(`agent-os/specs/2026-11-09-1509-the-vital-format/`), for the skip on another machine the
-revision after the second review of PR 9 (`agent-os/specs/2026-11-10-1307-revision-after-pr-9-second-review/`),
-and for the start preset and the instrument's tests the spec of issue #8
-(`agent-os/specs/2026-11-15-1448-the-instrument/`).
+`tests/data/`; the evidence is the `verification/probes.txt` of the spec of issue #2
+(`agent-os/specs/2026-11-09-1509-the-vital-format/`), for the skip on another machine the revision
+after the second review of PR 9
+(`agent-os/specs/2026-11-10-1307-revision-after-pr-9-second-review/`), for the start preset and the
+instrument's tests the spec of issue #8 (`agent-os/specs/2026-11-15-1448-the-instrument/`), for a
+text Vital does not take the spec of issue #20
+(`agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/`), and for a child that ends itself the
+revision after the review of PR 26 (`agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/`):
+`alarm-probe.txt` and `mutation.txt`.
 
 - **No preset, sample, wavetable, or LFO of Vital's is committed.** Vital's EULA (updated 2024-02-29)
   bars redistributing "presets, samples, wavetables, skins, LFOs or other media created from any
@@ -55,10 +58,44 @@ and for the start preset and the instrument's tests the spec of issue #8
   `test_the_fixture_as_state_reads_back_but_its_sample_delayed`),
   `tests/integration/test_vital_instrument.py` (the `vital` fixture) and
   `src/patchbay_vital/data/parameters.json`.
-- **No test gives Vital a text it may not return from.** Vital answers a preset it cannot read with
-  a modal alert and never returns (`vital/plugin-state.md`), so every load a test sends passes the
-  instrument's guard first, and a load that blocks is run only in a transcript, in a process of its
-  own with a time limit. A test that hung would hang the gate. Verified against
-  `tests/integration/test_vital_instrument.py`, whose loads go through `load_patch`, the
-  instrument's construction or a text `check_loadable` passed, and `probes.txt` section 5 of the
-  spec of issue #8.
+- **No test gives Vital, in the test's own process, a text it may not return from; one that must
+  gives it in a child it can kill.** Vital answers a preset it cannot read with a modal alert,
+  which the host answers on macOS alone, and some texts kill the process
+  (`vital/plugin-state.md`). So every load a test sends in its own process is a text Vital was seen
+  to load, which passes the instrument's guard first. A test that holds the remedy against Vital
+  gives its text in a child of its own under a time limit, 20 s, and a test of the watch itself runs
+  AppKit's own alert the same way, 10 s. No test gives Vital a text that killed it: those are run
+  only in a transcript. A test that hung would hang the gate.
+- **Every child a test starts ends itself at a watchdog past its parent's limit.** The child's first
+  statements arm `faulthandler.dump_traceback_later(<seconds>, exit=True)`, before anything that
+  could block is imported: 40 s against the integration children's 20 s, 30 s against the real-alert
+  child's 10 s, a test holding each greater. While the parent lives its kill comes first and the
+  test fails by the parent's name; where the parent is gone, killed with no chance to kill its
+  child, the child ends itself, its stack on its stderr. The watchdog is a C thread that needs no
+  GIL, which pedalboard holds while Vital's alert waits: it ended a child blocked in Vital's alert,
+  and one in AppKit's, 0.052 to 0.070 s past a 3 s limit. `signal.alarm` with SIGALRM's default
+  action did too, 0.016 to 0.040 s past, and is not used, as it is not on every platform (the
+  revision after the review of PR 26's `alarm-probe.txt`). "It ended itself" is three things
+  together, status 1, a stderr line beginning "Timeout (", and no kill by the parent, judged by one
+  function, `_ended_itself`, in each of the two modules that start children, the same name, checks
+  and failure message in each, every failure carrying the child's stderr: a module of one suite
+  cannot import from the other's, and test support shared between them has no home in the layout.
+  "Timeout (" is CPython's header and not documented as a format, so in each module a stand-in its
+  parent never kills is the test that fails if it changes. The stand-in that never returns holds its
+  parent's limit, 3 s, by a lock it holds: the file says the child started and the lock is free,
+  never a pid, which another process may have by then; "the child never started" and "it did not
+  end" fail by names of their own. Verified against `tests/integration/test_vital_instrument.py`
+  (`_armed`, `_ended_itself`, `_child_failed`, `_in_a_child`,
+  `test_a_child_that_does_not_return_is_killed_at_its_limit_and_the_test_fails_by_name`,
+  `test_a_child_its_parent_never_kills_ends_itself_at_its_watchdog`,
+  `test_each_child_s_watchdog_is_past_its_parent_s_limit`,
+  `test_a_child_ended_itself_only_by_all_three_checks`,
+  `test_a_patch_vital_answers_with_its_alert_is_refused_and_the_plugin_put_back`,
+  `test_a_state_vital_ignores_is_refused_by_the_marker_and_the_plugin_left_as_it_was`),
+  `tests/unit/test_host.py` (`_armed`, `_ended_itself`, `_child_failed`,
+  `test_the_watch_answers_a_real_alert_at_once_and_puts_the_method_back`,
+  `test_a_child_its_parent_never_kills_ends_itself_at_its_watchdog`,
+  `test_the_real_alert_child_s_watchdog_is_past_its_parent_s_limit`,
+  `test_a_child_ended_itself_only_by_all_three_checks`), MW4 and MR16 to MR22 in the revision after
+  the review of PR 26's `mutation.txt`, where a watch that answers nothing leaves that child to be
+  killed at its limit, and `probes.txt` section 5 of the spec of issue #8.

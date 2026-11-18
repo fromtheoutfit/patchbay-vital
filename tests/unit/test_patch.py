@@ -12,12 +12,21 @@ import struct
 from pathlib import Path
 
 import pytest
-from builders import EMPTY_SLOT, FLOATS, KEYS, make_preset, what_a_set_holds
+from builders import (
+    EMPTY_SLOT,
+    FLOATS,
+    KEYS,
+    first_depth_the_decoder_refuses,
+    make_preset,
+    nested,
+    what_a_set_holds,
+)
 from hypothesis import given
 from hypothesis import strategies as st
 from patchbay import (
     ParameterId,
     Patch,
+    PatchbayValidationError,
     PatchRejectedError,
     PresetKey,
     Quantity,
@@ -32,6 +41,7 @@ from patchbay_vital.errors import (
     ParameterUnitError,
     PatchRefusedError,
     UnknownParameterError,
+    UnknownSettingError,
     VitalError,
 )
 from patchbay_vital.format import split_modulations
@@ -41,6 +51,8 @@ from patchbay_vital.patch import (
     PRESET_ENTRY,
     SECTION_PREFIX,
     TUNING_ENTRY,
+    _section,
+    check_loadable,
     check_value,
     patch_of,
     preset_of,
@@ -514,3 +526,54 @@ def test_a_value_is_checked_by_core_s_rule_and_refused_as_the_package_with_core_
         volume.maximum,
         past,
     )
+
+
+# --- the second review of PR 26 ------------------------------------------------------------------
+
+
+def _is_too_deep(caught: pytest.ExceptionInfo[PatchRefusedError]) -> None:
+    """Hold that a refusal names the section and is chained from the guard's, then the decoder's."""
+    assert caught.value.reason == "settings.custom_warps nests too deeply to read"
+    guard = caught.value.__cause__
+    assert isinstance(guard, ValueError)
+    assert isinstance(guard.__cause__, RecursionError)
+
+
+def test_a_section_past_the_decoder_s_limit_is_refused_as_a_patch() -> None:
+    """Finding 7: the guard reads a section through the one guarded decoder.
+
+    At the decoder's own limit, bisected from it here, on a preset built without its validator,
+    which would refuse the section first: the package's PatchRefusedError, naming the section
+    and chained from the guard's ValueError, chained from the RecursionError, which does not
+    leave. Read by `_section` itself and through `check_loadable`.
+    """
+    start = start_preset()
+    raw = nested(first_depth_the_decoder_refuses()).encode("utf-8")
+    deep = start.model_copy(update={"opaque": {**start.opaque, PresetKey("custom_warps"): raw}})
+    with pytest.raises(PatchRefusedError) as caught:
+        _section(deep, "custom_warps")
+    _is_too_deep(caught)
+    with pytest.raises(PatchRefusedError) as caught:
+        check_loadable(deep, parameter_map())
+    _is_too_deep(caught)
+    assert _section(start, "not_a_section_it_holds") is None
+
+
+def test_a_null_section_is_refused_before_the_guard_is_reached() -> None:
+    """Finding 5, which does not hold: a preset never holds a `null` section for the guard to pass.
+
+    As a patch, the preset's own validator refuses the section's text, which is no array or
+    object, where `preset_of` builds it. As a file, the reader refuses the key by name, since it
+    names no float Vital writes. So where `check_loadable` finds no section, the preset has none.
+    """
+    whole = patch_of(start_preset())
+    opaque = {**whole.opaque, f"{SECTION_PREFIX}custom_warps": b"null"}
+    with pytest.raises(PatchRefusedError, match="a section is the text of a JSON array") as caught:
+        preset_of(Patch(instrument="Vital", values=whole.values, opaque=opaque))
+    assert isinstance(caught.value.__cause__, PatchbayValidationError)
+    text = json.loads(dumps(start_preset()))
+    assert "custom_warps" in text["settings"]
+    text["settings"]["custom_warps"] = None
+    with pytest.raises(UnknownSettingError) as refused:
+        loads(json.dumps(text))
+    assert refused.value.key == "custom_warps"

@@ -136,6 +136,7 @@ def test_the_package_re_exports_what_a_consumer_uses() -> None:
             "PluginLoadError",
             "PluginRenderError",
             "PluginStateError",
+            "PluginThreadError",
             "PresetFileError",
             "RenderRefusedError",
             "UnknownParameterError",

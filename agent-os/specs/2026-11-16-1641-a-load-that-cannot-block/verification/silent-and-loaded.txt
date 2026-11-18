@@ -1,0 +1,767 @@
+The spec of issue #20 (a load that cannot block): the texts that raised no alert, what the shipped package makes of each, and what Vital made of those that still load, run 2026-11-17 10:25 EST on branch
+bugfix/20-the-host-a-preset-vital-cannot-read-blocks-the-calling-process-for-ever, Vital at /Library/Audio/Plug-Ins/VST3/Vital.vst3
+the machine before the run: arm64, Apple M4 Pro, 14 cores, macOS 26.6.2 (25G83), Python 3.12.16, load 5.55 4.39 3.52, at 2026-11-17 10:25 EST
+the tree before the run (this transcript is written outside the tree and copied in afterwards):
+  HEAD 0eac1dba4e0738d8b32d2b703ddfba0c09d11b18
+  git status --porcelain=v1 --untracked-files=all, 29 lines:
+     M CHANGELOG.md
+     M README.md
+     M agent-os/specs/2026-11-15-1448-the-instrument/shape.md
+     M src/patchbay_vital/__init__.py
+     M src/patchbay_vital/errors.py
+     M src/patchbay_vital/host.py
+     M src/patchbay_vital/instrument.py
+     M src/patchbay_vital/patch.py
+     M tests/integration/test_factory_round_trip.py
+     M tests/integration/test_vital_instrument.py
+     M tests/unit/builders.py
+     M tests/unit/test_errors.py
+     M tests/unit/test_host.py
+     M tests/unit/test_instrument.py
+     M tests/unit/test_package.py
+    ?? agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/plan.md
+    ?? agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/references.md
+    ?? agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/shape.md
+    ?? agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/standards.md
+    ?? agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/arrays-seen.txt
+    ?? agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/marker-count.txt
+    ?? agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/mutation.txt
+    ?? agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/probes-1-costs.txt
+    ?? agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/probes-2-alert.txt
+    ?? agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/probes-3-counts.txt
+    ?? agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/probes-3-crash-reports.txt
+    ?? agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/probes-4-counts.txt
+    ?? agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/remedy-run.txt
+    ?? agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/rollback-count.txt
+  git hash-object of each of those paths (a deleted one marked so):
+    89aaefabfff434b23401210aecf83ce552af9656  CHANGELOG.md
+    09a93b786cf918df337b3f207aac92199baa83c1  README.md
+    ae44c46104b792f792e47728258dc5ed0c8b2eeb  agent-os/specs/2026-11-15-1448-the-instrument/shape.md
+    591cd32a08be01102faebf883aacf23bf01eb4e4  agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/plan.md
+    6085dde9b16dee9eda8a2c256f712e4bbac04225  agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/references.md
+    2485d27a895d036ed0847d6fe746a6bef207e04b  agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/shape.md
+    dc2d17e44e7f13a6eb4911a880a958d6e67c31b8  agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/standards.md
+    97d63bacdf71c39778347a47a46f40f5bb0d9318  agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/arrays-seen.txt
+    62135b99759533170ede9990faf36a437b135816  agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/marker-count.txt
+    8e1d8b03e5170e41eed40858feb5f27f59c98c66  agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/mutation.txt
+    6345b0bc5cf2bb31e8a363312a9e69269b087048  agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/probes-1-costs.txt
+    53118aba5339dd7f467c3999bfa74d408aaa6335  agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/probes-2-alert.txt
+    54133d8744901c8b1467807bf83755bb5f4583a3  agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/probes-3-counts.txt
+    2615e8a958ad75443275dd697f13607e453383b7  agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/probes-3-crash-reports.txt
+    371444bcf8ac7ab79bff8a66ad59faebaf0ce04e  agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/probes-4-counts.txt
+    2a2d0bdc5bb18976897fc8f494f1b3dff001d226  agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/remedy-run.txt
+    1f95654bdf2808317fada22e8b501a07f7f3f4c8  agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/rollback-count.txt
+    18d54517ba852feef38e291ca94c95d7ef845676  src/patchbay_vital/__init__.py
+    7cd183e5ff89daf5118ef17ab9f0b40dc0a2c30d  src/patchbay_vital/errors.py
+    aabcfe1bba5781199db038b01a4279fd41967873  src/patchbay_vital/host.py
+    e60750b2169069fe4a66b15e319de833a6e97b34  src/patchbay_vital/instrument.py
+    0098514847241b87ee4815f45ed2517c75798fe8  src/patchbay_vital/patch.py
+    fd0969e351ffaa43d95ba2771d32247edb40cd1d  tests/integration/test_factory_round_trip.py
+    f06b7e1850008b83c7438fe7e0e44203cb3ca5fd  tests/integration/test_vital_instrument.py
+    f740dad7c551800f5b3d322d3a91c654fdc4b1c0  tests/unit/builders.py
+    d901fd31d39c2b62f28f9564cc3005c15fa34c4b  tests/unit/test_errors.py
+    e57891c98ec771558e1ebefb405a69c02d6c68ab  tests/unit/test_host.py
+    cc902ed62fa95b97a28ad0c3992305234daa66ab  tests/unit/test_instrument.py
+    8be89e3cad2103c7d7ac11e047fb72f38d0f9d91  tests/unit/test_package.py
+
+$ env PYTHONPATH=<scratchpad>/i20 .venv/bin/python -B <scratchpad>/i20/silent_loaded.py agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/probes-4-counts.txt agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/remedy-run.txt
+texts read from probes-4-counts.txt: 335; from remedy-run.txt: 335
+
+texts that raised no alert and killed nothing in run 4: 83
+    1  ignored whole
+    9  loaded; a changed section KEPT from the preset before
+   41  loaded; a changed section made into something else
+    3  loaded; the changed section as before and as unchanged alike
+   10  loaded; the changed section held as the text gives it
+   16  loaded; the changed section read as the unchanged one
+    3  loaded; the text changes no section
+   83  in all
+
+what the shipped package makes of those, by what Vital had made of each:
+
+  loaded: 64
+    given to the instrument: 54
+       35  loaded; a changed section made into something else
+        5  loaded; the changed section held as the text gives it
+       11  loaded; the changed section read as the unchanged one
+        3  loaded; the text changes no section
+    given to the host: 10
+        1  loaded; a changed section KEPT from the preset before
+        5  loaded; the changed section held as the text gives it
+        4  loaded; the changed section read as the unchanged one
+
+  refused by the guard: 19
+    given to the instrument: 19
+        1  ignored whole
+        8  loaded; a changed section KEPT from the preset before
+        6  loaded; a changed section made into something else
+        3  loaded; the changed section as before and as unchanged alike
+        1  loaded; the changed section read as the unchanged one
+
+the 64 that still load through the shipped package, by what Vital made of each, both ways together:
+    1  loaded; a changed section KEPT from the preset before
+   35  loaded; a changed section made into something else
+   10  loaded; the changed section held as the text gives it
+   15  loaded; the changed section read as the unchanged one
+    3  loaded; the text changes no section
+   64  in all
+and by the section each changes, for those not held as the text gives them and not without a changed section:
+    1  wavetables       loaded; a changed section KEPT from the preset before
+    6  custom_warps     loaded; a changed section made into something else
+    2  lfos             loaded; a changed section made into something else
+    2  sample           loaded; a changed section made into something else
+   25  wavetables       loaded; a changed section made into something else
+    1  (section 5's own) loaded; the changed section read as the unchanged one
+    2  custom_warps     loaded; the changed section read as the unchanged one
+    6  lfos             loaded; the changed section read as the unchanged one
+    4  modulations      loaded; the changed section read as the unchanged one
+    2  wavetables       loaded; the changed section read as the unchanged one
+   51  in all, of the 64
+
+each of the texts that still load and are not held as given, by name:
+    7  given to the instrument  the writer can write it: yes  loaded; the changed section read as the unchanged one          a routing whose source and destination are no names of Vital's
+   39  given to the instrument  the writer can write it: yes  loaded; a changed section made into something else             custom_warps[0].name: removed
+   44  given to the instrument  the writer can write it: yes  loaded; a changed section made into something else             custom_warps[0].num_points: true
+   54  given to the instrument  the writer can write it: yes  loaded; the changed section read as the unchanged one          custom_warps[0].points: one entry more
+   62  given to the instrument  the writer can write it: yes  loaded; a changed section made into something else             custom_warps[0].powers: an empty array
+   63  given to the instrument  the writer can write it: yes  loaded; a changed section made into something else             custom_warps[0].powers: an empty object
+   64  given to the instrument  the writer can write it: yes  loaded; a changed section made into something else             custom_warps[0].powers: null
+   67  given to the instrument  the writer can write it: yes  loaded; a changed section made into something else             custom_warps[0].powers: one entry fewer
+   79  given to the instrument  the writer can write it: yes  loaded; the changed section read as the unchanged one          custom_warps[0].smooth: removed
+   99  given to the instrument  the writer can write it: yes  loaded; a changed section made into something else             lfos[0].name: removed
+  104  given to the instrument  the writer can write it: yes  loaded; a changed section made into something else             lfos[0].num_points: true
+  114  given to the instrument  the writer can write it: yes  loaded; the changed section read as the unchanged one          lfos[0].points: one entry more
+  122  given to the instrument  the writer can write it: yes  loaded; the changed section read as the unchanged one          lfos[0].powers: an empty array
+  123  given to the instrument  the writer can write it: yes  loaded; the changed section read as the unchanged one          lfos[0].powers: an empty object
+  124  given to the instrument  the writer can write it: yes  loaded; the changed section read as the unchanged one          lfos[0].powers: null
+  127  given to the instrument  the writer can write it: yes  loaded; the changed section read as the unchanged one          lfos[0].powers: one entry fewer
+  139  given to the instrument  the writer can write it: yes  loaded; the changed section read as the unchanged one          lfos[0].smooth: removed
+  142  given to the host        the writer can write it: no   loaded; the changed section read as the unchanged one          modulations: an empty array
+  143  given to the host        the writer can write it: no   loaded; the changed section read as the unchanged one          modulations: an empty object
+  146  given to the host        the writer can write it: no   loaded; the changed section read as the unchanged one          modulations: one entry fewer
+  147  given to the host        the writer can write it: no   loaded; the changed section read as the unchanged one          modulations: one entry more
+  196  given to the instrument  the writer can write it: yes  loaded; a changed section made into something else             sample.length: true
+  208  given to the instrument  the writer can write it: yes  loaded; a changed section made into something else             sample.sample_rate: true
+  220  given to the host        the writer can write it: no   loaded; a changed section KEPT from the preset before          wavetables: null
+  227  given to the instrument  the writer can write it: yes  loaded; a changed section made into something else             wavetables[0]: an empty object
+  235  given to the instrument  the writer can write it: yes  loaded; a changed section made into something else             wavetables[0].author: removed
+  241  given to the instrument  the writer can write it: yes  loaded; a changed section made into something else             wavetables[0].full_normalize: removed
+  244  given to the instrument  the writer can write it: yes  loaded; a changed section made into something else             wavetables[0].groups: an empty array
+  245  given to the instrument  the writer can write it: yes  loaded; a changed section made into something else             wavetables[0].groups: an empty object
+  246  given to the instrument  the writer can write it: yes  loaded; a changed section made into something else             wavetables[0].groups: null
+  248  given to the instrument  the writer can write it: yes  loaded; a changed section made into something else             wavetables[0].groups: removed
+  249  given to the instrument  the writer can write it: yes  loaded; a changed section made into something else             wavetables[0].groups: one entry fewer
+  250  given to the instrument  the writer can write it: yes  loaded; a changed section made into something else             wavetables[0].groups: one entry more
+  254  given to the instrument  the writer can write it: yes  loaded; a changed section made into something else             wavetables[0].groups[0]: an empty object
+  255  given to the instrument  the writer can write it: yes  loaded; a changed section made into something else             wavetables[0].groups[0]: null
+  259  given to the instrument  the writer can write it: yes  loaded; a changed section made into something else             wavetables[0].groups[0].components: an empty array
+  260  given to the instrument  the writer can write it: yes  loaded; a changed section made into something else             wavetables[0].groups[0].components: an empty object
+  261  given to the instrument  the writer can write it: yes  loaded; a changed section made into something else             wavetables[0].groups[0].components: null
+  263  given to the instrument  the writer can write it: yes  loaded; a changed section made into something else             wavetables[0].groups[0].components: removed
+  264  given to the instrument  the writer can write it: yes  loaded; a changed section made into something else             wavetables[0].groups[0].components: one entry fewer
+  265  given to the instrument  the writer can write it: yes  loaded; a changed section made into something else             wavetables[0].groups[0].components: one entry more
+  283  given to the instrument  the writer can write it: yes  loaded; the changed section read as the unchanged one          wavetables[0].groups[0].components[0].interpolation_style: removed
+  286  given to the instrument  the writer can write it: yes  loaded; a changed section made into something else             wavetables[0].groups[0].components[0].keyframes: an empty array
+  287  given to the instrument  the writer can write it: yes  loaded; a changed section made into something else             wavetables[0].groups[0].components[0].keyframes: an empty object
+  288  given to the instrument  the writer can write it: yes  loaded; a changed section made into something else             wavetables[0].groups[0].components[0].keyframes: null
+  290  given to the instrument  the writer can write it: yes  loaded; a changed section made into something else             wavetables[0].groups[0].components[0].keyframes: removed
+  291  given to the instrument  the writer can write it: yes  loaded; a changed section made into something else             wavetables[0].groups[0].components[0].keyframes: one entry fewer
+  292  given to the instrument  the writer can write it: yes  loaded; a changed section made into something else             wavetables[0].groups[0].components[0].keyframes: one entry more
+  303  given to the instrument  the writer can write it: yes  loaded; a changed section made into something else             wavetables[0].groups[0].components[0].keyframes[0].position: true
+  322  given to the instrument  the writer can write it: yes  loaded; a changed section made into something else             wavetables[0].name: removed
+  328  given to the instrument  the writer can write it: yes  loaded; the changed section read as the unchanged one          wavetables[0].remove_all_dc: removed
+exit=0
+
+the tree after the run:
+  HEAD 0eac1dba4e0738d8b32d2b703ddfba0c09d11b18
+  git status --porcelain=v1 --untracked-files=all, 29 lines:
+     M CHANGELOG.md
+     M README.md
+     M agent-os/specs/2026-11-15-1448-the-instrument/shape.md
+     M src/patchbay_vital/__init__.py
+     M src/patchbay_vital/errors.py
+     M src/patchbay_vital/host.py
+     M src/patchbay_vital/instrument.py
+     M src/patchbay_vital/patch.py
+     M tests/integration/test_factory_round_trip.py
+     M tests/integration/test_vital_instrument.py
+     M tests/unit/builders.py
+     M tests/unit/test_errors.py
+     M tests/unit/test_host.py
+     M tests/unit/test_instrument.py
+     M tests/unit/test_package.py
+    ?? agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/plan.md
+    ?? agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/references.md
+    ?? agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/shape.md
+    ?? agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/standards.md
+    ?? agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/arrays-seen.txt
+    ?? agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/marker-count.txt
+    ?? agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/mutation.txt
+    ?? agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/probes-1-costs.txt
+    ?? agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/probes-2-alert.txt
+    ?? agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/probes-3-counts.txt
+    ?? agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/probes-3-crash-reports.txt
+    ?? agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/probes-4-counts.txt
+    ?? agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/remedy-run.txt
+    ?? agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/rollback-count.txt
+  git hash-object of each of those paths (a deleted one marked so):
+    89aaefabfff434b23401210aecf83ce552af9656  CHANGELOG.md
+    09a93b786cf918df337b3f207aac92199baa83c1  README.md
+    ae44c46104b792f792e47728258dc5ed0c8b2eeb  agent-os/specs/2026-11-15-1448-the-instrument/shape.md
+    591cd32a08be01102faebf883aacf23bf01eb4e4  agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/plan.md
+    6085dde9b16dee9eda8a2c256f712e4bbac04225  agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/references.md
+    2485d27a895d036ed0847d6fe746a6bef207e04b  agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/shape.md
+    dc2d17e44e7f13a6eb4911a880a958d6e67c31b8  agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/standards.md
+    97d63bacdf71c39778347a47a46f40f5bb0d9318  agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/arrays-seen.txt
+    62135b99759533170ede9990faf36a437b135816  agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/marker-count.txt
+    8e1d8b03e5170e41eed40858feb5f27f59c98c66  agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/mutation.txt
+    6345b0bc5cf2bb31e8a363312a9e69269b087048  agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/probes-1-costs.txt
+    53118aba5339dd7f467c3999bfa74d408aaa6335  agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/probes-2-alert.txt
+    54133d8744901c8b1467807bf83755bb5f4583a3  agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/probes-3-counts.txt
+    2615e8a958ad75443275dd697f13607e453383b7  agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/probes-3-crash-reports.txt
+    371444bcf8ac7ab79bff8a66ad59faebaf0ce04e  agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/probes-4-counts.txt
+    2a2d0bdc5bb18976897fc8f494f1b3dff001d226  agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/remedy-run.txt
+    1f95654bdf2808317fada22e8b501a07f7f3f4c8  agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/verification/rollback-count.txt
+    18d54517ba852feef38e291ca94c95d7ef845676  src/patchbay_vital/__init__.py
+    7cd183e5ff89daf5118ef17ab9f0b40dc0a2c30d  src/patchbay_vital/errors.py
+    aabcfe1bba5781199db038b01a4279fd41967873  src/patchbay_vital/host.py
+    e60750b2169069fe4a66b15e319de833a6e97b34  src/patchbay_vital/instrument.py
+    0098514847241b87ee4815f45ed2517c75798fe8  src/patchbay_vital/patch.py
+    fd0969e351ffaa43d95ba2771d32247edb40cd1d  tests/integration/test_factory_round_trip.py
+    f06b7e1850008b83c7438fe7e0e44203cb3ca5fd  tests/integration/test_vital_instrument.py
+    f740dad7c551800f5b3d322d3a91c654fdc4b1c0  tests/unit/builders.py
+    d901fd31d39c2b62f28f9564cc3005c15fa34c4b  tests/unit/test_errors.py
+    e57891c98ec771558e1ebefb405a69c02d6c68ab  tests/unit/test_host.py
+    cc902ed62fa95b97a28ad0c3992305234daa66ab  tests/unit/test_instrument.py
+    8be89e3cad2103c7d7ac11e047fb72f38d0f9d91  tests/unit/test_package.py
+cmp: the tree after the run is the tree before it
+the machine after the run: arm64, Apple M4 Pro, 14 cores, macOS 26.6.2 (25G83), Python 3.12.16, load 5.42 4.38 3.52, at 2026-11-17 10:25 EST
+
+the scripts this run used, each embedded below with its blob:
+    3b79798b09cac8863a5fe38cfe300ef8acdc990b  <scratchpad>/i20/silent_loaded.py
+    adab9bb77ed81d54afe8dcc7aeb32337d6d32ef0  <scratchpad>/i20/texts3.py
+    69ab39e9ed371e5c72b7893b04e6e1af2ba5b9fd  <scratchpad>/i20/common.py
+    e4c1a40cc3893ab50df6717e5a18e2a755914efd  <scratchpad>/i20/tree.sh
+    0dde01b338e9dbc221abc7e0d9b87bcf21acf1cf  <scratchpad>/i20/machine.sh
+    43532a582c6f20d5b140e66162c45647a16a4287  <scratchpad>/i20/transcript.sh
+
+--- <scratchpad>/i20/silent_loaded.py
+```
+"""The silent class through the shipped package: which texts still load, and what Vital made of them.
+
+usage: silent_loaded.py <probes-4-counts.txt> <remedy-run.txt>   (from the repository root)
+
+Run 4 says, for each of the 335 texts, what an unguarded load of it did: by its table of section
+4b, the verdict in a fresh child and, for a text that raised no alert and killed nothing, what
+the state read after it showed (the history `older`). The remedy run says what the shipped
+package made of each text. This reads both tables and sets them side by side for the texts that
+raised no alert: how many the shipped guard refuses, how many still load, and of those that
+load, what Vital made of each. It reads two kept transcripts only. No plugin is loaded.
+"""
+
+import collections
+import re
+import sys
+from pathlib import Path
+
+import texts3
+
+RUN_4 = re.compile(r"^\s+(\d+)\s+(yes|no )\s*/\s*(passes|refuses|not reached)\s+(\S+)\s+\S+\s+\S+\s+\S+\s+(.*)$")
+SHIPPED = re.compile(r"^\s+(\d+)\s+(the instrument|the host|its child died)\s+(killed its child|raised Vital's alert|raised no alert)\s+(.+?)\s{2,}\S")
+
+
+def table(transcript: Path, first: str, last: str) -> list[str]:
+    lines = transcript.read_text(encoding="utf-8").splitlines()
+    start = next(n for n, line in enumerate(lines) if first in line)
+    end = next(n for n, line in enumerate(lines) if n > start and line.startswith(last))
+    return lines[start + 1 : end]
+
+
+def main(run_4: Path, shipped: Path) -> None:
+    labels = [label for label, _, _ in texts3.every_text()]
+    sections = [section for _, section, _ in texts3.every_text()]
+    did: dict[int, str] = {}
+    writer: dict[int, str] = {}
+    for line in table(run_4, "what the load did (history older)", "the same verdict"):
+        match = RUN_4.match(line)
+        if match:
+            number = int(match.group(1))
+            rest = match.group(5).split("   [the pass")[0]
+            did[number] = rest.rsplit(labels[number], 1)[0].strip()
+            writer[number] = match.group(2).strip()
+    outcome: dict[int, tuple[str, str, str]] = {}
+    for line in table(shipped, "through the shipped package              floats", "texts whose child reported"):
+        match = SHIPPED.match(line)
+        if match:
+            outcome[int(match.group(1))] = (match.group(2), match.group(3), match.group(4).strip())
+    print(f"texts read from {run_4.name}: {len(did)}; from {shipped.name}: {len(outcome)}")
+    silent = sorted(number for number, (_, saw, _) in outcome.items() if saw == "raised no alert")
+    print(f"\ntexts that raised no alert and killed nothing in run 4: {len(silent)}")
+    tally = collections.Counter(did[number] for number in silent)
+    for what, count in sorted(tally.items()):
+        print(f"  {count:>3}  {what}")
+    print(f"  {sum(tally.values()):>3}  in all")
+
+    print("\nwhat the shipped package makes of those, by what Vital had made of each:")
+    cross: collections.Counter[tuple[str, str, str]] = collections.Counter()
+    for number in silent:
+        way, _, became = outcome[number]
+        cross[(became, way, did[number])] += 1
+    for became in sorted({key[0] for key in cross}):
+        total = sum(count for key, count in cross.items() if key[0] == became)
+        print(f"\n  {became}: {total}")
+        for way in ("the instrument", "the host"):
+            part = {key[2]: count for key, count in cross.items() if key[0] == became and key[1] == way}
+            if part:
+                print(f"    given to {way}: {sum(part.values())}")
+                for what, count in sorted(part.items()):
+                    print(f"      {count:>3}  {what}")
+    loaded = [number for number in silent if outcome[number][2] == "loaded"]
+    print(f"\nthe {len(loaded)} that still load through the shipped package, by what Vital made of each, both ways together:")
+    both = collections.Counter(did[number] for number in loaded)
+    for what, count in sorted(both.items()):
+        print(f"  {count:>3}  {what}")
+    print(f"  {sum(both.values()):>3}  in all")
+    print("and by the section each changes, for those not held as the text gives them and not without a changed section:")
+    astray = [number for number in loaded if "held as the text gives it" not in did[number] and "changes no section" not in did[number]]
+    by_section = collections.Counter((did[number], sections[number] or "(section 5's own)") for number in astray)
+    for (what, section), count in sorted(by_section.items()):
+        print(f"  {count:>3}  {section:<16} {what}")
+    print(f"  {len(astray):>3}  in all, of the {len(loaded)}")
+    print("\neach of the texts that still load and are not held as given, by name:")
+    for number in astray:
+        print(f"  {number:>3}  given to {outcome[number][0]:<14}  the writer can write it: {writer[number]:<3}  {did[number]:<62} {labels[number]}")
+
+
+if __name__ == "__main__":
+    main(Path(sys.argv[1]), Path(sys.argv[2]))
+```
+
+--- <scratchpad>/i20/texts3.py
+```
+"""The generated set of malformed texts for run 3 of issue #20's probes.
+
+Each is the start preset with one value inside one section replaced by another JSON type, or
+removed, or its array made one entry shorter or longer. Every value of every section is reached,
+down to DEPTH levels below the section, through the first entry of each array (the entries of an
+array in the start preset are alike). Section 5's 20 texts come first, under their own names.
+Nothing here loads a text into Vital.
+"""
+
+import copy
+import json
+from collections.abc import Iterator
+
+import common as c
+from patchbay_vital import check_loadable, loads
+from patchbay_vital.errors import VitalError
+
+SECTIONS = ("custom_warps", "lfos", "modulations", "random_values", "sample", "wavetables")
+DEPTH = 8
+"""Levels below a section that are reached: a wavetable's keyframe values are at the seventh."""
+REPLACEMENTS: dict[str, object] = {
+    "a number": 5,
+    "a string": "x",
+    "an empty array": [],
+    "an empty object": {},
+    "null": None,
+    "true": True,
+}
+
+Path = tuple[str | int, ...]
+
+
+def kind(value: object) -> str:
+    if isinstance(value, bool):
+        return "true"
+    if isinstance(value, (int, float)):
+        return "a number"
+    if isinstance(value, str):
+        return "a string"
+    if isinstance(value, list):
+        return "an empty array" if not value else "an array"
+    if isinstance(value, dict):
+        return "an empty object" if not value else "an object"
+    return "null"
+
+
+def nodes(value: object, path: Path = (), depth: int = 0) -> Iterator[tuple[Path, object]]:
+    """Every value at or below one, each array through its first entry, to DEPTH levels."""
+    yield path, value
+    if depth == DEPTH:
+        return
+    if isinstance(value, dict):
+        for key, inner in value.items():
+            yield from nodes(inner, (*path, key), depth + 1)
+    elif isinstance(value, list) and value:
+        yield from nodes(value[0], (*path, 0), depth + 1)
+
+
+def spelled(section: str, path: Path) -> str:
+    return section + "".join(f"[{step}]" if isinstance(step, int) else f".{step}" for step in path)
+
+
+def changed(section: object, path: Path, change: str) -> object:
+    """A copy of a section with the value at a path replaced, removed, shortened or lengthened."""
+    if not path:
+        return _one(section, change)
+    root = copy.deepcopy(section)
+    parent = root
+    for step in path[:-1]:
+        parent = parent[step]  # type: ignore[index]
+    last = path[-1]
+    if change == "removed":
+        del parent[last]  # type: ignore[attr-defined]
+    else:
+        parent[last] = _one(parent[last], change)  # type: ignore[index]
+    return root
+
+
+def _one(value: object, change: str) -> object:
+    if change == "one entry fewer":
+        return copy.deepcopy(value[:-1])  # type: ignore[index]
+    if change == "one entry more":
+        return copy.deepcopy([*value, value[-1]])  # type: ignore[misc, index]
+    return copy.deepcopy(REPLACEMENTS[change])
+
+
+def changes_of(path: Path, value: object) -> list[str]:
+    """What is done to one value: each other JSON type, and what its place allows."""
+    found = [name for name in REPLACEMENTS if name != kind(value)]
+    if path and isinstance(path[-1], str):
+        found.append("removed")
+    if isinstance(value, list) and value:
+        found += ["one entry fewer", "one entry more"]
+    return found
+
+
+def generated() -> list[tuple[str, str, bytes]]:
+    """Each generated text: its label, the section it changes, and its bytes."""
+    start = json.loads(c.START)
+    texts = []
+    for section in SECTIONS:
+        for path, value in nodes(start["settings"][section]):
+            for change in changes_of(path, value):
+                text = copy.deepcopy(start)
+                text["settings"][section] = changed(start["settings"][section], path, change)
+                label = f"{spelled(section, path)}: {change}"
+                raw = json.dumps(text, sort_keys=True, separators=(",", ":")).encode("utf-8")
+                texts.append((label, section, raw))
+    return texts
+
+
+def every_text() -> list[tuple[str, str | None, bytes]]:
+    """Section 5's 20 texts, then the generated ones."""
+    named: list[tuple[str, str | None, bytes]] = [
+        (label, None, build()) for label, build in c.CASES.items()
+    ]
+    return named + list(generated())
+
+
+def judged(text: bytes) -> tuple[str, str]:
+    """Whether the package's writer can write a text, and what the instrument's guard does."""
+    try:
+        preset = loads(text.decode("utf-8"))
+    except VitalError as error:
+        return f"no ({type(error).__name__})", "not reached"
+    except Exception as error:  # noqa: BLE001  a probe's read of a text that may be malformed
+        return f"no ({type(error).__name__}, not the package's error)", "not reached"
+    try:
+        check_loadable(preset, c.MAP)
+    except VitalError as error:
+        return "yes", f"refuses ({str(error)[:60]})"
+    return "yes", "passes"
+
+
+if __name__ == "__main__":
+    texts = every_text()
+    made = generated()
+    print(f"texts: {len(texts)}, of them generated {len(made)}, distinct {len({raw for _, _, raw in texts})}")
+    by_section: dict[str, int] = {}
+    for _, section, _ in made:
+        by_section[section] = by_section.get(section, 0) + 1
+    print(f"generated, by section: {by_section}")
+    verdicts: dict[tuple[str, str], int] = {}
+    for _, _, raw in texts:
+        writer, guard = judged(raw)
+        key = (writer.split(" (")[0], guard.split(" (")[0])
+        verdicts[key] = verdicts.get(key, 0) + 1
+    print(f"(the writer can write it, the guard): {verdicts}")
+    for label, _, _ in made[:6] + made[-6:]:
+        print("  ", label)
+```
+
+--- <scratchpad>/i20/common.py
+```
+"""What the probes of issue #20 share: the texts, the reads of the plugin, and the checks.
+
+Run from the repository root. Nothing here loads a text into Vital; the callers do, and a load
+that may block is made in a child the caller can kill.
+"""
+
+import ctypes
+import json
+import statistics
+import sys
+import time
+from collections.abc import Callable
+from pathlib import Path
+
+from patchbay import ParameterId
+
+from patchbay_vital.host import _LIBC, VitalHost, _floats
+from patchbay_vital.parameters import parameter_map
+from patchbay_vital.start import start_text
+
+MAP = parameter_map()
+START = start_text(MAP).encode("utf-8")
+PRESETS = Path.home() / "Music" / "Vital"
+ROOT = Path.cwd()
+FIXTURE = ROOT / "tests" / "data" / "init-media-replaced.vital"
+MANIFEST = ROOT / "tests" / "data" / "factory-manifest.txt"
+KEYS = tuple(str(record.preset_key) for record in MAP.parameters)
+DEFAULTS = {str(record.preset_key): record.preset_default for record in MAP.parameters}
+LIMIT = 3.0
+"""Seconds a load is given, counted from the child saying it is about to make it."""
+MARKERS = ("filter_1_cutoff", "filter_1_on")
+"""The parameters planted before a load: one continuous, one a switch; Vital upgrades neither."""
+
+
+def good_texts() -> list[tuple[str, bytes]]:
+    """The 77 texts Vital is known to load: the start preset, the fixture, the 75 installed."""
+    manifest = [
+        line
+        for line in MANIFEST.read_text(encoding="utf-8").splitlines()
+        if line and not line.startswith("#")
+    ]
+    texts = [("the start preset", START), ("the fixture", FIXTURE.read_bytes())]
+    texts += [(name, (PRESETS / name).read_bytes()) for name in manifest]
+    return texts
+
+
+def variant(top: dict[str, object] | None = None, **settings: object) -> bytes:
+    """The start preset with settings replaced (None removes one) and top-level keys set."""
+    changed = json.loads(START)
+    for key, value in settings.items():
+        if value is None:
+            del changed["settings"][key]
+        else:
+            changed["settings"][key] = value
+    changed.update(top or {})
+    return json.dumps(changed, sort_keys=True, separators=(",", ":")).encode("utf-8")
+
+
+def no_sections() -> bytes:
+    changed = json.loads(START)
+    for name in ("wavetables", "lfos", "sample", "custom_warps", "random_values"):
+        del changed["settings"][name]
+    return json.dumps(changed, sort_keys=True, separators=(",", ":")).encode("utf-8")
+
+
+def routed(source: str, destination: str) -> bytes:
+    changed = json.loads(START)
+    changed["settings"]["modulations"][0] = {"source": source, "destination": destination}
+    return json.dumps(changed, sort_keys=True, separators=(",", ":")).encode("utf-8")
+
+
+_LFO = {"name": "x", "num_points": 2, "points": "x", "powers": [0.0, 0.0], "smooth": False}
+_SAMPLE = {"length": "x", "name": "x", "sample_rate": 44100, "samples": ""}
+
+CASES: dict[str, Callable[[], bytes]] = {
+    # The 20 texts of the instrument spec's probes.txt, section 5, built as they were there.
+    "the start preset rewritten by json.dumps (the control)": lambda: variant(),
+    "no section at all": no_sections,
+    "wavetables an empty array": lambda: variant(wavetables=[]),
+    "wavetables an array of one empty object": lambda: variant(wavetables=[{}]),
+    "wavetables an object": lambda: variant(wavetables={"x": 1}),
+    "lfos an empty array": lambda: variant(lfos=[]),
+    "sample an empty object": lambda: variant(sample={}),
+    "a routing whose source and destination are no names of Vital's": lambda: routed(
+        "nonsense", "nowhere"
+    ),
+    "synth_version 99.0.0": lambda: variant({"synth_version": "99.0.0"}),
+    "synth_version abc": lambda: variant({"synth_version": "abc"}),
+    "without filter_1_cutoff": lambda: variant(filter_1_cutoff=None),
+    "volume at 1e30, far outside its scale": lambda: variant(volume=1e30),
+    "three wavetables whose groups is a number": lambda: variant(wavetables=[{"groups": 5}] * 3),
+    "eight lfos whose points is a string": lambda: variant(lfos=[_LFO] * 8),
+    "a sample with its four keys, its length a string": lambda: variant(sample=_SAMPLE),
+    "an empty object": lambda: b"{}",
+    "settings empty": lambda: b'{"settings":{}}',
+    "a string where a float belongs": lambda: variant(volume="loud"),
+    "wavetables a string": lambda: variant(wavetables="x"),
+    "without modulations": lambda: variant(modulations=None),
+}
+
+BLOCKED_IN_SECTION_5 = (
+    "no section at all",
+    "wavetables an object",
+    "sample an empty object",
+    "synth_version abc",
+    "three wavetables whose groups is a number",
+    "eight lfos whose points is a string",
+    "a sample with its four keys, its length a string",
+    "an empty object",
+    "settings empty",
+    "a string where a float belongs",
+    "wavetables a string",
+)
+"""The 11 that never returned there."""
+
+RETURNED_WRONG_IN_SECTION_5 = (
+    "synth_version 99.0.0",
+    "wavetables an empty array",
+    "lfos an empty array",
+    "wavetables an array of one empty object",
+)
+"""The four that returned with no error and were not loaded as given."""
+
+
+def floats_of(text: bytes) -> dict[str, float]:
+    """A text's float settings by key, read as the package reads JSON; none where it has none."""
+    try:
+        return dict(_floats(text))
+    except Exception:  # noqa: BLE001  a probe's read of a text that may be malformed
+        return {}
+
+
+def sections_of(text: bytes) -> dict[str, object]:
+    """A text's settings that are not numbers: its sections, parsed."""
+    settings = json.loads(text).get("settings", {})
+    if not isinstance(settings, dict):
+        return {}
+    return {
+        key: value
+        for key, value in settings.items()
+        if isinstance(value, (dict, list, str))
+    }
+
+
+def environment() -> bytes:
+    """The process's floating-point environment, as fegetenv gives it."""
+    saved = ctypes.create_string_buffer(512)
+    _LIBC.fegetenv(saved)
+    return saved.raw
+
+
+def subnormals_kept() -> bool:
+    """Whether a subnormal result is still a subnormal, so flush-to-zero is off."""
+    tiny = sys.float_info.min
+    return tiny / 4.0 != 0.0
+
+
+def plant(host: VitalHost, text: dict[str, float]) -> dict[str, tuple[float, float]]:
+    """Set each marker to the end of its range the text's value is not near.
+
+    Returns, by marker, the normalized value planted and the one the text's value has, the
+    parameter's default where the text lacks the key.
+    """
+    planted = {}
+    for key in MARKERS:
+        record = MAP.find(ParameterId(key))
+        target = record.scale.to_normalized(text.get(key, record.preset_default))
+        normalized = 0.0 if target > 0.5 else 1.0
+        host.set(ParameterId(key), normalized)
+        planted[key] = (normalized, target)
+    return planted
+
+
+def markers_read(host: VitalHost, planted: dict[str, tuple[float, float]]) -> tuple[int, int]:
+    """How many markers moved off the planted value, and how many read the text's exactly."""
+    moved = exact = 0
+    for key, (normalized, target) in planted.items():
+        now = host.get(ParameterId(key))
+        moved += now != normalized
+        exact += now == target
+    return moved, exact
+
+
+def floats_off(state: dict[str, float], text: dict[str, float]) -> tuple[list[str], list[str]]:
+    """The map's keys whose float in the state is not the text's, and, for keys the text lacks,
+    those not at the parameter's default."""
+    held = [key for key in KEYS if key in text and state.get(key) != text[key]]
+    lacking = [key for key in KEYS if key not in text and state.get(key) != DEFAULTS[key]]
+    return held, lacking
+
+
+def sections_off(state: dict[str, object], text: dict[str, object]) -> list[str]:
+    """The names of the text's sections the state does not hold as the text does."""
+    return sorted(name for name in text if state.get(name) != text[name])
+
+
+def timed(call: Callable[[], object]) -> tuple[float, object]:
+    """Run a call; return its milliseconds and what it gave."""
+    start = time.perf_counter()
+    result = call()
+    return (time.perf_counter() - start) * 1000.0, result
+
+
+def spread(values: list[float]) -> str:
+    """A sample's least, median and greatest, to one decimal."""
+    return (
+        f"min {min(values):.1f}, median {statistics.median(values):.1f}, max {max(values):.1f}"
+    )
+```
+
+--- <scratchpad>/i20/tree.sh
+```
+#!/usr/bin/env bash
+# usage: tree.sh   (run from the repository root)
+# Prints HEAD, git's status of the work tree and the blob of every path that status names, so two
+# calls can be compared with cmp: the tree a run read, and the tree it left.
+set -euo pipefail
+echo "  HEAD $(git rev-parse HEAD)"
+git status --porcelain=v1 --untracked-files=all > "${TMPDIR:-/tmp}/tree.$$"
+echo "  git status --porcelain=v1 --untracked-files=all, $(wc -l < "${TMPDIR:-/tmp}/tree.$$" | tr -d ' ') lines:"
+sed 's/^/    /' "${TMPDIR:-/tmp}/tree.$$"
+echo "  git hash-object of each of those paths (a deleted one marked so):"
+cut -c4- "${TMPDIR:-/tmp}/tree.$$" | LC_ALL=C sort | while IFS= read -r path; do
+  if [ -e "$path" ]; then echo "    $(git hash-object "$path")  $path"; else echo "    (deleted)  $path"; fi
+done
+rm -f "${TMPDIR:-/tmp}/tree.$$"
+```
+
+--- <scratchpad>/i20/machine.sh
+```
+#!/usr/bin/env bash
+# usage: machine.sh   Prints one line: the machine, its system, the locked Python and the load.
+set -euo pipefail
+echo "$(uname -m), $(sysctl -n machdep.cpu.brand_string), $(sysctl -n hw.ncpu) cores, macOS $(sw_vers -productVersion) ($(sw_vers -buildVersion)), Python $(uv run --locked python -c 'import platform; print(platform.python_version())'), load $(sysctl -n vm.loadavg | tr -d '{}' | xargs), at $(date '+%Y-%m-%d %H:%M %Z')"
+```
+
+--- <scratchpad>/i20/transcript.sh
+```
+#!/usr/bin/env bash
+# usage: transcript.sh <out file> <title> <script to embed>... -- <command...>   (from the repository root)
+# Writes one transcript outside the tree: its date and branch, the machine and the tree before,
+# the command's whole output, the tree and the machine after, the two trees compared, and every
+# script it ran, embedded. The caller copies the file into the spec's verification/ afterwards.
+set -uo pipefail
+R=$(cd "$(dirname "$0")" && pwd)
+out=$1; title=$2; shift 2
+scripts=()
+while [ "$1" != "--" ]; do scripts+=("$1"); shift; done
+shift
+{
+  echo "$title, run $(date '+%Y-%m-%d %H:%M %Z') on branch"
+  echo "$(git branch --show-current), Vital at /Library/Audio/Plug-Ins/VST3/Vital.vst3"
+  echo "the machine before the run: $(bash "$R/machine.sh")"
+  echo "the tree before the run (this transcript is written outside the tree and copied in afterwards):"
+  bash "$R/tree.sh" | tee "$R/out/tree-before.txt"
+  echo
+  echo "\$ $*" | sed "s|$R|<scratchpad>/i20|g"
+  "$@" 2>&1
+  echo "exit=$?"
+  echo
+  echo "the tree after the run:"
+  bash "$R/tree.sh" | tee "$R/out/tree-after.txt"
+  if cmp -s "$R/out/tree-before.txt" "$R/out/tree-after.txt"; then echo "cmp: the tree after the run is the tree before it"; else echo "cmp: THE TREE CHANGED DURING THE RUN"; fi
+  echo "the machine after the run: $(bash "$R/machine.sh")"
+  echo
+  echo "the scripts this run used, each embedded below with its blob:"
+  for s in "${scripts[@]}" "$R/tree.sh" "$R/machine.sh" "$R/transcript.sh"; do echo "    $(git hash-object "$s")  <scratchpad>/i20/$(basename "$s")"; done
+  for s in "${scripts[@]}" "$R/tree.sh" "$R/machine.sh" "$R/transcript.sh"; do
+    echo; echo "--- <scratchpad>/i20/$(basename "$s")"; echo '```'; cat "$s"; echo '```'
+  done
+} > "$out"
+```

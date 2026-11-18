@@ -1,25 +1,35 @@
 # The hosted plugin
 
 What Vital does when hosted, and how this package holds it to that. A rule here is about Vital
-through pedalboard; the general form of a measured third party is `base/testing/tests.md`'s.
-Written from `src/patchbay_vital/state.py` and `host.py`; the evidence is the `verification/` of
-the spec of issue #7 (`agent-os/specs/2026-11-09-1907-the-host-and-the-parameter-map/`):
-`probes.txt`, `host-probes.txt`, `float-environment.txt` and `probes-first-attempt.txt`; of its
-revision after PR 9's CI run (`agent-os/specs/2026-11-10-0738-revision-after-pr-9-ci/`):
-`linux-gate-run.txt` and `old-behaviour.txt`; of the revision after the review of PR 9
-(`agent-os/specs/2026-11-10-1027-revision-after-pr-9-review/`), whose `shape.md` records the
-reading of pedalboard 0.9.26's wrappers and its `old-behaviour.txt` the findings' tests failing on
-the code as reviewed; of the revision after the second review
+through pedalboard; the general form of a measured third party is `base/testing/tests.md`'s. Written
+from `src/patchbay_vital/state.py` and `host.py`; the evidence is the `verification/` of the spec of
+issue #7 (`agent-os/specs/2026-11-09-1907-the-host-and-the-parameter-map/`): `probes.txt`,
+`host-probes.txt`, `float-environment.txt` and `probes-first-attempt.txt`; of its revision after PR
+9's CI run (`agent-os/specs/2026-11-10-0738-revision-after-pr-9-ci/`): `linux-gate-run.txt` and
+`old-behaviour.txt`; of the revision after the review of PR 9
+(`agent-os/specs/2026-11-10-1027-revision-after-pr-9-review/`), whose `shape.md` records the reading
+of pedalboard 0.9.26's wrappers and its `old-behaviour.txt` the findings' tests failing on the code
+as reviewed; of the revision after the second review
 (`agent-os/specs/2026-11-10-1307-revision-after-pr-9-second-review/`), whose `old-behaviour.txt`
 does the same for its findings; of the revision after the third review
 (`agent-os/specs/2026-11-10-1438-revision-after-pr-9-third-review/`): `restore-probe.txt` and
 `old-behaviour.txt`; and of the spec of issue #13
-(`agent-os/specs/2026-11-11-1449-volume-preset-through-the-set-path/`), the revisions after PR
-14's reviews (`agent-os/specs/2026-11-11-1555-revision-after-pr-14-review/` and
+(`agent-os/specs/2026-11-11-1449-volume-preset-through-the-set-path/`), the revisions after PR 14's
+reviews (`agent-os/specs/2026-11-11-1555-revision-after-pr-14-review/` and
 `agent-os/specs/2026-11-11-2044-revision-after-pr-14-second-review/`) and the spec of issue #15
 (`agent-os/specs/2026-11-12-0937-map-inverses-land-on-held-presets/`): `plugin-probe.txt`; and of
 the spec of issue #8 (`agent-os/specs/2026-11-15-1448-the-instrument/`): `probes.txt` and
-`probes-2.txt`.
+`probes-2.txt`; and of the spec of issue #20
+(`agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/`): `probes-1-costs.txt`,
+`probes-2-alert.txt`, `probes-3-counts.txt`, `probes-3-crash-reports.txt`, `probes-4-counts.txt`,
+`arrays-seen.txt`, `marker-count.txt`, `rollback-count.txt`, `remedy-run.txt`,
+`silent-and-loaded.txt` and `mutation.txt`; and of the revision after the review of PR 26
+(`agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/`): `midpoint-probe.txt`, `costs.txt`,
+`marker-count.txt`, `rollback-count.txt`, `remedy-run.txt` and `mutation.txt`, the last four made on
+its final tree; and of the revision after its second review
+(`agent-os/specs/2026-11-18-0651-revision-after-pr-26-second-review/`), which measured nothing new
+on Vital: `marker-count.txt`, `rollback-count.txt`, `remedy-run.txt` and `mutation.txt`, made again
+on its final tree.
 
 ## The state
 
@@ -72,23 +82,201 @@ the spec of issue #8 (`agent-os/specs/2026-11-15-1448-the-instrument/`): `probes
   `agent-os/specs/2026-11-11-2044-revision-after-pr-14-second-review/`) and of the spec of issue
   #15 (`agent-os/specs/2026-11-12-0937-map-inverses-land-on-held-presets/`), section 2; first seen
   in issue #13's (`agent-os/specs/2026-11-11-1449-volume-preset-through-the-set-path/`).
-- **Vital reports no load it cannot use, and `load_state` raises for none.** Of 20 texts, each
-  loaded in a process of its own, on Vital 1.6.4 through pedalboard 0.9.26 on arm64 (Apple M4 Pro,
-  macOS 26.6.2):
-  - 11 never returned. Vital puts up a modal alert and its caller waits for ever, in AppKit's
-    `NSAlert runModal` under Vital's `SynthProcessor::setStateInformation`, by a sample of the
-    process. A text with no sections does it, and so does one whose fault is inside a section: three
-    wavetables whose `groups` is a number.
-  - A `synth_version` newer than the plugin's is ignored whole, with no error and the plugin
+- **Vital reports no load it cannot use.** Of 335 texts, 20 written by hand and 315 that change
+  one value inside one section of the start preset, each loaded twice in a process of its own, on
+  Vital 1.6.4 through pedalboard 0.9.26 on arm64 (Apple M4 Pro, macOS 26.6.2):
+  - **249 raise its modal alert.** Unanswered, the caller waits for ever, in AppKit's `NSAlert
+    runModal` under Vital's `SynthProcessor::setStateInformation`, and nothing in Python runs
+    meanwhile: pedalboard holds the GIL through the write, and a thread's ticks and a signal
+    handler's alarms stopped, 10 and 4 in the second before the load and 0 and 0 after it began.
+    The alert is the text's and not the instance's: a text's first load has the same verdict in a
+    fresh instance and after each of three histories on 335 of 335. By then Vital has taken the
+    text in part: its floats on 246 of the 249, a section on 245.
+  - **3 kill the process** inside Vital's own reading of the text, each a section one entry
+    longer than Vital holds: `custom_warps` and `wavetables` in the first load, `random_values` in
+    the second, the first having returned clean. Each killed all 14 of its children. Once in 11
+    fresh children `random_values` let both loads return, and the child died at exit. So one load
+    of a text is no trial of it, which is further evidence for loading twice (below).
+  - **A `synth_version` newer than the plugin's is ignored whole,** with no error and the plugin
     unchanged.
-  - `wavetables` or `lfos` as an empty array loads the floats and keeps the sections the plugin had.
+  - **The other 82 load, not all as given.** By the state read after each, loaded over an older
+    installed preset: 10 hold the changed section as the text gives it, and 3 change no section;
+    16 hold it as the unchanged one, the change read past; 9 keep it from the preset before; 41
+    hold something the read cannot name; and on 3 the read cannot tell a kept section from an
+    unchanged one. `wavetables` or `lfos` as an empty array keeps what the plugin had.
   - A key the text lacks goes to its default, 132 of 132.
 
-  So a text is judged before the plugin is given it (`vital/instrument.md`, the guard); a load
-  that may not return is run only in a process of its own with a time limit, as a transcript; and
-  no test sends one. A load that cannot block is issue #20's to make. Verified against
-  `probes.txt` sections 5 and 5b, `patch.py` (`check_loadable`) and
-  `test_a_preset_the_plugin_was_seen_not_to_load_whole_is_refused_before_it_is_called`.
+  Each text changed one value: none had two faults, or a fault past an array's first entry, and
+  6 of the 18 arrays in the presets on hand were never made longer or shorter. A load that may
+  not return, or may kill, is run only in a process of its own with a time limit, as a
+  transcript. Verified against the spec of issue #20's `probes-4-counts.txt`,
+  `probes-2-alert.txt`, `probes-3-crash-reports.txt`, `arrays-seen.txt` and
+  `silent-and-loaded.txt`, and issue #8's `probes.txt` sections 5 and 5b.
+- **A state is written under a watch that answers the alert, on macOS.** For the length of each
+  write, a load's and the one a measurement ends on alike, `host.py` replaces `-[NSAlert runModal]`
+  with a callback that marks that an alert was answered, notes it, then its two texts, and returns
+  its first button, and puts the method back in a `finally`, as the floating-point environment is.
+  The method's own implementation is read once, with `method_getImplementation`, when the watch is
+  made, kept for its lifetime and never taken from a swap's return. The watch sets its own state and
+  installs the callback inside one `try`, whose `finally` puts the kept implementation back and
+  then clears the state, whatever happened before it: an interrupt in the install, or on the line
+  after it, leaves the method its own and the watch out of place, and putting the kept one back
+  twice changes nothing. The callback's mark comes first and stores an object that already exists in
+  an attribute that already does, so it cannot fail for want of memory. Everything after it is
+  guarded, what noting the alert raises dropped, the mark standing for it, and what reading the
+  texts raises kept: nothing leaves the callback, since ctypes prints and drops an error raised
+  there and returns 0, not the first button (seen in memory, with no Vital; what Vital does with 0
+  was not measured). A write in which the mark was made is `PluginStateError` with the words of
+  every alert answered, in the order they were answered, and how many where there is more than one,
+  "Error opening preset" on every one whose words were read; one whose words could not be read says
+  so in its place, the error chained from what the first such read raised; one that could not be
+  noted at all says that; and a write in which pedalboard raised too is one `PluginStateError`
+  carrying both, chained from pedalboard's error. No text was seen to make Vital raise two alerts in
+  one write: that rule is held by a stand-in alone. The watch is one object for the whole process
+  and refuses to be entered while it is in place, before its `try`, so the entry in place keeps its
+  state and its method; with every write the main thread's and nothing but Vital and the callback
+  running inside one, no lock is needed. The Objective-C runtime is reached through `ctypes`, the
+  standard library alone, and where it or `pthread_main_np` cannot be on macOS the host refuses to
+  load. The watch is built from what `_appkit_watch` reads and makes from the runtime and the C
+  library, so its own rules are held by unit tests on every platform with those stood in. Under the
+  watch no load failed to return and no window showed: 383 children in the probes, and 335 and 77 on
+  the shipped code. It costs a median of 31.5 microseconds a load. Its limits:
+  - the method is replaced for the whole process while a write runs, so any alert run on the main
+    thread in that time is answered and counted as the write's. Nothing tells Vital's own alert
+    from another, and none other was seen;
+  - each answered alert leaves one window object in the application's own list, never shown and
+    never listed by the window server: 500 after 500 of them, resident memory going from 603 to 701
+    MiB over those 1,500 loads, the alerts' share of it not separated from the loads' (issue #27,
+    unverified, the revision after the review of PR 26's finding 11);
+  - on any other platform nothing is watched, so a text Vital cannot read may block there.
+    Nothing was probed off macOS, nor in a process with no screen.
+
+  Verified against `host.py` (`Alert`, `_AppKitWatch`, `_alert_texts`, `_appkit_watch`, `_NoWatch`,
+  `_alert_watch`, `VitalHost._write`, `_alert_said`, `_alerts_said`), `tests/unit/test_host.py`
+  (`test_the_watch_is_in_place_for_a_state_write_and_at_no_other_time`,
+  `test_a_state_the_plugin_answers_with_its_alert_is_the_package_s_error_with_its_words`,
+  `test_the_watch_answers_a_real_alert_at_once_and_puts_the_method_back`, which runs AppKit's own
+  alert in a child it kills at 10 s, `test_without_the_runtime_the_host_refuses_to_load`,
+  `test_off_macos_no_alert_is_watched`,
+  `test_the_watch_refuses_to_be_entered_while_it_is_in_place_and_puts_the_method_back`,
+  `test_the_callback_notes_an_alert_whose_words_cannot_be_read_and_returns_the_first_button`,
+  `test_an_alert_whose_words_could_not_be_read_is_the_package_s_error_chained_from_the_read`,
+  `test_an_alert_and_a_pedalboard_refusal_are_one_error_carrying_both`,
+  `test_an_interrupt_in_the_watch_s_install_leaves_the_method_its_own`,
+  `test_putting_the_method_s_own_implementation_back_twice_changes_nothing`,
+  `test_a_refused_nested_entry_leaves_the_first_entry_s_state_and_method_as_they_were`,
+  `test_the_callback_marks_an_alert_it_cannot_note_and_returns_the_first_button`,
+  `test_an_alert_that_could_not_be_noted_is_still_the_package_s_error`,
+  `test_every_alert_of_one_write_is_in_the_error_in_the_order_answered`),
+  `test_a_patch_vital_answers_with_its_alert_is_refused_and_the_plugin_put_back`,
+  `probes-2-alert.txt`, `probes-4-counts.txt`, and the revision after the second review of PR 26's
+  `remedy-run.txt`, made on its final tree, and MW1 to MW4, MR9, MR12 to MR14, MQ1 to MQ3 and MQ12
+  to MQ15 in its `mutation.txt`.
+- **A state is written on the process's main thread, on macOS.** `load_state` and `measure` ask
+  first, before the plugin is touched, and `_write`, the one place the plugin's state is set, asks
+  again, so a later caller that forgets cannot write elsewhere: from any other thread each raises
+  `PluginThreadError`, and a measurement refused there has set nothing. The thread is told by
+  `pthread_main_np`, reached through `ctypes` with its return type declared, which names the
+  process's main thread, the one AppKit needs; `threading.main_thread()` names the thread that
+  started Python, another one where an interpreter is embedded and started off the main thread. That
+  case is reasoned from what `pthread_main_np` means and was not measured. From another thread
+  AppKit refuses the alert's window, `NSInternalInconsistencyException: NSWindow should only be
+  instantiated on the main thread!` under `-[NSAlert init]`; the load raises through pedalboard; the
+  plugin's parameters are then read stale, as they are after a good text loaded so; and the process
+  died at its next render, 11 of 11, in AppKit's assertion on the main event queue. It is not a
+  `PluginStateError`: nothing was touched, so nothing is to be put back. `set` and `render` check no
+  thread, and neither was measured from a second thread. Off macOS the host writes from any thread,
+  as it always did, and none was probed there: should the parameters be read stale there as they
+  were on macOS, the marker would refuse a good load made so. Verified against `host.py`
+  (`_AppKitWatch.may_write_here`, `_appkit_watch`, `VitalHost._on_a_writing_thread`, `_write`,
+  `load_state`, `measure`), `errors.py` (`PluginThreadError`),
+  `test_a_load_from_a_second_thread_is_refused_before_the_plugin_is_called`,
+  `test_a_measurement_from_a_second_thread_is_refused_before_any_parameter_is_set`,
+  `test_a_state_write_from_a_second_thread_is_refused_by_the_write_itself`,
+  `test_the_watch_lets_a_state_be_written_only_where_pthread_main_np_says_main`,
+  `test_on_macos_pthread_main_np_answers_the_main_thread_and_no_other`,
+  `test_on_macos_a_library_that_is_not_found_leaves_no_watch`,
+  `test_where_no_alert_is_answered_a_load_is_made_from_any_thread`,
+  `test_a_load_from_another_thread_is_no_state_error` (in `tests/unit/test_errors.py`),
+  `test_a_load_from_a_second_thread_changes_nothing_and_is_refused_as_a_patch`,
+  `probes-3-counts.txt`, `probes-3-crash-reports.txt`, and MT1, MT2, ME1, MR7, MR8, MR10 and MR11 in
+  the revision after the review of PR 26's `mutation.txt`.
+- **A load is checked with a marker, which is the plugin's alone.** Before each write `host.py`
+  sets `MARKER`, the switch `filter_1_on`, to the end of its range the text does not hold: the
+  maximum, unless the text's value is at the scale's midpoint or above, and then the minimum. A
+  text without the key holds the default. One that holds under the key what is no JSON number,
+  `true` and `false` among them, is `PluginStateError` naming the key and the value's kind, before
+  the marker is read or set: which end such a text holds is not known. Vital's reading of a
+  non-number there was not measured, because such a text is never sent: the file's reader refuses a
+  setting that is no float, so only a text given to a bare host can hold one, and the state's
+  validator, which asks only for one JSON object, passes it. After the write the marker is read:
+  left as planted, the load was ignored, `PluginStateError`. The value the marker had is read before
+  the `try` and the plant is inside it: however the plant or the write ends, an error from outside
+  the package, a `KeyboardInterrupt` or a `MemoryError`, among the ways, an interrupt in the plant
+  or on the line after it too, the marker left as planted is set back to the value it had, and the
+  error that ended it leaves as itself; one raised while setting it back is a note on it, never in
+  its place. `VitalHost.writes_begun`, read-only, counts the loads and measurements that have begun
+  to change the plugin. It is raised just before the first change each makes, the plant, the write
+  of an unchecked load or a measurement's first set, and never after it, so an interrupt between the
+  two leaves it raised with nothing changed, the safe side. A load refused before any change, by the
+  thread rule, the validator, the marker's own check or a read of the marker the plugin refuses,
+  leaves it as it was, which is how the instrument knows the plugin was given nothing
+  (`vital/instrument.md`). The marker is sought once, and settled only by a lookup that
+  found it or by `MapMismatchError`: any other error leaves that load, and the next load seeks it
+  again. For the marker, a switch, Vital's parameter read held every value given as given, the
+  float32s either side of 0.5 and of each end among them, and only the state's own text rounds one
+  between the ends, below 0.5 to 0 and from 0.5 to 1: so the end planted is never what the read
+  holds after a load Vital took (57 values in the revision after the review of PR 26's
+  `midpoint-probe.txt`, each boundary located between two adjacent float32s). The text's settings
+  are read through `_settings`, the package's one guarded decoder, though the state's validator
+  refuses a text nesting too deeply first: 9994 levels through it against 9997 directly on Python
+  3.12.16 (the revision after the review of PR 26's `costs.txt`), a margin measured and not
+  promised. On the start preset, the fixture and the 75 installed presets the marker read the text's
+  value after 154 of 154 loads, under each of two histories, and the two-load result is the same
+  with the check as without it, all 903 floats and every section, 77 of 77. It needs the map, so
+  where the map is not the plugin's a load is made unchecked; it needs no AppKit, and was
+  measured on macOS alone. It does not see an alert that was answered: the floats are the
+  text's by then, and the watch is what tells. Its cost is the probe's figure and no other:
+  planting two markers and reading them back took a median of 156 microseconds, the text's
+  decode apart (`probes-1-costs.txt`); `marker-count.txt` does not measure it. Verified against
+  `host.py` (`MARKER`, `_planted`, `_KINDS`,
+  `VitalHost._marker`, `_set_back`, `_unplanted`, `writes_begun`, `load_state`, `measure`),
+  `test_the_marker_is_planted_at_the_end_of_its_range_the_text_does_not_hold`, its expected
+  values from the scale's two ends,
+  `test_a_load_the_plugin_ignores_is_refused_by_the_marker_it_left`,
+  `test_a_marker_a_failed_write_left_is_set_back_to_the_value_it_had`,
+  `test_where_the_map_is_not_the_plugin_s_a_load_is_made_unchecked`,
+  `test_a_state_vital_ignores_is_refused_by_the_marker_and_the_plugin_left_as_it_was`,
+  `test_an_error_from_outside_the_package_in_a_write_leaves_as_itself_and_the_marker_is_set_back`,
+  `test_a_marker_that_cannot_be_set_back_is_noted_on_the_write_s_own_error`,
+  `test_a_marker_lookup_that_fails_is_sought_again_at_the_next_load`,
+  `test_the_marker_is_never_planted_where_vital_holds_a_switch_s_value`,
+  `test_the_settings_helper_refuses_a_text_one_level_past_the_decoder_s_limit`,
+  `test_a_text_past_the_decoder_s_limit_is_refused_by_the_validator_before_the_marker`,
+  `test_an_interrupt_in_the_marker_s_plant_leaves_as_itself_and_the_marker_is_as_it_was`,
+  `test_the_count_of_writes_begun_is_raised_by_a_change_and_by_nothing_refused_before_one`,
+  `test_a_marker_value_that_is_no_number_is_refused_before_anything_is_set`, the revision after the
+  second review of PR 26's `marker-count.txt`, made on its final tree, and MM1 to MM6, MR1, MR2,
+  MR4, MR15, MR23, MQ4 to MQ6 and MQ10 in its `mutation.txt`.
+- **What a load can still do, measured and not remedied.** A text Vital dies on kills the calling
+  process: the guard refuses the three shapes found (`vital/instrument.md`) and no others. A text
+  Vital loads in part is not detected. Of the 83 texts that raised no alert, the shipped guard
+  refuses 19, the one ignored whole among them, and 64 still load: 54 as a patch through the
+  instrument, and 10 the package's writer cannot write, which only the host can be given. By the
+  state read after each of the 64: 10 hold the changed section as the text gives it, and 3
+  change no section; 15 hold it as the unchanged one; 1 keeps it from the preset before; and 35
+  hold something the read cannot name, 25 of them a wavetable, 6 a custom warp, 2 an lfo and 2 the
+  sample. So 51 of the 64 are not held as given. Only `custom_warps`, `lfos`, `modulations` and
+  `random_values` come back from the plugin as a good text gives them, 77 of 77, where `sample`
+  differs on 77 and `wavetables` on 75. So a check of those four after a load, counted over the 82
+  that loaded with no guard, flags 32 of them, for a state read and a parse of 0.9 to 54 ms, and
+  cannot see a wavetable or a sample that was made into something. That check is not built. Nor is a
+  trial load in a child process, the one candidate that reaches a crash: 2,379 ms a load in a fresh
+  child, or a second Vital kept up at 497 to 967 MiB and one more double load, and it passed
+  `random_values` once in 11. Nor a timer that ends the alert's modal loop, which returned the 11
+  texts it ran on and showed a 4 by 4 window. The crash and the part load are issue #25's to remedy.
+  Verified against `probes-1-costs.txt`, `probes-2-alert.txt`, `probes-4-counts.txt`,
+  `remedy-run.txt` and `silent-and-loaded.txt`.
 - **One load of a text is not enough, and two are: a measured fact, no cause known.** After a set of
   every parameter and a render, on the start preset, the fixture and the 75 installed presets: one
   load leaves 17 to 53 of the 903 floats off the text's on every text, 2,335 in all; two loads leave
@@ -125,8 +313,13 @@ the spec of issue #8 (`agent-os/specs/2026-11-15-1448-the-instrument/`): `probes
   its own native calls, and one guard from `VST3Plugin` on would enter it in the flush-to-zero the
   load left. A fake plugin that turns upward rounding on at every call holds both:
   after each public method the rounding mode is back, and no call finds the mode the one before
-  it set. Verified against `host.py` (`_c_library`, `_environment_kept`, `_reached`, `_name_of`,
-  `_text_for`, `VitalHost.__init__`), pedalboard 0.9.26's `AudioProcessorParameter.__init__` (read
+  it set. One piece of the package's Python does run under the plugin's environment: the callback
+  that answers Vital's alert, which Vital calls from inside a state write. It does no float
+  arithmetic, a comment at it saying so for a later edit, and it is not switched to the process's
+  own environment, since nothing may fail before the alert is noted. No test holds that it stays
+  so. Verified against `host.py` (`_c_library`, `_environment_kept`, `_reached`, `_name_of`,
+  `_text_for`, `VitalHost.__init__`, `_AppKitWatch._answered_at_once`), pedalboard 0.9.26's
+  `AudioProcessorParameter.__init__` (read
   for the fact), `tests/unit/test_host.py` (`test_every_public_method_gives_the_environment_back`,
   `test_every_call_into_the_plugin_is_entered_in_the_process_s_own_environment`) and
   `test_the_process_keeps_its_floating_point_environment`.

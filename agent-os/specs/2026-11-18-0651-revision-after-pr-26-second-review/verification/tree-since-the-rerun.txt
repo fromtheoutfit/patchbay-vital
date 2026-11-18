@@ -1,0 +1,294 @@
+The revision after the second review of PR 26: the tree its single rerun read, against the tree now, every path that differs, code or not, run 2026-11-18 10:53 EST on branch
+bugfix/20-the-host-a-preset-vital-cannot-read-blocks-the-calling-process-for-ever, Vital at /Library/Audio/Plug-Ins/VST3/Vital.vst3
+the machine before the run: arm64, Apple M4 Pro, 14 cores, macOS 26.6.2 (25G83), Python 3.12.16, load 2.44 2.69 3.21, at 2026-11-18 10:53 EST
+the tree before the run (this transcript is written outside the tree and copied in afterwards):
+  HEAD c8ed333fa591259434942215726bd255423b5c61
+  git status --porcelain=v1 --untracked-files=all, 27 lines:
+     M CHANGELOG.md
+     M README.md
+     M agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/shape.md
+     M agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/shape.md
+     M agent-os/standards/index.yml
+     M agent-os/standards/vital/instrument.md
+     M agent-os/standards/vital/plugin-state.md
+     M agent-os/standards/vital/preset-file.md
+     M src/patchbay_vital/host.py
+     M src/patchbay_vital/instrument.py
+     M src/patchbay_vital/patch.py
+     M tests/unit/builders.py
+     M tests/unit/test_host.py
+     M tests/unit/test_instrument.py
+     M tests/unit/test_patch.py
+    ?? agent-os/specs/2026-11-18-0651-revision-after-pr-26-second-review/plan.md
+    ?? agent-os/specs/2026-11-18-0651-revision-after-pr-26-second-review/references.md
+    ?? agent-os/specs/2026-11-18-0651-revision-after-pr-26-second-review/shape.md
+    ?? agent-os/specs/2026-11-18-0651-revision-after-pr-26-second-review/standards.md
+    ?? agent-os/specs/2026-11-18-0651-revision-after-pr-26-second-review/verification/bare-citations.txt
+    ?? agent-os/specs/2026-11-18-0651-revision-after-pr-26-second-review/verification/cited-names.txt
+    ?? agent-os/specs/2026-11-18-0651-revision-after-pr-26-second-review/verification/gate-run.txt
+    ?? agent-os/specs/2026-11-18-0651-revision-after-pr-26-second-review/verification/marker-count.txt
+    ?? agent-os/specs/2026-11-18-0651-revision-after-pr-26-second-review/verification/mutation.txt
+    ?? agent-os/specs/2026-11-18-0651-revision-after-pr-26-second-review/verification/remedy-run.txt
+    ?? agent-os/specs/2026-11-18-0651-revision-after-pr-26-second-review/verification/rollback-count-first.txt
+    ?? agent-os/specs/2026-11-18-0651-revision-after-pr-26-second-review/verification/rollback-count.txt
+  git hash-object of each of those paths (a deleted one marked so):
+    88cb953fd391b1d1eb4a399e91c69808b476036a  CHANGELOG.md
+    5ce6117ec17b6e0951c1c5bdf3c17d5037c4a8e9  README.md
+    5b1e588b94b77025c669e74d8c8eb8e24ca41ce5  agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/shape.md
+    1f99cf3b62d4682f6b092bcc4cad19c0ab63467f  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/shape.md
+    cfea1b41c92ff6a88e9cf98f337a7bc80160c81e  agent-os/specs/2026-11-18-0651-revision-after-pr-26-second-review/plan.md
+    9b4cdcbcd5c00212b83b323b3e9b2f07c2369d64  agent-os/specs/2026-11-18-0651-revision-after-pr-26-second-review/references.md
+    0f63ebe86a9fbc59c3f31a4b75f106a357ef2930  agent-os/specs/2026-11-18-0651-revision-after-pr-26-second-review/shape.md
+    da824f51c97916ba7b4772a2cbc4e8facd75185a  agent-os/specs/2026-11-18-0651-revision-after-pr-26-second-review/standards.md
+    fc5dc6267b416479a5938fed221ceb1ac001a9b1  agent-os/specs/2026-11-18-0651-revision-after-pr-26-second-review/verification/bare-citations.txt
+    982ea22c847990a62cb532fefaee44c4f1ba7cf0  agent-os/specs/2026-11-18-0651-revision-after-pr-26-second-review/verification/cited-names.txt
+    7ced8d874870e3747ce872d78fcd70f669c79959  agent-os/specs/2026-11-18-0651-revision-after-pr-26-second-review/verification/gate-run.txt
+    551c30b76745a98956043fe5924ba5347ead1282  agent-os/specs/2026-11-18-0651-revision-after-pr-26-second-review/verification/marker-count.txt
+    af763b42ce9cfe3c0b3e0beddf3bdfc926a73772  agent-os/specs/2026-11-18-0651-revision-after-pr-26-second-review/verification/mutation.txt
+    cb50c9d32898181f03b2667b3795b4303a19379a  agent-os/specs/2026-11-18-0651-revision-after-pr-26-second-review/verification/remedy-run.txt
+    6f0399e4309c134342ed769581801c15feb4b339  agent-os/specs/2026-11-18-0651-revision-after-pr-26-second-review/verification/rollback-count-first.txt
+    26602356c1552ad70f884bbc314717af6ce64f5d  agent-os/specs/2026-11-18-0651-revision-after-pr-26-second-review/verification/rollback-count.txt
+    55f136acac9f8e2627a5135ce780f7077ba56ecd  agent-os/standards/index.yml
+    f1285d3e75bd8bcb342ba08eb779f44197b17a1f  agent-os/standards/vital/instrument.md
+    499f3171a27ed42c6f2611a420badec0819b3095  agent-os/standards/vital/plugin-state.md
+    32761e33767c0b2cb966f2309cc41169a6400573  agent-os/standards/vital/preset-file.md
+    4b3ee48093239244aeec7bcefd5fec4c43b0d400  src/patchbay_vital/host.py
+    ccc9c18564d5af8c388f297245c3bf338a552ced  src/patchbay_vital/instrument.py
+    54b732eecf4f87025393ebec7e5846d203a1d4f9  src/patchbay_vital/patch.py
+    4fa6c885f7a9bbd5facb85737f17f84c2bfe9d26  tests/unit/builders.py
+    f6d8f3f955029041e2c7c3164a9b42433330e785  tests/unit/test_host.py
+    3aaf6cb41f0a06cd7284bf290d0463f6739f6b60  tests/unit/test_instrument.py
+    6456a09bee096817a2a5621d2253fdaf422d3320  tests/unit/test_patch.py
+
+$ python3 -I -B <scratchpad>/p26b/tie.py agent-os/specs/2026-11-18-0651-revision-after-pr-26-second-review/verification/rollback-count-first.txt agent-os/specs/2026-11-18-0651-revision-after-pr-26-second-review/verification/rollback-count.txt agent-os/specs/2026-11-18-0651-revision-after-pr-26-second-review/verification/remedy-run.txt agent-os/specs/2026-11-18-0651-revision-after-pr-26-second-review/verification/mutation.txt agent-os/specs/2026-11-18-0651-revision-after-pr-26-second-review/verification/marker-count.txt
+rollback-count-first.txt: 2 trees printed, 19 paths, 19 paths
+rollback-count.txt: 2 trees printed, 19 paths, 19 paths
+remedy-run.txt: 2 trees printed, 19 paths, 19 paths
+mutation.txt: 2 trees printed, 19 paths, 19 paths
+marker-count.txt: 2 trees printed, 19 paths, 19 paths
+every tree the 5 transcripts printed, before and after, is one tree: True
+the tree now: HEAD c8ed333fa591259434942215726bd255423b5c61, 27 paths that git status names
+
+paths that differ between the rerun's tree and the tree now: 9
+  not code  agent-os/specs/2026-11-18-0651-revision-after-pr-26-second-review/shape.md  rerun 7e7185d9f580  now 0f63ebe86a9f
+  not code  agent-os/specs/2026-11-18-0651-revision-after-pr-26-second-review/verification/bare-citations.txt  rerun (absent)  now fc5dc6267b41
+  not code  agent-os/specs/2026-11-18-0651-revision-after-pr-26-second-review/verification/cited-names.txt  rerun (absent)  now 982ea22c8479
+  not code  agent-os/specs/2026-11-18-0651-revision-after-pr-26-second-review/verification/gate-run.txt  rerun (absent)  now 7ced8d874870
+  not code  agent-os/specs/2026-11-18-0651-revision-after-pr-26-second-review/verification/marker-count.txt  rerun (absent)  now 551c30b76745
+  not code  agent-os/specs/2026-11-18-0651-revision-after-pr-26-second-review/verification/mutation.txt  rerun (absent)  now af763b42ce9c
+  not code  agent-os/specs/2026-11-18-0651-revision-after-pr-26-second-review/verification/remedy-run.txt  rerun (absent)  now cb50c9d32898
+  not code  agent-os/specs/2026-11-18-0651-revision-after-pr-26-second-review/verification/rollback-count-first.txt  rerun (absent)  now 6f0399e4309c
+  not code  agent-os/specs/2026-11-18-0651-revision-after-pr-26-second-review/verification/rollback-count.txt  rerun (absent)  now 26602356c155
+
+code paths that differ: 0 []
+every path that differs is not code: the rerun ran on the final tree's code, tests and scripts
+exit=0
+
+the tree after the run:
+  HEAD c8ed333fa591259434942215726bd255423b5c61
+  git status --porcelain=v1 --untracked-files=all, 27 lines:
+     M CHANGELOG.md
+     M README.md
+     M agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/shape.md
+     M agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/shape.md
+     M agent-os/standards/index.yml
+     M agent-os/standards/vital/instrument.md
+     M agent-os/standards/vital/plugin-state.md
+     M agent-os/standards/vital/preset-file.md
+     M src/patchbay_vital/host.py
+     M src/patchbay_vital/instrument.py
+     M src/patchbay_vital/patch.py
+     M tests/unit/builders.py
+     M tests/unit/test_host.py
+     M tests/unit/test_instrument.py
+     M tests/unit/test_patch.py
+    ?? agent-os/specs/2026-11-18-0651-revision-after-pr-26-second-review/plan.md
+    ?? agent-os/specs/2026-11-18-0651-revision-after-pr-26-second-review/references.md
+    ?? agent-os/specs/2026-11-18-0651-revision-after-pr-26-second-review/shape.md
+    ?? agent-os/specs/2026-11-18-0651-revision-after-pr-26-second-review/standards.md
+    ?? agent-os/specs/2026-11-18-0651-revision-after-pr-26-second-review/verification/bare-citations.txt
+    ?? agent-os/specs/2026-11-18-0651-revision-after-pr-26-second-review/verification/cited-names.txt
+    ?? agent-os/specs/2026-11-18-0651-revision-after-pr-26-second-review/verification/gate-run.txt
+    ?? agent-os/specs/2026-11-18-0651-revision-after-pr-26-second-review/verification/marker-count.txt
+    ?? agent-os/specs/2026-11-18-0651-revision-after-pr-26-second-review/verification/mutation.txt
+    ?? agent-os/specs/2026-11-18-0651-revision-after-pr-26-second-review/verification/remedy-run.txt
+    ?? agent-os/specs/2026-11-18-0651-revision-after-pr-26-second-review/verification/rollback-count-first.txt
+    ?? agent-os/specs/2026-11-18-0651-revision-after-pr-26-second-review/verification/rollback-count.txt
+  git hash-object of each of those paths (a deleted one marked so):
+    88cb953fd391b1d1eb4a399e91c69808b476036a  CHANGELOG.md
+    5ce6117ec17b6e0951c1c5bdf3c17d5037c4a8e9  README.md
+    5b1e588b94b77025c669e74d8c8eb8e24ca41ce5  agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/shape.md
+    1f99cf3b62d4682f6b092bcc4cad19c0ab63467f  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/shape.md
+    cfea1b41c92ff6a88e9cf98f337a7bc80160c81e  agent-os/specs/2026-11-18-0651-revision-after-pr-26-second-review/plan.md
+    9b4cdcbcd5c00212b83b323b3e9b2f07c2369d64  agent-os/specs/2026-11-18-0651-revision-after-pr-26-second-review/references.md
+    0f63ebe86a9fbc59c3f31a4b75f106a357ef2930  agent-os/specs/2026-11-18-0651-revision-after-pr-26-second-review/shape.md
+    da824f51c97916ba7b4772a2cbc4e8facd75185a  agent-os/specs/2026-11-18-0651-revision-after-pr-26-second-review/standards.md
+    fc5dc6267b416479a5938fed221ceb1ac001a9b1  agent-os/specs/2026-11-18-0651-revision-after-pr-26-second-review/verification/bare-citations.txt
+    982ea22c847990a62cb532fefaee44c4f1ba7cf0  agent-os/specs/2026-11-18-0651-revision-after-pr-26-second-review/verification/cited-names.txt
+    7ced8d874870e3747ce872d78fcd70f669c79959  agent-os/specs/2026-11-18-0651-revision-after-pr-26-second-review/verification/gate-run.txt
+    551c30b76745a98956043fe5924ba5347ead1282  agent-os/specs/2026-11-18-0651-revision-after-pr-26-second-review/verification/marker-count.txt
+    af763b42ce9cfe3c0b3e0beddf3bdfc926a73772  agent-os/specs/2026-11-18-0651-revision-after-pr-26-second-review/verification/mutation.txt
+    cb50c9d32898181f03b2667b3795b4303a19379a  agent-os/specs/2026-11-18-0651-revision-after-pr-26-second-review/verification/remedy-run.txt
+    6f0399e4309c134342ed769581801c15feb4b339  agent-os/specs/2026-11-18-0651-revision-after-pr-26-second-review/verification/rollback-count-first.txt
+    26602356c1552ad70f884bbc314717af6ce64f5d  agent-os/specs/2026-11-18-0651-revision-after-pr-26-second-review/verification/rollback-count.txt
+    55f136acac9f8e2627a5135ce780f7077ba56ecd  agent-os/standards/index.yml
+    f1285d3e75bd8bcb342ba08eb779f44197b17a1f  agent-os/standards/vital/instrument.md
+    499f3171a27ed42c6f2611a420badec0819b3095  agent-os/standards/vital/plugin-state.md
+    32761e33767c0b2cb966f2309cc41169a6400573  agent-os/standards/vital/preset-file.md
+    4b3ee48093239244aeec7bcefd5fec4c43b0d400  src/patchbay_vital/host.py
+    ccc9c18564d5af8c388f297245c3bf338a552ced  src/patchbay_vital/instrument.py
+    54b732eecf4f87025393ebec7e5846d203a1d4f9  src/patchbay_vital/patch.py
+    4fa6c885f7a9bbd5facb85737f17f84c2bfe9d26  tests/unit/builders.py
+    f6d8f3f955029041e2c7c3164a9b42433330e785  tests/unit/test_host.py
+    3aaf6cb41f0a06cd7284bf290d0463f6739f6b60  tests/unit/test_instrument.py
+    6456a09bee096817a2a5621d2253fdaf422d3320  tests/unit/test_patch.py
+cmp: the tree after the run is the tree before it
+the machine after the run: arm64, Apple M4 Pro, 14 cores, macOS 26.6.2 (25G83), Python 3.12.16, load 2.44 2.69 3.21, at 2026-11-18 10:53 EST
+
+the scripts this run used, each embedded below with its blob:
+    3d239169f61934c2ae570600b092f8997a7dd9de  <scratchpad>/p26b/tie.py
+    e4c1a40cc3893ab50df6717e5a18e2a755914efd  <scratchpad>/p26b/tree.sh
+    0dde01b338e9dbc221abc7e0d9b87bcf21acf1cf  <scratchpad>/p26b/machine.sh
+    2d45332cc108da40d386b49e54c18cd2df39a3fc  <scratchpad>/p26b/transcript.sh
+
+--- <scratchpad>/p26b/tie.py
+```
+"""The tree the single rerun read, against the tree now: every path that differs, code or not.
+
+usage: tie.py <transcript>...   (from the repository root)
+
+Each transcript prints the tree before and after its run, by `git status` and a blob a path. The
+four of the single rerun of the revision after the review of PR 26 must print one tree, before
+and after alike. That tree is set against the tree now, as `tree.sh` prints it: a path is listed
+where its blob differs or it is in one alone. A path under `src/`, `tests/`, `scripts/` or
+`.github/`, or `pyproject.toml` or `uv.lock`, is code; any other is not. A code path that differs
+is a stop: the rerun would then not be the final tree's.
+"""
+
+import re
+import subprocess
+import sys
+from pathlib import Path
+
+BLOB = re.compile(r"^    ([0-9a-f]{40}|\(deleted\))  (.+)$")
+CODE = ("src/", "tests/", "scripts/", ".github/")
+CODE_FILES = ("pyproject.toml", "uv.lock")
+
+
+def trees(text: str) -> list[dict[str, str]]:
+    """Each tree a transcript prints, before and after: path to blob."""
+    found, current = [], None
+    for line in text.splitlines():
+        if line.startswith("the tree before the run") or line.startswith("the tree after the run"):
+            current = {}
+            found.append(current)
+        elif current is not None:
+            match = BLOB.match(line)
+            if match:
+                current[match.group(2)] = match.group(1)
+            elif line.startswith("  HEAD ") or line.startswith("  git ") or line.startswith("    ") and not match:
+                continue
+            elif not line.startswith("  "):
+                current = None
+    return found
+
+
+def code(path: str) -> bool:
+    return path.startswith(CODE) or path in CODE_FILES
+
+
+def main() -> int:
+    read = []
+    for name in sys.argv[1:]:
+        both = trees(Path(name).read_text(encoding="utf-8"))
+        print(f"{Path(name).name}: {len(both)} trees printed, {', '.join(str(len(t)) + ' paths' for t in both)}")
+        read.extend(both)
+    first = read[0]
+    same = all(tree == first for tree in read)
+    print(f"every tree the {len(sys.argv) - 1} transcripts printed, before and after, is one tree: {same}")
+    if not same:
+        print("STOP: the rerun's transcripts printed more than one tree")
+        return 1
+    now = trees("the tree before the run\n" + subprocess.run(["bash", str(Path(__file__).parent / "tree.sh")], capture_output=True, text=True, check=True).stdout)[0]  # noqa: S603, S607
+    head = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True, check=True).stdout.strip()  # noqa: S603, S607
+    print(f"the tree now: HEAD {head}, {len(now)} paths that git status names")
+    differ = sorted(path for path in set(first) | set(now) if first.get(path) != now.get(path))
+    print(f"\npaths that differ between the rerun's tree and the tree now: {len(differ)}")
+    for path in differ:
+        kind = "CODE" if code(path) else "not code"
+        print(f"  {kind:<8}  {path}  rerun {first.get(path, '(absent)')[:12]}  now {now.get(path, '(absent)')[:12]}")
+    codes = [path for path in differ if code(path)]
+    print(f"\ncode paths that differ: {len(codes)} {codes}")
+    if codes:
+        print("STOP: a code path differs, so the rerun is not the final tree's")
+        return 1
+    print("every path that differs is not code: the rerun ran on the final tree's code, tests and scripts")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
+```
+
+--- <scratchpad>/p26b/tree.sh
+```
+#!/usr/bin/env bash
+# usage: tree.sh   (run from the repository root)
+# Prints HEAD, git's status of the work tree and the blob of every path that status names, so two
+# calls can be compared with cmp: the tree a run read, and the tree it left.
+set -euo pipefail
+echo "  HEAD $(git rev-parse HEAD)"
+git status --porcelain=v1 --untracked-files=all > "${TMPDIR:-/tmp}/tree.$$"
+echo "  git status --porcelain=v1 --untracked-files=all, $(wc -l < "${TMPDIR:-/tmp}/tree.$$" | tr -d ' ') lines:"
+sed 's/^/    /' "${TMPDIR:-/tmp}/tree.$$"
+echo "  git hash-object of each of those paths (a deleted one marked so):"
+cut -c4- "${TMPDIR:-/tmp}/tree.$$" | LC_ALL=C sort | while IFS= read -r path; do
+  if [ -e "$path" ]; then echo "    $(git hash-object "$path")  $path"; else echo "    (deleted)  $path"; fi
+done
+rm -f "${TMPDIR:-/tmp}/tree.$$"
+```
+
+--- <scratchpad>/p26b/machine.sh
+```
+#!/usr/bin/env bash
+# usage: machine.sh   Prints one line: the machine, its system, the locked Python and the load.
+set -euo pipefail
+echo "$(uname -m), $(sysctl -n machdep.cpu.brand_string), $(sysctl -n hw.ncpu) cores, macOS $(sw_vers -productVersion) ($(sw_vers -buildVersion)), Python $(uv run --locked python -c 'import platform; print(platform.python_version())'), load $(sysctl -n vm.loadavg | tr -d '{}' | xargs), at $(date '+%Y-%m-%d %H:%M %Z')"
+```
+
+--- <scratchpad>/p26b/transcript.sh
+```
+#!/usr/bin/env bash
+# usage: transcript.sh <out file> <title> <script to embed>... -- <command...>   (from the repository root)
+# Writes one transcript outside the tree: its date and branch, the machine and the tree before,
+# the command's whole output, the tree and the machine after, the two trees compared, and every
+# script it ran, embedded. The caller copies the file into the spec's verification/ afterwards.
+set -uo pipefail
+R=$(cd "$(dirname "$0")" && pwd)
+out=$1; title=$2; shift 2
+scripts=()
+while [ "$1" != "--" ]; do scripts+=("$1"); shift; done
+shift
+{
+  echo "$title, run $(date '+%Y-%m-%d %H:%M %Z') on branch"
+  echo "$(git branch --show-current), Vital at /Library/Audio/Plug-Ins/VST3/Vital.vst3"
+  echo "the machine before the run: $(bash "$R/machine.sh")"
+  echo "the tree before the run (this transcript is written outside the tree and copied in afterwards):"
+  bash "$R/tree.sh" | tee "$R/out/tree-before.txt"
+  echo
+  echo "\$ $*" | sed "s|$R|<scratchpad>/p26b|g"
+  "$@" 2>&1
+  echo "exit=$?"
+  echo
+  echo "the tree after the run:"
+  bash "$R/tree.sh" | tee "$R/out/tree-after.txt"
+  if cmp -s "$R/out/tree-before.txt" "$R/out/tree-after.txt"; then echo "cmp: the tree after the run is the tree before it"; else echo "cmp: THE TREE CHANGED DURING THE RUN"; fi
+  echo "the machine after the run: $(bash "$R/machine.sh")"
+  echo
+  echo "the scripts this run used, each embedded below with its blob:"
+  for s in ${scripts[@]+"${scripts[@]}"} "$R/tree.sh" "$R/machine.sh" "$R/transcript.sh"; do echo "    $(git hash-object "$s")  <scratchpad>/p26b/$(basename "$s")"; done
+  for s in ${scripts[@]+"${scripts[@]}"} "$R/tree.sh" "$R/machine.sh" "$R/transcript.sh"; do
+    echo; echo "--- <scratchpad>/p26b/$(basename "$s")"; echo '```'; cat "$s"; echo '```'
+  done
+} > "$out"
+```

@@ -1,0 +1,3188 @@
+The revision after the review of PR 26, finding 10: what Vital holds for the marker's switch between its ends, run 2026-11-17 12:46 EST on branch
+bugfix/20-the-host-a-preset-vital-cannot-read-blocks-the-calling-process-for-ever, Vital at /Library/Audio/Plug-Ins/VST3/Vital.vst3
+the machine before the run: arm64, Apple M4 Pro, 14 cores, macOS 26.6.2 (25G83), Python 3.12.16, load 1.62 1.86 2.13, at 2026-11-17 12:46 EST
+the tree before the run (this transcript is written outside the tree and copied in afterwards):
+  HEAD 9bc336c22b719062b46d485c041a3566c2ee40cf
+  git status --porcelain=v1 --untracked-files=all, 4 lines:
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/plan.md
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/references.md
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/shape.md
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/standards.md
+  git hash-object of each of those paths (a deleted one marked so):
+    1aede71497f7d42e6655e10406b648dbd8ad93ec  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/plan.md
+    943e9c7d3952eca1bf54ca103830d1cf5e4f5349  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/references.md
+    89cef49d87ca8a9374b3c38c5dcb6483874f5514  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/shape.md
+    bddbc3d3f156e6ec55bfb89afd36e33d198f8d2b  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/standards.md
+
+$ uv run --locked python <scratchpad>/p26/midpoint_run.py
+== each listed value, a child for the host and a child for the instrument
+-- 0.0
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | RESULT {"mode": "host", "value": 0.0, "value_hex": "0x0.0p+0", "text_holds": 0.0, "shipped_plant": 1.0, "plant 0.0": {"by_hand": [{"outcome": "taken", "read": 0.0, "text": 0.0}, {"outcome": "taken", "read": 0.0, "text": 0.0}], "shipped_load_state": [{"outcome": "refused: Vital ignored the state: filter_1_on, set before the load, was left as it was set", "read": 0.0, "text": 0.0}, {"outcome": "refused: Vital ignored the state: filter_1_on, set before the load, was left as it was set", "read": 0.0, "text": 0.0}]}, "plant 1.0": {"by_hand": [{"outcome": "taken", "read": 0.0, "text": 0.0}, {"outcome": "taken", "read": 0.0, "text": 0.0}], "shipped_load_state": [{"outcome": "taken", "read": 0.0, "text": 0.0}, {"outcome": "taken", "read": 0.0, "text": 0.0}]}}
+      | ABOUT TO LOAD
+      | RETURNED
+      | RESULT {"mode": "instrument", "value": 0.0, "value_hex": "0x0.0p+0", "in_values": true, "outcome": "loaded", "model": 0.0, "get": [0.0, "none"], "read": 0.0, "text": 0.0}
+-- 0.25
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | RESULT {"mode": "host", "value": 0.25, "value_hex": "0x1.0000000000000p-2", "text_holds": 0.25, "shipped_plant": 1.0, "plant 0.0": {"by_hand": [{"outcome": "taken", "read": 0.25, "text": 0.0}, {"outcome": "taken", "read": 0.25, "text": 0.0}], "shipped_load_state": [{"outcome": "taken", "read": 0.25, "text": 0.0}, {"outcome": "taken", "read": 0.25, "text": 0.0}]}, "plant 1.0": {"by_hand": [{"outcome": "taken", "read": 0.25, "text": 0.0}, {"outcome": "taken", "read": 0.25, "text": 0.0}], "shipped_load_state": [{"outcome": "taken", "read": 0.25, "text": 0.0}, {"outcome": "taken", "read": 0.25, "text": 0.0}]}}
+      | ABOUT TO LOAD
+      | RETURNED
+      | RESULT {"mode": "instrument", "value": 0.25, "value_hex": "0x1.0000000000000p-2", "in_values": false, "outcome": "loaded", "model": 0.25, "get": [0.25, "none"], "read": 0.25, "text": 0.0}
+-- 0.49
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | RESULT {"mode": "host", "value": 0.49, "value_hex": "0x1.f5c28f5c28f5cp-2", "text_holds": 0.49, "shipped_plant": 1.0, "plant 0.0": {"by_hand": [{"outcome": "taken", "read": 0.49000000953674316, "text": 0.0}, {"outcome": "taken", "read": 0.49000000953674316, "text": 0.0}], "shipped_load_state": [{"outcome": "taken", "read": 0.49000000953674316, "text": 0.0}, {"outcome": "taken", "read": 0.49000000953674316, "text": 0.0}]}, "plant 1.0": {"by_hand": [{"outcome": "taken", "read": 0.49000000953674316, "text": 0.0}, {"outcome": "taken", "read": 0.49000000953674316, "text": 0.0}], "shipped_load_state": [{"outcome": "taken", "read": 0.49000000953674316, "text": 0.0}, {"outcome": "taken", "read": 0.49000000953674316, "text": 0.0}]}}
+      | ABOUT TO LOAD
+      | RETURNED
+      | RESULT {"mode": "instrument", "value": 0.49, "value_hex": "0x1.f5c28f5c28f5cp-2", "in_values": false, "outcome": "loaded", "model": 0.49, "get": [0.49, "none"], "read": 0.49000000953674316, "text": 0.0}
+-- 0.4999999701976776
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | RESULT {"mode": "host", "value": 0.4999999701976776, "value_hex": "0x1.fffffe0000000p-2", "text_holds": 0.4999999701976776, "shipped_plant": 1.0, "plant 0.0": {"by_hand": [{"outcome": "taken", "read": 0.4999999701976776, "text": 0.0}, {"outcome": "taken", "read": 0.4999999701976776, "text": 0.0}], "shipped_load_state": [{"outcome": "taken", "read": 0.4999999701976776, "text": 0.0}, {"outcome": "taken", "read": 0.4999999701976776, "text": 0.0}]}, "plant 1.0": {"by_hand": [{"outcome": "taken", "read": 0.4999999701976776, "text": 0.0}, {"outcome": "taken", "read": 0.4999999701976776, "text": 0.0}], "shipped_load_state": [{"outcome": "taken", "read": 0.4999999701976776, "text": 0.0}, {"outcome": "taken", "read": 0.4999999701976776, "text": 0.0}]}}
+      | ABOUT TO LOAD
+      | RETURNED
+      | RESULT {"mode": "instrument", "value": 0.4999999701976776, "value_hex": "0x1.fffffe0000000p-2", "in_values": false, "outcome": "loaded", "model": 0.4999999701976776, "get": [0.4999999701976776, "none"], "read": 0.4999999701976776, "text": 0.0}
+-- 0.5
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | RESULT {"mode": "host", "value": 0.5, "value_hex": "0x1.0000000000000p-1", "text_holds": 0.5, "shipped_plant": 0.0, "plant 0.0": {"by_hand": [{"outcome": "taken", "read": 0.5, "text": 1.0}, {"outcome": "taken", "read": 0.5, "text": 1.0}], "shipped_load_state": [{"outcome": "taken", "read": 0.5, "text": 1.0}, {"outcome": "taken", "read": 0.5, "text": 1.0}]}, "plant 1.0": {"by_hand": [{"outcome": "taken", "read": 0.5, "text": 1.0}, {"outcome": "taken", "read": 0.5, "text": 1.0}], "shipped_load_state": [{"outcome": "taken", "read": 0.5, "text": 1.0}, {"outcome": "taken", "read": 0.5, "text": 1.0}]}}
+      | ABOUT TO LOAD
+      | RETURNED
+      | RESULT {"mode": "instrument", "value": 0.5, "value_hex": "0x1.0000000000000p-1", "in_values": false, "outcome": "loaded", "model": 0.5, "get": [0.5, "none"], "read": 0.5, "text": 1.0}
+-- 0.5000000596046448
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | RESULT {"mode": "host", "value": 0.5000000596046448, "value_hex": "0x1.0000020000000p-1", "text_holds": 0.5000000596046448, "shipped_plant": 0.0, "plant 0.0": {"by_hand": [{"outcome": "taken", "read": 0.5000000596046448, "text": 1.0}, {"outcome": "taken", "read": 0.5000000596046448, "text": 1.0}], "shipped_load_state": [{"outcome": "taken", "read": 0.5000000596046448, "text": 1.0}, {"outcome": "taken", "read": 0.5000000596046448, "text": 1.0}]}, "plant 1.0": {"by_hand": [{"outcome": "taken", "read": 0.5000000596046448, "text": 1.0}, {"outcome": "taken", "read": 0.5000000596046448, "text": 1.0}], "shipped_load_state": [{"outcome": "taken", "read": 0.5000000596046448, "text": 1.0}, {"outcome": "taken", "read": 0.5000000596046448, "text": 1.0}]}}
+      | ABOUT TO LOAD
+      | RETURNED
+      | RESULT {"mode": "instrument", "value": 0.5000000596046448, "value_hex": "0x1.0000020000000p-1", "in_values": false, "outcome": "loaded", "model": 0.5000000596046448, "get": [0.5000000596046448, "none"], "read": 0.5000000596046448, "text": 1.0}
+-- 0.51
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | RESULT {"mode": "host", "value": 0.51, "value_hex": "0x1.051eb851eb852p-1", "text_holds": 0.51, "shipped_plant": 0.0, "plant 0.0": {"by_hand": [{"outcome": "taken", "read": 0.5099999904632568, "text": 1.0}, {"outcome": "taken", "read": 0.5099999904632568, "text": 1.0}], "shipped_load_state": [{"outcome": "taken", "read": 0.5099999904632568, "text": 1.0}, {"outcome": "taken", "read": 0.5099999904632568, "text": 1.0}]}, "plant 1.0": {"by_hand": [{"outcome": "taken", "read": 0.5099999904632568, "text": 1.0}, {"outcome": "taken", "read": 0.5099999904632568, "text": 1.0}], "shipped_load_state": [{"outcome": "taken", "read": 0.5099999904632568, "text": 1.0}, {"outcome": "taken", "read": 0.5099999904632568, "text": 1.0}]}}
+      | ABOUT TO LOAD
+      | RETURNED
+      | RESULT {"mode": "instrument", "value": 0.51, "value_hex": "0x1.051eb851eb852p-1", "in_values": false, "outcome": "loaded", "model": 0.51, "get": [0.51, "none"], "read": 0.5099999904632568, "text": 1.0}
+-- 0.75
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | RESULT {"mode": "host", "value": 0.75, "value_hex": "0x1.8000000000000p-1", "text_holds": 0.75, "shipped_plant": 0.0, "plant 0.0": {"by_hand": [{"outcome": "taken", "read": 0.75, "text": 1.0}, {"outcome": "taken", "read": 0.75, "text": 1.0}], "shipped_load_state": [{"outcome": "taken", "read": 0.75, "text": 1.0}, {"outcome": "taken", "read": 0.75, "text": 1.0}]}, "plant 1.0": {"by_hand": [{"outcome": "taken", "read": 0.75, "text": 1.0}, {"outcome": "taken", "read": 0.75, "text": 1.0}], "shipped_load_state": [{"outcome": "taken", "read": 0.75, "text": 1.0}, {"outcome": "taken", "read": 0.75, "text": 1.0}]}}
+      | ABOUT TO LOAD
+      | RETURNED
+      | RESULT {"mode": "instrument", "value": 0.75, "value_hex": "0x1.8000000000000p-1", "in_values": false, "outcome": "loaded", "model": 0.75, "get": [0.75, "none"], "read": 0.75, "text": 1.0}
+-- 0.99
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | RESULT {"mode": "host", "value": 0.99, "value_hex": "0x1.fae147ae147aep-1", "text_holds": 0.99, "shipped_plant": 0.0, "plant 0.0": {"by_hand": [{"outcome": "taken", "read": 0.9900000095367432, "text": 1.0}, {"outcome": "taken", "read": 0.9900000095367432, "text": 1.0}], "shipped_load_state": [{"outcome": "taken", "read": 0.9900000095367432, "text": 1.0}, {"outcome": "taken", "read": 0.9900000095367432, "text": 1.0}]}, "plant 1.0": {"by_hand": [{"outcome": "taken", "read": 0.9900000095367432, "text": 1.0}, {"outcome": "taken", "read": 0.9900000095367432, "text": 1.0}], "shipped_load_state": [{"outcome": "taken", "read": 0.9900000095367432, "text": 1.0}, {"outcome": "taken", "read": 0.9900000095367432, "text": 1.0}]}}
+      | ABOUT TO LOAD
+      | RETURNED
+      | RESULT {"mode": "instrument", "value": 0.99, "value_hex": "0x1.fae147ae147aep-1", "in_values": false, "outcome": "loaded", "model": 0.99, "get": [0.99, "none"], "read": 0.9900000095367432, "text": 1.0}
+-- 1.0
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | RESULT {"mode": "host", "value": 1.0, "value_hex": "0x1.0000000000000p+0", "text_holds": 1.0, "shipped_plant": 0.0, "plant 0.0": {"by_hand": [{"outcome": "taken", "read": 1.0, "text": 1.0}, {"outcome": "taken", "read": 1.0, "text": 1.0}], "shipped_load_state": [{"outcome": "taken", "read": 1.0, "text": 1.0}, {"outcome": "taken", "read": 1.0, "text": 1.0}]}, "plant 1.0": {"by_hand": [{"outcome": "taken", "read": 1.0, "text": 1.0}, {"outcome": "taken", "read": 1.0, "text": 1.0}], "shipped_load_state": [{"outcome": "refused: Vital ignored the state: filter_1_on, set before the load, was left as it was set", "read": 0.0, "text": 0.0}, {"outcome": "refused: Vital ignored the state: filter_1_on, set before the load, was left as it was set", "read": 0.0, "text": 0.0}]}}
+      | ABOUT TO LOAD
+      | RETURNED
+      | RESULT {"mode": "instrument", "value": 1.0, "value_hex": "0x1.0000000000000p+0", "in_values": true, "outcome": "loaded", "model": 1.0, "get": [1.0, "none"], "read": 1.0, "text": 1.0}
+
+== the boundaries, bisected over float32 bits where neighbours' outcomes differ
+-- between 0.0 and 0.25: 1048575999 float32s between
+   bisecting at 4.0657581468206416e-20
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | RESULT {"mode": "host", "value": 4.0657581468206416e-20, "value_hex": "0x1.8000000000000p-65", "text_holds": 4.0657581468206416e-20, "shipped_plant": 1.0, "plant 0.0": {"by_hand": [{"outcome": "taken", "read": 4.0657581468206416e-20, "text": 0.0}, {"outcome": "taken", "read": 4.0657581468206416e-20, "text": 0.0}], "shipped_load_state": [{"outcome": "taken", "read": 4.0657581468206416e-20, "text": 0.0}, {"outcome": "taken", "read": 4.0657581468206416e-20, "text": 0.0}]}, "plant 1.0": {"by_hand": [{"outcome": "taken", "read": 4.0657581468206416e-20, "text": 0.0}, {"outcome": "taken", "read": 4.0657581468206416e-20, "text": 0.0}], "shipped_load_state": [{"outcome": "taken", "read": 4.0657581468206416e-20, "text": 0.0}, {"outcome": "taken", "read": 4.0657581468206416e-20, "text": 0.0}]}}
+   bisecting at 1.5777218104420236e-29
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | RESULT {"mode": "host", "value": 1.5777218104420236e-29, "value_hex": "0x1.4000000000000p-96", "text_holds": 1.5777218104420236e-29, "shipped_plant": 1.0, "plant 0.0": {"by_hand": [{"outcome": "taken", "read": 1.5777218104420236e-29, "text": 0.0}, {"outcome": "taken", "read": 1.5777218104420236e-29, "text": 0.0}], "shipped_load_state": [{"outcome": "taken", "read": 1.5777218104420236e-29, "text": 0.0}, {"outcome": "taken", "read": 1.5777218104420236e-29, "text": 0.0}]}, "plant 1.0": {"by_hand": [{"outcome": "taken", "read": 1.5777218104420236e-29, "text": 0.0}, {"outcome": "taken", "read": 1.5777218104420236e-29, "text": 0.0}], "shipped_load_state": [{"outcome": "taken", "read": 1.5777218104420236e-29, "text": 0.0}, {"outcome": "taken", "read": 1.5777218104420236e-29, "text": 0.0}]}}
+   bisecting at 3.1296361596292583e-34
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | RESULT {"mode": "host", "value": 3.1296361596292583e-34, "value_hex": "0x1.a000000000000p-112", "text_holds": 3.1296361596292583e-34, "shipped_plant": 1.0, "plant 0.0": {"by_hand": [{"outcome": "taken", "read": 3.1296361596292583e-34, "text": 0.0}, {"outcome": "taken", "read": 3.1296361596292583e-34, "text": 0.0}], "shipped_load_state": [{"outcome": "taken", "read": 3.1296361596292583e-34, "text": 0.0}, {"outcome": "taken", "read": 3.1296361596292583e-34, "text": 0.0}]}, "plant 1.0": {"by_hand": [{"outcome": "taken", "read": 3.1296361596292583e-34, "text": 0.0}, {"outcome": "taken", "read": 3.1296361596292583e-34, "text": 0.0}], "shipped_load_state": [{"outcome": "taken", "read": 3.1296361596292583e-34, "text": 0.0}, {"outcome": "taken", "read": 3.1296361596292583e-34, "text": 0.0}]}}
+   bisecting at 1.3635734469538535e-36
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | RESULT {"mode": "host", "value": 1.3635734469538535e-36, "value_hex": "0x1.d000000000000p-120", "text_holds": 1.3635734469538535e-36, "shipped_plant": 1.0, "plant 0.0": {"by_hand": [{"outcome": "taken", "read": 1.3635734469538535e-36, "text": 0.0}, {"outcome": "taken", "read": 1.3635734469538535e-36, "text": 0.0}], "shipped_load_state": [{"outcome": "taken", "read": 1.3635734469538535e-36, "text": 0.0}, {"outcome": "taken", "read": 1.3635734469538535e-36, "text": 0.0}]}, "plant 1.0": {"by_hand": [{"outcome": "taken", "read": 1.3635734469538535e-36, "text": 0.0}, {"outcome": "taken", "read": 1.3635734469538535e-36, "text": 0.0}], "shipped_load_state": [{"outcome": "taken", "read": 1.3635734469538535e-36, "text": 0.0}, {"outcome": "taken", "read": 1.3635734469538535e-36, "text": 0.0}]}}
+   bisecting at 8.963144425019942e-38
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | RESULT {"mode": "host", "value": 8.963144425019942e-38, "value_hex": "0x1.e800000000000p-124", "text_holds": 8.963144425019942e-38, "shipped_plant": 1.0, "plant 0.0": {"by_hand": [{"outcome": "taken", "read": 8.963144425019942e-38, "text": 0.0}, {"outcome": "taken", "read": 8.963144425019942e-38, "text": 0.0}], "shipped_load_state": [{"outcome": "taken", "read": 8.963144425019942e-38, "text": 0.0}, {"outcome": "taken", "read": 8.963144425019942e-38, "text": 0.0}]}, "plant 1.0": {"by_hand": [{"outcome": "taken", "read": 8.963144425019942e-38, "text": 0.0}, {"outcome": "taken", "read": 8.963144425019942e-38, "text": 0.0}], "shipped_load_state": [{"outcome": "taken", "read": 8.963144425019942e-38, "text": 0.0}, {"outcome": "taken", "read": 8.963144425019942e-38, "text": 0.0}]}}
+   bisecting at 2.2958874039497803e-38
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | RESULT {"mode": "host", "value": 2.2958874039497803e-38, "value_hex": "0x1.f400000000000p-126", "text_holds": 2.2958874039497803e-38, "shipped_plant": 1.0, "plant 0.0": {"by_hand": [{"outcome": "taken", "read": 2.2958874039497803e-38, "text": 0.0}, {"outcome": "taken", "read": 2.2958874039497803e-38, "text": 0.0}], "shipped_load_state": [{"outcome": "taken", "read": 2.2958874039497803e-38, "text": 0.0}, {"outcome": "taken", "read": 2.2958874039497803e-38, "text": 0.0}]}, "plant 1.0": {"by_hand": [{"outcome": "taken", "read": 2.2958874039497803e-38, "text": 0.0}, {"outcome": "taken", "read": 2.2958874039497803e-38, "text": 0.0}], "shipped_load_state": [{"outcome": "taken", "read": 2.2958874039497803e-38, "text": 0.0}, {"outcome": "taken", "read": 2.2958874039497803e-38, "text": 0.0}]}}
+   bisecting at 1.1479437019748901e-38
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | RESULT {"mode": "host", "value": 1.1479437019748901e-38, "value_hex": "0x1.f400000000000p-127", "text_holds": 1.1479437019748901e-38, "shipped_plant": 1.0, "plant 0.0": {"by_hand": [{"outcome": "taken", "read": 1.1479437019748901e-38, "text": 0.0}, {"outcome": "taken", "read": 1.1479437019748901e-38, "text": 0.0}], "shipped_load_state": [{"outcome": "taken", "read": 1.1479437019748901e-38, "text": 0.0}, {"outcome": "taken", "read": 1.1479437019748901e-38, "text": 0.0}]}, "plant 1.0": {"by_hand": [{"outcome": "taken", "read": 1.1479437019748901e-38, "text": 0.0}, {"outcome": "taken", "read": 1.1479437019748901e-38, "text": 0.0}], "shipped_load_state": [{"outcome": "taken", "read": 1.1479437019748901e-38, "text": 0.0}, {"outcome": "taken", "read": 1.1479437019748901e-38, "text": 0.0}]}}
+   bisecting at 5.739718509874451e-39
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | RESULT {"mode": "host", "value": 5.739718509874451e-39, "value_hex": "0x1.f400000000000p-128", "text_holds": 5.739718509874451e-39, "shipped_plant": 1.0, "plant 0.0": {"by_hand": [{"outcome": "taken", "read": 5.739718509874451e-39, "text": 0.0}, {"outcome": "taken", "read": 5.739718509874451e-39, "text": 0.0}], "shipped_load_state": [{"outcome": "taken", "read": 5.739718509874451e-39, "text": 0.0}, {"outcome": "taken", "read": 5.739718509874451e-39, "text": 0.0}]}, "plant 1.0": {"by_hand": [{"outcome": "taken", "read": 5.739718509874451e-39, "text": 0.0}, {"outcome": "taken", "read": 5.739718509874451e-39, "text": 0.0}], "shipped_load_state": [{"outcome": "taken", "read": 5.739718509874451e-39, "text": 0.0}, {"outcome": "taken", "read": 5.739718509874451e-39, "text": 0.0}]}}
+   bisecting at 2.8698592549372254e-39
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | RESULT {"mode": "host", "value": 2.8698592549372254e-39, "value_hex": "0x1.f400000000000p-129", "text_holds": 2.8698592549372254e-39, "shipped_plant": 1.0, "plant 0.0": {"by_hand": [{"outcome": "taken", "read": 2.8698592549372254e-39, "text": 0.0}, {"outcome": "taken", "read": 2.8698592549372254e-39, "text": 0.0}], "shipped_load_state": [{"outcome": "taken", "read": 2.8698592549372254e-39, "text": 0.0}, {"outcome": "taken", "read": 2.8698592549372254e-39, "text": 0.0}]}, "plant 1.0": {"by_hand": [{"outcome": "taken", "read": 2.8698592549372254e-39, "text": 0.0}, {"outcome": "taken", "read": 2.8698592549372254e-39, "text": 0.0}], "shipped_load_state": [{"outcome": "taken", "read": 2.8698592549372254e-39, "text": 0.0}, {"outcome": "taken", "read": 2.8698592549372254e-39, "text": 0.0}]}}
+   bisecting at 1.4349296274686127e-39
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | RESULT {"mode": "host", "value": 1.4349296274686127e-39, "value_hex": "0x1.f400000000000p-130", "text_holds": 1.4349296274686127e-39, "shipped_plant": 1.0, "plant 0.0": {"by_hand": [{"outcome": "taken", "read": 1.4349296274686127e-39, "text": 0.0}, {"outcome": "taken", "read": 1.4349296274686127e-39, "text": 0.0}], "shipped_load_state": [{"outcome": "taken", "read": 1.4349296274686127e-39, "text": 0.0}, {"outcome": "taken", "read": 1.4349296274686127e-39, "text": 0.0}]}, "plant 1.0": {"by_hand": [{"outcome": "taken", "read": 1.4349296274686127e-39, "text": 0.0}, {"outcome": "taken", "read": 1.4349296274686127e-39, "text": 0.0}], "shipped_load_state": [{"outcome": "taken", "read": 1.4349296274686127e-39, "text": 0.0}, {"outcome": "taken", "read": 1.4349296274686127e-39, "text": 0.0}]}}
+   bisecting at 7.174648137343063e-40
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | RESULT {"mode": "host", "value": 7.174648137343063e-40, "value_hex": "0x1.f400000000000p-131", "text_holds": 7.174648137343063e-40, "shipped_plant": 1.0, "plant 0.0": {"by_hand": [{"outcome": "taken", "read": 7.174648137343063e-40, "text": 0.0}, {"outcome": "taken", "read": 7.174648137343063e-40, "text": 0.0}], "shipped_load_state": [{"outcome": "taken", "read": 7.174648137343063e-40, "text": 0.0}, {"outcome": "taken", "read": 7.174648137343063e-40, "text": 0.0}]}, "plant 1.0": {"by_hand": [{"outcome": "taken", "read": 7.174648137343063e-40, "text": 0.0}, {"outcome": "taken", "read": 7.174648137343063e-40, "text": 0.0}], "shipped_load_state": [{"outcome": "taken", "read": 7.174648137343063e-40, "text": 0.0}, {"outcome": "taken", "read": 7.174648137343063e-40, "text": 0.0}]}}
+   bisecting at 3.5873240686715317e-40
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | RESULT {"mode": "host", "value": 3.5873240686715317e-40, "value_hex": "0x1.f400000000000p-132", "text_holds": 3.5873240686715317e-40, "shipped_plant": 1.0, "plant 0.0": {"by_hand": [{"outcome": "taken", "read": 3.5873240686715317e-40, "text": 0.0}, {"outcome": "taken", "read": 3.5873240686715317e-40, "text": 0.0}], "shipped_load_state": [{"outcome": "taken", "read": 3.5873240686715317e-40, "text": 0.0}, {"outcome": "taken", "read": 3.5873240686715317e-40, "text": 0.0}]}, "plant 1.0": {"by_hand": [{"outcome": "taken", "read": 3.5873240686715317e-40, "text": 0.0}, {"outcome": "taken", "read": 3.5873240686715317e-40, "text": 0.0}], "shipped_load_state": [{"outcome": "taken", "read": 3.5873240686715317e-40, "text": 0.0}, {"outcome": "taken", "read": 3.5873240686715317e-40, "text": 0.0}]}}
+   bisecting at 1.7936620343357659e-40
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | RESULT {"mode": "host", "value": 1.7936620343357659e-40, "value_hex": "0x1.f400000000000p-133", "text_holds": 1.7936620343357659e-40, "shipped_plant": 1.0, "plant 0.0": {"by_hand": [{"outcome": "taken", "read": 1.7936620343357659e-40, "text": 0.0}, {"outcome": "taken", "read": 1.7936620343357659e-40, "text": 0.0}], "shipped_load_state": [{"outcome": "taken", "read": 1.7936620343357659e-40, "text": 0.0}, {"outcome": "taken", "read": 1.7936620343357659e-40, "text": 0.0}]}, "plant 1.0": {"by_hand": [{"outcome": "taken", "read": 1.7936620343357659e-40, "text": 0.0}, {"outcome": "taken", "read": 1.7936620343357659e-40, "text": 0.0}], "shipped_load_state": [{"outcome": "taken", "read": 1.7936620343357659e-40, "text": 0.0}, {"outcome": "taken", "read": 1.7936620343357659e-40, "text": 0.0}]}}
+   bisecting at 8.968310171678829e-41
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | RESULT {"mode": "host", "value": 8.968310171678829e-41, "value_hex": "0x1.f400000000000p-134", "text_holds": 8.968310171678829e-41, "shipped_plant": 1.0, "plant 0.0": {"by_hand": [{"outcome": "taken", "read": 8.968310171678829e-41, "text": 0.0}, {"outcome": "taken", "read": 8.968310171678829e-41, "text": 0.0}], "shipped_load_state": [{"outcome": "taken", "read": 8.968310171678829e-41, "text": 0.0}, {"outcome": "taken", "read": 8.968310171678829e-41, "text": 0.0}]}, "plant 1.0": {"by_hand": [{"outcome": "taken", "read": 8.968310171678829e-41, "text": 0.0}, {"outcome": "taken", "read": 8.968310171678829e-41, "text": 0.0}], "shipped_load_state": [{"outcome": "taken", "read": 8.968310171678829e-41, "text": 0.0}, {"outcome": "taken", "read": 8.968310171678829e-41, "text": 0.0}]}}
+   bisecting at 4.4841550858394146e-41
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | RESULT {"mode": "host", "value": 4.4841550858394146e-41, "value_hex": "0x1.f400000000000p-135", "text_holds": 4.4841550858394146e-41, "shipped_plant": 1.0, "plant 0.0": {"by_hand": [{"outcome": "taken", "read": 4.4841550858394146e-41, "text": 0.0}, {"outcome": "taken", "read": 4.4841550858394146e-41, "text": 0.0}], "shipped_load_state": [{"outcome": "taken", "read": 4.4841550858394146e-41, "text": 0.0}, {"outcome": "taken", "read": 4.4841550858394146e-41, "text": 0.0}]}, "plant 1.0": {"by_hand": [{"outcome": "taken", "read": 4.4841550858394146e-41, "text": 0.0}, {"outcome": "taken", "read": 4.4841550858394146e-41, "text": 0.0}], "shipped_load_state": [{"outcome": "taken", "read": 4.4841550858394146e-41, "text": 0.0}, {"outcome": "taken", "read": 4.4841550858394146e-41, "text": 0.0}]}}
+   bisecting at 2.2420775429197073e-41
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | RESULT {"mode": "host", "value": 2.2420775429197073e-41, "value_hex": "0x1.f400000000000p-136", "text_holds": 2.2420775429197073e-41, "shipped_plant": 1.0, "plant 0.0": {"by_hand": [{"outcome": "taken", "read": 2.2420775429197073e-41, "text": 0.0}, {"outcome": "taken", "read": 2.2420775429197073e-41, "text": 0.0}], "shipped_load_state": [{"outcome": "taken", "read": 2.2420775429197073e-41, "text": 0.0}, {"outcome": "taken", "read": 2.2420775429197073e-41, "text": 0.0}]}, "plant 1.0": {"by_hand": [{"outcome": "taken", "read": 2.2420775429197073e-41, "text": 0.0}, {"outcome": "taken", "read": 2.2420775429197073e-41, "text": 0.0}], "shipped_load_state": [{"outcome": "taken", "read": 2.2420775429197073e-41, "text": 0.0}, {"outcome": "taken", "read": 2.2420775429197073e-41, "text": 0.0}]}}
+   bisecting at 1.1210387714598537e-41
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | RESULT {"mode": "host", "value": 1.1210387714598537e-41, "value_hex": "0x1.f400000000000p-137", "text_holds": 1.1210387714598537e-41, "shipped_plant": 1.0, "plant 0.0": {"by_hand": [{"outcome": "taken", "read": 1.1210387714598537e-41, "text": 0.0}, {"outcome": "taken", "read": 1.1210387714598537e-41, "text": 0.0}], "shipped_load_state": [{"outcome": "taken", "read": 1.1210387714598537e-41, "text": 0.0}, {"outcome": "taken", "read": 1.1210387714598537e-41, "text": 0.0}]}, "plant 1.0": {"by_hand": [{"outcome": "taken", "read": 1.1210387714598537e-41, "text": 0.0}, {"outcome": "taken", "read": 1.1210387714598537e-41, "text": 0.0}], "shipped_load_state": [{"outcome": "taken", "read": 1.1210387714598537e-41, "text": 0.0}, {"outcome": "taken", "read": 1.1210387714598537e-41, "text": 0.0}]}}
+   bisecting at 5.605193857299268e-42
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | RESULT {"mode": "host", "value": 5.605193857299268e-42, "value_hex": "0x1.f400000000000p-138", "text_holds": 5.605193857299268e-42, "shipped_plant": 1.0, "plant 0.0": {"by_hand": [{"outcome": "taken", "read": 5.605193857299268e-42, "text": 0.0}, {"outcome": "taken", "read": 5.605193857299268e-42, "text": 0.0}], "shipped_load_state": [{"outcome": "taken", "read": 5.605193857299268e-42, "text": 0.0}, {"outcome": "taken", "read": 5.605193857299268e-42, "text": 0.0}]}, "plant 1.0": {"by_hand": [{"outcome": "taken", "read": 5.605193857299268e-42, "text": 0.0}, {"outcome": "taken", "read": 5.605193857299268e-42, "text": 0.0}], "shipped_load_state": [{"outcome": "taken", "read": 5.605193857299268e-42, "text": 0.0}, {"outcome": "taken", "read": 5.605193857299268e-42, "text": 0.0}]}}
+   bisecting at 2.802596928649634e-42
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | RESULT {"mode": "host", "value": 2.802596928649634e-42, "value_hex": "0x1.f400000000000p-139", "text_holds": 2.802596928649634e-42, "shipped_plant": 1.0, "plant 0.0": {"by_hand": [{"outcome": "taken", "read": 2.802596928649634e-42, "text": 0.0}, {"outcome": "taken", "read": 2.802596928649634e-42, "text": 0.0}], "shipped_load_state": [{"outcome": "taken", "read": 2.802596928649634e-42, "text": 0.0}, {"outcome": "taken", "read": 2.802596928649634e-42, "text": 0.0}]}, "plant 1.0": {"by_hand": [{"outcome": "taken", "read": 2.802596928649634e-42, "text": 0.0}, {"outcome": "taken", "read": 2.802596928649634e-42, "text": 0.0}], "shipped_load_state": [{"outcome": "taken", "read": 2.802596928649634e-42, "text": 0.0}, {"outcome": "taken", "read": 2.802596928649634e-42, "text": 0.0}]}}
+   bisecting at 1.401298464324817e-42
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | RESULT {"mode": "host", "value": 1.401298464324817e-42, "value_hex": "0x1.f400000000000p-140", "text_holds": 1.401298464324817e-42, "shipped_plant": 1.0, "plant 0.0": {"by_hand": [{"outcome": "taken", "read": 1.401298464324817e-42, "text": 0.0}, {"outcome": "taken", "read": 1.401298464324817e-42, "text": 0.0}], "shipped_load_state": [{"outcome": "taken", "read": 1.401298464324817e-42, "text": 0.0}, {"outcome": "taken", "read": 1.401298464324817e-42, "text": 0.0}]}, "plant 1.0": {"by_hand": [{"outcome": "taken", "read": 1.401298464324817e-42, "text": 0.0}, {"outcome": "taken", "read": 1.401298464324817e-42, "text": 0.0}], "shipped_load_state": [{"outcome": "taken", "read": 1.401298464324817e-42, "text": 0.0}, {"outcome": "taken", "read": 1.401298464324817e-42, "text": 0.0}]}}
+   bisecting at 7.006492321624085e-43
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | RESULT {"mode": "host", "value": 7.006492321624085e-43, "value_hex": "0x1.f400000000000p-141", "text_holds": 7.006492321624085e-43, "shipped_plant": 1.0, "plant 0.0": {"by_hand": [{"outcome": "taken", "read": 7.006492321624085e-43, "text": 0.0}, {"outcome": "taken", "read": 7.006492321624085e-43, "text": 0.0}], "shipped_load_state": [{"outcome": "taken", "read": 7.006492321624085e-43, "text": 0.0}, {"outcome": "taken", "read": 7.006492321624085e-43, "text": 0.0}]}, "plant 1.0": {"by_hand": [{"outcome": "taken", "read": 7.006492321624085e-43, "text": 0.0}, {"outcome": "taken", "read": 7.006492321624085e-43, "text": 0.0}], "shipped_load_state": [{"outcome": "taken", "read": 7.006492321624085e-43, "text": 0.0}, {"outcome": "taken", "read": 7.006492321624085e-43, "text": 0.0}]}}
+   bisecting at 3.5032461608120427e-43
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | RESULT {"mode": "host", "value": 3.5032461608120427e-43, "value_hex": "0x1.f400000000000p-142", "text_holds": 3.5032461608120427e-43, "shipped_plant": 1.0, "plant 0.0": {"by_hand": [{"outcome": "taken", "read": 3.5032461608120427e-43, "text": 0.0}, {"outcome": "taken", "read": 3.5032461608120427e-43, "text": 0.0}], "shipped_load_state": [{"outcome": "taken", "read": 3.5032461608120427e-43, "text": 0.0}, {"outcome": "taken", "read": 3.5032461608120427e-43, "text": 0.0}]}, "plant 1.0": {"by_hand": [{"outcome": "taken", "read": 3.5032461608120427e-43, "text": 0.0}, {"outcome": "taken", "read": 3.5032461608120427e-43, "text": 0.0}], "shipped_load_state": [{"outcome": "taken", "read": 3.5032461608120427e-43, "text": 0.0}, {"outcome": "taken", "read": 3.5032461608120427e-43, "text": 0.0}]}}
+   bisecting at 1.7516230804060213e-43
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | RESULT {"mode": "host", "value": 1.7516230804060213e-43, "value_hex": "0x1.f400000000000p-143", "text_holds": 1.7516230804060213e-43, "shipped_plant": 1.0, "plant 0.0": {"by_hand": [{"outcome": "taken", "read": 1.7516230804060213e-43, "text": 0.0}, {"outcome": "taken", "read": 1.7516230804060213e-43, "text": 0.0}], "shipped_load_state": [{"outcome": "taken", "read": 1.7516230804060213e-43, "text": 0.0}, {"outcome": "taken", "read": 1.7516230804060213e-43, "text": 0.0}]}, "plant 1.0": {"by_hand": [{"outcome": "taken", "read": 1.7516230804060213e-43, "text": 0.0}, {"outcome": "taken", "read": 1.7516230804060213e-43, "text": 0.0}], "shipped_load_state": [{"outcome": "taken", "read": 1.7516230804060213e-43, "text": 0.0}, {"outcome": "taken", "read": 1.7516230804060213e-43, "text": 0.0}]}}
+   bisecting at 8.688050478813866e-44
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | RESULT {"mode": "host", "value": 8.688050478813866e-44, "value_hex": "0x1.f000000000000p-144", "text_holds": 8.688050478813866e-44, "shipped_plant": 1.0, "plant 0.0": {"by_hand": [{"outcome": "taken", "read": 8.688050478813866e-44, "text": 0.0}, {"outcome": "taken", "read": 8.688050478813866e-44, "text": 0.0}], "shipped_load_state": [{"outcome": "taken", "read": 8.688050478813866e-44, "text": 0.0}, {"outcome": "taken", "read": 8.688050478813866e-44, "text": 0.0}]}, "plant 1.0": {"by_hand": [{"outcome": "taken", "read": 8.688050478813866e-44, "text": 0.0}, {"outcome": "taken", "read": 8.688050478813866e-44, "text": 0.0}], "shipped_load_state": [{"outcome": "taken", "read": 8.688050478813866e-44, "text": 0.0}, {"outcome": "taken", "read": 8.688050478813866e-44, "text": 0.0}]}}
+   bisecting at 4.344025239406933e-44
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | RESULT {"mode": "host", "value": 4.344025239406933e-44, "value_hex": "0x1.f000000000000p-145", "text_holds": 4.344025239406933e-44, "shipped_plant": 1.0, "plant 0.0": {"by_hand": [{"outcome": "taken", "read": 4.344025239406933e-44, "text": 0.0}, {"outcome": "taken", "read": 4.344025239406933e-44, "text": 0.0}], "shipped_load_state": [{"outcome": "taken", "read": 4.344025239406933e-44, "text": 0.0}, {"outcome": "taken", "read": 4.344025239406933e-44, "text": 0.0}]}, "plant 1.0": {"by_hand": [{"outcome": "taken", "read": 4.344025239406933e-44, "text": 0.0}, {"outcome": "taken", "read": 4.344025239406933e-44, "text": 0.0}], "shipped_load_state": [{"outcome": "taken", "read": 4.344025239406933e-44, "text": 0.0}, {"outcome": "taken", "read": 4.344025239406933e-44, "text": 0.0}]}}
+   bisecting at 2.1019476964872256e-44
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | RESULT {"mode": "host", "value": 2.1019476964872256e-44, "value_hex": "0x1.e000000000000p-146", "text_holds": 2.1019476964872256e-44, "shipped_plant": 1.0, "plant 0.0": {"by_hand": [{"outcome": "taken", "read": 2.1019476964872256e-44, "text": 0.0}, {"outcome": "taken", "read": 2.1019476964872256e-44, "text": 0.0}], "shipped_load_state": [{"outcome": "taken", "read": 2.1019476964872256e-44, "text": 0.0}, {"outcome": "taken", "read": 2.1019476964872256e-44, "text": 0.0}]}, "plant 1.0": {"by_hand": [{"outcome": "taken", "read": 2.1019476964872256e-44, "text": 0.0}, {"outcome": "taken", "read": 2.1019476964872256e-44, "text": 0.0}], "shipped_load_state": [{"outcome": "taken", "read": 2.1019476964872256e-44, "text": 0.0}, {"outcome": "taken", "read": 2.1019476964872256e-44, "text": 0.0}]}}
+   bisecting at 9.80908925027372e-45
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | RESULT {"mode": "host", "value": 9.80908925027372e-45, "value_hex": "0x1.c000000000000p-147", "text_holds": 9.80908925027372e-45, "shipped_plant": 1.0, "plant 0.0": {"by_hand": [{"outcome": "taken", "read": 9.80908925027372e-45, "text": 0.0}, {"outcome": "taken", "read": 9.80908925027372e-45, "text": 0.0}], "shipped_load_state": [{"outcome": "taken", "read": 9.80908925027372e-45, "text": 0.0}, {"outcome": "taken", "read": 9.80908925027372e-45, "text": 0.0}]}, "plant 1.0": {"by_hand": [{"outcome": "taken", "read": 9.80908925027372e-45, "text": 0.0}, {"outcome": "taken", "read": 9.80908925027372e-45, "text": 0.0}], "shipped_load_state": [{"outcome": "taken", "read": 9.80908925027372e-45, "text": 0.0}, {"outcome": "taken", "read": 9.80908925027372e-45, "text": 0.0}]}}
+   bisecting at 4.203895392974451e-45
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | RESULT {"mode": "host", "value": 4.203895392974451e-45, "value_hex": "0x1.8000000000000p-148", "text_holds": 4.203895392974451e-45, "shipped_plant": 1.0, "plant 0.0": {"by_hand": [{"outcome": "taken", "read": 4.203895392974451e-45, "text": 0.0}, {"outcome": "taken", "read": 4.203895392974451e-45, "text": 0.0}], "shipped_load_state": [{"outcome": "taken", "read": 4.203895392974451e-45, "text": 0.0}, {"outcome": "taken", "read": 4.203895392974451e-45, "text": 0.0}]}, "plant 1.0": {"by_hand": [{"outcome": "taken", "read": 4.203895392974451e-45, "text": 0.0}, {"outcome": "taken", "read": 4.203895392974451e-45, "text": 0.0}], "shipped_load_state": [{"outcome": "taken", "read": 4.203895392974451e-45, "text": 0.0}, {"outcome": "taken", "read": 4.203895392974451e-45, "text": 0.0}]}}
+   bisecting at 1.401298464324817e-45
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | RESULT {"mode": "host", "value": 1.401298464324817e-45, "value_hex": "0x1.0000000000000p-149", "text_holds": 1.401298464324817e-45, "shipped_plant": 1.0, "plant 0.0": {"by_hand": [{"outcome": "taken", "read": 1.401298464324817e-45, "text": 0.0}, {"outcome": "taken", "read": 1.401298464324817e-45, "text": 0.0}], "shipped_load_state": [{"outcome": "taken", "read": 1.401298464324817e-45, "text": 0.0}, {"outcome": "taken", "read": 1.401298464324817e-45, "text": 0.0}]}, "plant 1.0": {"by_hand": [{"outcome": "taken", "read": 1.401298464324817e-45, "text": 0.0}, {"outcome": "taken", "read": 1.401298464324817e-45, "text": 0.0}], "shipped_load_state": [{"outcome": "taken", "read": 1.401298464324817e-45, "text": 0.0}, {"outcome": "taken", "read": 1.401298464324817e-45, "text": 0.0}]}}
+   located: 0.0 and 1.401298464324817e-45 are adjacent float32s, and their outcomes differ
+-- between 0.4999999701976776 and 0.5: 0 float32s between
+   located: 0.4999999701976776 and 0.5 are adjacent float32s, and their outcomes differ
+-- between 0.99 and 1.0: 167771 float32s between
+   bisecting at 0.9950000047683716
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | RESULT {"mode": "host", "value": 0.9950000047683716, "value_hex": "0x1.fd70a40000000p-1", "text_holds": 0.9950000047683716, "shipped_plant": 0.0, "plant 0.0": {"by_hand": [{"outcome": "taken", "read": 0.9950000047683716, "text": 1.0}, {"outcome": "taken", "read": 0.9950000047683716, "text": 1.0}], "shipped_load_state": [{"outcome": "taken", "read": 0.9950000047683716, "text": 1.0}, {"outcome": "taken", "read": 0.9950000047683716, "text": 1.0}]}, "plant 1.0": {"by_hand": [{"outcome": "taken", "read": 0.9950000047683716, "text": 1.0}, {"outcome": "taken", "read": 0.9950000047683716, "text": 1.0}], "shipped_load_state": [{"outcome": "taken", "read": 0.9950000047683716, "text": 1.0}, {"outcome": "taken", "read": 0.9950000047683716, "text": 1.0}]}}
+   bisecting at 0.9975000023841858
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | RESULT {"mode": "host", "value": 0.9975000023841858, "value_hex": "0x1.feb8520000000p-1", "text_holds": 0.9975000023841858, "shipped_plant": 0.0, "plant 0.0": {"by_hand": [{"outcome": "taken", "read": 0.9975000023841858, "text": 1.0}, {"outcome": "taken", "read": 0.9975000023841858, "text": 1.0}], "shipped_load_state": [{"outcome": "taken", "read": 0.9975000023841858, "text": 1.0}, {"outcome": "taken", "read": 0.9975000023841858, "text": 1.0}]}, "plant 1.0": {"by_hand": [{"outcome": "taken", "read": 0.9975000023841858, "text": 1.0}, {"outcome": "taken", "read": 0.9975000023841858, "text": 1.0}], "shipped_load_state": [{"outcome": "taken", "read": 0.9975000023841858, "text": 1.0}, {"outcome": "taken", "read": 0.9975000023841858, "text": 1.0}]}}
+   bisecting at 0.9987499713897705
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | RESULT {"mode": "host", "value": 0.9987499713897705, "value_hex": "0x1.ff5c280000000p-1", "text_holds": 0.9987499713897705, "shipped_plant": 0.0, "plant 0.0": {"by_hand": [{"outcome": "taken", "read": 0.9987499713897705, "text": 1.0}, {"outcome": "taken", "read": 0.9987499713897705, "text": 1.0}], "shipped_load_state": [{"outcome": "taken", "read": 0.9987499713897705, "text": 1.0}, {"outcome": "taken", "read": 0.9987499713897705, "text": 1.0}]}, "plant 1.0": {"by_hand": [{"outcome": "taken", "read": 0.9987499713897705, "text": 1.0}, {"outcome": "taken", "read": 0.9987499713897705, "text": 1.0}], "shipped_load_state": [{"outcome": "taken", "read": 0.9987499713897705, "text": 1.0}, {"outcome": "taken", "read": 0.9987499713897705, "text": 1.0}]}}
+   bisecting at 0.9993749856948853
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | RESULT {"mode": "host", "value": 0.9993749856948853, "value_hex": "0x1.ffae140000000p-1", "text_holds": 0.9993749856948853, "shipped_plant": 0.0, "plant 0.0": {"by_hand": [{"outcome": "taken", "read": 0.9993749856948853, "text": 1.0}, {"outcome": "taken", "read": 0.9993749856948853, "text": 1.0}], "shipped_load_state": [{"outcome": "taken", "read": 0.9993749856948853, "text": 1.0}, {"outcome": "taken", "read": 0.9993749856948853, "text": 1.0}]}, "plant 1.0": {"by_hand": [{"outcome": "taken", "read": 0.9993749856948853, "text": 1.0}, {"outcome": "taken", "read": 0.9993749856948853, "text": 1.0}], "shipped_load_state": [{"outcome": "taken", "read": 0.9993749856948853, "text": 1.0}, {"outcome": "taken", "read": 0.9993749856948853, "text": 1.0}]}}
+   bisecting at 0.9996874928474426
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | RESULT {"mode": "host", "value": 0.9996874928474426, "value_hex": "0x1.ffd70a0000000p-1", "text_holds": 0.9996874928474426, "shipped_plant": 0.0, "plant 0.0": {"by_hand": [{"outcome": "taken", "read": 0.9996874928474426, "text": 1.0}, {"outcome": "taken", "read": 0.9996874928474426, "text": 1.0}], "shipped_load_state": [{"outcome": "taken", "read": 0.9996874928474426, "text": 1.0}, {"outcome": "taken", "read": 0.9996874928474426, "text": 1.0}]}, "plant 1.0": {"by_hand": [{"outcome": "taken", "read": 0.9996874928474426, "text": 1.0}, {"outcome": "taken", "read": 0.9996874928474426, "text": 1.0}], "shipped_load_state": [{"outcome": "taken", "read": 0.9996874928474426, "text": 1.0}, {"outcome": "taken", "read": 0.9996874928474426, "text": 1.0}]}}
+   bisecting at 0.9998437166213989
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | RESULT {"mode": "host", "value": 0.9998437166213989, "value_hex": "0x1.ffeb840000000p-1", "text_holds": 0.9998437166213989, "shipped_plant": 0.0, "plant 0.0": {"by_hand": [{"outcome": "taken", "read": 0.9998437166213989, "text": 1.0}, {"outcome": "taken", "read": 0.9998437166213989, "text": 1.0}], "shipped_load_state": [{"outcome": "taken", "read": 0.9998437166213989, "text": 1.0}, {"outcome": "taken", "read": 0.9998437166213989, "text": 1.0}]}, "plant 1.0": {"by_hand": [{"outcome": "taken", "read": 0.9998437166213989, "text": 1.0}, {"outcome": "taken", "read": 0.9998437166213989, "text": 1.0}], "shipped_load_state": [{"outcome": "taken", "read": 0.9998437166213989, "text": 1.0}, {"outcome": "taken", "read": 0.9998437166213989, "text": 1.0}]}}
+   bisecting at 0.9999218583106995
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | RESULT {"mode": "host", "value": 0.9999218583106995, "value_hex": "0x1.fff5c20000000p-1", "text_holds": 0.9999218583106995, "shipped_plant": 0.0, "plant 0.0": {"by_hand": [{"outcome": "taken", "read": 0.9999218583106995, "text": 1.0}, {"outcome": "taken", "read": 0.9999218583106995, "text": 1.0}], "shipped_load_state": [{"outcome": "taken", "read": 0.9999218583106995, "text": 1.0}, {"outcome": "taken", "read": 0.9999218583106995, "text": 1.0}]}, "plant 1.0": {"by_hand": [{"outcome": "taken", "read": 0.9999218583106995, "text": 1.0}, {"outcome": "taken", "read": 0.9999218583106995, "text": 1.0}], "shipped_load_state": [{"outcome": "taken", "read": 0.9999218583106995, "text": 1.0}, {"outcome": "taken", "read": 0.9999218583106995, "text": 1.0}]}}
+   bisecting at 0.9999608993530273
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | RESULT {"mode": "host", "value": 0.9999608993530273, "value_hex": "0x1.fffae00000000p-1", "text_holds": 0.9999608993530273, "shipped_plant": 0.0, "plant 0.0": {"by_hand": [{"outcome": "taken", "read": 0.9999608993530273, "text": 1.0}, {"outcome": "taken", "read": 0.9999608993530273, "text": 1.0}], "shipped_load_state": [{"outcome": "taken", "read": 0.9999608993530273, "text": 1.0}, {"outcome": "taken", "read": 0.9999608993530273, "text": 1.0}]}, "plant 1.0": {"by_hand": [{"outcome": "taken", "read": 0.9999608993530273, "text": 1.0}, {"outcome": "taken", "read": 0.9999608993530273, "text": 1.0}], "shipped_load_state": [{"outcome": "taken", "read": 0.9999608993530273, "text": 1.0}, {"outcome": "taken", "read": 0.9999608993530273, "text": 1.0}]}}
+   bisecting at 0.9999804496765137
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | RESULT {"mode": "host", "value": 0.9999804496765137, "value_hex": "0x1.fffd700000000p-1", "text_holds": 0.9999804496765137, "shipped_plant": 0.0, "plant 0.0": {"by_hand": [{"outcome": "taken", "read": 0.9999804496765137, "text": 1.0}, {"outcome": "taken", "read": 0.9999804496765137, "text": 1.0}], "shipped_load_state": [{"outcome": "taken", "read": 0.9999804496765137, "text": 1.0}, {"outcome": "taken", "read": 0.9999804496765137, "text": 1.0}]}, "plant 1.0": {"by_hand": [{"outcome": "taken", "read": 0.9999804496765137, "text": 1.0}, {"outcome": "taken", "read": 0.9999804496765137, "text": 1.0}], "shipped_load_state": [{"outcome": "taken", "read": 0.9999804496765137, "text": 1.0}, {"outcome": "taken", "read": 0.9999804496765137, "text": 1.0}]}}
+   bisecting at 0.9999902248382568
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | RESULT {"mode": "host", "value": 0.9999902248382568, "value_hex": "0x1.fffeb80000000p-1", "text_holds": 0.9999902248382568, "shipped_plant": 0.0, "plant 0.0": {"by_hand": [{"outcome": "taken", "read": 0.9999902248382568, "text": 1.0}, {"outcome": "taken", "read": 0.9999902248382568, "text": 1.0}], "shipped_load_state": [{"outcome": "taken", "read": 0.9999902248382568, "text": 1.0}, {"outcome": "taken", "read": 0.9999902248382568, "text": 1.0}]}, "plant 1.0": {"by_hand": [{"outcome": "taken", "read": 0.9999902248382568, "text": 1.0}, {"outcome": "taken", "read": 0.9999902248382568, "text": 1.0}], "shipped_load_state": [{"outcome": "taken", "read": 0.9999902248382568, "text": 1.0}, {"outcome": "taken", "read": 0.9999902248382568, "text": 1.0}]}}
+   bisecting at 0.9999951124191284
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | RESULT {"mode": "host", "value": 0.9999951124191284, "value_hex": "0x1.ffff5c0000000p-1", "text_holds": 0.9999951124191284, "shipped_plant": 0.0, "plant 0.0": {"by_hand": [{"outcome": "taken", "read": 0.9999951124191284, "text": 1.0}, {"outcome": "taken", "read": 0.9999951124191284, "text": 1.0}], "shipped_load_state": [{"outcome": "taken", "read": 0.9999951124191284, "text": 1.0}, {"outcome": "taken", "read": 0.9999951124191284, "text": 1.0}]}, "plant 1.0": {"by_hand": [{"outcome": "taken", "read": 0.9999951124191284, "text": 1.0}, {"outcome": "taken", "read": 0.9999951124191284, "text": 1.0}], "shipped_load_state": [{"outcome": "taken", "read": 0.9999951124191284, "text": 1.0}, {"outcome": "taken", "read": 0.9999951124191284, "text": 1.0}]}}
+   bisecting at 0.9999975562095642
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | RESULT {"mode": "host", "value": 0.9999975562095642, "value_hex": "0x1.ffffae0000000p-1", "text_holds": 0.9999975562095642, "shipped_plant": 0.0, "plant 0.0": {"by_hand": [{"outcome": "taken", "read": 0.9999975562095642, "text": 1.0}, {"outcome": "taken", "read": 0.9999975562095642, "text": 1.0}], "shipped_load_state": [{"outcome": "taken", "read": 0.9999975562095642, "text": 1.0}, {"outcome": "taken", "read": 0.9999975562095642, "text": 1.0}]}, "plant 1.0": {"by_hand": [{"outcome": "taken", "read": 0.9999975562095642, "text": 1.0}, {"outcome": "taken", "read": 0.9999975562095642, "text": 1.0}], "shipped_load_state": [{"outcome": "taken", "read": 0.9999975562095642, "text": 1.0}, {"outcome": "taken", "read": 0.9999975562095642, "text": 1.0}]}}
+   bisecting at 0.9999987483024597
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | RESULT {"mode": "host", "value": 0.9999987483024597, "value_hex": "0x1.ffffd60000000p-1", "text_holds": 0.9999987483024597, "shipped_plant": 0.0, "plant 0.0": {"by_hand": [{"outcome": "taken", "read": 0.9999987483024597, "text": 1.0}, {"outcome": "taken", "read": 0.9999987483024597, "text": 1.0}], "shipped_load_state": [{"outcome": "taken", "read": 0.9999987483024597, "text": 1.0}, {"outcome": "taken", "read": 0.9999987483024597, "text": 1.0}]}, "plant 1.0": {"by_hand": [{"outcome": "taken", "read": 0.9999987483024597, "text": 1.0}, {"outcome": "taken", "read": 0.9999987483024597, "text": 1.0}], "shipped_load_state": [{"outcome": "taken", "read": 0.9999987483024597, "text": 1.0}, {"outcome": "taken", "read": 0.9999987483024597, "text": 1.0}]}}
+   bisecting at 0.9999993443489075
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | RESULT {"mode": "host", "value": 0.9999993443489075, "value_hex": "0x1.ffffea0000000p-1", "text_holds": 0.9999993443489075, "shipped_plant": 0.0, "plant 0.0": {"by_hand": [{"outcome": "taken", "read": 0.9999993443489075, "text": 1.0}, {"outcome": "taken", "read": 0.9999993443489075, "text": 1.0}], "shipped_load_state": [{"outcome": "taken", "read": 0.9999993443489075, "text": 1.0}, {"outcome": "taken", "read": 0.9999993443489075, "text": 1.0}]}, "plant 1.0": {"by_hand": [{"outcome": "taken", "read": 0.9999993443489075, "text": 1.0}, {"outcome": "taken", "read": 0.9999993443489075, "text": 1.0}], "shipped_load_state": [{"outcome": "taken", "read": 0.9999993443489075, "text": 1.0}, {"outcome": "taken", "read": 0.9999993443489075, "text": 1.0}]}}
+   bisecting at 0.9999996423721313
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | RESULT {"mode": "host", "value": 0.9999996423721313, "value_hex": "0x1.fffff40000000p-1", "text_holds": 0.9999996423721313, "shipped_plant": 0.0, "plant 0.0": {"by_hand": [{"outcome": "taken", "read": 0.9999996423721313, "text": 1.0}, {"outcome": "taken", "read": 0.9999996423721313, "text": 1.0}], "shipped_load_state": [{"outcome": "taken", "read": 0.9999996423721313, "text": 1.0}, {"outcome": "taken", "read": 0.9999996423721313, "text": 1.0}]}, "plant 1.0": {"by_hand": [{"outcome": "taken", "read": 0.9999996423721313, "text": 1.0}, {"outcome": "taken", "read": 0.9999996423721313, "text": 1.0}], "shipped_load_state": [{"outcome": "taken", "read": 0.9999996423721313, "text": 1.0}, {"outcome": "taken", "read": 0.9999996423721313, "text": 1.0}]}}
+   bisecting at 0.9999998211860657
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | RESULT {"mode": "host", "value": 0.9999998211860657, "value_hex": "0x1.fffffa0000000p-1", "text_holds": 0.9999998211860657, "shipped_plant": 0.0, "plant 0.0": {"by_hand": [{"outcome": "taken", "read": 0.9999998211860657, "text": 1.0}, {"outcome": "taken", "read": 0.9999998211860657, "text": 1.0}], "shipped_load_state": [{"outcome": "taken", "read": 0.9999998211860657, "text": 1.0}, {"outcome": "taken", "read": 0.9999998211860657, "text": 1.0}]}, "plant 1.0": {"by_hand": [{"outcome": "taken", "read": 0.9999998211860657, "text": 1.0}, {"outcome": "taken", "read": 0.9999998211860657, "text": 1.0}], "shipped_load_state": [{"outcome": "taken", "read": 0.9999998211860657, "text": 1.0}, {"outcome": "taken", "read": 0.9999998211860657, "text": 1.0}]}}
+   bisecting at 0.9999998807907104
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | RESULT {"mode": "host", "value": 0.9999998807907104, "value_hex": "0x1.fffffc0000000p-1", "text_holds": 0.9999998807907104, "shipped_plant": 0.0, "plant 0.0": {"by_hand": [{"outcome": "taken", "read": 0.9999998807907104, "text": 1.0}, {"outcome": "taken", "read": 0.9999998807907104, "text": 1.0}], "shipped_load_state": [{"outcome": "taken", "read": 0.9999998807907104, "text": 1.0}, {"outcome": "taken", "read": 0.9999998807907104, "text": 1.0}]}, "plant 1.0": {"by_hand": [{"outcome": "taken", "read": 0.9999998807907104, "text": 1.0}, {"outcome": "taken", "read": 0.9999998807907104, "text": 1.0}], "shipped_load_state": [{"outcome": "taken", "read": 0.9999998807907104, "text": 1.0}, {"outcome": "taken", "read": 0.9999998807907104, "text": 1.0}]}}
+   bisecting at 0.9999999403953552
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | ABOUT TO LOAD
+      | RETURNED
+      | RESULT {"mode": "host", "value": 0.9999999403953552, "value_hex": "0x1.fffffe0000000p-1", "text_holds": 0.9999999403953552, "shipped_plant": 0.0, "plant 0.0": {"by_hand": [{"outcome": "taken", "read": 0.9999999403953552, "text": 1.0}, {"outcome": "taken", "read": 0.9999999403953552, "text": 1.0}], "shipped_load_state": [{"outcome": "taken", "read": 0.9999999403953552, "text": 1.0}, {"outcome": "taken", "read": 0.9999999403953552, "text": 1.0}]}, "plant 1.0": {"by_hand": [{"outcome": "taken", "read": 0.9999999403953552, "text": 1.0}, {"outcome": "taken", "read": 0.9999999403953552, "text": 1.0}], "shipped_load_state": [{"outcome": "taken", "read": 0.9999999403953552, "text": 1.0}, {"outcome": "taken", "read": 0.9999999403953552, "text": 1.0}]}}
+   located: 0.9999999403953552 and 1.0 are adjacent float32s, and their outcomes differ
+
+== every value, in order
+  value 0.0 (0x0.0p+0), the text holds 0.0; the shipped rule plants 1.0
+    planted 0.0, load 1 by hand: the parameter reads 0.0 (as given), the state's text holds 0.0 (as given); the write taken; the marker's verdict ignored, the right verdict taken  <-- WRONG
+    planted 0.0, load 2 by hand: the parameter reads 0.0 (as given), the state's text holds 0.0 (as given); the write taken; the marker's verdict ignored, the right verdict taken  <-- WRONG
+    planted 0.0, load 1 by the shipped load_state, the plant forced: refused: Vital ignored the state: filter_1_on, set before the load, was left as it was set; reads 0.0, the text 0.0
+    planted 0.0, load 2 by the shipped load_state, the plant forced: refused: Vital ignored the state: filter_1_on, set before the load, was left as it was set; reads 0.0, the text 0.0
+    planted 1.0, load 1 by hand: the parameter reads 0.0 (as given), the state's text holds 0.0 (as given); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 2 by hand: the parameter reads 0.0 (as given), the state's text holds 0.0 (as given); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 1 by the shipped load_state, the plant forced: taken; reads 0.0, the text 0.0
+    planted 1.0, load 2 by the shipped load_state, the plant forced: taken; reads 0.0, the text 0.0
+  value 1.401298464324817e-45 (0x1.0000000000000p-149), the text holds 1.401298464324817e-45; the shipped rule plants 1.0
+    planted 0.0, load 1 by hand: the parameter reads 1.401298464324817e-45 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 2 by hand: the parameter reads 1.401298464324817e-45 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 1 by the shipped load_state, the plant forced: taken; reads 1.401298464324817e-45, the text 0.0
+    planted 0.0, load 2 by the shipped load_state, the plant forced: taken; reads 1.401298464324817e-45, the text 0.0
+    planted 1.0, load 1 by hand: the parameter reads 1.401298464324817e-45 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 2 by hand: the parameter reads 1.401298464324817e-45 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 1 by the shipped load_state, the plant forced: taken; reads 1.401298464324817e-45, the text 0.0
+    planted 1.0, load 2 by the shipped load_state, the plant forced: taken; reads 1.401298464324817e-45, the text 0.0
+  value 4.203895392974451e-45 (0x1.8000000000000p-148), the text holds 4.203895392974451e-45; the shipped rule plants 1.0
+    planted 0.0, load 1 by hand: the parameter reads 4.203895392974451e-45 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 2 by hand: the parameter reads 4.203895392974451e-45 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 1 by the shipped load_state, the plant forced: taken; reads 4.203895392974451e-45, the text 0.0
+    planted 0.0, load 2 by the shipped load_state, the plant forced: taken; reads 4.203895392974451e-45, the text 0.0
+    planted 1.0, load 1 by hand: the parameter reads 4.203895392974451e-45 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 2 by hand: the parameter reads 4.203895392974451e-45 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 1 by the shipped load_state, the plant forced: taken; reads 4.203895392974451e-45, the text 0.0
+    planted 1.0, load 2 by the shipped load_state, the plant forced: taken; reads 4.203895392974451e-45, the text 0.0
+  value 9.80908925027372e-45 (0x1.c000000000000p-147), the text holds 9.80908925027372e-45; the shipped rule plants 1.0
+    planted 0.0, load 1 by hand: the parameter reads 9.80908925027372e-45 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 2 by hand: the parameter reads 9.80908925027372e-45 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 1 by the shipped load_state, the plant forced: taken; reads 9.80908925027372e-45, the text 0.0
+    planted 0.0, load 2 by the shipped load_state, the plant forced: taken; reads 9.80908925027372e-45, the text 0.0
+    planted 1.0, load 1 by hand: the parameter reads 9.80908925027372e-45 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 2 by hand: the parameter reads 9.80908925027372e-45 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 1 by the shipped load_state, the plant forced: taken; reads 9.80908925027372e-45, the text 0.0
+    planted 1.0, load 2 by the shipped load_state, the plant forced: taken; reads 9.80908925027372e-45, the text 0.0
+  value 2.1019476964872256e-44 (0x1.e000000000000p-146), the text holds 2.1019476964872256e-44; the shipped rule plants 1.0
+    planted 0.0, load 1 by hand: the parameter reads 2.1019476964872256e-44 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 2 by hand: the parameter reads 2.1019476964872256e-44 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 1 by the shipped load_state, the plant forced: taken; reads 2.1019476964872256e-44, the text 0.0
+    planted 0.0, load 2 by the shipped load_state, the plant forced: taken; reads 2.1019476964872256e-44, the text 0.0
+    planted 1.0, load 1 by hand: the parameter reads 2.1019476964872256e-44 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 2 by hand: the parameter reads 2.1019476964872256e-44 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 1 by the shipped load_state, the plant forced: taken; reads 2.1019476964872256e-44, the text 0.0
+    planted 1.0, load 2 by the shipped load_state, the plant forced: taken; reads 2.1019476964872256e-44, the text 0.0
+  value 4.344025239406933e-44 (0x1.f000000000000p-145), the text holds 4.344025239406933e-44; the shipped rule plants 1.0
+    planted 0.0, load 1 by hand: the parameter reads 4.344025239406933e-44 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 2 by hand: the parameter reads 4.344025239406933e-44 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 1 by the shipped load_state, the plant forced: taken; reads 4.344025239406933e-44, the text 0.0
+    planted 0.0, load 2 by the shipped load_state, the plant forced: taken; reads 4.344025239406933e-44, the text 0.0
+    planted 1.0, load 1 by hand: the parameter reads 4.344025239406933e-44 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 2 by hand: the parameter reads 4.344025239406933e-44 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 1 by the shipped load_state, the plant forced: taken; reads 4.344025239406933e-44, the text 0.0
+    planted 1.0, load 2 by the shipped load_state, the plant forced: taken; reads 4.344025239406933e-44, the text 0.0
+  value 8.688050478813866e-44 (0x1.f000000000000p-144), the text holds 8.688050478813866e-44; the shipped rule plants 1.0
+    planted 0.0, load 1 by hand: the parameter reads 8.688050478813866e-44 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 2 by hand: the parameter reads 8.688050478813866e-44 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 1 by the shipped load_state, the plant forced: taken; reads 8.688050478813866e-44, the text 0.0
+    planted 0.0, load 2 by the shipped load_state, the plant forced: taken; reads 8.688050478813866e-44, the text 0.0
+    planted 1.0, load 1 by hand: the parameter reads 8.688050478813866e-44 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 2 by hand: the parameter reads 8.688050478813866e-44 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 1 by the shipped load_state, the plant forced: taken; reads 8.688050478813866e-44, the text 0.0
+    planted 1.0, load 2 by the shipped load_state, the plant forced: taken; reads 8.688050478813866e-44, the text 0.0
+  value 1.7516230804060213e-43 (0x1.f400000000000p-143), the text holds 1.7516230804060213e-43; the shipped rule plants 1.0
+    planted 0.0, load 1 by hand: the parameter reads 1.7516230804060213e-43 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 2 by hand: the parameter reads 1.7516230804060213e-43 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 1 by the shipped load_state, the plant forced: taken; reads 1.7516230804060213e-43, the text 0.0
+    planted 0.0, load 2 by the shipped load_state, the plant forced: taken; reads 1.7516230804060213e-43, the text 0.0
+    planted 1.0, load 1 by hand: the parameter reads 1.7516230804060213e-43 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 2 by hand: the parameter reads 1.7516230804060213e-43 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 1 by the shipped load_state, the plant forced: taken; reads 1.7516230804060213e-43, the text 0.0
+    planted 1.0, load 2 by the shipped load_state, the plant forced: taken; reads 1.7516230804060213e-43, the text 0.0
+  value 3.5032461608120427e-43 (0x1.f400000000000p-142), the text holds 3.5032461608120427e-43; the shipped rule plants 1.0
+    planted 0.0, load 1 by hand: the parameter reads 3.5032461608120427e-43 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 2 by hand: the parameter reads 3.5032461608120427e-43 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 1 by the shipped load_state, the plant forced: taken; reads 3.5032461608120427e-43, the text 0.0
+    planted 0.0, load 2 by the shipped load_state, the plant forced: taken; reads 3.5032461608120427e-43, the text 0.0
+    planted 1.0, load 1 by hand: the parameter reads 3.5032461608120427e-43 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 2 by hand: the parameter reads 3.5032461608120427e-43 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 1 by the shipped load_state, the plant forced: taken; reads 3.5032461608120427e-43, the text 0.0
+    planted 1.0, load 2 by the shipped load_state, the plant forced: taken; reads 3.5032461608120427e-43, the text 0.0
+  value 7.006492321624085e-43 (0x1.f400000000000p-141), the text holds 7.006492321624085e-43; the shipped rule plants 1.0
+    planted 0.0, load 1 by hand: the parameter reads 7.006492321624085e-43 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 2 by hand: the parameter reads 7.006492321624085e-43 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 1 by the shipped load_state, the plant forced: taken; reads 7.006492321624085e-43, the text 0.0
+    planted 0.0, load 2 by the shipped load_state, the plant forced: taken; reads 7.006492321624085e-43, the text 0.0
+    planted 1.0, load 1 by hand: the parameter reads 7.006492321624085e-43 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 2 by hand: the parameter reads 7.006492321624085e-43 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 1 by the shipped load_state, the plant forced: taken; reads 7.006492321624085e-43, the text 0.0
+    planted 1.0, load 2 by the shipped load_state, the plant forced: taken; reads 7.006492321624085e-43, the text 0.0
+  value 1.401298464324817e-42 (0x1.f400000000000p-140), the text holds 1.401298464324817e-42; the shipped rule plants 1.0
+    planted 0.0, load 1 by hand: the parameter reads 1.401298464324817e-42 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 2 by hand: the parameter reads 1.401298464324817e-42 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 1 by the shipped load_state, the plant forced: taken; reads 1.401298464324817e-42, the text 0.0
+    planted 0.0, load 2 by the shipped load_state, the plant forced: taken; reads 1.401298464324817e-42, the text 0.0
+    planted 1.0, load 1 by hand: the parameter reads 1.401298464324817e-42 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 2 by hand: the parameter reads 1.401298464324817e-42 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 1 by the shipped load_state, the plant forced: taken; reads 1.401298464324817e-42, the text 0.0
+    planted 1.0, load 2 by the shipped load_state, the plant forced: taken; reads 1.401298464324817e-42, the text 0.0
+  value 2.802596928649634e-42 (0x1.f400000000000p-139), the text holds 2.802596928649634e-42; the shipped rule plants 1.0
+    planted 0.0, load 1 by hand: the parameter reads 2.802596928649634e-42 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 2 by hand: the parameter reads 2.802596928649634e-42 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 1 by the shipped load_state, the plant forced: taken; reads 2.802596928649634e-42, the text 0.0
+    planted 0.0, load 2 by the shipped load_state, the plant forced: taken; reads 2.802596928649634e-42, the text 0.0
+    planted 1.0, load 1 by hand: the parameter reads 2.802596928649634e-42 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 2 by hand: the parameter reads 2.802596928649634e-42 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 1 by the shipped load_state, the plant forced: taken; reads 2.802596928649634e-42, the text 0.0
+    planted 1.0, load 2 by the shipped load_state, the plant forced: taken; reads 2.802596928649634e-42, the text 0.0
+  value 5.605193857299268e-42 (0x1.f400000000000p-138), the text holds 5.605193857299268e-42; the shipped rule plants 1.0
+    planted 0.0, load 1 by hand: the parameter reads 5.605193857299268e-42 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 2 by hand: the parameter reads 5.605193857299268e-42 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 1 by the shipped load_state, the plant forced: taken; reads 5.605193857299268e-42, the text 0.0
+    planted 0.0, load 2 by the shipped load_state, the plant forced: taken; reads 5.605193857299268e-42, the text 0.0
+    planted 1.0, load 1 by hand: the parameter reads 5.605193857299268e-42 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 2 by hand: the parameter reads 5.605193857299268e-42 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 1 by the shipped load_state, the plant forced: taken; reads 5.605193857299268e-42, the text 0.0
+    planted 1.0, load 2 by the shipped load_state, the plant forced: taken; reads 5.605193857299268e-42, the text 0.0
+  value 1.1210387714598537e-41 (0x1.f400000000000p-137), the text holds 1.1210387714598537e-41; the shipped rule plants 1.0
+    planted 0.0, load 1 by hand: the parameter reads 1.1210387714598537e-41 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 2 by hand: the parameter reads 1.1210387714598537e-41 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 1 by the shipped load_state, the plant forced: taken; reads 1.1210387714598537e-41, the text 0.0
+    planted 0.0, load 2 by the shipped load_state, the plant forced: taken; reads 1.1210387714598537e-41, the text 0.0
+    planted 1.0, load 1 by hand: the parameter reads 1.1210387714598537e-41 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 2 by hand: the parameter reads 1.1210387714598537e-41 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 1 by the shipped load_state, the plant forced: taken; reads 1.1210387714598537e-41, the text 0.0
+    planted 1.0, load 2 by the shipped load_state, the plant forced: taken; reads 1.1210387714598537e-41, the text 0.0
+  value 2.2420775429197073e-41 (0x1.f400000000000p-136), the text holds 2.2420775429197073e-41; the shipped rule plants 1.0
+    planted 0.0, load 1 by hand: the parameter reads 2.2420775429197073e-41 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 2 by hand: the parameter reads 2.2420775429197073e-41 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 1 by the shipped load_state, the plant forced: taken; reads 2.2420775429197073e-41, the text 0.0
+    planted 0.0, load 2 by the shipped load_state, the plant forced: taken; reads 2.2420775429197073e-41, the text 0.0
+    planted 1.0, load 1 by hand: the parameter reads 2.2420775429197073e-41 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 2 by hand: the parameter reads 2.2420775429197073e-41 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 1 by the shipped load_state, the plant forced: taken; reads 2.2420775429197073e-41, the text 0.0
+    planted 1.0, load 2 by the shipped load_state, the plant forced: taken; reads 2.2420775429197073e-41, the text 0.0
+  value 4.4841550858394146e-41 (0x1.f400000000000p-135), the text holds 4.4841550858394146e-41; the shipped rule plants 1.0
+    planted 0.0, load 1 by hand: the parameter reads 4.4841550858394146e-41 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 2 by hand: the parameter reads 4.4841550858394146e-41 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 1 by the shipped load_state, the plant forced: taken; reads 4.4841550858394146e-41, the text 0.0
+    planted 0.0, load 2 by the shipped load_state, the plant forced: taken; reads 4.4841550858394146e-41, the text 0.0
+    planted 1.0, load 1 by hand: the parameter reads 4.4841550858394146e-41 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 2 by hand: the parameter reads 4.4841550858394146e-41 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 1 by the shipped load_state, the plant forced: taken; reads 4.4841550858394146e-41, the text 0.0
+    planted 1.0, load 2 by the shipped load_state, the plant forced: taken; reads 4.4841550858394146e-41, the text 0.0
+  value 8.968310171678829e-41 (0x1.f400000000000p-134), the text holds 8.968310171678829e-41; the shipped rule plants 1.0
+    planted 0.0, load 1 by hand: the parameter reads 8.968310171678829e-41 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 2 by hand: the parameter reads 8.968310171678829e-41 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 1 by the shipped load_state, the plant forced: taken; reads 8.968310171678829e-41, the text 0.0
+    planted 0.0, load 2 by the shipped load_state, the plant forced: taken; reads 8.968310171678829e-41, the text 0.0
+    planted 1.0, load 1 by hand: the parameter reads 8.968310171678829e-41 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 2 by hand: the parameter reads 8.968310171678829e-41 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 1 by the shipped load_state, the plant forced: taken; reads 8.968310171678829e-41, the text 0.0
+    planted 1.0, load 2 by the shipped load_state, the plant forced: taken; reads 8.968310171678829e-41, the text 0.0
+  value 1.7936620343357659e-40 (0x1.f400000000000p-133), the text holds 1.7936620343357659e-40; the shipped rule plants 1.0
+    planted 0.0, load 1 by hand: the parameter reads 1.7936620343357659e-40 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 2 by hand: the parameter reads 1.7936620343357659e-40 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 1 by the shipped load_state, the plant forced: taken; reads 1.7936620343357659e-40, the text 0.0
+    planted 0.0, load 2 by the shipped load_state, the plant forced: taken; reads 1.7936620343357659e-40, the text 0.0
+    planted 1.0, load 1 by hand: the parameter reads 1.7936620343357659e-40 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 2 by hand: the parameter reads 1.7936620343357659e-40 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 1 by the shipped load_state, the plant forced: taken; reads 1.7936620343357659e-40, the text 0.0
+    planted 1.0, load 2 by the shipped load_state, the plant forced: taken; reads 1.7936620343357659e-40, the text 0.0
+  value 3.5873240686715317e-40 (0x1.f400000000000p-132), the text holds 3.5873240686715317e-40; the shipped rule plants 1.0
+    planted 0.0, load 1 by hand: the parameter reads 3.5873240686715317e-40 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 2 by hand: the parameter reads 3.5873240686715317e-40 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 1 by the shipped load_state, the plant forced: taken; reads 3.5873240686715317e-40, the text 0.0
+    planted 0.0, load 2 by the shipped load_state, the plant forced: taken; reads 3.5873240686715317e-40, the text 0.0
+    planted 1.0, load 1 by hand: the parameter reads 3.5873240686715317e-40 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 2 by hand: the parameter reads 3.5873240686715317e-40 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 1 by the shipped load_state, the plant forced: taken; reads 3.5873240686715317e-40, the text 0.0
+    planted 1.0, load 2 by the shipped load_state, the plant forced: taken; reads 3.5873240686715317e-40, the text 0.0
+  value 7.174648137343063e-40 (0x1.f400000000000p-131), the text holds 7.174648137343063e-40; the shipped rule plants 1.0
+    planted 0.0, load 1 by hand: the parameter reads 7.174648137343063e-40 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 2 by hand: the parameter reads 7.174648137343063e-40 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 1 by the shipped load_state, the plant forced: taken; reads 7.174648137343063e-40, the text 0.0
+    planted 0.0, load 2 by the shipped load_state, the plant forced: taken; reads 7.174648137343063e-40, the text 0.0
+    planted 1.0, load 1 by hand: the parameter reads 7.174648137343063e-40 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 2 by hand: the parameter reads 7.174648137343063e-40 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 1 by the shipped load_state, the plant forced: taken; reads 7.174648137343063e-40, the text 0.0
+    planted 1.0, load 2 by the shipped load_state, the plant forced: taken; reads 7.174648137343063e-40, the text 0.0
+  value 1.4349296274686127e-39 (0x1.f400000000000p-130), the text holds 1.4349296274686127e-39; the shipped rule plants 1.0
+    planted 0.0, load 1 by hand: the parameter reads 1.4349296274686127e-39 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 2 by hand: the parameter reads 1.4349296274686127e-39 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 1 by the shipped load_state, the plant forced: taken; reads 1.4349296274686127e-39, the text 0.0
+    planted 0.0, load 2 by the shipped load_state, the plant forced: taken; reads 1.4349296274686127e-39, the text 0.0
+    planted 1.0, load 1 by hand: the parameter reads 1.4349296274686127e-39 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 2 by hand: the parameter reads 1.4349296274686127e-39 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 1 by the shipped load_state, the plant forced: taken; reads 1.4349296274686127e-39, the text 0.0
+    planted 1.0, load 2 by the shipped load_state, the plant forced: taken; reads 1.4349296274686127e-39, the text 0.0
+  value 2.8698592549372254e-39 (0x1.f400000000000p-129), the text holds 2.8698592549372254e-39; the shipped rule plants 1.0
+    planted 0.0, load 1 by hand: the parameter reads 2.8698592549372254e-39 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 2 by hand: the parameter reads 2.8698592549372254e-39 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 1 by the shipped load_state, the plant forced: taken; reads 2.8698592549372254e-39, the text 0.0
+    planted 0.0, load 2 by the shipped load_state, the plant forced: taken; reads 2.8698592549372254e-39, the text 0.0
+    planted 1.0, load 1 by hand: the parameter reads 2.8698592549372254e-39 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 2 by hand: the parameter reads 2.8698592549372254e-39 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 1 by the shipped load_state, the plant forced: taken; reads 2.8698592549372254e-39, the text 0.0
+    planted 1.0, load 2 by the shipped load_state, the plant forced: taken; reads 2.8698592549372254e-39, the text 0.0
+  value 5.739718509874451e-39 (0x1.f400000000000p-128), the text holds 5.739718509874451e-39; the shipped rule plants 1.0
+    planted 0.0, load 1 by hand: the parameter reads 5.739718509874451e-39 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 2 by hand: the parameter reads 5.739718509874451e-39 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 1 by the shipped load_state, the plant forced: taken; reads 5.739718509874451e-39, the text 0.0
+    planted 0.0, load 2 by the shipped load_state, the plant forced: taken; reads 5.739718509874451e-39, the text 0.0
+    planted 1.0, load 1 by hand: the parameter reads 5.739718509874451e-39 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 2 by hand: the parameter reads 5.739718509874451e-39 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 1 by the shipped load_state, the plant forced: taken; reads 5.739718509874451e-39, the text 0.0
+    planted 1.0, load 2 by the shipped load_state, the plant forced: taken; reads 5.739718509874451e-39, the text 0.0
+  value 1.1479437019748901e-38 (0x1.f400000000000p-127), the text holds 1.1479437019748901e-38; the shipped rule plants 1.0
+    planted 0.0, load 1 by hand: the parameter reads 1.1479437019748901e-38 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 2 by hand: the parameter reads 1.1479437019748901e-38 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 1 by the shipped load_state, the plant forced: taken; reads 1.1479437019748901e-38, the text 0.0
+    planted 0.0, load 2 by the shipped load_state, the plant forced: taken; reads 1.1479437019748901e-38, the text 0.0
+    planted 1.0, load 1 by hand: the parameter reads 1.1479437019748901e-38 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 2 by hand: the parameter reads 1.1479437019748901e-38 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 1 by the shipped load_state, the plant forced: taken; reads 1.1479437019748901e-38, the text 0.0
+    planted 1.0, load 2 by the shipped load_state, the plant forced: taken; reads 1.1479437019748901e-38, the text 0.0
+  value 2.2958874039497803e-38 (0x1.f400000000000p-126), the text holds 2.2958874039497803e-38; the shipped rule plants 1.0
+    planted 0.0, load 1 by hand: the parameter reads 2.2958874039497803e-38 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 2 by hand: the parameter reads 2.2958874039497803e-38 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 1 by the shipped load_state, the plant forced: taken; reads 2.2958874039497803e-38, the text 0.0
+    planted 0.0, load 2 by the shipped load_state, the plant forced: taken; reads 2.2958874039497803e-38, the text 0.0
+    planted 1.0, load 1 by hand: the parameter reads 2.2958874039497803e-38 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 2 by hand: the parameter reads 2.2958874039497803e-38 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 1 by the shipped load_state, the plant forced: taken; reads 2.2958874039497803e-38, the text 0.0
+    planted 1.0, load 2 by the shipped load_state, the plant forced: taken; reads 2.2958874039497803e-38, the text 0.0
+  value 8.963144425019942e-38 (0x1.e800000000000p-124), the text holds 8.963144425019942e-38; the shipped rule plants 1.0
+    planted 0.0, load 1 by hand: the parameter reads 8.963144425019942e-38 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 2 by hand: the parameter reads 8.963144425019942e-38 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 1 by the shipped load_state, the plant forced: taken; reads 8.963144425019942e-38, the text 0.0
+    planted 0.0, load 2 by the shipped load_state, the plant forced: taken; reads 8.963144425019942e-38, the text 0.0
+    planted 1.0, load 1 by hand: the parameter reads 8.963144425019942e-38 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 2 by hand: the parameter reads 8.963144425019942e-38 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 1 by the shipped load_state, the plant forced: taken; reads 8.963144425019942e-38, the text 0.0
+    planted 1.0, load 2 by the shipped load_state, the plant forced: taken; reads 8.963144425019942e-38, the text 0.0
+  value 1.3635734469538535e-36 (0x1.d000000000000p-120), the text holds 1.3635734469538535e-36; the shipped rule plants 1.0
+    planted 0.0, load 1 by hand: the parameter reads 1.3635734469538535e-36 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 2 by hand: the parameter reads 1.3635734469538535e-36 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 1 by the shipped load_state, the plant forced: taken; reads 1.3635734469538535e-36, the text 0.0
+    planted 0.0, load 2 by the shipped load_state, the plant forced: taken; reads 1.3635734469538535e-36, the text 0.0
+    planted 1.0, load 1 by hand: the parameter reads 1.3635734469538535e-36 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 2 by hand: the parameter reads 1.3635734469538535e-36 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 1 by the shipped load_state, the plant forced: taken; reads 1.3635734469538535e-36, the text 0.0
+    planted 1.0, load 2 by the shipped load_state, the plant forced: taken; reads 1.3635734469538535e-36, the text 0.0
+  value 3.1296361596292583e-34 (0x1.a000000000000p-112), the text holds 3.1296361596292583e-34; the shipped rule plants 1.0
+    planted 0.0, load 1 by hand: the parameter reads 3.1296361596292583e-34 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 2 by hand: the parameter reads 3.1296361596292583e-34 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 1 by the shipped load_state, the plant forced: taken; reads 3.1296361596292583e-34, the text 0.0
+    planted 0.0, load 2 by the shipped load_state, the plant forced: taken; reads 3.1296361596292583e-34, the text 0.0
+    planted 1.0, load 1 by hand: the parameter reads 3.1296361596292583e-34 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 2 by hand: the parameter reads 3.1296361596292583e-34 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 1 by the shipped load_state, the plant forced: taken; reads 3.1296361596292583e-34, the text 0.0
+    planted 1.0, load 2 by the shipped load_state, the plant forced: taken; reads 3.1296361596292583e-34, the text 0.0
+  value 1.5777218104420236e-29 (0x1.4000000000000p-96), the text holds 1.5777218104420236e-29; the shipped rule plants 1.0
+    planted 0.0, load 1 by hand: the parameter reads 1.5777218104420236e-29 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 2 by hand: the parameter reads 1.5777218104420236e-29 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 1 by the shipped load_state, the plant forced: taken; reads 1.5777218104420236e-29, the text 0.0
+    planted 0.0, load 2 by the shipped load_state, the plant forced: taken; reads 1.5777218104420236e-29, the text 0.0
+    planted 1.0, load 1 by hand: the parameter reads 1.5777218104420236e-29 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 2 by hand: the parameter reads 1.5777218104420236e-29 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 1 by the shipped load_state, the plant forced: taken; reads 1.5777218104420236e-29, the text 0.0
+    planted 1.0, load 2 by the shipped load_state, the plant forced: taken; reads 1.5777218104420236e-29, the text 0.0
+  value 4.0657581468206416e-20 (0x1.8000000000000p-65), the text holds 4.0657581468206416e-20; the shipped rule plants 1.0
+    planted 0.0, load 1 by hand: the parameter reads 4.0657581468206416e-20 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 2 by hand: the parameter reads 4.0657581468206416e-20 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 1 by the shipped load_state, the plant forced: taken; reads 4.0657581468206416e-20, the text 0.0
+    planted 0.0, load 2 by the shipped load_state, the plant forced: taken; reads 4.0657581468206416e-20, the text 0.0
+    planted 1.0, load 1 by hand: the parameter reads 4.0657581468206416e-20 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 2 by hand: the parameter reads 4.0657581468206416e-20 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 1 by the shipped load_state, the plant forced: taken; reads 4.0657581468206416e-20, the text 0.0
+    planted 1.0, load 2 by the shipped load_state, the plant forced: taken; reads 4.0657581468206416e-20, the text 0.0
+  value 0.25 (0x1.0000000000000p-2), the text holds 0.25; the shipped rule plants 1.0
+    planted 0.0, load 1 by hand: the parameter reads 0.25 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 2 by hand: the parameter reads 0.25 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 1 by the shipped load_state, the plant forced: taken; reads 0.25, the text 0.0
+    planted 0.0, load 2 by the shipped load_state, the plant forced: taken; reads 0.25, the text 0.0
+    planted 1.0, load 1 by hand: the parameter reads 0.25 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 2 by hand: the parameter reads 0.25 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 1 by the shipped load_state, the plant forced: taken; reads 0.25, the text 0.0
+    planted 1.0, load 2 by the shipped load_state, the plant forced: taken; reads 0.25, the text 0.0
+  value 0.49 (0x1.f5c28f5c28f5cp-2), the text holds 0.49; the shipped rule plants 1.0
+    planted 0.0, load 1 by hand: the parameter reads 0.49000000953674316 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 2 by hand: the parameter reads 0.49000000953674316 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 1 by the shipped load_state, the plant forced: taken; reads 0.49000000953674316, the text 0.0
+    planted 0.0, load 2 by the shipped load_state, the plant forced: taken; reads 0.49000000953674316, the text 0.0
+    planted 1.0, load 1 by hand: the parameter reads 0.49000000953674316 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 2 by hand: the parameter reads 0.49000000953674316 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 1 by the shipped load_state, the plant forced: taken; reads 0.49000000953674316, the text 0.0
+    planted 1.0, load 2 by the shipped load_state, the plant forced: taken; reads 0.49000000953674316, the text 0.0
+  value 0.4999999701976776 (0x1.fffffe0000000p-2), the text holds 0.4999999701976776; the shipped rule plants 1.0
+    planted 0.0, load 1 by hand: the parameter reads 0.4999999701976776 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 2 by hand: the parameter reads 0.4999999701976776 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 1 by the shipped load_state, the plant forced: taken; reads 0.4999999701976776, the text 0.0
+    planted 0.0, load 2 by the shipped load_state, the plant forced: taken; reads 0.4999999701976776, the text 0.0
+    planted 1.0, load 1 by hand: the parameter reads 0.4999999701976776 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 2 by hand: the parameter reads 0.4999999701976776 (as given), the state's text holds 0.0 (0.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 1 by the shipped load_state, the plant forced: taken; reads 0.4999999701976776, the text 0.0
+    planted 1.0, load 2 by the shipped load_state, the plant forced: taken; reads 0.4999999701976776, the text 0.0
+  value 0.5 (0x1.0000000000000p-1), the text holds 0.5; the shipped rule plants 0.0
+    planted 0.0, load 1 by hand: the parameter reads 0.5 (as given), the state's text holds 1.0 (1.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 2 by hand: the parameter reads 0.5 (as given), the state's text holds 1.0 (1.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 1 by the shipped load_state, the plant forced: taken; reads 0.5, the text 1.0
+    planted 0.0, load 2 by the shipped load_state, the plant forced: taken; reads 0.5, the text 1.0
+    planted 1.0, load 1 by hand: the parameter reads 0.5 (as given), the state's text holds 1.0 (1.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 2 by hand: the parameter reads 0.5 (as given), the state's text holds 1.0 (1.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 1 by the shipped load_state, the plant forced: taken; reads 0.5, the text 1.0
+    planted 1.0, load 2 by the shipped load_state, the plant forced: taken; reads 0.5, the text 1.0
+  value 0.5000000596046448 (0x1.0000020000000p-1), the text holds 0.5000000596046448; the shipped rule plants 0.0
+    planted 0.0, load 1 by hand: the parameter reads 0.5000000596046448 (as given), the state's text holds 1.0 (1.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 2 by hand: the parameter reads 0.5000000596046448 (as given), the state's text holds 1.0 (1.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 1 by the shipped load_state, the plant forced: taken; reads 0.5000000596046448, the text 1.0
+    planted 0.0, load 2 by the shipped load_state, the plant forced: taken; reads 0.5000000596046448, the text 1.0
+    planted 1.0, load 1 by hand: the parameter reads 0.5000000596046448 (as given), the state's text holds 1.0 (1.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 2 by hand: the parameter reads 0.5000000596046448 (as given), the state's text holds 1.0 (1.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 1 by the shipped load_state, the plant forced: taken; reads 0.5000000596046448, the text 1.0
+    planted 1.0, load 2 by the shipped load_state, the plant forced: taken; reads 0.5000000596046448, the text 1.0
+  value 0.51 (0x1.051eb851eb852p-1), the text holds 0.51; the shipped rule plants 0.0
+    planted 0.0, load 1 by hand: the parameter reads 0.5099999904632568 (as given), the state's text holds 1.0 (1.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 2 by hand: the parameter reads 0.5099999904632568 (as given), the state's text holds 1.0 (1.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 1 by the shipped load_state, the plant forced: taken; reads 0.5099999904632568, the text 1.0
+    planted 0.0, load 2 by the shipped load_state, the plant forced: taken; reads 0.5099999904632568, the text 1.0
+    planted 1.0, load 1 by hand: the parameter reads 0.5099999904632568 (as given), the state's text holds 1.0 (1.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 2 by hand: the parameter reads 0.5099999904632568 (as given), the state's text holds 1.0 (1.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 1 by the shipped load_state, the plant forced: taken; reads 0.5099999904632568, the text 1.0
+    planted 1.0, load 2 by the shipped load_state, the plant forced: taken; reads 0.5099999904632568, the text 1.0
+  value 0.75 (0x1.8000000000000p-1), the text holds 0.75; the shipped rule plants 0.0
+    planted 0.0, load 1 by hand: the parameter reads 0.75 (as given), the state's text holds 1.0 (1.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 2 by hand: the parameter reads 0.75 (as given), the state's text holds 1.0 (1.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 1 by the shipped load_state, the plant forced: taken; reads 0.75, the text 1.0
+    planted 0.0, load 2 by the shipped load_state, the plant forced: taken; reads 0.75, the text 1.0
+    planted 1.0, load 1 by hand: the parameter reads 0.75 (as given), the state's text holds 1.0 (1.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 2 by hand: the parameter reads 0.75 (as given), the state's text holds 1.0 (1.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 1 by the shipped load_state, the plant forced: taken; reads 0.75, the text 1.0
+    planted 1.0, load 2 by the shipped load_state, the plant forced: taken; reads 0.75, the text 1.0
+  value 0.99 (0x1.fae147ae147aep-1), the text holds 0.99; the shipped rule plants 0.0
+    planted 0.0, load 1 by hand: the parameter reads 0.9900000095367432 (as given), the state's text holds 1.0 (1.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 2 by hand: the parameter reads 0.9900000095367432 (as given), the state's text holds 1.0 (1.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 1 by the shipped load_state, the plant forced: taken; reads 0.9900000095367432, the text 1.0
+    planted 0.0, load 2 by the shipped load_state, the plant forced: taken; reads 0.9900000095367432, the text 1.0
+    planted 1.0, load 1 by hand: the parameter reads 0.9900000095367432 (as given), the state's text holds 1.0 (1.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 2 by hand: the parameter reads 0.9900000095367432 (as given), the state's text holds 1.0 (1.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 1 by the shipped load_state, the plant forced: taken; reads 0.9900000095367432, the text 1.0
+    planted 1.0, load 2 by the shipped load_state, the plant forced: taken; reads 0.9900000095367432, the text 1.0
+  value 0.9950000047683716 (0x1.fd70a40000000p-1), the text holds 0.9950000047683716; the shipped rule plants 0.0
+    planted 0.0, load 1 by hand: the parameter reads 0.9950000047683716 (as given), the state's text holds 1.0 (1.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 2 by hand: the parameter reads 0.9950000047683716 (as given), the state's text holds 1.0 (1.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 1 by the shipped load_state, the plant forced: taken; reads 0.9950000047683716, the text 1.0
+    planted 0.0, load 2 by the shipped load_state, the plant forced: taken; reads 0.9950000047683716, the text 1.0
+    planted 1.0, load 1 by hand: the parameter reads 0.9950000047683716 (as given), the state's text holds 1.0 (1.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 2 by hand: the parameter reads 0.9950000047683716 (as given), the state's text holds 1.0 (1.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 1 by the shipped load_state, the plant forced: taken; reads 0.9950000047683716, the text 1.0
+    planted 1.0, load 2 by the shipped load_state, the plant forced: taken; reads 0.9950000047683716, the text 1.0
+  value 0.9975000023841858 (0x1.feb8520000000p-1), the text holds 0.9975000023841858; the shipped rule plants 0.0
+    planted 0.0, load 1 by hand: the parameter reads 0.9975000023841858 (as given), the state's text holds 1.0 (1.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 2 by hand: the parameter reads 0.9975000023841858 (as given), the state's text holds 1.0 (1.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 1 by the shipped load_state, the plant forced: taken; reads 0.9975000023841858, the text 1.0
+    planted 0.0, load 2 by the shipped load_state, the plant forced: taken; reads 0.9975000023841858, the text 1.0
+    planted 1.0, load 1 by hand: the parameter reads 0.9975000023841858 (as given), the state's text holds 1.0 (1.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 2 by hand: the parameter reads 0.9975000023841858 (as given), the state's text holds 1.0 (1.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 1 by the shipped load_state, the plant forced: taken; reads 0.9975000023841858, the text 1.0
+    planted 1.0, load 2 by the shipped load_state, the plant forced: taken; reads 0.9975000023841858, the text 1.0
+  value 0.9987499713897705 (0x1.ff5c280000000p-1), the text holds 0.9987499713897705; the shipped rule plants 0.0
+    planted 0.0, load 1 by hand: the parameter reads 0.9987499713897705 (as given), the state's text holds 1.0 (1.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 2 by hand: the parameter reads 0.9987499713897705 (as given), the state's text holds 1.0 (1.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 1 by the shipped load_state, the plant forced: taken; reads 0.9987499713897705, the text 1.0
+    planted 0.0, load 2 by the shipped load_state, the plant forced: taken; reads 0.9987499713897705, the text 1.0
+    planted 1.0, load 1 by hand: the parameter reads 0.9987499713897705 (as given), the state's text holds 1.0 (1.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 2 by hand: the parameter reads 0.9987499713897705 (as given), the state's text holds 1.0 (1.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 1 by the shipped load_state, the plant forced: taken; reads 0.9987499713897705, the text 1.0
+    planted 1.0, load 2 by the shipped load_state, the plant forced: taken; reads 0.9987499713897705, the text 1.0
+  value 0.9993749856948853 (0x1.ffae140000000p-1), the text holds 0.9993749856948853; the shipped rule plants 0.0
+    planted 0.0, load 1 by hand: the parameter reads 0.9993749856948853 (as given), the state's text holds 1.0 (1.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 2 by hand: the parameter reads 0.9993749856948853 (as given), the state's text holds 1.0 (1.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 1 by the shipped load_state, the plant forced: taken; reads 0.9993749856948853, the text 1.0
+    planted 0.0, load 2 by the shipped load_state, the plant forced: taken; reads 0.9993749856948853, the text 1.0
+    planted 1.0, load 1 by hand: the parameter reads 0.9993749856948853 (as given), the state's text holds 1.0 (1.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 2 by hand: the parameter reads 0.9993749856948853 (as given), the state's text holds 1.0 (1.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 1 by the shipped load_state, the plant forced: taken; reads 0.9993749856948853, the text 1.0
+    planted 1.0, load 2 by the shipped load_state, the plant forced: taken; reads 0.9993749856948853, the text 1.0
+  value 0.9996874928474426 (0x1.ffd70a0000000p-1), the text holds 0.9996874928474426; the shipped rule plants 0.0
+    planted 0.0, load 1 by hand: the parameter reads 0.9996874928474426 (as given), the state's text holds 1.0 (1.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 2 by hand: the parameter reads 0.9996874928474426 (as given), the state's text holds 1.0 (1.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 1 by the shipped load_state, the plant forced: taken; reads 0.9996874928474426, the text 1.0
+    planted 0.0, load 2 by the shipped load_state, the plant forced: taken; reads 0.9996874928474426, the text 1.0
+    planted 1.0, load 1 by hand: the parameter reads 0.9996874928474426 (as given), the state's text holds 1.0 (1.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 2 by hand: the parameter reads 0.9996874928474426 (as given), the state's text holds 1.0 (1.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 1 by the shipped load_state, the plant forced: taken; reads 0.9996874928474426, the text 1.0
+    planted 1.0, load 2 by the shipped load_state, the plant forced: taken; reads 0.9996874928474426, the text 1.0
+  value 0.9998437166213989 (0x1.ffeb840000000p-1), the text holds 0.9998437166213989; the shipped rule plants 0.0
+    planted 0.0, load 1 by hand: the parameter reads 0.9998437166213989 (as given), the state's text holds 1.0 (1.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 2 by hand: the parameter reads 0.9998437166213989 (as given), the state's text holds 1.0 (1.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 1 by the shipped load_state, the plant forced: taken; reads 0.9998437166213989, the text 1.0
+    planted 0.0, load 2 by the shipped load_state, the plant forced: taken; reads 0.9998437166213989, the text 1.0
+    planted 1.0, load 1 by hand: the parameter reads 0.9998437166213989 (as given), the state's text holds 1.0 (1.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 2 by hand: the parameter reads 0.9998437166213989 (as given), the state's text holds 1.0 (1.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 1 by the shipped load_state, the plant forced: taken; reads 0.9998437166213989, the text 1.0
+    planted 1.0, load 2 by the shipped load_state, the plant forced: taken; reads 0.9998437166213989, the text 1.0
+  value 0.9999218583106995 (0x1.fff5c20000000p-1), the text holds 0.9999218583106995; the shipped rule plants 0.0
+    planted 0.0, load 1 by hand: the parameter reads 0.9999218583106995 (as given), the state's text holds 1.0 (1.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 2 by hand: the parameter reads 0.9999218583106995 (as given), the state's text holds 1.0 (1.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 1 by the shipped load_state, the plant forced: taken; reads 0.9999218583106995, the text 1.0
+    planted 0.0, load 2 by the shipped load_state, the plant forced: taken; reads 0.9999218583106995, the text 1.0
+    planted 1.0, load 1 by hand: the parameter reads 0.9999218583106995 (as given), the state's text holds 1.0 (1.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 2 by hand: the parameter reads 0.9999218583106995 (as given), the state's text holds 1.0 (1.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 1 by the shipped load_state, the plant forced: taken; reads 0.9999218583106995, the text 1.0
+    planted 1.0, load 2 by the shipped load_state, the plant forced: taken; reads 0.9999218583106995, the text 1.0
+  value 0.9999608993530273 (0x1.fffae00000000p-1), the text holds 0.9999608993530273; the shipped rule plants 0.0
+    planted 0.0, load 1 by hand: the parameter reads 0.9999608993530273 (as given), the state's text holds 1.0 (1.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 2 by hand: the parameter reads 0.9999608993530273 (as given), the state's text holds 1.0 (1.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 1 by the shipped load_state, the plant forced: taken; reads 0.9999608993530273, the text 1.0
+    planted 0.0, load 2 by the shipped load_state, the plant forced: taken; reads 0.9999608993530273, the text 1.0
+    planted 1.0, load 1 by hand: the parameter reads 0.9999608993530273 (as given), the state's text holds 1.0 (1.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 2 by hand: the parameter reads 0.9999608993530273 (as given), the state's text holds 1.0 (1.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 1 by the shipped load_state, the plant forced: taken; reads 0.9999608993530273, the text 1.0
+    planted 1.0, load 2 by the shipped load_state, the plant forced: taken; reads 0.9999608993530273, the text 1.0
+  value 0.9999804496765137 (0x1.fffd700000000p-1), the text holds 0.9999804496765137; the shipped rule plants 0.0
+    planted 0.0, load 1 by hand: the parameter reads 0.9999804496765137 (as given), the state's text holds 1.0 (1.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 2 by hand: the parameter reads 0.9999804496765137 (as given), the state's text holds 1.0 (1.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 1 by the shipped load_state, the plant forced: taken; reads 0.9999804496765137, the text 1.0
+    planted 0.0, load 2 by the shipped load_state, the plant forced: taken; reads 0.9999804496765137, the text 1.0
+    planted 1.0, load 1 by hand: the parameter reads 0.9999804496765137 (as given), the state's text holds 1.0 (1.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 2 by hand: the parameter reads 0.9999804496765137 (as given), the state's text holds 1.0 (1.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 1 by the shipped load_state, the plant forced: taken; reads 0.9999804496765137, the text 1.0
+    planted 1.0, load 2 by the shipped load_state, the plant forced: taken; reads 0.9999804496765137, the text 1.0
+  value 0.9999902248382568 (0x1.fffeb80000000p-1), the text holds 0.9999902248382568; the shipped rule plants 0.0
+    planted 0.0, load 1 by hand: the parameter reads 0.9999902248382568 (as given), the state's text holds 1.0 (1.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 2 by hand: the parameter reads 0.9999902248382568 (as given), the state's text holds 1.0 (1.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 1 by the shipped load_state, the plant forced: taken; reads 0.9999902248382568, the text 1.0
+    planted 0.0, load 2 by the shipped load_state, the plant forced: taken; reads 0.9999902248382568, the text 1.0
+    planted 1.0, load 1 by hand: the parameter reads 0.9999902248382568 (as given), the state's text holds 1.0 (1.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 2 by hand: the parameter reads 0.9999902248382568 (as given), the state's text holds 1.0 (1.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 1 by the shipped load_state, the plant forced: taken; reads 0.9999902248382568, the text 1.0
+    planted 1.0, load 2 by the shipped load_state, the plant forced: taken; reads 0.9999902248382568, the text 1.0
+  value 0.9999951124191284 (0x1.ffff5c0000000p-1), the text holds 0.9999951124191284; the shipped rule plants 0.0
+    planted 0.0, load 1 by hand: the parameter reads 0.9999951124191284 (as given), the state's text holds 1.0 (1.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 2 by hand: the parameter reads 0.9999951124191284 (as given), the state's text holds 1.0 (1.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 1 by the shipped load_state, the plant forced: taken; reads 0.9999951124191284, the text 1.0
+    planted 0.0, load 2 by the shipped load_state, the plant forced: taken; reads 0.9999951124191284, the text 1.0
+    planted 1.0, load 1 by hand: the parameter reads 0.9999951124191284 (as given), the state's text holds 1.0 (1.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 2 by hand: the parameter reads 0.9999951124191284 (as given), the state's text holds 1.0 (1.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 1 by the shipped load_state, the plant forced: taken; reads 0.9999951124191284, the text 1.0
+    planted 1.0, load 2 by the shipped load_state, the plant forced: taken; reads 0.9999951124191284, the text 1.0
+  value 0.9999975562095642 (0x1.ffffae0000000p-1), the text holds 0.9999975562095642; the shipped rule plants 0.0
+    planted 0.0, load 1 by hand: the parameter reads 0.9999975562095642 (as given), the state's text holds 1.0 (1.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 2 by hand: the parameter reads 0.9999975562095642 (as given), the state's text holds 1.0 (1.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 1 by the shipped load_state, the plant forced: taken; reads 0.9999975562095642, the text 1.0
+    planted 0.0, load 2 by the shipped load_state, the plant forced: taken; reads 0.9999975562095642, the text 1.0
+    planted 1.0, load 1 by hand: the parameter reads 0.9999975562095642 (as given), the state's text holds 1.0 (1.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 2 by hand: the parameter reads 0.9999975562095642 (as given), the state's text holds 1.0 (1.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 1 by the shipped load_state, the plant forced: taken; reads 0.9999975562095642, the text 1.0
+    planted 1.0, load 2 by the shipped load_state, the plant forced: taken; reads 0.9999975562095642, the text 1.0
+  value 0.9999987483024597 (0x1.ffffd60000000p-1), the text holds 0.9999987483024597; the shipped rule plants 0.0
+    planted 0.0, load 1 by hand: the parameter reads 0.9999987483024597 (as given), the state's text holds 1.0 (1.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 2 by hand: the parameter reads 0.9999987483024597 (as given), the state's text holds 1.0 (1.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 1 by the shipped load_state, the plant forced: taken; reads 0.9999987483024597, the text 1.0
+    planted 0.0, load 2 by the shipped load_state, the plant forced: taken; reads 0.9999987483024597, the text 1.0
+    planted 1.0, load 1 by hand: the parameter reads 0.9999987483024597 (as given), the state's text holds 1.0 (1.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 2 by hand: the parameter reads 0.9999987483024597 (as given), the state's text holds 1.0 (1.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 1 by the shipped load_state, the plant forced: taken; reads 0.9999987483024597, the text 1.0
+    planted 1.0, load 2 by the shipped load_state, the plant forced: taken; reads 0.9999987483024597, the text 1.0
+  value 0.9999993443489075 (0x1.ffffea0000000p-1), the text holds 0.9999993443489075; the shipped rule plants 0.0
+    planted 0.0, load 1 by hand: the parameter reads 0.9999993443489075 (as given), the state's text holds 1.0 (1.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 2 by hand: the parameter reads 0.9999993443489075 (as given), the state's text holds 1.0 (1.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 1 by the shipped load_state, the plant forced: taken; reads 0.9999993443489075, the text 1.0
+    planted 0.0, load 2 by the shipped load_state, the plant forced: taken; reads 0.9999993443489075, the text 1.0
+    planted 1.0, load 1 by hand: the parameter reads 0.9999993443489075 (as given), the state's text holds 1.0 (1.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 2 by hand: the parameter reads 0.9999993443489075 (as given), the state's text holds 1.0 (1.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 1 by the shipped load_state, the plant forced: taken; reads 0.9999993443489075, the text 1.0
+    planted 1.0, load 2 by the shipped load_state, the plant forced: taken; reads 0.9999993443489075, the text 1.0
+  value 0.9999996423721313 (0x1.fffff40000000p-1), the text holds 0.9999996423721313; the shipped rule plants 0.0
+    planted 0.0, load 1 by hand: the parameter reads 0.9999996423721313 (as given), the state's text holds 1.0 (1.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 2 by hand: the parameter reads 0.9999996423721313 (as given), the state's text holds 1.0 (1.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 1 by the shipped load_state, the plant forced: taken; reads 0.9999996423721313, the text 1.0
+    planted 0.0, load 2 by the shipped load_state, the plant forced: taken; reads 0.9999996423721313, the text 1.0
+    planted 1.0, load 1 by hand: the parameter reads 0.9999996423721313 (as given), the state's text holds 1.0 (1.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 2 by hand: the parameter reads 0.9999996423721313 (as given), the state's text holds 1.0 (1.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 1 by the shipped load_state, the plant forced: taken; reads 0.9999996423721313, the text 1.0
+    planted 1.0, load 2 by the shipped load_state, the plant forced: taken; reads 0.9999996423721313, the text 1.0
+  value 0.9999998211860657 (0x1.fffffa0000000p-1), the text holds 0.9999998211860657; the shipped rule plants 0.0
+    planted 0.0, load 1 by hand: the parameter reads 0.9999998211860657 (as given), the state's text holds 1.0 (1.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 2 by hand: the parameter reads 0.9999998211860657 (as given), the state's text holds 1.0 (1.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 1 by the shipped load_state, the plant forced: taken; reads 0.9999998211860657, the text 1.0
+    planted 0.0, load 2 by the shipped load_state, the plant forced: taken; reads 0.9999998211860657, the text 1.0
+    planted 1.0, load 1 by hand: the parameter reads 0.9999998211860657 (as given), the state's text holds 1.0 (1.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 2 by hand: the parameter reads 0.9999998211860657 (as given), the state's text holds 1.0 (1.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 1 by the shipped load_state, the plant forced: taken; reads 0.9999998211860657, the text 1.0
+    planted 1.0, load 2 by the shipped load_state, the plant forced: taken; reads 0.9999998211860657, the text 1.0
+  value 0.9999998807907104 (0x1.fffffc0000000p-1), the text holds 0.9999998807907104; the shipped rule plants 0.0
+    planted 0.0, load 1 by hand: the parameter reads 0.9999998807907104 (as given), the state's text holds 1.0 (1.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 2 by hand: the parameter reads 0.9999998807907104 (as given), the state's text holds 1.0 (1.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 1 by the shipped load_state, the plant forced: taken; reads 0.9999998807907104, the text 1.0
+    planted 0.0, load 2 by the shipped load_state, the plant forced: taken; reads 0.9999998807907104, the text 1.0
+    planted 1.0, load 1 by hand: the parameter reads 0.9999998807907104 (as given), the state's text holds 1.0 (1.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 2 by hand: the parameter reads 0.9999998807907104 (as given), the state's text holds 1.0 (1.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 1 by the shipped load_state, the plant forced: taken; reads 0.9999998807907104, the text 1.0
+    planted 1.0, load 2 by the shipped load_state, the plant forced: taken; reads 0.9999998807907104, the text 1.0
+  value 0.9999999403953552 (0x1.fffffe0000000p-1), the text holds 0.9999999403953552; the shipped rule plants 0.0
+    planted 0.0, load 1 by hand: the parameter reads 0.9999999403953552 (as given), the state's text holds 1.0 (1.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 2 by hand: the parameter reads 0.9999999403953552 (as given), the state's text holds 1.0 (1.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 1 by the shipped load_state, the plant forced: taken; reads 0.9999999403953552, the text 1.0
+    planted 0.0, load 2 by the shipped load_state, the plant forced: taken; reads 0.9999999403953552, the text 1.0
+    planted 1.0, load 1 by hand: the parameter reads 0.9999999403953552 (as given), the state's text holds 1.0 (1.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 2 by hand: the parameter reads 0.9999999403953552 (as given), the state's text holds 1.0 (1.0); the write taken; the marker's verdict taken, the right verdict taken
+    planted 1.0, load 1 by the shipped load_state, the plant forced: taken; reads 0.9999999403953552, the text 1.0
+    planted 1.0, load 2 by the shipped load_state, the plant forced: taken; reads 0.9999999403953552, the text 1.0
+  value 1.0 (0x1.0000000000000p+0), the text holds 1.0; the shipped rule plants 0.0
+    planted 0.0, load 1 by hand: the parameter reads 1.0 (as given), the state's text holds 1.0 (as given); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 2 by hand: the parameter reads 1.0 (as given), the state's text holds 1.0 (as given); the write taken; the marker's verdict taken, the right verdict taken
+    planted 0.0, load 1 by the shipped load_state, the plant forced: taken; reads 1.0, the text 1.0
+    planted 0.0, load 2 by the shipped load_state, the plant forced: taken; reads 1.0, the text 1.0
+    planted 1.0, load 1 by hand: the parameter reads 1.0 (as given), the state's text holds 1.0 (as given); the write taken; the marker's verdict ignored, the right verdict taken  <-- WRONG
+    planted 1.0, load 2 by hand: the parameter reads 1.0 (as given), the state's text holds 1.0 (as given); the write taken; the marker's verdict ignored, the right verdict taken  <-- WRONG
+    planted 1.0, load 1 by the shipped load_state, the plant forced: refused: Vital ignored the state: filter_1_on, set before the load, was left as it was set; reads 0.0, the text 0.0
+    planted 1.0, load 2 by the shipped load_state, the plant forced: refused: Vital ignored the state: filter_1_on, set before the load, was left as it was set; reads 0.0, the text 0.0
+
+== through VitalInstrument.load_patch, a whole patch of the start preset with the value
+  0.0: in the patch's values True; loaded; the model holds 0.0; get returns [0.0, 'none']; the plugin reads 0.0 and its text holds 0.0
+  0.25: in the patch's values False; loaded; the model holds 0.25; get returns [0.25, 'none']; the plugin reads 0.25 and its text holds 0.0
+  0.49: in the patch's values False; loaded; the model holds 0.49; get returns [0.49, 'none']; the plugin reads 0.49000000953674316 and its text holds 0.0
+  0.4999999701976776: in the patch's values False; loaded; the model holds 0.4999999701976776; get returns [0.4999999701976776, 'none']; the plugin reads 0.4999999701976776 and its text holds 0.0
+  0.5: in the patch's values False; loaded; the model holds 0.5; get returns [0.5, 'none']; the plugin reads 0.5 and its text holds 1.0
+  0.5000000596046448: in the patch's values False; loaded; the model holds 0.5000000596046448; get returns [0.5000000596046448, 'none']; the plugin reads 0.5000000596046448 and its text holds 1.0
+  0.51: in the patch's values False; loaded; the model holds 0.51; get returns [0.51, 'none']; the plugin reads 0.5099999904632568 and its text holds 1.0
+  0.75: in the patch's values False; loaded; the model holds 0.75; get returns [0.75, 'none']; the plugin reads 0.75 and its text holds 1.0
+  0.99: in the patch's values False; loaded; the model holds 0.99; get returns [0.99, 'none']; the plugin reads 0.9900000095367432 and its text holds 1.0
+  1.0: in the patch's values True; loaded; the model holds 1.0; get returns [1.0, 'none']; the plugin reads 1.0 and its text holds 1.0
+
+values loaded: 57, of which bisection steps: 47
+under the end the shipped rule plants: wrong verdicts on 0 values []
+under either end, a wrong verdict by hand on 2 (value, plant) pairs: [(0.0, 0.0), (1.0, 1.0)]
+instrument refusals: []
+children this run started: 67; still alive: []
+EVERY VERDICT OF THE SHIPPED RULE IS RIGHT
+exit=0
+
+the tree after the run:
+  HEAD 9bc336c22b719062b46d485c041a3566c2ee40cf
+  git status --porcelain=v1 --untracked-files=all, 4 lines:
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/plan.md
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/references.md
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/shape.md
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/standards.md
+  git hash-object of each of those paths (a deleted one marked so):
+    1aede71497f7d42e6655e10406b648dbd8ad93ec  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/plan.md
+    943e9c7d3952eca1bf54ca103830d1cf5e4f5349  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/references.md
+    89cef49d87ca8a9374b3c38c5dcb6483874f5514  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/shape.md
+    bddbc3d3f156e6ec55bfb89afd36e33d198f8d2b  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/standards.md
+cmp: the tree after the run is the tree before it
+the machine after the run: arm64, Apple M4 Pro, 14 cores, macOS 26.6.2 (25G83), Python 3.12.16, load 2.27 2.17 2.23, at 2026-11-17 12:48 EST
+
+the scripts this run used, each embedded below with its blob:
+    6f41490480dd9f2b9b6a51d3bdf56a970581384a  <scratchpad>/p26/midpoint_run.py
+    57453e9d15ee81febdb4d399d5b843e6a48253a1  <scratchpad>/p26/midpoint_child.py
+    cc1b511c1c2be1a146cfe8eae7fe4a1686a1d2ca  <scratchpad>/p26/runner.py
+    8a66f6deb176d6bf50ef1ff5c299f39f4f1b1822  <scratchpad>/p26/poller.py
+    e4c1a40cc3893ab50df6717e5a18e2a755914efd  <scratchpad>/p26/tree.sh
+    0dde01b338e9dbc221abc7e0d9b87bcf21acf1cf  <scratchpad>/p26/machine.sh
+    ad21c0070c92f4ea20cc2c1f8f0c3960252e3a77  <scratchpad>/p26/transcript.sh
+
+--- <scratchpad>/p26/midpoint_run.py
+```
+"""The midpoint probe (PR 26 review, finding 10): what Vital holds for its switch between the ends.
+
+usage: midpoint_run.py   (run from the repository root, under `uv run --locked python`)
+
+The marker, `filter_1_on`, is a switch on a scale from 0 to 1, and the shipped `_planted` plants
+0.0 when the text's value is at the midpoint or above and 1.0 otherwise. Each value below is put
+in the start preset and loaded, in a child of its own (midpoint_child.py), under each end the
+marker can be planted at. A load that leaves the marker as planted is the shipped rule's verdict
+"ignored"; every text here is a good one Vital takes, so the right verdict is always "taken".
+
+Each load is given LIMIT seconds from the child saying it is about to make it (runner.watch).
+Throughout, every window on screen is listed 20 times a second (poller.windows) and one owned by
+a child is a stop: the child is killed and the run ends. No window is expected: the watch answers
+any alert, and none of these texts should raise one.
+
+Wherever the outcome of two neighbouring values differs, the float32s between them are bisected,
+by their bits, down to two adjacent float32s, so the boundary is located and not bracketed.
+"""
+
+import json
+import struct
+import sys
+import threading
+import time
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE))
+
+import poller  # noqa: E402
+import runner  # noqa: E402
+
+CHILD = str(HERE / "midpoint_child.py")
+LIMIT = 3.0
+
+
+def f32(value: float) -> float:
+    return struct.unpack("<f", struct.pack("<f", value))[0]
+
+
+def bits(value: float) -> int:
+    return struct.unpack("<I", struct.pack("<f", value))[0]
+
+
+def of_bits(word: int) -> float:
+    return struct.unpack("<f", struct.pack("<I", word))[0]
+
+
+VALUES = [
+    0.0,
+    0.25,
+    0.49,
+    of_bits(bits(0.5) - 1),
+    0.5,
+    of_bits(bits(0.5) + 1),
+    0.51,
+    0.75,
+    0.99,
+    1.0,
+]
+
+
+class Stop(Exception):  # noqa: N818  the run's one way to end early
+    pass
+
+
+def run_child(mode: str, value: float) -> dict[str, object]:
+    """Run one child to its end under the load limit, watching the screen; its RESULT line."""
+    child = runner.Child(mode, value.hex(), script=CHILD)
+    seen: list[list[int]] = []
+    done = threading.Event()
+
+    def look() -> None:
+        while not done.is_set():
+            mine = [w for w in poller.windows() if w[0] == child.process.pid]
+            if mine:
+                seen.extend(mine)
+                child.kill()
+                return
+            time.sleep(poller.PERIOD)
+
+    threading.Thread(target=look, daemon=True).start()
+    returned, lines = runner.watch(child, LIMIT, indent="      | ")
+    done.set()
+    if seen:
+        raise Stop(f"A WINDOW APPEARED for the child of {mode} {value!r}: {seen}; it was killed")
+    if not returned:
+        raise Stop(f"a load of {mode} {value!r} did not return within {LIMIT:g} s")
+    if child.process.wait() != 0:
+        raise Stop(f"the child of {mode} {value!r} exited {child.process.returncode}")
+    results = [line for line in lines if line.startswith("RESULT ")]
+    if len(results) != 1:
+        raise Stop(f"the child of {mode} {value!r} printed {len(results)} RESULT lines")
+    return json.loads(results[0].removeprefix("RESULT "))
+
+
+def held(found: float | None, value: float) -> str:
+    """What a read or the text holds, against the value given as Vital's float32 has it."""
+    if found is None:
+        return "absent"
+    return "as given" if found == f32(value) else repr(found)
+
+
+def verdicts(result: dict[str, object]) -> dict[float, list[str]]:
+    """By plant, the marker's verdict on each load by hand: ignored where the read is the plant."""
+    out = {}
+    for plant in (0.0, 1.0):
+        by_hand = result[f"plant {plant}"]["by_hand"]  # type: ignore[index]
+        out[plant] = ["ignored" if load["read"] == plant else "taken" for load in by_hand]
+    return out
+
+
+def outcome(result: dict[str, object]) -> tuple[object, ...]:
+    """What is compared between neighbours: the holds and verdicts under each plant."""
+    value = float(result["value"])  # type: ignore[arg-type]
+    key: list[object] = []
+    for plant in (0.0, 1.0):
+        part = result[f"plant {plant}"]  # type: ignore[index]
+        for load in part["by_hand"]:
+            key.append((held(load["read"], value), held(load["text"], value)))
+        key.append(tuple(verdicts(result)[plant]))
+        key.append(tuple(load["outcome"].split(":")[0] for load in part["shipped_load_state"]))
+    return tuple(key)
+
+
+def show(result: dict[str, object]) -> None:
+    value = float(result["value"])  # type: ignore[arg-type]
+    print(f"  value {value!r} ({result['value_hex']}), the text holds {result['text_holds']!r}; the shipped rule plants {result['shipped_plant']!r}")
+    for plant in (0.0, 1.0):
+        part = result[f"plant {plant}"]  # type: ignore[index]
+        verdict = verdicts(result)[plant]
+        for number, load in enumerate(part["by_hand"], 1):
+            print(
+                f"    planted {plant}, load {number} by hand: the parameter reads {load['read']!r} "
+                f"({held(load['read'], value)}), the state's text holds {load['text']!r} "
+                f"({held(load['text'], value)}); the write {load['outcome']}; the marker's verdict "
+                f"{verdict[number - 1]}, the right verdict taken"
+                + ("" if verdict[number - 1] == "taken" else "  <-- WRONG")
+            )
+        for number, load in enumerate(part["shipped_load_state"], 1):
+            print(
+                f"    planted {plant}, load {number} by the shipped load_state, the plant forced: "
+                f"{load['outcome']}; reads {load['read']!r}, the text {load['text']!r}"
+            )
+
+
+def main() -> int:
+    by_value: dict[float, dict[str, object]] = {}
+    instrument: dict[float, dict[str, object]] = {}
+    try:
+        print("== each listed value, a child for the host and a child for the instrument")
+        for value in VALUES:
+            print(f"-- {value!r}")
+            by_value[value] = run_child("host", value)
+            instrument[value] = run_child("instrument", value)
+        print()
+        print("== the boundaries, bisected over float32 bits where neighbours' outcomes differ")
+        listed = sorted(by_value)
+        for low, high in zip(listed, listed[1:]):
+            if outcome(by_value[low]) == outcome(by_value[high]):
+                continue
+            lo, hi = bits(f32(low)), bits(f32(high))
+            lo_key = outcome(by_value[low])
+            print(f"-- between {low!r} and {high!r}: {hi - lo - 1} float32s between")
+            while hi - lo > 1:
+                mid = (lo + hi) // 2
+                value = of_bits(mid)
+                print(f"   bisecting at {value!r}")
+                found = run_child("host", value)
+                by_value[value] = found
+                if outcome(found) == lo_key:
+                    lo = mid
+                else:
+                    hi = mid
+            print(f"   located: {of_bits(lo)!r} and {of_bits(hi)!r} are adjacent float32s, and their outcomes differ")
+    except Stop as stop:
+        print(f"STOP: {stop}")
+        return 1
+    print()
+    print("== every value, in order")
+    for value in sorted(by_value):
+        show(by_value[value])
+    print()
+    print("== through VitalInstrument.load_patch, a whole patch of the start preset with the value")
+    for value in VALUES:
+        found = instrument[value]
+        print(
+            f"  {value!r}: in the patch's values {found['in_values']}; {found['outcome']}; the model "
+            f"holds {found['model']!r}; get returns {found['get']!r}; the plugin reads "
+            f"{found['read']!r} and its text holds {found['text']!r}"
+        )
+    print()
+    wrong_shipped = []
+    for value in sorted(by_value):
+        found = by_value[value]
+        plant = float(found["shipped_plant"])  # type: ignore[arg-type]
+        verdict = verdicts(found)[plant]
+        shipped = [load["outcome"] for load in found[f"plant {plant}"]["shipped_load_state"]]  # type: ignore[index]
+        if verdict != ["taken", "taken"] or any(o != "taken" for o in shipped):
+            wrong_shipped.append((value, plant, verdict, shipped))
+    wrong_any = [
+        (value, plant)
+        for value in sorted(by_value)
+        for plant, verdict in verdicts(by_value[value]).items()
+        if verdict != ["taken", "taken"]
+    ]
+    print(f"values loaded: {len(by_value)}, of which bisection steps: {len(by_value) - len(VALUES)}")
+    print(f"under the end the shipped rule plants: wrong verdicts on {len(wrong_shipped)} values {wrong_shipped}")
+    print(f"under either end, a wrong verdict by hand on {len(wrong_any)} (value, plant) pairs: {wrong_any}")
+    print(f"instrument refusals: {[v for v in VALUES if instrument[v]['outcome'] != 'loaded']}")
+    print(f"children this run started: {len(runner.Child.every)}; still alive: {[c.process.pid for c in runner.Child.every if c.process.poll() is None]}")
+    print("EVERY VERDICT OF THE SHIPPED RULE IS RIGHT" if not wrong_shipped else "A VERDICT OF THE SHIPPED RULE IS WRONG")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
+```
+
+--- <scratchpad>/p26/midpoint_child.py
+```
+"""A child of the midpoint probe: one value of the marker's switch, loaded into its own Vital.
+
+usage: midpoint_child.py host <value, float.hex> <the time it was started>
+       midpoint_child.py instrument <value, float.hex> <the time it was started>
+
+The text is the start preset with `filter_1_on` set to the value, written by the package's own
+writer, as the instrument sends a preset. Before each load it says ABOUT TO LOAD and after it
+RETURNED, so its parent kills it when a load does not return in time; it prints one JSON line
+of results, prefixed RESULT.
+
+host: for each end the marker can be planted at, 0.0 then 1.0, from the start preset loaded twice:
+  by hand, the marker set to that end and the text written, twice, each followed by the value the
+  parameter reads and the value the state's text holds; then the shipped `load_state` twice with
+  that end forced as the plant, each followed by whether it was taken or refused and the reads.
+  Also what the shipped `_planted` would plant for the text.
+instrument: a `VitalInstrument` on its own Vital given the text as a whole patch: whether it was
+  refused, what the model holds, what `get` returns, and what the plugin reads and holds.
+"""
+
+import json
+import sys
+
+from patchbay import EventBus, ParameterId, PresetKey
+
+from patchbay_vital import dumps, patch_of
+from patchbay_vital import host as host_module
+from patchbay_vital.errors import PatchRefusedError, PluginStateError
+from patchbay_vital.host import MARKER, VitalHost, _floats
+from patchbay_vital.instrument import VitalInstrument
+from patchbay_vital.parameters import parameter_map
+from patchbay_vital.preset import VitalSettings
+from patchbay_vital.start import start_preset
+from patchbay_vital.state import wrap
+
+ABOUT_TO_LOAD = "ABOUT TO LOAD"
+RETURNED = "RETURNED"
+
+mode, value_hex, _started = sys.argv[1:]
+value = float.fromhex(value_hex)
+START = start_preset()
+values = {**START.settings.values, PresetKey(str(MARKER)): value}
+PRESET = START.model_copy(update={"settings": VitalSettings(values=values)})
+TEXT = dumps(PRESET).encode("utf-8")
+START_TEXT = dumps(START).encode("utf-8")
+RECORD = parameter_map().find(ParameterId(str(MARKER)))
+
+
+def say(line: str) -> None:
+    print(line, flush=True)
+
+
+def reads(host: VitalHost) -> dict[str, float | None]:
+    """The marker as the parameter reads it and as the state's text holds it."""
+    return {"read": host.get(MARKER), "text": _floats(host.state()).get(str(MARKER))}
+
+
+def load(call):  # noqa: ANN001, ANN201  a probe's wrapper
+    say(ABOUT_TO_LOAD)
+    try:
+        call()
+        outcome = "taken"
+    except PluginStateError as error:
+        outcome = f"refused: {error.reason}"
+    say(RETURNED)
+    return outcome
+
+
+result: dict[str, object] = {"mode": mode, "value": value, "value_hex": value_hex}
+if mode == "host":
+    host = VitalHost()
+    result["text_holds"] = _floats(TEXT).get(str(MARKER))
+    result["shipped_plant"] = host_module._planted(RECORD, TEXT)  # noqa: SLF001
+    for plant in (0.0, 1.0):
+        by_plant: dict[str, object] = {}
+        for _ in range(2):
+            load(lambda: host.load_state(START_TEXT))
+        by_hand = []
+        for _ in range(2):
+            host.set(MARKER, plant)
+            outcome = load(lambda: host._write(wrap(host._containers.with_text(TEXT))))  # noqa: SLF001
+            by_hand.append({"outcome": outcome, **reads(host)})
+        by_plant["by_hand"] = by_hand
+        for _ in range(2):
+            load(lambda: host.load_state(START_TEXT))
+        original = host_module._planted  # noqa: SLF001
+        host_module._planted = lambda _record, _text, end=plant: end  # noqa: SLF001
+        shipped = []
+        try:
+            for _ in range(2):
+                outcome = load(lambda: host.load_state(TEXT))
+                shipped.append({"outcome": outcome, **reads(host)})
+        finally:
+            host_module._planted = original  # noqa: SLF001
+        by_plant["shipped_load_state"] = shipped
+        result[f"plant {plant}"] = by_plant
+elif mode == "instrument":
+    instrument = VitalInstrument(EventBus())
+    patch = patch_of(PRESET)
+    result["in_values"] = str(MARKER) in patch.values
+    say(ABOUT_TO_LOAD)
+    try:
+        instrument.load_patch(patch)
+        result["outcome"] = "loaded"
+    except PatchRefusedError as error:
+        result["outcome"] = f"refused: {error.reason}"
+    say(RETURNED)
+    result["model"] = instrument.preset.settings.values.get(PresetKey(str(MARKER)))
+    got = instrument.get(MARKER)
+    result["get"] = [got.value, str(got.unit)]
+    result.update(reads(instrument.host))
+say("RESULT " + json.dumps(result))
+```
+
+--- <scratchpad>/p26/runner.py
+```
+"""How a probe run starts a child, reads it under a time limit, and kills what does not return."""
+
+import queue
+import subprocess
+import sys
+import threading
+import time
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+CHILD = str(HERE / "child.py")
+ABOUT_TO_LOAD = "ABOUT TO LOAD"
+RETURNED = "RETURNED"
+START_UP = 60.0
+"""Seconds a child is given for everything that is not a load that may block."""
+
+
+class Child:
+    """A child process whose lines are read under a time limit."""
+
+    every: list["Child"] = []
+    """Each child a run started, so the run can show at its end that none is left."""
+
+    def __init__(self, *arguments: str, stdin: bool = False, script: str = CHILD) -> None:
+        Child.every.append(self)
+        self.started = time.time()
+        self.killed: float | None = None
+        self.ended = False
+        """Whether the child closed its output, which a line of None alone does not say."""
+        self.process = subprocess.Popen(  # noqa: S603  the probe's own interpreter and script
+            [sys.executable, "-u", "-B", script, *arguments, repr(self.started)],
+            stdin=subprocess.PIPE if stdin else subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+        )
+        self._lines: queue.Queue[bytes | None] = queue.Queue()
+        threading.Thread(target=self._read, daemon=True).start()
+
+    def _read(self) -> None:
+        assert self.process.stdout is not None
+        for line in self.process.stdout:
+            self._lines.put(line)
+        self.ended = True
+        self._lines.put(None)
+
+    def line(self, limit: float) -> str | None:
+        """The child's next line, or None when it ended or said nothing within the limit."""
+        try:
+            line = self._lines.get(timeout=limit)
+        except queue.Empty:
+            return None
+        return None if line is None else line.decode("utf-8", "replace").rstrip("\n")
+
+    def kill(self) -> float:
+        """Kill the child; return the milliseconds until it was gone."""
+        start = time.perf_counter()
+        self.killed = time.time()
+        self.process.kill()
+        self.process.wait()
+        return (time.perf_counter() - start) * 1000.0
+
+    def send(self, text: bytes) -> None:
+        """Send a kept child one text: an 8-byte length, then its bytes."""
+        assert self.process.stdin is not None
+        self.process.stdin.write(len(text).to_bytes(8, "big"))
+        self.process.stdin.write(text)
+        self.process.stdin.flush()
+
+    def close(self) -> int:
+        """Close the child's input and wait for it; kill it if it stays."""
+        if self.process.stdin is not None:
+            self.process.stdin.close()
+        try:
+            return self.process.wait(timeout=START_UP)
+        except subprocess.TimeoutExpired:
+            self.kill()
+            return self.process.returncode
+
+
+def watch(child: Child, limit: float, indent: str = "    ") -> tuple[bool, list[str]]:
+    """Print a child's lines until it ends; kill it when a load does not return within the limit.
+
+    The child says ABOUT TO LOAD before each load that may block and RETURNED after it. Returns
+    whether every load returned, and the lines.
+    """
+    lines: list[str] = []
+    waiting = False
+    while True:
+        line = child.line(limit if waiting else START_UP)
+        if line is None:
+            if child.process.poll() is not None and not waiting:
+                return True, lines
+            if child.process.poll() is not None:
+                print(f"{indent}THE CHILD ENDED DURING A LOAD, exit {child.process.returncode}")
+                return False, lines
+            what = f"within {limit:g} s" if waiting else f"within {START_UP:g} s of starting"
+            gone = child.kill()
+            print(
+                f"{indent}DID NOT RETURN {what}: the child is killed, by design "
+                f"(gone {gone:.0f} ms after the kill)"
+            )
+            return False, lines
+        if line.startswith(ABOUT_TO_LOAD):
+            waiting = True
+        elif line.startswith(RETURNED):
+            waiting = False
+        lines.append(line)
+        print(f"{indent}{line}", flush=True)
+
+
+def memory(pid: int) -> float:
+    """A process's resident memory in MiB, as ps gives it."""
+    done = subprocess.run(  # noqa: S603
+        ["/bin/ps", "-o", "rss=", "-p", str(pid)], capture_output=True, text=True, check=False
+    )
+    return int(done.stdout.strip() or 0) / 1024.0
+```
+
+--- <scratchpad>/p26/poller.py
+```
+"""A second process that watches the screen while a probe run's children load.
+
+usage: poller.py <out file> [new]
+
+With `new`, only the windows of processes that owned none at the first poll are written: those
+of a run's children, and not those of what was on screen before it.
+
+20 times a second it writes one JSON line: the time, the front application's pid (lsappinfo),
+and every window on screen as [owner pid, layer, width, height] (CGWindowListCopyWindowInfo,
+which gives a window's owner and bounds without the Screen Recording permission). It ends when
+its input closes. It loads no plugin and opens no window.
+"""
+
+import ctypes
+import ctypes.util
+import json
+import subprocess
+import sys
+import threading
+import time
+
+_cg = ctypes.CDLL(ctypes.util.find_library("CoreGraphics"))
+_cf = ctypes.CDLL(ctypes.util.find_library("CoreFoundation"))
+
+_cg.CGWindowListCopyWindowInfo.restype = ctypes.c_void_p
+_cg.CGWindowListCopyWindowInfo.argtypes = [ctypes.c_uint32, ctypes.c_uint32]
+_cf.CFArrayGetCount.restype = ctypes.c_long
+_cf.CFArrayGetCount.argtypes = [ctypes.c_void_p]
+_cf.CFArrayGetValueAtIndex.restype = ctypes.c_void_p
+_cf.CFArrayGetValueAtIndex.argtypes = [ctypes.c_void_p, ctypes.c_long]
+_cf.CFDictionaryGetValue.restype = ctypes.c_void_p
+_cf.CFDictionaryGetValue.argtypes = [ctypes.c_void_p, ctypes.c_void_p]
+_cf.CFNumberGetValue.restype = ctypes.c_bool
+_cf.CFNumberGetValue.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_void_p]
+_cf.CFRelease.argtypes = [ctypes.c_void_p]
+
+
+class _Rect(ctypes.Structure):
+    _fields_ = (("x", ctypes.c_double), ("y", ctypes.c_double), ("w", ctypes.c_double), ("h", ctypes.c_double))
+
+
+_cg.CGRectMakeWithDictionaryRepresentation.restype = ctypes.c_bool
+_cg.CGRectMakeWithDictionaryRepresentation.argtypes = [ctypes.c_void_p, ctypes.POINTER(_Rect)]
+
+ON_SCREEN_ONLY = 1
+LONG_LONG = 11
+"""kCFNumberLongLongType."""
+PERIOD = 0.05
+
+
+def _key(name: str) -> int:
+    return int(ctypes.c_void_p.in_dll(_cg, name).value or 0)
+
+
+OWNER, LAYER, BOUNDS = _key("kCGWindowOwnerPID"), _key("kCGWindowLayer"), _key("kCGWindowBounds")
+
+
+def _number(dictionary: int, key: int) -> int:
+    value = ctypes.c_longlong(0)
+    number = _cf.CFDictionaryGetValue(dictionary, key)
+    if number:
+        _cf.CFNumberGetValue(number, LONG_LONG, ctypes.byref(value))
+    return int(value.value)
+
+
+def windows(everything: bool = False) -> list[list[int]]:
+    """Every window on screen, or every window there is: owner's pid, layer, width, height."""
+    found = []
+    array = _cg.CGWindowListCopyWindowInfo(0 if everything else ON_SCREEN_ONLY, 0)
+    if not array:
+        return found
+    for index in range(_cf.CFArrayGetCount(array)):
+        entry = _cf.CFArrayGetValueAtIndex(array, index)
+        rect = _Rect()
+        bounds = _cf.CFDictionaryGetValue(entry, BOUNDS)
+        if bounds:
+            _cg.CGRectMakeWithDictionaryRepresentation(bounds, ctypes.byref(rect))
+        found.append([_number(entry, OWNER), _number(entry, LAYER), round(rect.w), round(rect.h)])
+    _cf.CFRelease(array)
+    return found
+
+
+def front() -> int | None:
+    """The front application's pid, as lsappinfo gives it."""
+    asn = subprocess.run(["/usr/bin/lsappinfo", "front"], capture_output=True, text=True, check=False).stdout.strip()  # noqa: S603
+    if not asn:
+        return None
+    line = subprocess.run(["/usr/bin/lsappinfo", "info", "-only", "pid", asn], capture_output=True, text=True, check=False).stdout  # noqa: S603
+    digits = line.strip().rpartition("=")[2]
+    return int(digits) if digits.isdigit() else None
+
+
+def main(out: str, new_only: bool = False) -> None:
+    known: set[int] | None = None
+    done = threading.Event()
+    threading.Thread(target=lambda: (sys.stdin.read(), done.set()), daemon=True).start()
+    with open(out, "w", encoding="utf-8") as log:  # noqa: PTH123
+        print("ready", flush=True)
+        while not done.is_set():
+            started = time.time()
+            found = windows()
+            if new_only:
+                if known is None:
+                    known = {window[0] for window in found}
+                found = [window for window in found if window[0] not in known]
+            log.write(json.dumps({"t": started, "front": front(), "windows": found}) + "\n")
+            log.flush()
+            time.sleep(max(0.0, PERIOD - (time.time() - started)))
+
+
+if __name__ == "__main__":
+    main(sys.argv[1], new_only=sys.argv[2:] == ["new"])
+```
+
+--- <scratchpad>/p26/tree.sh
+```
+#!/usr/bin/env bash
+# usage: tree.sh   (run from the repository root)
+# Prints HEAD, git's status of the work tree and the blob of every path that status names, so two
+# calls can be compared with cmp: the tree a run read, and the tree it left.
+set -euo pipefail
+echo "  HEAD $(git rev-parse HEAD)"
+git status --porcelain=v1 --untracked-files=all > "${TMPDIR:-/tmp}/tree.$$"
+echo "  git status --porcelain=v1 --untracked-files=all, $(wc -l < "${TMPDIR:-/tmp}/tree.$$" | tr -d ' ') lines:"
+sed 's/^/    /' "${TMPDIR:-/tmp}/tree.$$"
+echo "  git hash-object of each of those paths (a deleted one marked so):"
+cut -c4- "${TMPDIR:-/tmp}/tree.$$" | LC_ALL=C sort | while IFS= read -r path; do
+  if [ -e "$path" ]; then echo "    $(git hash-object "$path")  $path"; else echo "    (deleted)  $path"; fi
+done
+rm -f "${TMPDIR:-/tmp}/tree.$$"
+```
+
+--- <scratchpad>/p26/machine.sh
+```
+#!/usr/bin/env bash
+# usage: machine.sh   Prints one line: the machine, its system, the locked Python and the load.
+set -euo pipefail
+echo "$(uname -m), $(sysctl -n machdep.cpu.brand_string), $(sysctl -n hw.ncpu) cores, macOS $(sw_vers -productVersion) ($(sw_vers -buildVersion)), Python $(uv run --locked python -c 'import platform; print(platform.python_version())'), load $(sysctl -n vm.loadavg | tr -d '{}' | xargs), at $(date '+%Y-%m-%d %H:%M %Z')"
+```
+
+--- <scratchpad>/p26/transcript.sh
+```
+#!/usr/bin/env bash
+# usage: transcript.sh <out file> <title> <script to embed>... -- <command...>   (from the repository root)
+# Writes one transcript outside the tree: its date and branch, the machine and the tree before,
+# the command's whole output, the tree and the machine after, the two trees compared, and every
+# script it ran, embedded. The caller copies the file into the spec's verification/ afterwards.
+set -uo pipefail
+R=$(cd "$(dirname "$0")" && pwd)
+out=$1; title=$2; shift 2
+scripts=()
+while [ "$1" != "--" ]; do scripts+=("$1"); shift; done
+shift
+{
+  echo "$title, run $(date '+%Y-%m-%d %H:%M %Z') on branch"
+  echo "$(git branch --show-current), Vital at /Library/Audio/Plug-Ins/VST3/Vital.vst3"
+  echo "the machine before the run: $(bash "$R/machine.sh")"
+  echo "the tree before the run (this transcript is written outside the tree and copied in afterwards):"
+  bash "$R/tree.sh" | tee "$R/out/tree-before.txt"
+  echo
+  echo "\$ $*" | sed "s|$R|<scratchpad>/p26|g"
+  "$@" 2>&1
+  echo "exit=$?"
+  echo
+  echo "the tree after the run:"
+  bash "$R/tree.sh" | tee "$R/out/tree-after.txt"
+  if cmp -s "$R/out/tree-before.txt" "$R/out/tree-after.txt"; then echo "cmp: the tree after the run is the tree before it"; else echo "cmp: THE TREE CHANGED DURING THE RUN"; fi
+  echo "the machine after the run: $(bash "$R/machine.sh")"
+  echo
+  echo "the scripts this run used, each embedded below with its blob:"
+  for s in "${scripts[@]}" "$R/tree.sh" "$R/machine.sh" "$R/transcript.sh"; do echo "    $(git hash-object "$s")  <scratchpad>/p26/$(basename "$s")"; done
+  for s in "${scripts[@]}" "$R/tree.sh" "$R/machine.sh" "$R/transcript.sh"; do
+    echo; echo "--- <scratchpad>/p26/$(basename "$s")"; echo '```'; cat "$s"; echo '```'
+  done
+} > "$out"
+```

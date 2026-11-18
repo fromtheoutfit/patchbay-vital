@@ -1,7 +1,8 @@
 """Every preset Vital installed comes back byte for byte, and the set of them is the one expected.
 
 Each comes back through the file's own reader and writer, and through a core `Patch` and its JSON
-(`patchbay_vital.patch`), which needs no plugin either.
+(`patchbay_vital.patch`), which needs no plugin either. Each is also one the instrument's guard
+takes, which needs no plugin: the guard refuses sections of a shape none of them holds.
 
 The presets are Vital's and may not be redistributed, so they are read where an installed Vital
 keeps them and the tests that read them skip, saying so, where they are absent; those carry the
@@ -14,10 +15,11 @@ and a pack removed or newly installed fails by name until the manifest is change
 from pathlib import Path
 
 import pytest
-from patchbay import Patch
+from patchbay import Patch, PresetKey
 
 from patchbay_vital import dumps, loads
-from patchbay_vital.patch import patch_of, preset_of
+from patchbay_vital.parameters import parameter_map
+from patchbay_vital.patch import check_loadable, patch_of, preset_of
 
 _ROOT = Path.home() / "Music" / "Vital"
 _USER = "User"
@@ -127,3 +129,29 @@ def test_a_factory_preset_round_trips_through_a_patch(
 def test_a_pack_preset_round_trips_through_a_patch(presets_root: Path, pack_preset: str) -> None:
     """The same for one preset of an artist pack, its out-of-range floats and old keys kept."""
     _assert_round_trip_through_a_patch(presets_root, pack_preset)
+
+
+@pytest.mark.integration
+def test_every_installed_preset_passes_the_guard_and_holds_neither_optional_section(
+    presets_root: Path, pytestconfig: pytest.Config
+) -> None:
+    """All 75 are presets `check_loadable` takes, counted over the manifest; it needs no plugin.
+
+    The guard refuses `custom_warps` and `random_values` that are not arrays of three objects,
+    where a preset holds them. None of the 75 holds either (the spec of issue #20's
+    `verification/arrays-seen.txt`), so that rule refuses none of them: a preset that came to
+    hold one in another shape would fail here by name.
+    """
+    found = parameter_map()
+    listed = [path for group in _groups(pytestconfig.rootpath).values() for path in group]
+    assert len(listed) == _FACTORY_COUNT + _PACK_COUNT
+    holding = []
+    for relative in listed:
+        preset = loads((presets_root / relative).read_bytes().decode("utf-8"))
+        check_loadable(preset, found)
+        holding += [
+            (relative, name)
+            for name in ("custom_warps", "random_values")
+            if PresetKey(name) in preset.opaque
+        ]
+    assert holding == []

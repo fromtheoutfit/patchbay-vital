@@ -1,0 +1,270 @@
+The revision after the review of PR 26, findings 12, 13 and 15: what the decode, the import and the watch cost, and where the decoder refuses, run 2026-11-17 13:05 EST on branch
+bugfix/20-the-host-a-preset-vital-cannot-read-blocks-the-calling-process-for-ever, Vital at /Library/Audio/Plug-Ins/VST3/Vital.vst3
+the machine before the run: arm64, Apple M4 Pro, 14 cores, macOS 26.6.2 (25G83), Python 3.12.16, load 2.01 3.09 3.67, at 2026-11-17 13:05 EST
+the tree before the run (this transcript is written outside the tree and copied in afterwards):
+  HEAD 9bc336c22b719062b46d485c041a3566c2ee40cf
+  git status --porcelain=v1 --untracked-files=all, 6 lines:
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/plan.md
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/references.md
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/shape.md
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/standards.md
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/alarm-probe.txt
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/midpoint-probe.txt
+  git hash-object of each of those paths (a deleted one marked so):
+    1aede71497f7d42e6655e10406b648dbd8ad93ec  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/plan.md
+    943e9c7d3952eca1bf54ca103830d1cf5e4f5349  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/references.md
+    89cef49d87ca8a9374b3c38c5dcb6483874f5514  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/shape.md
+    bddbc3d3f156e6ec55bfb89afd36e33d198f8d2b  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/standards.md
+    40db52bd5e1adb9caf041a3d10b1edffb84113bc  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/alarm-probe.txt
+    dedf517325fa9bd0db630d4389d71e8968b37b54  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/midpoint-probe.txt
+
+$ env PYTHONDONTWRITEBYTECODE=1 uv run --locked python <scratchpad>/p26/costs.py
+Python 3.12.16 (cpython), recursion limit 1000
+
+== 15: importing the host, and building the alert watch
+import pedalboard: 29.3 ms, first in this process
+import patchbay_vital.host after it: 53.5 ms, which builds the module's watch once
+host._alert_watch() again, 7 times: median 0.123 ms, max 0.881 ms
+otool -L pedalboard_native.cpython-312-darwin.so, the lines naming AppKit, Cocoa, Foundation or libobjc:
+  /System/Library/Frameworks/AppKit.framework/Versions/C/AppKit (compatibility version 45.0.0, current version 2575.60.5)
+  /System/Library/Frameworks/Cocoa.framework/Versions/A/Cocoa (compatibility version 1.0.0, current version 24.0.0)
+  /System/Library/Frameworks/Foundation.framework/Versions/C/Foundation (compatibility version 300.0.0, current version 3502.1.255)
+  /System/Library/Frameworks/CoreFoundation.framework/Versions/A/CoreFoundation (compatibility version 150.0.0, current version 3502.1.255)
+  /usr/lib/libobjc.A.dylib (compatibility version 1.0.0, current version 228.0.0)
+
+== 12: a decode of a preset's text, as _planted makes it
+installed presets read: 75, sizes 119,040 to 10,126,117 bytes
+the median-sized, Distant Majestic Lead.vital, 753,731 bytes: median 0.60 ms, min 0.47, max 0.66
+the largest, Float Chords.vital, 10,126,117 bytes: median 5.19 ms, min 4.93, max 6.16
+
+== 13: the first depth the decoder refuses, on the text {"a": then n arrays, each closed
+called directly, as _planted calls it: 9997
+through PluginState.with_text, the validator load_state runs first: 9994
+called directly under 800 more Python frames: 9997
+exit=0
+
+the tree after the run:
+  HEAD 9bc336c22b719062b46d485c041a3566c2ee40cf
+  git status --porcelain=v1 --untracked-files=all, 6 lines:
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/plan.md
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/references.md
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/shape.md
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/standards.md
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/alarm-probe.txt
+    ?? agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/midpoint-probe.txt
+  git hash-object of each of those paths (a deleted one marked so):
+    1aede71497f7d42e6655e10406b648dbd8ad93ec  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/plan.md
+    943e9c7d3952eca1bf54ca103830d1cf5e4f5349  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/references.md
+    89cef49d87ca8a9374b3c38c5dcb6483874f5514  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/shape.md
+    bddbc3d3f156e6ec55bfb89afd36e33d198f8d2b  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/standards.md
+    40db52bd5e1adb9caf041a3d10b1edffb84113bc  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/alarm-probe.txt
+    dedf517325fa9bd0db630d4389d71e8968b37b54  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/verification/midpoint-probe.txt
+cmp: the tree after the run is the tree before it
+the machine after the run: arm64, Apple M4 Pro, 14 cores, macOS 26.6.2 (25G83), Python 3.12.16, load 2.01 3.09 3.67, at 2026-11-17 13:05 EST
+
+the scripts this run used, each embedded below with its blob:
+    4d04cfbb32e9febfacad25f8e92d3508648931bc  <scratchpad>/p26/costs.py
+    e4c1a40cc3893ab50df6717e5a18e2a755914efd  <scratchpad>/p26/tree.sh
+    0dde01b338e9dbc221abc7e0d9b87bcf21acf1cf  <scratchpad>/p26/machine.sh
+    ad21c0070c92f4ea20cc2c1f8f0c3960252e3a77  <scratchpad>/p26/transcript.sh
+
+--- <scratchpad>/p26/costs.py
+```
+"""The cost transcript (PR 26 review, findings 12, 13 and 15). Loads no plugin.
+
+usage: costs.py   (run from the repository root, under `uv run --locked python`)
+
+12: what a decode of a preset's text costs, the decode `_planted` adds to every load: the median
+    of seven, on the installed preset of median size and on the largest, of the 75 the manifest
+    names.
+15: what importing the host costs on macOS, and what building the alert watch costs after it;
+    and the frameworks pedalboard's native module links, by `otool -L`.
+13: the first nesting depth the package's decoder refuses, on one text shape, `{"a":` then n
+    arrays: called directly, as `_planted` calls it; through `PluginState.with_text`, the
+    validator `load_state` runs first; and directly again under 800 more Python frames.
+"""
+
+import platform
+import statistics
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+ROOT = Path.cwd()
+PRESETS = Path.home() / "Music" / "Vital"
+MANIFEST = ROOT / "tests" / "data" / "factory-manifest.txt"
+REPEATS = 7
+
+print(f"Python {platform.python_version()} ({sys.implementation.name}), recursion limit {sys.getrecursionlimit()}")
+print()
+
+print("== 15: importing the host, and building the alert watch")
+started = time.perf_counter()
+import pedalboard  # noqa: E402
+
+after_pedalboard = time.perf_counter()
+from patchbay_vital import host  # noqa: E402
+
+after_host = time.perf_counter()
+print(f"import pedalboard: {1000 * (after_pedalboard - started):.1f} ms, first in this process")
+print(f"import patchbay_vital.host after it: {1000 * (after_host - after_pedalboard):.1f} ms, which builds the module's watch once")
+builds = []
+for _ in range(REPEATS):
+    began = time.perf_counter()
+    host._alert_watch()  # noqa: SLF001  the build the module makes at import
+    builds.append(1000 * (time.perf_counter() - began))
+print(f"host._alert_watch() again, {REPEATS} times: median {statistics.median(builds):.3f} ms, max {max(builds):.3f} ms")
+native = Path(pedalboard.__file__).parent.parent / "pedalboard_native.cpython-312-darwin.so"
+if not native.exists():
+    native = next(Path(pedalboard.__file__).parent.parent.glob("pedalboard_native*.so"))
+listing = subprocess.run(["/usr/bin/otool", "-L", str(native)], capture_output=True, text=True, check=True).stdout  # noqa: S603
+print(f"otool -L {native.name}, the lines naming AppKit, Cocoa, Foundation or libobjc:")
+for line in listing.splitlines():
+    if any(name in line for name in ("AppKit", "Cocoa", "Foundation", "libobjc")):
+        print(f"  {line.strip()}")
+print()
+
+print("== 12: a decode of a preset's text, as _planted makes it")
+from patchbay_vital.preset import DECODER  # noqa: E402
+
+names = [
+    line
+    for line in MANIFEST.read_text(encoding="utf-8").splitlines()
+    if line and not line.startswith("#")
+]
+files = sorted((PRESETS / name for name in names), key=lambda path: path.stat().st_size)
+print(f"installed presets read: {len(files)}, sizes {files[0].stat().st_size:,} to {files[-1].stat().st_size:,} bytes")
+for label, path in (("the median-sized", files[len(files) // 2]), ("the largest", files[-1])):
+    raw = path.read_bytes()
+    times = []
+    for _ in range(REPEATS):
+        began = time.perf_counter()
+        DECODER.decode(raw.decode("utf-8"))
+        times.append(1000 * (time.perf_counter() - began))
+    print(f"{label}, {path.name}, {len(raw):,} bytes: median {statistics.median(times):.2f} ms, min {min(times):.2f}, max {max(times):.2f}")
+print()
+
+print("== 13: the first depth the decoder refuses, on the text {\"a\": then n arrays, each closed")
+from patchbay_vital.errors import PluginStateError  # noqa: E402
+from patchbay_vital.state import PluginState  # noqa: E402
+
+STATE = PluginState.model_validate(
+    {
+        "class_id": b"x" * 32,
+        "container_version": 1,
+        "wrapper_version": 1,
+        "bypass": 0,
+        "bank_version": 1,
+        "plugin_id": b"Vita",
+        "plugin_version": 1,
+        "programs": 1,
+        "reserved": b"\0" * 128,
+        "text": b"{}",
+    }
+)
+
+
+def text(depth: int) -> str:
+    return '{"a":' + "[" * depth + "]" * depth + "}"
+
+
+def direct(depth: int) -> bool:
+    try:
+        DECODER.decode(text(depth))
+    except RecursionError:
+        return False
+    return True
+
+
+def validated(depth: int) -> bool:
+    try:
+        STATE.with_text(text(depth).encode("utf-8"))
+    except PluginStateError:
+        return False
+    return True
+
+
+def first_refused(reads) -> int:  # noqa: ANN001
+    low, high = 1, 1 << 16
+    assert reads(low) and not reads(high)
+    while high - low > 1:
+        middle = (low + high) // 2
+        if reads(middle):
+            low = middle
+        else:
+            high = middle
+    return high
+
+
+def under(frames: int, call):  # noqa: ANN001, ANN201
+    return call() if frames == 0 else under(frames - 1, call)
+
+
+print(f"called directly, as _planted calls it: {first_refused(direct)}")
+print(f"through PluginState.with_text, the validator load_state runs first: {first_refused(validated)}")
+print(f"called directly under 800 more Python frames: {under(800, lambda: first_refused(direct))}")
+```
+
+--- <scratchpad>/p26/tree.sh
+```
+#!/usr/bin/env bash
+# usage: tree.sh   (run from the repository root)
+# Prints HEAD, git's status of the work tree and the blob of every path that status names, so two
+# calls can be compared with cmp: the tree a run read, and the tree it left.
+set -euo pipefail
+echo "  HEAD $(git rev-parse HEAD)"
+git status --porcelain=v1 --untracked-files=all > "${TMPDIR:-/tmp}/tree.$$"
+echo "  git status --porcelain=v1 --untracked-files=all, $(wc -l < "${TMPDIR:-/tmp}/tree.$$" | tr -d ' ') lines:"
+sed 's/^/    /' "${TMPDIR:-/tmp}/tree.$$"
+echo "  git hash-object of each of those paths (a deleted one marked so):"
+cut -c4- "${TMPDIR:-/tmp}/tree.$$" | LC_ALL=C sort | while IFS= read -r path; do
+  if [ -e "$path" ]; then echo "    $(git hash-object "$path")  $path"; else echo "    (deleted)  $path"; fi
+done
+rm -f "${TMPDIR:-/tmp}/tree.$$"
+```
+
+--- <scratchpad>/p26/machine.sh
+```
+#!/usr/bin/env bash
+# usage: machine.sh   Prints one line: the machine, its system, the locked Python and the load.
+set -euo pipefail
+echo "$(uname -m), $(sysctl -n machdep.cpu.brand_string), $(sysctl -n hw.ncpu) cores, macOS $(sw_vers -productVersion) ($(sw_vers -buildVersion)), Python $(uv run --locked python -c 'import platform; print(platform.python_version())'), load $(sysctl -n vm.loadavg | tr -d '{}' | xargs), at $(date '+%Y-%m-%d %H:%M %Z')"
+```
+
+--- <scratchpad>/p26/transcript.sh
+```
+#!/usr/bin/env bash
+# usage: transcript.sh <out file> <title> <script to embed>... -- <command...>   (from the repository root)
+# Writes one transcript outside the tree: its date and branch, the machine and the tree before,
+# the command's whole output, the tree and the machine after, the two trees compared, and every
+# script it ran, embedded. The caller copies the file into the spec's verification/ afterwards.
+set -uo pipefail
+R=$(cd "$(dirname "$0")" && pwd)
+out=$1; title=$2; shift 2
+scripts=()
+while [ "$1" != "--" ]; do scripts+=("$1"); shift; done
+shift
+{
+  echo "$title, run $(date '+%Y-%m-%d %H:%M %Z') on branch"
+  echo "$(git branch --show-current), Vital at /Library/Audio/Plug-Ins/VST3/Vital.vst3"
+  echo "the machine before the run: $(bash "$R/machine.sh")"
+  echo "the tree before the run (this transcript is written outside the tree and copied in afterwards):"
+  bash "$R/tree.sh" | tee "$R/out/tree-before.txt"
+  echo
+  echo "\$ $*" | sed "s|$R|<scratchpad>/p26|g"
+  "$@" 2>&1
+  echo "exit=$?"
+  echo
+  echo "the tree after the run:"
+  bash "$R/tree.sh" | tee "$R/out/tree-after.txt"
+  if cmp -s "$R/out/tree-before.txt" "$R/out/tree-after.txt"; then echo "cmp: the tree after the run is the tree before it"; else echo "cmp: THE TREE CHANGED DURING THE RUN"; fi
+  echo "the machine after the run: $(bash "$R/machine.sh")"
+  echo
+  echo "the scripts this run used, each embedded below with its blob:"
+  for s in "${scripts[@]}" "$R/tree.sh" "$R/machine.sh" "$R/transcript.sh"; do echo "    $(git hash-object "$s")  <scratchpad>/p26/$(basename "$s")"; done
+  for s in "${scripts[@]}" "$R/tree.sh" "$R/machine.sh" "$R/transcript.sh"; do
+    echo; echo "--- <scratchpad>/p26/$(basename "$s")"; echo '```'; cat "$s"; echo '```'
+  done
+} > "$out"
+```
