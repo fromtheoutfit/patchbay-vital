@@ -83,7 +83,13 @@ from patchbay_vital.format import (
     writes_same,
 )
 from patchbay_vital.parameters import MappedParameter, ParameterMap, parameter_map
-from patchbay_vital.preset import DECODER, MODULATION_SLOTS, SLOT_KEY, VitalPreset, VitalSettings
+from patchbay_vital.preset import (
+    MODULATION_SLOTS,
+    SLOT_KEY,
+    VitalPreset,
+    VitalSettings,
+    decoded,
+)
 from patchbay_vital.start import LFOS, OSCILLATORS, RANDOMS, WARPS, start_preset
 
 PRESET_ENTRY = "preset"
@@ -419,6 +425,20 @@ def _objects(section: object, count: int) -> bool:
 
 
 def _section(preset: VitalPreset, name: str) -> object:
-    """Return one of a preset's unread sections, parsed, or None where it has none."""
+    """Return one of a preset's unread sections, parsed, or None where it has none.
+
+    None is only ever the key's absence: a preset holds no section that is not an array or an
+    object, `null` among them (`preset.VitalPreset.opaque`). Read through the package's one
+    guarded decoder, `preset.decoded`: PatchRefusedError, naming the section and chained, where
+    it nests too deeply to read, so no `RecursionError` leaves `load_patch`. The preset's own
+    validator read the same text through the same decoder, but from another depth of the stack,
+    and the margin between the two is measured, not promised (the second review of PR 26,
+    finding 7).
+    """
     raw = preset.opaque.get(PresetKey(name))
-    return None if raw is None else DECODER.decode(raw.decode("utf-8"))
+    if raw is None:
+        return None
+    try:
+        return decoded(raw.decode("utf-8"), f"settings.{name}")[0]
+    except ValueError as error:
+        raise PatchRefusedError(str(error)) from error

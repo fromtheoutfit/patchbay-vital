@@ -84,7 +84,9 @@ measured on Vital 1.6.4 through pedalboard 0.9.26 on arm64, macOS 26.6.2, and on
 platform: nothing was probed on any other, nor in a process with no screen (issue #20;
 `agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/shape.md` holds the measurements, and
 `agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/shape.md` those of the revision after
-the review of PR 26):
+the review of PR 26; the revision after its second review,
+`agent-os/specs/2026-11-18-0651-revision-after-pr-26-second-review/shape.md`, measured nothing
+new):
 
 - **One Vital cannot read** it answers with a modal alert, and never returns to its caller. On
   macOS the instrument answers that alert before it opens: `load_patch` raises
@@ -104,9 +106,10 @@ the review of PR 26):
   sample it had, or makes something else of the one given, nothing read back from the plugin
   tells.
 - **If a load is cut off by an error from outside the package,** a `KeyboardInterrupt` or a
-  `MemoryError` among them, the plugin may hold part of the patch: the error leaves `load_patch`
-  as itself and the instrument refuses every later call that would reach the plugin, as when a
-  rollback fails. Build a new instrument.
+  `MemoryError` among them, once the plugin has been given any of the patch, it may hold part of
+  it: the error leaves `load_patch` as itself and the instrument refuses every later call that
+  would reach the plugin, as when a rollback fails. Build a new instrument. An error that
+  strikes before the plugin is given anything leaves the instrument as it was.
 
 Known limits, each measured on Vital 1.6.4 through pedalboard 0.9.26 on arm64, macOS 26.6.2. The
 first two each wait on an issue of their own and come before the first experiment that puts an

@@ -1246,3 +1246,13 @@ revision's own. The transcripts here stay as they ran. That revision also revers
 for `load_patch` alone: a load from a thread that is not the process's main one is now refused
 there as `PatchRefusedError`, chained from `PluginThreadError`; Decision 14 is left as written,
 and the revision's `shape.md` says why.
+
+## Revised 2026-11-18, after the second review of PR 26
+
+The second review of PR 26 changed code on the path of this spec's four evidence runs once more,
+so all four were run again on the final tree of the revision that answered it,
+`agent-os/specs/2026-11-18-0651-revision-after-pr-26-second-review/verification/`:
+`remedy-run.txt`, `rollback-count.txt` and `marker-count.txt` from the scripts embedded here, at
+the blobs listed here, and `mutation.txt` with this spec's 16 mutants and the first revision's
+23, each adapted where the code it changes has moved, beside that revision's own 15. The
+transcripts here stay as they ran.

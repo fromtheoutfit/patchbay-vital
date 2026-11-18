@@ -2,7 +2,9 @@
 
 What a set holds is worked out from primitives, for the instrument's tests and the patch's alike.
 The stand-in watch is what the host's and the instrument's tests put in place of the one that
-answers Vital's alert, so they run alike on macOS and where there is no AppKit.
+answers Vital's alert, so they run alike on macOS and where there is no AppKit. The depth at which
+the package's decoder refuses a text is bisected from the decoder itself, for the host's tests and
+the patch's.
 A plain module and not a conftest: a property test takes these at its decorator or under `@given`,
 where a function-scoped fixture fails hypothesis's health check, and the gate's negative test q
 writes a conftest of its own at tests/unit/conftest.py.
@@ -19,6 +21,7 @@ from hypothesis import strategies as st
 from patchbay_vital.errors import PluginStateError
 from patchbay_vital.host import Alert
 from patchbay_vital.preset import (
+    DECODER,
     KNOWN_SETTINGS,
     MODULATION_SLOTS,
     Modulation,
@@ -49,7 +52,9 @@ class StandInWatch:
     A fake plugin raises an alert by calling `alert`, or `unreadable_alert` for one whose words
     the watch could not read. With no watch in place that is its caller waiting for ever, so it
     fails the test there, by name. `entered` counts the writes watched. Like the real watch, it
-    refuses to be entered while it is in place, and `may_write_here` follows `main_thread_only`.
+    refuses to be entered while it is in place, `may_write_here` follows `main_thread_only`, and
+    `alerted` says whether an alert was answered in the entry in place or the last one, one that
+    could not be noted (`unnoted_alert`) among them.
     """
 
     def __init__(self) -> None:
@@ -58,6 +63,7 @@ class StandInWatch:
         self.in_place = False
         self.entered = 0
         self._alerts: list[Alert] | None = None
+        self._alerted = False
 
     def may_write_here(self) -> bool:
         """Whether a state may be written from this thread: any, unless `main_thread_only`."""
@@ -70,18 +76,23 @@ class StandInWatch:
             msg = "the alert watch is already in place: a state write was begun inside another"
             raise PluginStateError(msg)
         alerts: list[Alert] = []
-        self._alerts, self.in_place = alerts, True
+        self._alerts, self.in_place, self._alerted = alerts, True, False
         self.entered += 1
         try:
             yield alerts
         finally:
             self._alerts, self.in_place = None, False
 
+    def alerted(self) -> bool:
+        """Whether an alert was answered in the entry in place, or else in the last one."""
+        return self._alerted
+
     def alert(self, message: str, informative: str) -> None:
         """Raise an alert, as Vital does for a text it cannot read."""
         assert self._alerts is not None, (
             "an alert with no watch in place: its caller waits for ever"
         )
+        self._alerted = True
         self._alerts.append(Alert(message, informative))
 
     def unreadable_alert(self, unread: BaseException) -> None:
@@ -89,7 +100,15 @@ class StandInWatch:
         assert self._alerts is not None, (
             "an alert with no watch in place: its caller waits for ever"
         )
+        self._alerted = True
         self._alerts.append(Alert("", "", unread))
+
+    def unnoted_alert(self) -> None:
+        """Raise an alert the watch answered and could not note: its mark is the only sign."""
+        assert self._alerts is not None, (
+            "an alert with no watch in place: its caller waits for ever"
+        )
+        self._alerted = True
 
 
 def make_preset(**changes: object) -> VitalPreset:
@@ -124,3 +143,34 @@ def what_a_set_holds(own: float, minimum: float, maximum: float) -> tuple[float,
     span = _round32(Fraction(maximum) - Fraction(minimum))
     normalized = _round32((Fraction(own) - Fraction(minimum)) / Fraction(span))
     return normalized, _round32(Fraction(normalized) * Fraction(span) + Fraction(minimum))
+
+
+def nested(depth: int) -> str:
+    """Return a preset's text with one key whose value is `depth` arrays, one in the other."""
+    return '{"a":' + "[" * depth + "]" * depth + "}"
+
+
+def first_depth_the_decoder_refuses() -> int:
+    """Return the least depth of `nested` the package's decoder cannot read, bisected here.
+
+    Measured, so the tests that use it hold on another Python, whose limit may differ; on Python
+    3.12.16 it is 9997 (`verification/costs.txt` of the revision after the review of PR 26).
+    """
+
+    def reads(depth: int) -> bool:
+        try:
+            DECODER.decode(nested(depth))
+        except RecursionError:
+            return False
+        return True
+
+    low, high = 1, 1 << 20
+    assert reads(low)
+    assert not reads(high)
+    while high - low > 1:
+        middle = (low + high) // 2
+        if reads(middle):
+            low = middle
+        else:
+            high = middle
+    return high

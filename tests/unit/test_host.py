@@ -17,6 +17,12 @@ primitives, and the fake shows a load that leaves it is refused as ignored and t
 back. The watch itself, AppKit's, is run on a real alert in a child this module can kill. No test
 here gives Vital anything. What the host does with a loaded Vital is
 `tests/integration/test_vital_plugin.py`'s.
+
+The real watch, built over a stand-in for the method it replaces, shows that an interrupt in its
+install leaves the method its own, that an alert it could not note is still an error, and that
+every alert of one write is in that error. The fake shows the same of an interrupt in the marker's
+plant, that a marker value that is no number is refused before anything is set, and that the
+count of writes begun is raised before the first change and by nothing refused before it.
 """
 
 import ctypes
@@ -35,7 +41,7 @@ from typing import ClassVar, NoReturn
 import numpy as np
 import pedalboard
 import pytest
-from builders import StandInWatch
+from builders import StandInWatch, first_depth_the_decoder_refuses, nested
 from numpy.typing import NDArray
 from patchbay import ParameterId, PatchbayValidationError
 
@@ -62,7 +68,6 @@ from patchbay_vital.host import (
     _settings,
 )
 from patchbay_vital.parameters import parameter_map
-from patchbay_vital.preset import DECODER
 from patchbay_vital.state import PluginState, unwrap, wrap
 
 _FE_UPWARD = {"x86_64": 0x800, "arm64": 0x400000, "aarch64": 0x400000}
@@ -217,6 +222,7 @@ _HOST_ID = "filter_1_cutoff"
 _TWIN_ID = "filter_2_cutoff"
 _START = 0.40625  # normalized, the plugin's default of 60 semitones
 _ALERT = ("Error opening preset", "a stand-in's words")
+_SECOND_ALERT = ("Error opening sample", "a stand-in's second words")
 _LOAD = ["raw_value", "set_raw_value", "set_preset_data", "raw_value"]
 """The calls a checked load makes: the marker read and set, the state written, the marker read."""
 _MAP = ["name", "version"]
@@ -258,7 +264,12 @@ class _FakeParameter:
     @raw_value.setter
     def raw_value(self, value: float) -> None:
         self._plugin.touch("set_raw_value")
+        cut, self._plugin.cutting = self._plugin.cutting, None
+        if cut is not None and cut[0] == "before it sets":
+            raise cut[1]
         self._plugin.value = value
+        if cut is not None:
+            raise cut[1]
 
     def get_text_for_raw_value(self, raw_value: float) -> str:
         self._plugin.touch("text")
@@ -282,7 +293,9 @@ class _FakePlugin:
     short = False  # whether a render gives three samples whatever was asked
     version_text = "1.6.4"
     watch: ClassVar[StandInWatch]
-    alerting = ""  # "after the floats", "before the floats", "then refused" or "unreadable"
+    alerting = ""  # "after the floats", "before the floats", "then refused", "unreadable",
+    # "twice", "twice, the second unread" or "unnoted"
+    cutting: tuple[str, BaseException] | None = None  # an error the next set raises, and when
     ignoring = False  # whether a state write changes nothing and says nothing
     raising: BaseException | None = None  # an error from outside the package a state write raises
     refuse_after_write: frozenset[str] = frozenset()  # calls refused once a state write begins
@@ -350,6 +363,16 @@ class _FakePlugin:
             if self.alerting == "then refused":
                 msg = "the plugin refuses the state after its alert"
                 raise RuntimeError(msg)
+            return
+        if self.alerting.startswith("twice"):
+            self.watch.alert(*_ALERT)
+            if self.alerting == "twice":
+                self.watch.alert(*_SECOND_ALERT)
+            else:
+                self.watch.unreadable_alert(self.unread)
+            return
+        if self.alerting == "unnoted":
+            self.watch.unnoted_alert()
             return
         settings = json.loads(unwrap(data).text)["settings"]
         self.value = (settings[_HOST_ID] - 8.0) / 128.0
@@ -799,9 +822,6 @@ _ABSENT = object()
         ("filter_1_on", 1e30, 0.0),
         ("filter_1_on", -1e30, 1.0),
         ("filter_1_on", _ABSENT, 1.0),
-        ("filter_1_on", "on", 1.0),
-        ("filter_1_on", True, 1.0),
-        ("filter_1_on", None, 1.0),
         # filter_1_cutoff: linear, 8 to 136, its midpoint 72 and its default 60
         ("filter_1_cutoff", 72.0, 0.0),
         ("filter_1_cutoff", 71.99, 1.0),
@@ -814,8 +834,8 @@ def test_the_marker_is_planted_at_the_end_of_its_range_the_text_does_not_hold(
     """The maximum, unless the text's value is in the upper half of the scale; then the minimum.
 
     Each expected value is worked out here from the scale's two ends and the default, written
-    out: a text without the key, or holding there what is no number, holds the default. What is
-    planted is an end, which the scale holds exactly, half the range or more from the text's.
+    out: a text without the key holds the default. What is planted is an end, which the scale
+    holds exactly, half the range or more from the text's.
     """
     record = parameter_map().find(ParameterId(key))
     ends = {"filter_1_on": (0.0, 1.0, 0.0), "filter_1_cutoff": (8.0, 136.0, 60.0)}[key]
@@ -826,8 +846,7 @@ def test_the_marker_is_planted_at_the_end_of_its_range_the_text_does_not_hold(
     end = record.scale.to_preset(planted)
     assert end in ends[:2]
     assert record.scale.holds(end)
-    number = isinstance(held, int | float) and not isinstance(held, bool)
-    its_own = float(held) if number else ends[2]  # type: ignore[arg-type]
+    its_own = ends[2] if held is _ABSENT else float(held)  # type: ignore[arg-type]
     clamped = min(max(its_own, ends[0]), ends[1])
     assert abs(end - clamped) >= (ends[1] - ends[0]) / 2
 
@@ -996,7 +1015,12 @@ def test_a_state_write_from_a_second_thread_is_refused_by_the_write_itself(fake:
 
 
 class _StandInMethod:
-    """`-[NSAlert runModal]`'s implementation, as `method_setImplementation` holds and swaps it."""
+    """`-[NSAlert runModal]`'s implementation, as `method_setImplementation` holds and sets it.
+
+    `cutting` is an error the next install of anything but the method's own raises, once, before
+    it sets the implementation or after it has: an interrupt in the install, or on the line
+    after it.
+    """
 
     own = 0x5EED
     """The method's own implementation, by a stand-in address."""
@@ -1004,12 +1028,19 @@ class _StandInMethod:
     def __init__(self) -> None:
         self.current: int | None = self.own
         self.installed: list[int | None] = []
+        self.cutting: tuple[str, BaseException] | None = None
 
-    def install(self, implementation: int | None) -> int | None:
-        """Set the implementation; return the one it replaced, as the runtime does."""
+    def install(self, implementation: int | None) -> None:
+        """Set the implementation, as the runtime does; what it replaced is not given back."""
         self.installed.append(implementation)
-        before, self.current = self.current, implementation
-        return before
+        cut = None
+        if implementation != self.own:
+            cut, self.cutting = self.cutting, None
+        if cut is not None and cut[0] == "before it sets":
+            raise cut[1]
+        self.current = implementation
+        if cut is not None:
+            raise cut[1]
 
 
 def _watch_over(
@@ -1017,8 +1048,8 @@ def _watch_over(
     texts: Callable[[int | None], tuple[str, str]] = lambda _alert: ("its message", "its words"),
     on_main: Callable[[], int] = lambda: 1,
 ) -> _AppKitWatch:
-    """Return the real watch, its three calls into the runtime and the C library stood in."""
-    return _AppKitWatch(method.install, texts, on_main)
+    """Return the real watch, what it takes from the runtime and the C library stood in."""
+    return _AppKitWatch(method.install, method.own, texts, on_main)
 
 
 def test_the_watch_refuses_to_be_entered_while_it_is_in_place_and_puts_the_method_back() -> None:
@@ -1103,11 +1134,20 @@ def test_the_callback_notes_an_alert_whose_words_cannot_be_read_and_returns_the_
     assert (watch._answer(None, None), leaked) == (1000, [])  # noqa: SLF001 - no watch in place
 
 
+class _NoRoom(list[Alert]):
+    """A list no alert can be noted in: there is no memory for one more."""
+
+    def append(self, _alert: Alert, /) -> None:
+        msg = "a stand-in's memory"
+        raise MemoryError(msg)
+
+
 class _ThroughTheCallback:
     """In the fake plugin's hands in place of the stand-in watch: an alert is the real callback's.
 
-    The fake raises an alert by calling `alert` or `unreadable_alert`; here either calls the
-    real watch's C function, as Vital's `-[NSAlert runModal]` would.
+    The fake raises an alert by calling `alert`, `unreadable_alert` or `unnoted_alert`; here
+    each calls the real watch's C function, as Vital's `-[NSAlert runModal]` would, the last
+    with nowhere to note the alert.
     """
 
     def __init__(self, watch: _AppKitWatch) -> None:
@@ -1122,6 +1162,10 @@ class _ThroughTheCallback:
         self.buttons.append(self._watch._answer(None, None))  # noqa: SLF001 - as Vital calls it
 
     def unreadable_alert(self, _unread: BaseException) -> None:
+        self.buttons.append(self._watch._answer(None, None))  # noqa: SLF001 - as Vital calls it
+
+    def unnoted_alert(self) -> None:
+        self._watch._alerts = _NoRoom()  # noqa: SLF001 - where the callback notes an alert
         self.buttons.append(self._watch._answer(None, None))  # noqa: SLF001 - as Vital calls it
 
 
@@ -1246,37 +1290,6 @@ def test_a_marker_lookup_that_fails_is_sought_again_at_the_next_load(fake: _Make
     assert plugin.calls[made:] == [*_MAP, *_LOAD]
 
 
-def _nested(depth: int) -> str:
-    """Return a preset's text with one key whose value is `depth` arrays, one in the other."""
-    return '{"a":' + "[" * depth + "]" * depth + "}"
-
-
-def _first_depth_the_decoder_refuses() -> int:
-    """Return the least depth of `_nested` the package's decoder cannot read, bisected here.
-
-    Measured, so the tests that use it hold on another Python, whose limit may differ; on Python
-    3.12.16 it is 9997 (`verification/costs.txt` of the revision after the review of PR 26).
-    """
-
-    def reads(depth: int) -> bool:
-        try:
-            DECODER.decode(_nested(depth))
-        except RecursionError:
-            return False
-        return True
-
-    low, high = 1, 1 << 20
-    assert reads(low)
-    assert not reads(high)
-    while high - low > 1:
-        middle = (low + high) // 2
-        if reads(middle):
-            low = middle
-        else:
-            high = middle
-    return high
-
-
 def test_the_settings_helper_refuses_a_text_one_level_past_the_decoder_s_limit() -> None:
     """Finding 13: `_planted` and `_floats` read through the one guarded decoder.
 
@@ -1284,7 +1297,7 @@ def test_the_settings_helper_refuses_a_text_one_level_past_the_decoder_s_limit()
     PluginStateError, chained from the guard's ValueError, chained from the RecursionError, and
     no RecursionError leaves.
     """
-    text = _nested(_first_depth_the_decoder_refuses()).encode("utf-8")
+    text = nested(first_depth_the_decoder_refuses()).encode("utf-8")
     record = parameter_map().find(host.MARKER)
     for read in (_settings, lambda text: _planted(record, text), _floats):
         with pytest.raises(PluginStateError, match="nests too deeply to read") as caught:
@@ -1307,7 +1320,7 @@ def test_a_text_past_the_decoder_s_limit_is_refused_by_the_validator_before_the_
     hosted, plugin = fake()
     made = len(plugin.calls)
     with pytest.raises(PluginStateError) as caught:
-        hosted.load_state(_nested(_first_depth_the_decoder_refuses()).encode("utf-8"))
+        hosted.load_state(nested(first_depth_the_decoder_refuses()).encode("utf-8"))
     assert isinstance(caught.value.__cause__, PatchbayValidationError)
     assert plugin.calls[made:] == []
 
@@ -1341,6 +1354,241 @@ def test_the_marker_is_never_planted_where_vital_holds_a_switch_s_value(
     planted = _planted(record, json.dumps({"settings": {"filter_1_on": value}}).encode("utf-8"))
     assert planted == record.scale.to_normalized(high if text == low else low)
     assert record.scale.to_preset(planted) != read
+
+
+# --- the revision after the second review of PR 26 ------------------------------------------------
+
+
+def _callback_of(watch: _AppKitWatch) -> int | None:
+    """Return the address the runtime is given for the watch's callback."""
+    return ctypes.cast(watch._answer, ctypes.c_void_p).value  # noqa: SLF001 - its address
+
+
+@pytest.mark.parametrize("when", ["before it sets", "after it has set"])
+def test_an_interrupt_in_the_watch_s_install_leaves_the_method_its_own(when: str) -> None:
+    """Finding 1: the state and the install are under one `try`, whose `finally` puts `own` back.
+
+    An interrupt raised from the install before it sets the method, and one raised once it has,
+    as on the line after it: the interrupt leaves as itself, the method is the one the watch has
+    kept since it was made, the watch is not in place, and the next entry answers an alert and
+    puts the method back as any other.
+    """
+    method = _StandInMethod()
+    watch = _watch_over(method)
+    interrupt = KeyboardInterrupt("a stand-in's interrupt")
+    method.cutting = (when, interrupt)
+    with pytest.raises(KeyboardInterrupt) as caught, watch.answered():
+        pytest.fail("the watch was entered though its install was cut off")
+    assert caught.value is interrupt
+    assert (method.current, method.installed) == (method.own, [_callback_of(watch), method.own])
+    assert watch._alerts is None  # noqa: SLF001 - whether it is in place
+    with watch.answered() as alerts:
+        assert method.current == _callback_of(watch)
+        assert watch._answer(None, None) == 1000  # noqa: SLF001, PLR2004 - its first button
+    assert (method.current, alerts) == (method.own, [Alert("its message", "its words")])
+
+
+def test_putting_the_method_s_own_implementation_back_twice_changes_nothing() -> None:
+    """Finding 1: the `finally` puts `own` back whether or not the install ran, so twice at times.
+
+    The kept implementation installed over itself leaves the method its own, and the watch then
+    replaces it and puts it back as before.
+    """
+    method = _StandInMethod()
+    watch = _watch_over(method)
+    with watch.answered():
+        pass
+    watch._install(watch._own)  # noqa: SLF001 - what the finally does
+    watch._install(watch._own)  # noqa: SLF001 - and again
+    assert (method.current, watch._own) == (method.own, method.own)  # noqa: SLF001 - the kept one
+    with watch.answered():
+        assert method.current == _callback_of(watch)
+    assert method.current == method.own
+
+
+def test_a_refused_nested_entry_leaves_the_first_entry_s_state_and_method_as_they_were() -> None:
+    """Finding 1: the refusal comes before the `try`, so its `finally` never runs.
+
+    The first entry is still in place after it: the method is still the callback, nothing was
+    installed by the entry that was refused, and an alert answered then is noted in the first
+    entry's list.
+    """
+    method = _StandInMethod()
+    watch = _watch_over(method)
+    with watch.answered() as alerts:
+        with pytest.raises(PluginStateError, match="already in place"), watch.answered():
+            pytest.fail("a nested entry was let in")
+        assert (method.current, method.installed) == (_callback_of(watch), [_callback_of(watch)])
+        assert watch._alerts is alerts  # noqa: SLF001 - the first entry's own list
+        assert watch._answer(None, None) == 1000  # noqa: SLF001, PLR2004 - its first button
+    assert (method.current, alerts) == (method.own, [Alert("its message", "its words")])
+
+
+def test_the_callback_marks_an_alert_it_cannot_note_and_returns_the_first_button(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Finding 8: the mark is made first, and everything after it is guarded.
+
+    Called through its own C function with a list that has no room for one more alert: nothing
+    leaves the callback, the first button comes back, nothing is noted, and the watch says an
+    alert was answered, until it is entered again.
+    """
+    leaked: list[object] = []
+    monkeypatch.setattr(sys, "unraisablehook", leaked.append)
+    watch = _watch_over(_StandInMethod())
+    with watch.answered() as alerts:
+        assert not watch.alerted()
+        watch._alerts = _NoRoom()  # noqa: SLF001 - where the callback notes an alert
+        button = watch._answer(None, None)  # noqa: SLF001 - the C function the runtime is given
+        assert watch.alerted()
+    assert (button, alerts, leaked, watch.alerted()) == (1000, [], [], True)
+    with watch.answered():
+        assert not watch.alerted()
+
+
+def test_an_alert_that_could_not_be_noted_is_still_the_package_s_error(
+    fake: _Maker, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Finding 8: a write in which an alert was answered is PluginStateError, noted or not.
+
+    First on the stand-in watch, then through the real watch's callback with no room to note
+    the alert. The write took nothing, so the marker is set back.
+    """
+    said = "Vital answered the state with an alert, which could not be noted"
+    hosted, plugin = fake()
+    hosted.set(ParameterId(_HOST_ID), 0.25)
+    plugin.alerting = "unnoted"
+    with pytest.raises(PluginStateError) as caught:
+        hosted.load_state(_text_holding(104.0))
+    assert (caught.value.reason, caught.value.__cause__, plugin.value) == (said, None, 0.25)
+    real = _watch_over(_StandInMethod())
+    through = _ThroughTheCallback(real)
+    monkeypatch.setattr(host, "_ALERTS", real)
+    monkeypatch.setattr(_FakePlugin, "watch", through)
+    again, plugin = fake()
+    again.set(ParameterId(_HOST_ID), 0.25)
+    plugin.alerting = "unnoted"
+    with pytest.raises(PluginStateError) as caught:
+        again.load_state(_text_holding(104.0))
+    assert (caught.value.reason, caught.value.__cause__, plugin.value) == (said, None, 0.25)
+    assert through.buttons == [1000]
+
+
+def test_every_alert_of_one_write_is_in_the_error_in_the_order_answered(fake: _Maker) -> None:
+    """Finding 10: two alerts in one write are both reported, in order, with how many.
+
+    Held by the stand-in alone: no text was seen to make Vital raise two. Where the second's
+    words could not be read the error says so in its place and is chained from that read.
+    """
+    hosted, plugin = fake()
+    plugin.alerting = "twice"
+    with pytest.raises(PluginStateError) as caught:
+        hosted.load_state(_text_holding(104.0))
+    assert caught.value.reason == (
+        f"Vital answered the state with 2 alerts: 1, {_ALERT[0]!r}: {_ALERT[1]!r}; "
+        f"2, {_SECOND_ALERT[0]!r}: {_SECOND_ALERT[1]!r}"
+    )
+    assert caught.value.__cause__ is None
+    plugin.alerting = "twice, the second unread"
+    with pytest.raises(PluginStateError) as caught:
+        hosted.load_state(_text_holding(104.0))
+    assert caught.value.reason == (
+        f"Vital answered the state with 2 alerts: 1, {_ALERT[0]!r}: {_ALERT[1]!r}; "
+        f"2, words that could not be read (UnicodeDecodeError: {plugin.unread})"
+    )
+    assert caught.value.__cause__ is plugin.unread
+
+
+@pytest.mark.parametrize("when", ["before it sets", "after it has set"])
+def test_an_interrupt_in_the_marker_s_plant_leaves_as_itself_and_the_marker_is_as_it_was(
+    fake: _Maker, when: str
+) -> None:
+    """Finding 2: the plant is inside the `try` that sets the marker back.
+
+    An interrupt raised from the setter that plants, before it sets the value and once it has,
+    as on the line after it: the interrupt leaves as itself and the marker holds the value it
+    had, set back where the plant had landed. The count of writes begun was raised before the
+    setter was entered: it has moved though the setter set nothing.
+    """
+    hosted, plugin = fake()
+    hosted.set(ParameterId(_HOST_ID), 0.25)
+    interrupt = KeyboardInterrupt("a stand-in's interrupt")
+    plugin.cutting = (when, interrupt)
+    begun, made = hosted.writes_begun, len(plugin.calls)
+    with pytest.raises(KeyboardInterrupt) as caught:
+        hosted.load_state(_text_holding(104.0))
+    assert caught.value is interrupt
+    assert (plugin.value, hosted.writes_begun) == (0.25, begun + 1)
+    set_back = ["set_raw_value"] if when == "after it has set" else []
+    assert plugin.calls[made:] == ["raw_value", "set_raw_value", "raw_value", *set_back]
+
+
+def test_the_count_of_writes_begun_is_raised_by_a_change_and_by_nothing_refused_before_one(
+    fake: _Maker,
+) -> None:
+    """Findings 3 and 4: `writes_begun` moves when a load or a measurement begins to change.
+
+    A checked load, an unchecked one and a measurement each raise it once. A load refused before
+    any change leaves it: from a second thread, a text that is no object, a refused read of the
+    marker. It has no setter.
+    """
+    hosted, plugin = fake()
+    text = hosted.state()
+    assert hosted.writes_begun == 0  # loading the plugin begins no state write
+    hosted.load_state(text)
+    hosted.measure([0.0, 1.0])
+    assert hosted.writes_begun == 2  # noqa: PLR2004 - one load and one measurement
+    _from_a_second_thread(lambda: hosted.load_state(text))
+    with pytest.raises(PluginStateError):
+        hosted.load_state(b"[]")
+    plugin.refusing = {"raw_value"}
+    with pytest.raises(PluginStateError, match="the plugin refuses raw_value"):
+        hosted.load_state(text)
+    assert hosted.writes_begun == 2  # noqa: PLR2004 - none of the three began a write
+    with pytest.raises(AttributeError):
+        hosted.writes_begun = 0  # type: ignore[misc]
+    unchecked, other = fake()
+    text = unchecked.state()
+    other.version_text = "1.7.0"
+    unchecked.load_state(text)
+    assert unchecked.writes_begun == 1
+
+
+@pytest.mark.parametrize(
+    ("held", "kind"),
+    [
+        (True, "a boolean"),
+        (False, "a boolean"),
+        (None, "null"),
+        ("on", "a string"),
+        ([1.0], "an array"),
+        ({"on": 1.0}, "an object"),
+    ],
+    ids=["true", "false", "null", "a string", "an array", "an object"],
+)
+def test_a_marker_value_that_is_no_number_is_refused_before_anything_is_set(
+    fake: _Maker, held: object, kind: str
+) -> None:
+    """Finding 6: which end such a text holds is not known, so the load is refused.
+
+    The order too: the state's validator passes the text, one JSON object, and the marker's
+    check refuses it, naming the key and the value's kind. Only the map's two reads were made:
+    the marker was not read or set, no state was written, and no write was counted as begun.
+    The same refusal on the marker the package ships with.
+    """
+    hosted, plugin = fake()
+    text = json.dumps({"settings": {_HOST_ID: held}}).encode("utf-8")
+    assert PluginState.model_validate({**_CONTAINERS, "text": text}).text == text
+    begun, made, value = hosted.writes_begun, len(plugin.calls), plugin.value
+    with pytest.raises(PluginStateError) as caught:
+        hosted.load_state(text)
+    said = f"the state holds {kind} under {_HOST_ID}, where the marker reads a number"
+    assert caught.value.reason == said
+    assert (plugin.calls[made:], plugin.value, hosted.writes_begun) == (_MAP, value, begun)
+    switch = parameter_map().find(ParameterId("filter_1_on"))
+    shipped = json.dumps({"settings": {"filter_1_on": held}}).encode("utf-8")
+    with pytest.raises(PluginStateError, match=f"holds {kind} under filter_1_on"):
+        _planted(switch, shipped)
 
 
 _REAL_ALERT = """

@@ -14,6 +14,57 @@ writes the entry, in that commit
 
 ### Changed
 
+- Revision after the second review of PR 26,
+  `agent-os/specs/2026-11-18-0651-revision-after-pr-26-second-review/`: 19 findings at `c8ed333`,
+  each checked against the code first; 8 fixed, 1 documented, 1 that does not hold now held by a
+  test, 4 that repeat what the first revision settled left as settled, 2 deferred to an issue, 2
+  declined on a standard, and 1, a design, answered where its issue is. The issue #20 entry
+  under "Fixed" reads as this revision leaves it. Nothing new was measured on Vital: what is
+  held by a stand-in alone says so. The version stays 0.0.1.
+  - **`-[NSAlert runModal]` is put back whatever interrupts the watch** (finding 1): its own
+    implementation is read once, when the watch is made, and never taken from a swap's return;
+    the watch's state and the install are under one `try`, whose `finally` puts that one back.
+  - **The marker's plant is inside the `try` that sets it back** (finding 2), so an interrupt
+    in the plant, or on the line after it, leaves the marker at the value it had.
+  - **An error raised before the plugin is given anything loses no step and starts no
+    rollback** (findings 3 and 4). `VitalHost.writes_begun`, new, counts the loads and
+    measurements that have begun to change the plugin, raised before the first change each
+    makes. `load_patch` reads it first: where an error leaves it as it was, the host's own
+    refusal is `PatchRefusedError`, "the plugin was not given the preset", with no rollback,
+    and any other error leaves as itself with nothing marked. Once it has moved, every error
+    is met as before. This replaces the first revision's reading, under which an interrupt
+    during validation marked the instrument out of step.
+  - **A `null` section** (finding 5) never reaches the guard: the preset's validator refuses a
+    section that is no array or object, and the file reader its key. No code changed; a test
+    holds both refusals.
+  - **A marker value that is no JSON number is refused** (finding 6), `true` and `false` among
+    them: `load_state` raises `PluginStateError` naming the key and the value's kind before
+    anything is set, where it had read such a value as absent. Only a text given to a bare
+    `VitalHost` can hold one; Vital's own reading of it was not measured.
+  - **The guard reads a section through the one guarded decoder** (finding 7): a section that
+    nests too deeply is `PatchRefusedError`, and no `RecursionError` leaves `load_patch`.
+  - **An alert that could not be noted is still an error** (finding 8): the callback first
+    marks that an alert was answered, which cannot fail for want of memory, and everything
+    after it is guarded; a write so marked is `PluginStateError` whether or not the alert's
+    words were kept.
+  - **The callback is the one place the package's Python runs under the plugin's
+    floating-point environment** (finding 9), and the docstring now says so: it does no float
+    arithmetic, and is not switched, since nothing may fail before the alert is noted.
+  - **Every alert of one write is in the error** (finding 10), in the order answered, with how
+    many. No text was seen to make Vital raise two: a stand-in holds it.
+  - **Left as the first revision settled them:** the window each answered alert leaves, issue
+    #27 (finding 11); AppKit loaded at import and the decode a load repeats, both declined on
+    that revision's `verification/costs.txt` (findings 12 and 13); and the thread check
+    `_write` makes after its callers', kept so that a caller that forgets cannot write
+    (finding 15).
+  - **Deferred** to an issue for `host.py` cleanups, unverified: the C library looked up twice
+    and the two attributes of the marker's lookup (findings 14 and 16).
+  - **Declined:** the children's helpers copied in two test modules, and their `killed`
+    keyword (findings 17 and 18), which `agent-os/standards/vital/preset-tests.md` records as
+    deliberate. Where test support two suites share should live is proposed upstream.
+  - **A trial load in a child process** (finding 19) is issue #25's first candidate remedy and
+    is not built here.
+
 - Revision after the review of PR 26, `agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/`:
   17 findings at `9bc336c`, each checked against the code first; 12 fixed, 2 declined on a kept
   measurement, 1 that did not hold as stated fixed all the same, 1 deferred to an issue, and 1
@@ -394,8 +445,8 @@ writes the entry, in that commit
   - **The alert is answered before it opens, on macOS.** For the length of each state write
     `-[NSAlert runModal]` returns at once, and is put back however the write ends, through
     `ctypes` and the standard library alone. `VitalHost.load_state` then raises
-    `PluginStateError` with the alert's own words, and `load_patch` its patch error, the model's
-    text loaded again: the plugin had taken the patch in part. Of 335 texts tried, 249 raise the
+    `PluginStateError` with the words of every alert answered, and `load_patch` its patch error,
+    the model's text loaded again: the plugin had taken the patch in part. Of 335 texts tried, 249 raise the
     alert; under the watch every one returned, with nothing on screen. **On any other platform
     nothing answers the alert, so such a preset may block there.** Nothing was probed there, nor
     in a process with no screen. Each answered alert leaves one window object in the application's
@@ -407,8 +458,9 @@ writes the entry, in that commit
     process died at its next render, 11 of 11.
   - **A load Vital ignores is refused.** The host sets a marker on the plugin before each state
     write, `filter_1_on` at the end of its range the text does not hold, and reads it after: a
-    write that left it there is `PluginStateError`. No model, `get`, `patch` or event shows the
-    marker. It needs no AppKit; it was measured on macOS alone.
+    write that left it there is `PluginStateError`. A text that holds there what is no number
+    is refused before anything is set. No model, `get`, `patch` or event shows the marker. It
+    needs no AppKit; it was measured on macOS alone.
   - **The guard also refuses `custom_warps` and `random_values` that are not arrays of three
     objects,** where a preset holds them. One entry more killed the process inside Vital, in all
     14 children of each; one fewer, or none, was not loaded as given. None of the 75 presets

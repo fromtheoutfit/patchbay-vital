@@ -37,11 +37,16 @@ that holds both: the C library on macOS, the maths library on glibc, whose C lib
 calls, the JSON a measurement parses among it, runs in the process's own environment and never in
 the one the plugin left. The plugin's own processing still runs under the environment it sets for
 itself. A unit test with a plugin that changes the rounding mode on every call holds that each
-public method gives the environment back and that each call is entered with it.
+public method gives the environment back and that each call is entered with it. One piece of the
+package's Python does run under the plugin's environment: the callback that answers Vital's alert
+(below), which Vital calls from inside a state write. It does no float arithmetic, and it is not
+switched to the process's own environment, since nothing may fail before the alert is noted (the
+second review of PR 26, finding 9).
 
 **A load.** Vital reports no state it cannot use (the spec of issue #20,
-`agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/`, and the revision after the review of
-PR 26, `agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/`, whose `verification/`
+`agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/`, and the revisions after the two
+reviews of PR 26, `agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/` and
+`agent-os/specs/2026-11-18-0651-revision-after-pr-26-second-review/`, whose `verification/`
 directories hold every count here; Vital 1.6.4 through pedalboard 0.9.26 on arm64, macOS
 26.6.2). It answers a text it cannot read with a modal alert and its caller waits for ever,
 nothing in Python running meanwhile; it ignores a text newer than itself without a word; and a
@@ -49,26 +54,36 @@ text can kill the process inside Vital's own reading of it. `load_state` does th
 the first two:
 
 - On macOS it answers the alert before it opens. For the length of each state write,
-  `-[NSAlert runModal]` is replaced by a callback that notes the alert, then its two texts, and
-  returns its first button at once, and is put back however the write ends, as the
-  floating-point environment is. A write in which an alert was answered is `PluginStateError`,
-  the alert's own words in it, or, where they could not be read, saying so; and the plugin is
-  then part-loaded: of 249 texts that alert, the text's floats were already taken on 246. The
-  Objective-C runtime is reached through `ctypes`, and the host refuses to load on macOS where it
-  cannot be. The method is replaced for the whole process while a write runs, so any alert run
-  on the main thread in that time is answered and counted as the write's; none but Vital's own
-  was seen. The watch refuses to be entered while it is in place. Each answered alert leaves one
-  window object in the application's list, never shown: 500 after 500 of them.
+  `-[NSAlert runModal]` is replaced by a callback that marks that an alert was answered, notes
+  it, then its two texts, and returns its first button at once. The method's own implementation
+  is read once, when the watch is made, and that one is put back however the write ends, an
+  interrupt between any two of the watch's own lines among the ways, as the floating-point
+  environment is. A write in which an alert was answered is `PluginStateError`, every alert's
+  own words in it, in the order they were answered, or, where they could not be read or the
+  alert could not be noted at all, saying so; and the plugin is then part-loaded: of 249 texts
+  that alert, the text's floats were already taken on 246. No text was seen to raise two alerts.
+  The Objective-C runtime is reached through `ctypes`, and the host refuses to load on macOS
+  where it cannot be. The method is replaced for the whole process while a write runs, so any
+  alert run on the main thread in that time is answered and counted as the write's; none but
+  Vital's own was seen. The watch refuses to be entered while it is in place. Each answered
+  alert leaves one window object in the application's list, never shown: 500 after 500 of them.
 - On macOS it writes a state on the process's main thread or not at all, by `pthread_main_np`:
   `load_state` and `measure` raise `PluginThreadError` before the plugin is called, and the
   write itself asks again. From another thread AppKit refuses the alert's window, the load
   raises, the parameters are then read stale, and the process died at its next render, 11 of 11.
 - It checks the load with a marker. Before the write `MARKER`, a switch, is set to the end of
   its range the text does not hold, and read after it: a write that left it there was ignored,
-  and is `PluginStateError`. However the write ends, the marker it left as planted is set back,
-  and the write's own error leaves as itself. The marker is the plugin's alone: no model holds
-  it. It needs the map, so where the map is not the plugin's the load is made unchecked, as it
-  was; any other error in seeking it leaves the load, and the next load seeks it again.
+  and is `PluginStateError`. However the plant or the write ends, the marker left as planted is
+  set back, and the error that ended it leaves as itself. A text that holds under the marker's
+  key what is no number, a boolean among them, is `PluginStateError` before anything is set:
+  which end such a text holds is not known, Vital's reading of it never measured. The marker is
+  the plugin's alone: no model holds it. It needs the map, so where the map is not the plugin's
+  the load is made unchecked, as it was; any other error in seeking it leaves the load, and the
+  next load seeks it again.
+
+`writes_begun` counts the loads and measurements that have begun to change the plugin, raised
+before the first change each makes: a caller that read it before a load and finds it unchanged
+after an error knows the plugin was given nothing.
 
 On any other platform a write is made as it always was, from any thread, and nothing was probed
 off macOS, nor in a process with no screen: a text Vital cannot read may block there. Nothing here
@@ -183,6 +198,7 @@ _RUNTIME_FUNCTIONS = (
     "objc_getClass",
     "sel_registerName",
     "class_getInstanceMethod",
+    "method_getImplementation",
     "method_setImplementation",
     "objc_msgSend",
 )
@@ -198,6 +214,8 @@ class _AlertWatch(Protocol):
 
     def answered(self) -> AbstractContextManager[list[Alert]]: ...
 
+    def alerted(self) -> bool: ...
+
 
 class _NoWatch:
     """Where no alert is answered, every platform but macOS: a write is made as it always was."""
@@ -211,76 +229,105 @@ class _NoWatch:
         """Watch nothing; the list stays empty."""
         yield []
 
+    def alerted(self) -> bool:
+        """No alert is ever answered here."""
+        return False
+
 
 class _AppKitWatch:
     """Vital's alert answered before it opens, on macOS, through the Objective-C runtime.
 
-    Made from three calls `_alert_watch` builds from the runtime and the C library, so the class
-    itself runs on any platform with those calls stood in: `install` sets the implementation of
-    `-[NSAlert runModal]` and returns the one it replaced, `texts` reads an alert's message and
-    informative text, and `on_main` is `pthread_main_np`, 1 on the process's main thread.
+    Made from what `_alert_watch` reads and builds from the runtime and the C library, so the
+    class itself runs on any platform with them stood in: `install` sets the implementation of
+    `-[NSAlert runModal]`, `own` is the implementation the method had when the watch was made,
+    `texts` reads an alert's message and informative text, and `on_main` is `pthread_main_np`, 1
+    on the process's main thread.
 
-    While `answered` is entered, `-[NSAlert runModal]` is this object's callback, which notes the
-    alert and returns the first button; on the way out the method's own implementation is put
-    back. The callback is made once and kept, since the runtime holds only its address.
+    While `answered` is entered, `-[NSAlert runModal]` is this object's callback, which marks
+    that an alert was answered, notes it and returns the first button; on the way out the
+    method's own implementation is put back. That one is `own`, kept for the watch's lifetime
+    and never taken from a swap's return, so no interrupt between two lines here can leave the
+    callback saved as the method's own or the method's own unknown (the second review of PR 26,
+    finding 1). The callback is made once and kept, since the runtime holds only its address.
 
     The watch is one object for the whole process, and it refuses to be entered while it is in
-    place, so a nested entry can never save the callback as the method's own implementation and
-    put it back on the way out. No lock is needed beyond that: every state write is on the main
-    thread here, which `may_write_here` checks first, and nothing runs inside a write but Vital and
-    the callback, which writes nothing (the review of PR 26, finding 5).
+    place. No lock is needed beyond that: every state write is on the main thread here, which
+    `may_write_here` checks first, and nothing runs inside a write but Vital and the callback,
+    which writes nothing (the review of PR 26, finding 5).
     """
 
     def __init__(
         self,
-        install: Callable[[int | None], int | None],
+        install: Callable[[int | None], None],
+        own: int | None,
         texts: Callable[[int | None], tuple[str, str]],
         on_main: Callable[[], int],
     ) -> None:
-        """Keep the three calls, and make the callback the runtime is given."""
+        """Keep the calls and the method's own implementation; make the callback."""
         self._install = install
+        self._own = own
         self._texts = texts
         self._on_main = on_main
         self._answer = _ANSWER(self._answered_at_once)
         self._alerts: list[Alert] | None = None
+        self._alerted = False
 
     def may_write_here(self) -> bool:
         """Whether this is the process's main thread, by `pthread_main_np`, as AppKit needs."""
         return self._on_main() == 1
 
-    def _answered_at_once(self, alert: int | None, _selector: int | None) -> int:
-        """Stand in for `-[NSAlert runModal]`: note the alert, then its texts; the first button.
+    def alerted(self) -> bool:
+        """Whether an alert was answered in the entry now in place, or else in the last one.
 
-        The alert is noted, and the button to return fixed, before anything that can fail. What
-        reading the texts raises is caught and kept in the note: nothing leaves the callback,
-        whose error ctypes would print and drop, returning 0 and not the first button.
+        The callback's own mark, which it makes before anything that can fail: true where an
+        alert was answered though it could not be noted in the list.
         """
-        button = _FIRST_BUTTON
-        noted = self._alerts
-        if noted is not None:
-            noted.append(Alert("", ""))
-            try:
-                noted[-1] = Alert(*self._texts(alert))
-            except BaseException as error:  # noqa: BLE001 - nothing may leave a ctypes callback
-                noted[-1] = Alert("", "", error)
-        return button
+        return self._alerted
+
+    def _answered_at_once(self, alert: int | None, _selector: int | None) -> int:
+        """Stand in for `-[NSAlert runModal]`: mark and note the alert, then its texts.
+
+        The mark comes first and stores an object that already exists in an attribute that
+        already does, so it cannot fail for want of memory. Everything after it is guarded:
+        what noting the alert raises is dropped, the mark standing for it, and what reading the
+        texts raises is kept in the note. Nothing leaves the callback, whose error ctypes would
+        print and drop, returning 0 and not the first button.
+        """
+        self._alerted = True
+        # Runs under the plugin's floating-point environment: no float arithmetic in here.
+        try:
+            noted = self._alerts
+            if noted is not None:
+                noted.append(Alert("", ""))
+                try:
+                    noted[-1] = Alert(*self._texts(alert))
+                except BaseException as error:  # noqa: BLE001 - kept in the note, not dropped
+                    noted[-1] = Alert("", "", error)
+        except BaseException:  # noqa: BLE001, S110 - nothing may leave a ctypes callback
+            pass
+        return _FIRST_BUTTON
 
     @contextmanager
     def answered(self) -> Iterator[list[Alert]]:
         """Answer every alert run while this is entered; yield the list they are noted in.
 
-        PluginStateError, before anything is replaced, when the watch is already in place.
+        PluginStateError, before anything is replaced, when the watch is already in place. The
+        watch's own state and the method are both set inside the `try`, and its `finally` puts
+        the method's own implementation back and then clears the state, whatever happened
+        before it, the install never having run among it: putting the own one back twice
+        changes nothing.
         """
         if self._alerts is not None:
             msg = "the alert watch is already in place: a state write was begun inside another"
             raise PluginStateError(msg)
         alerts: list[Alert] = []
-        original = self._install(ctypes.cast(self._answer, ctypes.c_void_p).value)
-        self._alerts = alerts
         try:
+            self._alerted = False
+            self._alerts = alerts
+            self._install(ctypes.cast(self._answer, ctypes.c_void_p).value)
             yield alerts
         finally:
-            self._install(original)
+            self._install(self._own)
             self._alerts = None
 
 
@@ -310,7 +357,8 @@ def _appkit_watch(runtime: ctypes.CDLL, libc: ctypes.CDLL) -> _AppKitWatch | Non
     """Return the watch made from the runtime and the C library, their types declared.
 
     None where the runtime lacks a function it calls, the C library `pthread_main_np`, or AppKit
-    the method the watch replaces.
+    the method the watch replaces. The method's own implementation is read here, once, with
+    `method_getImplementation`, and the watch keeps it.
     """
     if not all(hasattr(runtime, function) for function in _RUNTIME_FUNCTIONS):
         return None
@@ -323,6 +371,8 @@ def _appkit_watch(runtime: ctypes.CDLL, libc: ctypes.CDLL) -> _AppKitWatch | Non
     runtime.sel_registerName.argtypes = [ctypes.c_char_p]
     runtime.class_getInstanceMethod.restype = pointer
     runtime.class_getInstanceMethod.argtypes = [pointer, pointer]
+    runtime.method_getImplementation.restype = pointer
+    runtime.method_getImplementation.argtypes = [pointer]
     runtime.method_setImplementation.restype = pointer
     runtime.method_setImplementation.argtypes = [pointer, pointer]
     libc.pthread_main_np.restype = ctypes.c_int
@@ -332,12 +382,14 @@ def _appkit_watch(runtime: ctypes.CDLL, libc: ctypes.CDLL) -> _AppKitWatch | Non
     )
     if not method:
         return None
+    own: int | None = runtime.method_getImplementation(method)
+    if not own:
+        return None
 
-    def install(implementation: int | None) -> int | None:
-        replaced: int | None = runtime.method_setImplementation(method, implementation)
-        return replaced
+    def install(implementation: int | None) -> None:
+        runtime.method_setImplementation(method, implementation)
 
-    return _AppKitWatch(install, _alert_texts(runtime), libc.pthread_main_np)
+    return _AppKitWatch(install, own, _alert_texts(runtime), libc.pthread_main_np)
 
 
 def _alert_watch() -> _AlertWatch | None:
@@ -480,6 +532,15 @@ def _text_for(hosted: _HostedParameter, point: float) -> str:
         return hosted.get_text_for_raw_value(point)
 
 
+_KINDS: tuple[tuple[type, str], ...] = (
+    (bool, "a boolean"),
+    (str, "a string"),
+    (list, "an array"),
+    (dict, "an object"),
+)
+"""What a JSON value that is no number is called in a refusal; `null` is the one not listed."""
+
+
 def _planted(record: MappedParameter, text: bytes) -> float:
     """Return the normalized value the marker is set to before a text is loaded.
 
@@ -487,7 +548,12 @@ def _planted(record: MappedParameter, text: bytes) -> float:
     own value for it is in the upper half of its scale, at the midpoint or above, and then the
     minimum, 0.0. So what is planted is at least half the range from what the text holds, more
     than a set can blur. A text without the key holds the parameter's default, as Vital gives it
-    one; a value there that is no number is read as absent. Read through `_settings`.
+    one. Read through `_settings`.
+
+    PluginStateError, naming the key and what kind of value it is, where the text holds the key
+    and its value is no JSON number, `true` and `false` among them: which end such a text holds
+    is not known, Vital's reading of it never measured, since no text the package writes holds
+    one (the second review of PR 26, finding 6).
 
     For the marker, a switch, Vital's parameter read holds every value given as given, and only
     the state's own text rounds one between the ends, below the midpoint to the minimum and from
@@ -495,9 +561,13 @@ def _planted(record: MappedParameter, text: bytes) -> float:
     took (the review of PR 26, finding 10, `verification/midpoint-probe.txt`).
     """
     settings = _settings(text)
-    held = settings.get(record.preset_key) if isinstance(settings, dict) else None
+    held: object = record.preset_default
+    if isinstance(settings, dict) and record.preset_key in settings:
+        held = settings[record.preset_key]
     if isinstance(held, bool) or not isinstance(held, int | float):
-        held = record.preset_default
+        kind = next((name for kinds, name in _KINDS if isinstance(held, kinds)), "null")
+        msg = f"the state holds {kind} under {record.preset_key}, where the marker reads a number"
+        raise PluginStateError(msg)
     return 0.0 if held >= (record.scale.minimum + record.scale.maximum) / 2 else 1.0
 
 
@@ -566,6 +636,7 @@ class VitalHost:
         self._by_host: dict[str, ParameterId] = {}
         self._marker_sought = False
         self._marker_found: tuple[_HostedParameter, MappedParameter] | None = None
+        self._begun = 0
 
     @property
     def name(self) -> str:
@@ -583,6 +654,18 @@ class VitalHost:
     def host(self) -> str:
         """The host this is, by name and version: what a map measured through it records."""
         return f"pedalboard {importlib.metadata.version('pedalboard')}"
+
+    @property
+    def writes_begun(self) -> int:
+        """State writes begun: the loads and measurements that have begun to change the plugin.
+
+        Raised before the first change each makes to the plugin, the marker's plant or the
+        state write of a load and the first set of a measurement, and never after it: an
+        interrupt between the two leaves it raised with nothing changed. So a caller that reads
+        it before a load and finds it unchanged after an error knows the plugin was given
+        nothing. It is read-only, and no part of core's contract.
+        """
+        return self._begun
 
     def _parameter_map(self) -> ParameterMap:
         """Return the committed map, and build the host-id lookup, on first use.
@@ -689,32 +772,34 @@ class VitalHost:
 
         PluginThreadError, the plugin not called, on a thread a state may not be written from.
         PluginStateError for a state pedalboard refuses, chained; for one the plugin answered
-        with an alert, the alert's own two texts in the reason, or, where they could not be read,
-        saying so, chained from what the read raised; and for both at once, one error carrying
-        the alert's words and pedalboard's, chained from pedalboard's.
+        with an alert, every alert's own two texts in the reason, in the order they were
+        answered, or, where they could not be read, saying so, chained from what the first such
+        read raised, or, where an alert was answered and could not be noted at all, saying
+        that; and for an alert and a refusal at once, one error carrying the alerts' words and
+        pedalboard's, chained from pedalboard's.
         """
         self._on_a_writing_thread()
-        with self._alerts.answered() as alerts:
+        watch = self._alerts
+        with watch.answered() as alerts:
             try:
                 with _reached(PluginStateError):
                     self._plugin.preset_data = data
             except PluginStateError as refused:
-                if not alerts:
+                if not watch.alerted():
                     raise
-                said = (
-                    f"{_alert_said(alerts[0])}; pedalboard refused the state too: {refused.reason}"
-                )
+                said = f"{_alerts_said(alerts)}; pedalboard refused the state too: {refused.reason}"
                 raise PluginStateError(said) from refused.__cause__
-        if alerts:
-            raise PluginStateError(_alert_said(alerts[0])) from alerts[0].unread
+        if watch.alerted():
+            unread = next((alert.unread for alert in alerts if alert.unread is not None), None)
+            raise PluginStateError(_alerts_said(alerts)) from unread
 
     def _set_back(
         self, hosted: _HostedParameter, planted: float, before: float, error: BaseException
     ) -> None:
-        """Set the marker back after a write that raised `error`; a failure is noted on `error`.
+        """Set the marker back after a plant or a write raised `error`; a failure is noted on it.
 
-        The write's own error is the one that leaves: one raised while setting the marker back is
-        attached to it as a note, and never takes its place.
+        That error is the one that leaves: one raised while setting the marker back is attached
+        to it as a note, and never takes its place.
         """
         try:
             self._unplanted(hosted, planted, before)
@@ -724,7 +809,7 @@ class VitalHost:
             )
 
     def _unplanted(self, hosted: _HostedParameter, planted: float, before: float) -> bool:
-        """Set the marker back to what it was where a write left it as planted; say whether."""
+        """Set the marker back to what it was where it was left as planted; say whether."""
         with _reached(PluginStateError):
             left = hosted.raw_value == planted
         if left:
@@ -742,30 +827,37 @@ class VitalHost:
         is called. PluginStateError when the text is anything but one JSON object, which the
         plugin could not read, the plugin not called; when pedalboard refuses the state, chained;
         when Vital answers it with its alert, the alert's words in the reason, the plugin then
-        holding the text in part; and when Vital ignores it, which the marker shows, the plugin
-        then as it was. On every platform but macOS no alert is answered, and a text Vital cannot
+        holding the text in part; when Vital ignores it, which the marker shows, the plugin
+        then as it was; and when the text holds under the marker's key what is no number, the
+        plugin not set. On every platform but macOS no alert is answered, and a text Vital cannot
         read may not return: nothing was probed there.
 
         The marker (`MARKER`) is set before the write to an end of its range the text does not
-        hold. However the write ends, an error from outside the package among the ways, where it
-        left the marker as planted the marker is set back to the value it had, and the write's
-        own error leaves as itself. Where the map is not this plugin's no marker is set and the
-        load is not checked.
+        hold, the value it had read first. However the plant or the write ends, an error from
+        outside the package among the ways, where the marker was left as planted it is set back
+        to the value it had, and the error that ended it leaves as itself. Where the map is not
+        this plugin's no marker is set and the load is not checked.
+
+        `writes_begun` is raised just before the first change made to the plugin, the plant or,
+        on an unchecked load, the write: an error that leaves it as it was left the plugin as it
+        was.
         """
         self._on_a_writing_thread()
         body = text.removesuffix(b"\n")
         loaded = wrap(self._containers.with_text(body))
         marker = self._marker()
         if marker is None:
+            self._begun += 1
             self._write(loaded)
             return
         hosted, record = marker
         planted = _planted(record, body)
         with _reached(PluginStateError):
             before = hosted.raw_value
-        with _reached(PluginStateError):
-            hosted.raw_value = planted
         try:
+            self._begun += 1
+            with _reached(PluginStateError):
+                hosted.raw_value = planted
             self._write(loaded)
         except BaseException as error:
             self._set_back(hosted, planted, before, error)
@@ -821,12 +913,13 @@ class VitalHost:
         no preset value, or more than one, or changes which keys the preset holds;
         PluginStateError a state holding no settings object. PluginThreadError on macOS when
         this is not the process's main thread, before any parameter is set: the measurement ends
-        on a state write.
+        on a state write. `writes_begun` is raised before the first parameter is set.
         """
         self._on_a_writing_thread()
         start = self.preset_data()
         defaults = _floats(unwrap(start).text)
         measured = []
+        self._begun += 1
         try:
             for host_id, hosted in self._hosted.items():
                 label = _name_of(hosted)
@@ -879,6 +972,27 @@ def _alert_said(alert: Alert) -> str:
         return f"Vital answered the state with its alert, {alert.message!r}: {alert.informative!r}"
     unread = f"{type(alert.unread).__name__}: {alert.unread}"
     return f"Vital answered the state with an alert, and its words could not be read ({unread})"
+
+
+def _alerts_said(alerts: Sequence[Alert]) -> str:
+    """Say what the alerts answered in one write were: each one's words, in order, and how many.
+
+    One alert is said as `_alert_said` says it. Where none could be noted though one was
+    answered, the watch's own mark the only sign of it, that is what is said.
+    """
+    if not alerts:
+        return "Vital answered the state with an alert, which could not be noted"
+    if len(alerts) == 1:
+        return _alert_said(alerts[0])
+    each = "; ".join(f"{place}, {_words(alert)}" for place, alert in enumerate(alerts, start=1))
+    return f"Vital answered the state with {len(alerts)} alerts: {each}"
+
+
+def _words(alert: Alert) -> str:
+    """Say one of several alerts' words: its two texts, or that they could not be read."""
+    if alert.unread is None:
+        return f"{alert.message!r}: {alert.informative!r}"
+    return f"words that could not be read ({type(alert.unread).__name__}: {alert.unread})"
 
 
 def _floats(text: bytes) -> dict[str, float]:

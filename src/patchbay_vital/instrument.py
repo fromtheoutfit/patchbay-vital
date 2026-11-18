@@ -32,6 +32,10 @@ still holds the preset before: the instrument has lost step with it.
 instrument. **The same is so when a load is cut off by an error from outside the package,** a
 `KeyboardInterrupt` or a `MemoryError` among them, once a text is being sent: the plugin may hold
 part of it, the error leaves as itself, and no rollback is tried (the review of PR 26, finding 1).
+Whether anything was sent is the host's to say, by its count of state writes begun
+(`VitalHost.writes_begun`), read before the load. An error that leaves the count as it was found
+the plugin given nothing: the host's own refusal is then a refused patch with no rollback, any
+other error leaves as itself, and no step is lost (the second review of PR 26, findings 3 and 4).
 
 **A patch Vital cannot use** (issue #20 and the revision after the review of PR 26; their
 specs' `verification/` hold the counts). Each was measured on Vital 1.6.4 through pedalboard
@@ -323,9 +327,17 @@ class VitalInstrument:
         instrument. So too when an error from outside the package, a KeyboardInterrupt or a
         MemoryError among them, leaves while the text is being sent, or while the model's own
         text is sent again: the plugin may hold part of a text, so the instrument loses step,
-        no rollback is tried, and that error leaves as itself, the same object. An error raised
-        before the text is sent, by the checks or the host's thread rule, changes nothing and
-        loses no step.
+        no rollback is tried, and that error leaves as itself, the same object.
+
+        An error raised before anything is sent changes nothing and loses no step: the checks'
+        and the host's thread rule's, and any error that leaves the host's count of state writes
+        begun (`VitalHost.writes_begun`) as it was when the load began. The host's own refusal
+        is then PatchRefusedError, chained from it, saying the plugin was not given the preset,
+        with no rollback, a read of the plugin it refuses before the first change among them;
+        an error from outside the package leaves as itself. Once the count has moved, the first
+        of the two loads having begun, every error is met as above, one that strikes in the
+        second load before its own change included: the plugin then holds the first load's text
+        (the second review of PR 26, findings 3 and 4).
 
         A preset older than the plugin loads, and Vital upgrades it as it does: the model keeps
         the file's floats, so `get` can then report the file's value for a few parameters where
@@ -339,6 +351,7 @@ class VitalInstrument:
         preset = preset_of(patch)
         check_loadable(preset, self._map)
         text = _text_of(preset)
+        begun = self._host.writes_begun
         try:
             self._sent(text)
         except PluginThreadError as error:
@@ -349,11 +362,15 @@ class VitalInstrument:
             )
             raise PatchRefusedError(msg) from error
         except PluginStateError as error:
+            if self._host.writes_begun == begun:
+                msg = f"the plugin was not given the preset: {error.reason}"
+                raise PatchRefusedError(msg) from error
             self._rolled_back(error)
         except VitalError:
             raise
         except BaseException as error:
-            self._lose_step(error)
+            if self._host.writes_begun != begun:
+                self._lose_step(error)
             raise
         self._hold(preset)
         self._bus.publish(
@@ -483,7 +500,7 @@ class VitalInstrument:
 
         The plugin may then hold part of a text while the model holds the preset before; no
         rollback is tried, and the caller re-raises the error as itself (the review of PR 26,
-        finding 1).
+        finding 1). Called only once a state write had begun, by the host's count.
         """
         where = f" {during}" if during else ""
         self._lost = (

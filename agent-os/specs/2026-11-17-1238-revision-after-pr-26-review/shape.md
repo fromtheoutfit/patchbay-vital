@@ -890,3 +890,22 @@ values two test directories share through `tests/conftest.py`, which does not co
 function.
 
 Proposals sent upstream: fromtheoutfit/patchbay-standards#44, fromtheoutfit/patchbay-standards#38, fromtheoutfit/patchbay-standards#46
+
+## Revised 2026-11-18, after the second review of PR 26
+
+The second review of PR 26, at `c8ed333`, changed code on the path of the four evidence runs
+this revision made on its final tree, so all four were run again on the final tree of the
+revision that answered it,
+`agent-os/specs/2026-11-18-0651-revision-after-pr-26-second-review/verification/`:
+`remedy-run.txt`, `rollback-count.txt` and `marker-count.txt` from the scripts embedded here, at
+the blobs listed here, and `mutation.txt` with this revision's 39 mutants, each adapted where
+the code it changes has moved, beside that revision's own 15, named MQ1 to MQ15. The transcripts
+here stay as they ran.
+
+That revision also replaces one reading made here. This revision's plan read the owner's "inside
+the send" as "from the first `load_state` on", so that an error from outside the package which
+struck inside `load_state` before the plugin was reached marked the instrument out of step: "the
+instrument cannot tell those two apart". The second review's finding 4 showed that this
+contradicts `load_patch`'s own docstring. The host now counts state writes begun
+(`VitalHost.writes_begun`), and the instrument loses step, or rolls back, only where that count
+has moved. Decision 2 here is left as written, and that revision's `shape.md` says why.

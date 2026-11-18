@@ -9,7 +9,9 @@ the fake plugin: what Vital itself does is `tests/integration/test_vital_instrum
 The fake can answer a load as Vital was seen to: take it, have pedalboard refuse it, raise its
 alert with the text taken or not, or ignore it. A stand-in watch (`builders.StandInWatch`) is in
 place of the one that answers the alert, so these run alike on macOS and without AppKit. The
-host's marker shows among the fake's sets and nowhere else; `_sets` leaves it out.
+host's marker shows among the fake's sets and nowhere else; `_sets` leaves it out. The fake can
+also raise at a chosen read of the marker, which shows what the instrument does with an error
+that strikes before the plugin is given anything, and with one that strikes after.
 
 An expected value is written out or worked out from primitives, `Fraction`, `struct` and the
 scale's and the curve's formulas restated, never from the map's `to_preset` or `to_normalized`
@@ -1253,6 +1255,129 @@ def test_an_error_from_outside_the_package_mid_load_leaves_as_itself_and_the_ste
     assert instrument.patch() == patch_before
     assert instrument.get(ParameterId("volume")) == shown
     assert recorder.events == ()
+
+
+# --- the second review of PR 26: what was sent ----------------------------------------------------
+
+
+def _still_in_step(instrument: VitalInstrument, bus: EventBus) -> None:
+    """Hold that the instrument serves `set`, `load_patch` and `render`: it has not lost step."""
+    recorder = _recorder(bus)
+    instrument.set(ParameterId("volume"), _quantity(-6.0, Unit.db))
+    instrument.load_patch(Patch(instrument="Vital", values={}))
+    instrument.render(_PATTERN, _REQUEST)
+    kinds = [type(event) for event in recorder.events]
+    assert kinds == [ParameterChanged, PatchLoaded, RenderCompleted]
+
+
+def test_a_marker_read_the_plugin_refuses_before_any_change_is_a_refused_patch_and_no_rollback(
+    bus: EventBus, instrument: VitalInstrument, plugin: _FakeVital
+) -> None:
+    """Finding 3: the host's count of writes begun has not moved, so nothing was sent.
+
+    The plugin refuses the first load's read of the marker, before the plant: the package's
+    patch error, chained from the host's, says the plugin was not given the preset. No rollback
+    is made, since a rollback would meet the same refusal and lose a step no load had taken;
+    the model, the plugin and the bus are as they were, and the instrument is still in step.
+    """
+    before, state = instrument.preset, _state_floats(instrument)
+    reached = (len(plugin.loads), len(plugin.sets), instrument.host.writes_begun)
+    recorder = _recorder(bus)
+    plugin.raising_at_read = (plugin.marker_reads + 1, RuntimeError("the plugin refuses the read"))
+    patch = Patch(instrument="Vital", values={ParameterId("volume"): _quantity(-80.0, Unit.db)})
+    with pytest.raises(PatchRefusedError) as caught:
+        instrument.load_patch(patch)
+    assert isinstance(caught.value, PatchRejectedError)
+    assert type(caught.value.__cause__) is PluginStateError
+    assert caught.value.reason == "the plugin was not given the preset: the plugin refuses the read"
+    assert (len(plugin.loads), len(plugin.sets), instrument.host.writes_begun) == reached
+    assert instrument.preset is before
+    assert _state_floats(instrument) == state
+    assert recorder.events == ()
+    _still_in_step(instrument, bus)
+
+
+@pytest.mark.parametrize("raised", _OUTSIDE, ids=["KeyboardInterrupt", "MemoryError"])
+def test_an_error_from_outside_the_package_before_any_change_leaves_as_itself_and_marks_nothing(
+    bus: EventBus, instrument: VitalInstrument, plugin: _FakeVital, raised: BaseException
+) -> None:
+    """Finding 4: before the count of writes begun has moved, no step is lost.
+
+    The error strikes at the first load's read of the marker, before the plant. It leaves as
+    itself, the same object; nothing was sent, so the model, the plugin and the bus are as they
+    were and the instrument still serves every call.
+    """
+    before, state = instrument.preset, _state_floats(instrument)
+    reached = (len(plugin.loads), len(plugin.sets), instrument.host.writes_begun)
+    recorder = _recorder(bus)
+    plugin.raising_at_read = (plugin.marker_reads + 1, raised)
+    patch = Patch(instrument="Vital", values={ParameterId("volume"): _quantity(-80.0, Unit.db)})
+    with pytest.raises(type(raised)) as caught:
+        instrument.load_patch(patch)
+    assert caught.value is raised
+    assert (len(plugin.loads), len(plugin.sets), instrument.host.writes_begun) == reached
+    assert instrument.preset is before
+    assert _state_floats(instrument) == state
+    assert recorder.events == ()
+    _still_in_step(instrument, bus)
+
+
+def test_a_marker_read_the_plugin_refuses_after_the_first_load_s_change_is_rolled_back(
+    bus: EventBus, instrument: VitalInstrument, plugin: _FakeVital
+) -> None:
+    """Finding 3, the other side: once the count has moved, a refusal is met by the rollback.
+
+    The first load is taken and the second load's read of the marker, before its own plant, is
+    refused: the plugin holds the first load's text, so the model's own is sent again, twice,
+    and the patch is refused as one the plugin refused.
+    """
+    instrument.set(ParameterId("volume"), _quantity(0.0, Unit.db))
+    before, state = instrument.preset, _state_floats(instrument)
+    recorder = _recorder(bus)
+    plugin.raising_at_read = (plugin.marker_reads + 3, RuntimeError("the plugin refuses the read"))
+    patch = Patch(instrument="Vital", values={ParameterId("volume"): _quantity(-80.0, Unit.db)})
+    with pytest.raises(PatchRefusedError) as caught:
+        instrument.load_patch(patch)
+    assert caught.value.reason == "the plugin refused the preset: the plugin refuses the read"
+    assert instrument.preset is before
+    assert _state_floats(instrument) == state
+    assert plugin.loads[-LOADS:] == [dumps(before).encode("utf-8")] * LOADS
+    assert recorder.events == ()
+    _still_in_step(instrument, bus)
+
+
+@pytest.mark.parametrize(
+    "raised",
+    [RuntimeError("the plugin refuses the read"), *_OUTSIDE],
+    ids=["a refusal", "KeyboardInterrupt", "MemoryError"],
+)
+def test_an_error_in_the_rollback_before_its_own_change_still_loses_the_step(
+    instrument: VitalInstrument, plugin: _FakeVital, raised: BaseException
+) -> None:
+    """The rollback's loads are met as before: the plugin holds what the failed load left.
+
+    The patch's first write is refused, and the rollback's first read of the marker, before its
+    own plant, raises. Nothing of the model's text was sent, but the plugin was given the
+    patch's: the instrument has lost step, by the host's refusal named with the first, or by the
+    error from outside the package, which leaves as itself.
+    """
+    plugin.load_script = [True]
+    plugin.raising_at_read = (plugin.marker_reads + 3, raised)  # the rollback's first marker read
+    patch = Patch(instrument="Vital", values={ParameterId("volume"): _quantity(-80.0, Unit.db)})
+    if isinstance(raised, RuntimeError):
+        with pytest.raises(PluginStateError) as refused:
+            instrument.load_patch(patch)
+        assert refused.value.reason == (
+            "the plugin refused a preset (the plugin refuses the state) and then the model's own "
+            "text (the plugin refuses the read), so its state is unknown while the model holds "
+            "the preset before: build a new VitalInstrument"
+        )
+    else:
+        with pytest.raises(type(raised)) as caught:
+            instrument.load_patch(patch)
+        assert caught.value is raised
+    with pytest.raises(PluginStateError, match="lost step"):
+        instrument.set(ParameterId("volume"), _quantity(0.0, Unit.db))
 
 
 # --- the guard -----------------------------------------------------------------------------------

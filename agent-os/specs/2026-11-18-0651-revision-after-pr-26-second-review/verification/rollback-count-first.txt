@@ -1,0 +1,1907 @@
+The revision after the second review of PR 26, the issue #20 spec's rollback count run again on the final tree: the rollback after an answered alert, each of the 77 good texts the model, run 2026-11-18 09:45 EST on branch
+bugfix/20-the-host-a-preset-vital-cannot-read-blocks-the-calling-process-for-ever, Vital at /Library/Audio/Plug-Ins/VST3/Vital.vst3
+the machine before the run: arm64, Apple M4 Pro, 14 cores, macOS 26.6.2 (25G83), Python 3.12.16, load 3.43 3.73 4.06, at 2026-11-18 09:45 EST
+the tree before the run (this transcript is written outside the tree and copied in afterwards):
+  HEAD c8ed333fa591259434942215726bd255423b5c61
+  git status --porcelain=v1 --untracked-files=all, 19 lines:
+     M CHANGELOG.md
+     M README.md
+     M agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/shape.md
+     M agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/shape.md
+     M agent-os/standards/index.yml
+     M agent-os/standards/vital/instrument.md
+     M agent-os/standards/vital/plugin-state.md
+     M agent-os/standards/vital/preset-file.md
+     M src/patchbay_vital/host.py
+     M src/patchbay_vital/instrument.py
+     M src/patchbay_vital/patch.py
+     M tests/unit/builders.py
+     M tests/unit/test_host.py
+     M tests/unit/test_instrument.py
+     M tests/unit/test_patch.py
+    ?? agent-os/specs/2026-11-18-0651-revision-after-pr-26-second-review/plan.md
+    ?? agent-os/specs/2026-11-18-0651-revision-after-pr-26-second-review/references.md
+    ?? agent-os/specs/2026-11-18-0651-revision-after-pr-26-second-review/shape.md
+    ?? agent-os/specs/2026-11-18-0651-revision-after-pr-26-second-review/standards.md
+  git hash-object of each of those paths (a deleted one marked so):
+    88cb953fd391b1d1eb4a399e91c69808b476036a  CHANGELOG.md
+    5ce6117ec17b6e0951c1c5bdf3c17d5037c4a8e9  README.md
+    5b1e588b94b77025c669e74d8c8eb8e24ca41ce5  agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/shape.md
+    1f99cf3b62d4682f6b092bcc4cad19c0ab63467f  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/shape.md
+    cfea1b41c92ff6a88e9cf98f337a7bc80160c81e  agent-os/specs/2026-11-18-0651-revision-after-pr-26-second-review/plan.md
+    9b4cdcbcd5c00212b83b323b3e9b2f07c2369d64  agent-os/specs/2026-11-18-0651-revision-after-pr-26-second-review/references.md
+    7e7185d9f58059f51da3e50a05a6b545605458c0  agent-os/specs/2026-11-18-0651-revision-after-pr-26-second-review/shape.md
+    da824f51c97916ba7b4772a2cbc4e8facd75185a  agent-os/specs/2026-11-18-0651-revision-after-pr-26-second-review/standards.md
+    55f136acac9f8e2627a5135ce780f7077ba56ecd  agent-os/standards/index.yml
+    f1285d3e75bd8bcb342ba08eb779f44197b17a1f  agent-os/standards/vital/instrument.md
+    499f3171a27ed42c6f2611a420badec0819b3095  agent-os/standards/vital/plugin-state.md
+    32761e33767c0b2cb966f2309cc41169a6400573  agent-os/standards/vital/preset-file.md
+    4b3ee48093239244aeec7bcefd5fec4c43b0d400  src/patchbay_vital/host.py
+    ccc9c18564d5af8c388f297245c3bf338a552ced  src/patchbay_vital/instrument.py
+    54b732eecf4f87025393ebec7e5846d203a1d4f9  src/patchbay_vital/patch.py
+    4fa6c885f7a9bbd5facb85737f17f84c2bfe9d26  tests/unit/builders.py
+    f6d8f3f955029041e2c7c3164a9b42433330e785  tests/unit/test_host.py
+    3aaf6cb41f0a06cd7284bf290d0463f6739f6b60  tests/unit/test_instrument.py
+    6456a09bee096817a2a5621d2253fdaf422d3320  tests/unit/test_patch.py
+
+$ uv run --locked python -u -B <scratchpad>/i20/run5.py
+Vital 1.6.4 by the map, through pedalboard 0.9.26; this process loads no plugin
+machine arm64, Python 3.12.16, macOS 26.6.2
+the load that may block is given 3 s from the child's word, and is made by the package as shipped
+
+== the rollback, over 77 models: the start preset, the fixture and the 75 installed presets
+after the rollback, the plugin against what the model's own double load left, made just before the patch:
+      bytes  load_patch ms  floats of 903 that differ  sections that differ  the model kept  refused with Vital's words   the model
+      60875          117.0                            0                      []            True                       True   the start preset
+      60856          108.1                            0                      []            True                       True   the fixture
+     209615          157.9                            0                      []            True                       True   Factory/Presets/Ah Eh Ee Oh.vital
+     175015          100.2                            0                      []            True                       True   Factory/Presets/FM Drum Circle.vital
+    1581585          183.5                            0                      []            True                       True   Factory/Presets/Plucked String.vital
+     174089          112.3                            0                      []            True                       True   Factory/Presets/Shepard Tone Template.vital
+     427931          168.1                            0                      []            True                       True   Factory/Presets/Staggered Phrases.vital
+     248790          153.2                            0                      []            True                       True   Factory/Presets/Text To Wavetable Template.vital
+     231144          124.2                            0                      []            True                       True   Factory/Presets/Touch Tone.vital
+    1196598          216.4                            0                      []            True                       True   Afro/Presets/Banana Wob.vital
+     174653          106.5                            0                      []            True                       True   Afro/Presets/Kick Drum 1.vital
+    1073778          236.0                            0                      []            True                       True   Afro/Presets/Random Amp Growl.vital
+    1477559          264.1                            0                      []            True                       True   Billain/Presets/Factory Presets/Cinema Bells.vital
+    1426802          213.8                            0                      []            True                       True   Billain/Presets/Factory Presets/Railgun.vital
+     208393          174.9                            0                      []            True                       True   Databroth/Presets/Factory Presets/Ceramic.vital
+    1698422          236.5                            0                      []            True                       True   Databroth/Presets/Factory Presets/Disrupt.vital
+    4480796          405.8                            0                      []            True                       True   Databroth/Presets/Factory Presets/Feeder.vital
+    1249209          221.4                            0                      []            True                       True   Databroth/Presets/Factory Presets/Fleet.vital
+    1503327          235.4                            0                      []            True                       True   Databroth/Presets/Factory Presets/Gorgled.vital
+     315942          188.1                            0                      []            True                       True   Databroth/Presets/Factory Presets/Snowcrash.vital
+    2196216          247.8                            0                      []            True                       True   Glorkglunk/Presets/Digestive Trauma.vital
+     302074          184.7                            0                      []            True                       True   Glorkglunk/Presets/Special Glitch Thing.vital
+     174758          121.5                            0                      []            True                       True   Glorkglunk/Presets/Squish Clicker.vital
+     846158          149.9                            0                      []            True                       True   Glorkglunk/Presets/THUNK.vital
+    1373268          247.9                            0                      []            True                       True   Glorkglunk/Presets/Thumpus.vital
+    2023862          227.8                            0                      []            True                       True   Halcyon Future Riddim Vol 1/Presets/Aweminus/Swiss Army Knife.vital
+     167042          131.5                            0                      []            True                       True   Halcyon Future Riddim Vol 1/Presets/Oolacile/Boot Scre3n.vital
+    2422332          247.9                            0                      []            True                       True   Halcyon Future Riddim Vol 1/Presets/Oolacile/Memory Leak.vital
+    5149253          343.1                            0                      []            True                       True   Halcyon Future Riddim Vol 1/Presets/Oolacile/Oolacile Evil Dubstep Bass.vital
+    2915133          252.0                            0                      []            True                       True   Halcyon Future Riddim Vol 1/Presets/Oolacile/Satellites.vital
+     176486          186.6                            0                      []            True                       True   Halcyon Future Riddim Vol 1/Presets/Oolacile/Space Station.vital
+    4454600          321.3                            0                      []            True                       True   Halcyon Future Riddim Vol 1/Presets/Phonon/Simple Weoum.vital
+     369311          132.2                            0                      []            True                       True   Halcyon Future Riddim Vol 1/Presets/Voltra/VLT Future Gun.vital
+     268065          178.9                            0                      []            True                       True   In The Mix/Presets/Analog Pad.vital
+     753731          212.0                            0                      []            True                       True   In The Mix/Presets/Distant Majestic Lead.vital
+     241415          165.7                            0                      []            True                       True   In The Mix/Presets/Growl Bass Sidechain.vital
+     327884          169.0                            0                      []            True                       True   In The Mix/Presets/Moog Pluck.vital
+     174710          134.6                            0                      []            True                       True   In The Mix/Presets/Strings Section.vital
+    2018609          254.5                            0                      []            True                       True   Level 8/Presets/Factory Presets/Complex Electro 1.vital
+    1354661          191.9                            0                      []            True                       True   Level 8/Presets/Factory Presets/Crescendo Bells.vital
+    1301114          198.5                            0                      []            True                       True   Level 8/Presets/Factory Presets/Damped Horn.vital
+     406912          169.3                            0                      []            True                       True   Level 8/Presets/Factory Presets/FM Mode.vital
+     676703          173.9                            0                      []            True                       True   Level 8/Presets/Factory Presets/Horror of Melbourne 1.vital
+    2749719          304.7                            0                      []            True                       True   Level 8/Presets/Factory Presets/Smoker's Lounge.vital
+     285350          133.5                            0                      []            True                       True   Mr Bill/Presets/Cursed Steps.vital
+    1370066          168.1                            0                      []            True                       True   Mr Bill/Presets/E4 One Note Metallophone.vital
+   10126117          632.8                            0                      []            True                       True   Mr Bill/Presets/Float Chords.vital
+    3884939          341.1                            0                      []            True                       True   Mr Bill/Presets/Honk Wub.vital
+     285737          144.6                            0                      []            True                       True   Mr Bill/Presets/LORN Style Lead.vital
+     155111          178.9                            0                      []            True                       True   Mr Bill/Presets/Real Squarepusher Hours.vital
+     284971          134.4                            0                      []            True                       True   Mr Bill/Presets/Remedial Shikari.vital
+    1686403          213.4                            0                      []            True                       True   Mr Bill/Presets/Super Nice Pluck.vital
+     231188          157.9                            0                      []            True                       True   Navi Retlav Studio/Presets/Factory Presets/Dispersed Grit.vital
+    1554373          255.2                            0                      []            True                       True   Navi Retlav Studio/Presets/Factory Presets/Drowning Machine.vital
+     296255          189.1                            0                      []            True                       True   Navi Retlav Studio/Presets/Factory Presets/Phaser Man.vital
+     164228          127.9                            0                      []            True                       True   Navi Retlav Studio/Presets/Factory Presets/Physical Tension.vital
+     518960          160.8                            0                      []            True                       True   Navi Retlav Studio/Presets/Factory Presets/Skew Resandal.vital
+    2950151          251.6                            0                      []            True                       True   Navi Retlav Studio/Presets/Factory Presets/Super Pluck.vital
+    3114585          287.7                            0                      []            True                       True   Unsystematic Fragmentation/Presets/Factory Presets/A happy ending of the world.vital
+    1743156          212.3                            0                      []            True                       True   Unsystematic Fragmentation/Presets/Factory Presets/Chorusy Keys.vital
+     164981          130.3                            0                      []            True                       True   Unsystematic Fragmentation/Presets/Factory Presets/Fun Pulse.vital
+     328794          167.0                            0                      []            True                       True   Unsystematic Fragmentation/Presets/Factory Presets/Moving Harmonics.vital
+    1563937          201.1                            0                      []            True                       True   Unsystematic Fragmentation/Presets/Factory Presets/Phaser Entropy .vital
+    1556063          287.8                            0                      []            True                       True   Unsystematic Fragmentation/Presets/Factory Presets/corrupted_...+=boot-_.vital
+    1367913          258.7                            0                      []            True                       True   Yuli Yolo/Presets/Factory Presets/A Night in Kalyan.vital
+    1554943          222.5                            0                      []            True                       True   Yuli Yolo/Presets/Factory Presets/Abbysun.vital
+     829406          212.1                            0                      []            True                       True   Yuli Yolo/Presets/Factory Presets/DIY.vital
+    1574509          250.6                            0                      []            True                       True   Yuli Yolo/Presets/Factory Presets/Destruction.vital
+     197581          186.1                            0                      []            True                       True   Yuli Yolo/Presets/Factory Presets/Easy Mallet.vital
+     229997          126.6                            0                      []            True                       True   Yuli Yolo/Presets/Factory Presets/Jupiter Bass.vital
+     187784          144.6                            0                      []            True                       True   Yuli Yolo/Presets/Factory Presets/Keystation.vital
+     943261          155.2                            0                      []            True                       True   Yuli Yolo/Presets/Factory Presets/Metal Head.vital
+    1565345          254.2                            0                      []            True                       True   Yuli Yolo/Presets/Factory Presets/Salomon.vital
+     119040          155.5                            0                      []            True                       True   Yuli Yolo/Presets/Factory Presets/Synthetic Quartet.vital
+     751303          217.8                            0                      []            True                       True   inktome/Presets/Big Stomp.vital
+     293764          185.6                            0                      []            True                       True   inktome/Presets/Digital roller.vital
+     504953          187.9                            0                      []            True                       True   inktome/Presets/Piano from the yard sale.vital
+
+models whose child reported: 77 of 77; whose child died: 0 []
+what load_patch raised, each distinct text (1):
+  PatchRefusedError: patch rejected: the plugin refused the preset: Vital answered the state with its alert, 'Error opening preset': 'There was an error open the preset. Preset file is corrupted.' (from PluginStateError)
+refused as a patch, chained from the host's error, with Vital's own words: 77 of 77
+all 903 floats as the model's double load left them: 77 of 77
+every section as the model's double load left it: 77 of 77
+the model still the preset: 77 of 77
+the refused load_patch, its time with the two loads that put the model back, ms: min 100.2, median 186.6, max 632.8
+the screen: of 77 children, 0 had a window of theirs on screen at a poll (polls with one, by child: []; sizes seen: []); one of them was the front application at 0 polls
+over the whole run: a window of a process new since the run began that is no child of it: at 4 of 4168 polls
+
+== at the end of the run: what is left of it
+children this run started: 77; killed by the run: 0; still alive: 0 []; by exit status: {0: 77}
+windows on screen owned by any of them at the last poll (0.02 s ago): 0
+the poller: 4179 polls, the median gap between two 54 ms, the longest 60 ms
+the poller's exit: 0
+exit=0
+
+the tree after the run:
+  HEAD c8ed333fa591259434942215726bd255423b5c61
+  git status --porcelain=v1 --untracked-files=all, 19 lines:
+     M CHANGELOG.md
+     M README.md
+     M agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/shape.md
+     M agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/shape.md
+     M agent-os/standards/index.yml
+     M agent-os/standards/vital/instrument.md
+     M agent-os/standards/vital/plugin-state.md
+     M agent-os/standards/vital/preset-file.md
+     M src/patchbay_vital/host.py
+     M src/patchbay_vital/instrument.py
+     M src/patchbay_vital/patch.py
+     M tests/unit/builders.py
+     M tests/unit/test_host.py
+     M tests/unit/test_instrument.py
+     M tests/unit/test_patch.py
+    ?? agent-os/specs/2026-11-18-0651-revision-after-pr-26-second-review/plan.md
+    ?? agent-os/specs/2026-11-18-0651-revision-after-pr-26-second-review/references.md
+    ?? agent-os/specs/2026-11-18-0651-revision-after-pr-26-second-review/shape.md
+    ?? agent-os/specs/2026-11-18-0651-revision-after-pr-26-second-review/standards.md
+  git hash-object of each of those paths (a deleted one marked so):
+    88cb953fd391b1d1eb4a399e91c69808b476036a  CHANGELOG.md
+    5ce6117ec17b6e0951c1c5bdf3c17d5037c4a8e9  README.md
+    5b1e588b94b77025c669e74d8c8eb8e24ca41ce5  agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/shape.md
+    1f99cf3b62d4682f6b092bcc4cad19c0ab63467f  agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/shape.md
+    cfea1b41c92ff6a88e9cf98f337a7bc80160c81e  agent-os/specs/2026-11-18-0651-revision-after-pr-26-second-review/plan.md
+    9b4cdcbcd5c00212b83b323b3e9b2f07c2369d64  agent-os/specs/2026-11-18-0651-revision-after-pr-26-second-review/references.md
+    7e7185d9f58059f51da3e50a05a6b545605458c0  agent-os/specs/2026-11-18-0651-revision-after-pr-26-second-review/shape.md
+    da824f51c97916ba7b4772a2cbc4e8facd75185a  agent-os/specs/2026-11-18-0651-revision-after-pr-26-second-review/standards.md
+    55f136acac9f8e2627a5135ce780f7077ba56ecd  agent-os/standards/index.yml
+    f1285d3e75bd8bcb342ba08eb779f44197b17a1f  agent-os/standards/vital/instrument.md
+    499f3171a27ed42c6f2611a420badec0819b3095  agent-os/standards/vital/plugin-state.md
+    32761e33767c0b2cb966f2309cc41169a6400573  agent-os/standards/vital/preset-file.md
+    4b3ee48093239244aeec7bcefd5fec4c43b0d400  src/patchbay_vital/host.py
+    ccc9c18564d5af8c388f297245c3bf338a552ced  src/patchbay_vital/instrument.py
+    54b732eecf4f87025393ebec7e5846d203a1d4f9  src/patchbay_vital/patch.py
+    4fa6c885f7a9bbd5facb85737f17f84c2bfe9d26  tests/unit/builders.py
+    f6d8f3f955029041e2c7c3164a9b42433330e785  tests/unit/test_host.py
+    3aaf6cb41f0a06cd7284bf290d0463f6739f6b60  tests/unit/test_instrument.py
+    6456a09bee096817a2a5621d2253fdaf422d3320  tests/unit/test_patch.py
+cmp: the tree after the run is the tree before it
+the machine after the run: arm64, Apple M4 Pro, 14 cores, macOS 26.6.2 (25G83), Python 3.12.16, load 6.02 4.66 4.35, at 2026-11-18 09:48 EST
+
+the scripts this run used, each embedded below with its blob:
+    f4ff184ff8e547071a168ac61919a2bb9a72898a  <scratchpad>/i20/run5.py
+    50fdf7ce86b35c381358d78ce177cf1208b21cd6  <scratchpad>/i20/child5.py
+    31c57d9f097f1a1c65a8cc68a7917b2b89d725a8  <scratchpad>/i20/run4.py
+    1295559b22e26f48b2a1213c0847ac20b1f80702  <scratchpad>/i20/child.py
+    adab9bb77ed81d54afe8dcc7aeb32337d6d32ef0  <scratchpad>/i20/texts3.py
+    8a66f6deb176d6bf50ef1ff5c299f39f4f1b1822  <scratchpad>/i20/poller.py
+    69ab39e9ed371e5c72b7893b04e6e1af2ba5b9fd  <scratchpad>/i20/common.py
+    cc1b511c1c2be1a146cfe8eae7fe4a1686a1d2ca  <scratchpad>/i20/runner.py
+    e4c1a40cc3893ab50df6717e5a18e2a755914efd  <scratchpad>/i20/tree.sh
+    0dde01b338e9dbc221abc7e0d9b87bcf21acf1cf  <scratchpad>/i20/machine.sh
+    43532a582c6f20d5b140e66162c45647a16a4287  <scratchpad>/i20/transcript.sh
+
+--- <scratchpad>/i20/run5.py
+```
+"""Issue #20, the shipped remedy: the rollback after an answered alert, each good text the model.
+
+For the start preset, the fixture and each of the 75 installed presets, in a child of its own:
+the text is loaded into a new VitalInstrument as its model; then a patch of that same preset
+whose `sample` Vital cannot read (its `length` a string: the guard passes it, Vital answers it
+with its alert) is given to `load_patch`. Counted: that the package's patch error leaves the call
+with Vital's words, and that the plugin, by the diagnostic read, then holds every one of its 903
+floats and every section as the model's own double load left them, the one the instrument made
+just before that patch, and that the model is the preset still.
+
+Every load here goes through the package as shipped: its host answers the alert. A child is
+given LIMIT seconds for the `load_patch` that may block, from its word; the run stops at the first
+that does not return. This process loads no plugin.
+"""
+
+import importlib.metadata
+import platform
+from pathlib import Path
+
+import common as c
+import run4
+from run4 import Screen, StoppedError, follow, head, left, stopped
+from runner import Child
+
+HERE = Path(__file__).resolve().parent
+CHILD5 = str(HERE / "child5.py")
+WORDS = "Vital answered the state with its alert, 'Error opening preset': 'There was an error open the preset. Preset file is corrupted.'"
+
+
+def main() -> None:
+    print(f"Vital {c.MAP.vital_version} by the map, through pedalboard {importlib.metadata.version('pedalboard')}; this process loads no plugin")
+    print(f"machine {platform.machine()}, Python {platform.python_version()}, macOS {platform.mac_ver()[0]}")
+    print(f"the load that may block is given {c.LIMIT:g} s from the child's word, and is made by the package as shipped")
+    texts = c.good_texts()
+    run4.WINDOWS = HERE / "out" / "windows-run5.jsonl"
+    screen = Screen()
+    try:
+        head(f"the rollback, over {len(texts)} models: the start preset, the fixture and the {len(texts) - 2} installed presets")
+        results, children, died = [], [], []
+        for index, (name, text) in enumerate(texts):
+            child = Child("rollback", str(index), script=CHILD5)
+            children.append(child)
+            trace = follow(child, c.LIMIT)
+            if trace.waited_out or trace.failed:
+                raise stopped(f"model {index}, {name}", child, trace, screen)
+            if trace.died or len(trace.results) != 1:
+                died.append((index, name, trace.signal))
+                print(f"  THE CHILD DIED ({trace.signal}): model {index}, {name}: counted, not retried", flush=True)
+                continue
+            results.append((name, len(text), trace.results[0]))
+        print("after the rollback, the plugin against what the model's own double load left, made just before the patch:")
+        print("      bytes  load_patch ms  floats of 903 that differ  sections that differ  the model kept  refused with Vital's words   the model")
+        for name, size, result in results:
+            refused = str(result["raised"]).startswith("PatchRefusedError") and WORDS in str(result["raised"]) and str(result["raised"]).endswith("(from PluginStateError)")
+            print(f"  {size:>9}  {float(result['ms']):>13.1f}  {result['floats_off']:>27}  {result['sections_off']!s:>22}  {result['model_kept']!s:>14}  {refused!s:>25}   {name}")
+        count = len(results)
+        raised = sorted({str(result["raised"]) for _, _, result in results})
+        print(f"\nmodels whose child reported: {count} of {len(texts)}; whose child died: {len(died)} {died}")
+        print(f"what load_patch raised, each distinct text ({len(raised)}):")
+        for one in raised:
+            print(f"  {one}")
+        print(f"refused as a patch, chained from the host's error, with Vital's own words: {sum(str(r['raised']).startswith('PatchRefusedError') and WORDS in str(r['raised']) and str(r['raised']).endswith('(from PluginStateError)') for _, _, r in results)} of {count}")
+        print(f"all 903 floats as the model's double load left them: {sum(r['floats'] == 903 and r['floats_off'] == 0 for _, _, r in results)} of {count}")
+        print(f"every section as the model's double load left it: {sum(not r['sections_off'] for _, _, r in results)} of {count}")
+        print(f"the model still the preset: {sum(bool(r['model_kept']) for _, _, r in results)} of {count}")
+        print(f"the refused load_patch, its time with the two loads that put the model back, ms: {c.spread([float(r['ms']) for _, _, r in results])}")
+        print(f"the screen: {screen.seen(children)}")
+        print(f"over the whole run: {screen.others(children)}")
+    except StoppedError as error:
+        print(f"\n{error}", flush=True)
+    finally:
+        left(screen)
+        screen.stop()
+        print(f"the poller's exit: {screen.process.poll()}")
+
+
+if __name__ == "__main__":
+    main()
+```
+
+--- <scratchpad>/i20/child5.py
+```
+"""A child of the runs made on the shipped remedy: one model, or one text, through the package.
+
+usage: child5.py <mode> <argument> <the time it was started>
+
+  rollback <index>   good text <index> (common.good_texts) as the instrument's model; then a patch
+                     of it whose sample Vital cannot read; what load_patch raises, and whether the
+                     plugin holds every float and every section as before it
+  remedy <index>     text <index> (texts3.every_text) through the shipped code: through the
+                     instrument where the package's writer can write it, else through the host
+
+Before the load that may block the child says ABOUT TO LOAD and after it RETURNED; its parent
+kills it when the second does not follow in time, and child.py's dead-man timer ends it whatever
+its parent does. Nothing here answers an alert but the package's own host.
+"""
+
+import faulthandler
+import json
+import os
+import sys
+import time
+
+import common as c
+import texts3
+from child import ABOUT_TO_LOAD, DEAD_MAN, RETURNED
+from patchbay import EventBus, PresetKey
+from patchbay_vital import dumps, loads
+from patchbay_vital.errors import VitalError
+from patchbay_vital.instrument import VitalInstrument
+from patchbay_vital.patch import patch_of
+
+UNREAD_SAMPLE = {"length": "x", "name": "x", "sample_rate": 44100, "samples": ""}
+"""Section 5's sample with its four keys, its length a string: the guard passes it, Vital alerts."""
+
+
+def said(call, what: str) -> tuple[str, float]:
+    """One call that may block, said before and after: what it raised, and its milliseconds."""
+    print(f"{ABOUT_TO_LOAD} at {time.time()!r}: {what}", flush=True)
+    faulthandler.dump_traceback_later(DEAD_MAN, exit=True)
+    raised = "no error"
+    start = time.perf_counter()
+    try:
+        call()
+    except VitalError as error:
+        cause = error.__cause__
+        raised = f"{type(error).__name__}: {error}"
+        if cause is not None:
+            raised += f" (from {type(cause).__name__})"
+    finally:
+        taken = (time.perf_counter() - start) * 1000.0
+        faulthandler.cancel_dump_traceback_later()
+    print(f"{RETURNED} at {time.time()!r} in {taken:.1f} ms; fired False", flush=True)
+    return raised, taken
+
+
+def rollback(index: int) -> None:
+    _, text = c.good_texts()[index]
+    model = loads(text.decode("utf-8"))
+    instrument = VitalInstrument(EventBus())
+    instrument.load_patch(patch_of(model))
+    before = instrument.host.state()
+    unread = {**model.opaque, PresetKey("sample"): json.dumps(UNREAD_SAMPLE).encode("utf-8")}
+    bad = patch_of(model.model_copy(update={"opaque": unread}))
+    raised, taken = said(lambda: instrument.load_patch(bad), f"good text {index}, its sample unreadable")
+    after = instrument.host.state()
+    floats_before, floats_after = c.floats_of(before), c.floats_of(after)
+    result = {
+        "i": index,
+        "raised": raised,
+        "ms": taken,
+        "floats": len(floats_before),
+        "floats_off": sum(floats_after.get(key) != held for key, held in floats_before.items()),
+        "sections_off": c.sections_off(c.sections_of(after), c.sections_of(before)),
+        "model_kept": dumps(instrument.preset) == dumps(model),
+    }
+    print(f"T {json.dumps(result)}", flush=True)
+
+
+def remedy(index: int) -> None:
+    _, _, text = texts3.every_text()[index]
+    writer, guard = texts3.judged(text)
+    instrument = VitalInstrument(EventBus())
+    host = instrument.host
+    before = host.state()
+    if writer == "yes":
+        patch = patch_of(loads(text.decode("utf-8")))
+        raised, taken = said(lambda: instrument.load_patch(patch), f"text {index}, through the instrument")
+        way = "the instrument"
+    else:
+        raised, taken = said(lambda: host.load_state(text), f"text {index}, through the host")
+        way = "the host"
+    after = host.state()
+    floats_before, floats_after = c.floats_of(before), c.floats_of(after)
+    result = {
+        "i": index,
+        "way": way,
+        "guard": guard.split(" (")[0],
+        "raised": raised,
+        "ms": taken,
+        "floats_off": sum(floats_after.get(key) != held for key, held in floats_before.items()),
+        "sections_off": c.sections_off(c.sections_of(after), c.sections_of(before)),
+    }
+    if way == "the host" and raised != "no error":
+        host.load_state(c.START)
+        host.load_state(c.START)
+        again = host.state()
+        result["floats_off_after_the_start_preset"] = sum(
+            c.floats_of(again).get(key) != held for key, held in floats_before.items()
+        )
+    print(f"T {json.dumps(result)}", flush=True)
+
+
+if __name__ == "__main__":
+    print(f"PID {os.getpid()}", flush=True)
+    mode, argument, _started = sys.argv[1:]
+    if mode == "rollback":
+        rollback(int(argument))
+    elif mode == "remedy":
+        remedy(int(argument))
+    else:
+        sys.exit(f"no such mode: {mode}")
+```
+
+--- <scratchpad>/i20/run4.py
+```
+"""Issue #20, probes, run 4: the wide counts under the watch, a crash counted as a verdict.
+
+Run 3 stopped at the first text whose child died. Here a child that dies of a signal during a
+load is a verdict, with its signal, counted and not retried within its pass. Every load that may
+block is made in a child this run can kill, on the main thread, under the watch run 2 saw leave
+nothing on screen (the alert answered before it opens), and given LIMIT seconds from the child's
+word. The run stops only at a load that does not return, or at a slip in the probe's own scripts
+(a child that exits with a status of its own, which no signal gives). This process loads no
+plugin. poller.py records the windows of the run's children throughout.
+
+A verdict is a letter for each of a text's two loads, and a mark:
+  A  the watch answered an alert in the load      -  the load returned and no alert was raised
+  X  the child died of a signal during the load   ?  the load was not made, the child being dead
+  +  after both letters: the child died after both loads returned, before it reported
+  !! the child died before the text's first load was said, while its history was being made
+
+The run's order: each child mode once on the control text; every text in a fresh child; every
+text on one instance after each of three histories, the pass restarted on a new instance after a
+text that killed it, and the restart marked; every text that crashed anywhere, in RERUNS more
+fresh children; a soak; then macOS's crash reports of the children that died.
+
+`collect` runs the children and `report` prints what they found, so `report` and the restart of
+a pass can be run on made-up results and a fake child first (selftest4.py).
+"""
+
+import collections
+import importlib.metadata
+import json
+import os
+import platform
+import signal
+import subprocess
+import sys
+import time
+from collections.abc import Callable
+from dataclasses import dataclass, field
+from pathlib import Path
+
+import common as c
+import texts3
+from runner import ABOUT_TO_LOAD, RETURNED, START_UP, Child
+
+HERE = Path(__file__).resolve().parent
+CHILD3 = str(HERE / "child3.py")
+POLLER = str(HERE / "poller.py")
+WINDOWS = HERE / "out" / "windows-run4.jsonl"
+WATCH = "answer"
+HISTORIES = ("start", "sets", "older")
+HELD_AS_GIVEN = ("custom_warps", "lfos", "modulations", "random_values")
+"""The sections run 1 saw every good text come back holding as the text holds them."""
+OLDER = "Factory/Presets/Ah Eh Ee Oh.vital"
+RERUNS = 10
+REPORTS = Path.home() / "Library" / "Logs" / "DiagnosticReports"
+REPORT_WAIT = 45.0
+"""Seconds given to the system to finish writing its crash reports before they are read."""
+
+Result = dict[str, object]
+Record = dict[str, object]
+"""One text in one source: its verdict, the child's result where it reported one, the signal
+that killed the child where one did, and that child's pid."""
+Data = dict[str, object]
+
+
+class StoppedError(Exception):
+    """The run stopped: a load did not return, or the probe's own script failed."""
+
+
+def head(title: str) -> None:
+    print(f"\n== {title}", flush=True)
+
+
+def clock() -> str:
+    return time.strftime("%H:%M:%S")
+
+
+def release(child: Child) -> None:
+    """Wait for a child that is ending and close its pipes, so hundreds of children hold none."""
+    try:
+        child.process.wait(timeout=START_UP)
+    except subprocess.TimeoutExpired:
+        child.kill()
+    deadline = time.time() + 5.0
+    while not child.ended and time.time() < deadline:
+        time.sleep(0.01)
+    for pipe in (child.process.stdin, child.process.stdout):
+        if pipe is not None and child.ended:
+            pipe.close()
+
+
+@dataclass
+class Trace:
+    """What a child did, read to its end."""
+
+    results: list[Result] = field(default_factory=list)
+    end: Result | None = None
+    pending: list[tuple[str, bool, bool]] = field(default_factory=list)
+    """The loads said since the last result: what each was, whether it returned, whether the
+    watch fired in it."""
+    waited_out: bool = False
+    code: int | None = None
+    last: str = ""
+
+    @property
+    def died(self) -> bool:
+        """Killed by a signal that the run did not send."""
+        return not self.waited_out and self.code is not None and self.code < 0
+
+    @property
+    def failed(self) -> bool:
+        """Ended with a status of its own: a slip in the probe's script, not a crash."""
+        return not self.waited_out and self.code is not None and self.code > 0
+
+    @property
+    def signal(self) -> str:
+        return signal.Signals(-self.code).name if self.code is not None and self.code < 0 else ""
+
+
+def follow(child: Child, limit: float, on_result: Callable[[Result], None] | None = None) -> Trace:
+    """Read a child to its end; kill it when a load it said it would make does not return."""
+    trace = Trace()
+    waiting = False
+    while True:
+        line = child.line(limit if waiting else START_UP)
+        if line is None:
+            if not child.ended:
+                child.kill()
+                trace.waited_out = True
+            release(child)
+            trace.code = child.process.returncode
+            return trace
+        if line.startswith(ABOUT_TO_LOAD):
+            waiting, trace.last = True, line
+            trace.pending.append((line.partition(": ")[2], False, False))
+        elif line.startswith(RETURNED):
+            waiting = False
+            if trace.pending:
+                trace.pending[-1] = (trace.pending[-1][0], True, line.rstrip().endswith("fired True"))
+        elif line.startswith(("T ", "RESULT ")):
+            result = json.loads(line.partition(" ")[2])
+            trace.results.append(result)
+            trace.pending = []
+            if on_result is not None:
+                on_result(result)
+        elif line.startswith("E "):
+            trace.end = json.loads(line[2:])
+        elif not line.startswith("PID "):
+            print(f"    the child said: {line}", flush=True)
+
+
+class Screen:
+    """The poller, recording only the windows of processes new since it started."""
+
+    def __init__(self) -> None:
+        self.process = subprocess.Popen(  # noqa: S603  the probe's own interpreter and script
+            [sys.executable, "-u", "-B", POLLER, str(WINDOWS), "new"],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+        )
+        assert self.process.stdout is not None
+        self.process.stdout.readline()
+
+    def polls(self) -> list[dict[str, object]]:
+        with WINDOWS.open(encoding="utf-8") as log:
+            return [json.loads(line) for line in log if line.endswith("\n")]
+
+    def seen(self, children: list[Child]) -> str:
+        """Over some children: how many had a window of theirs on screen at any poll."""
+        time.sleep(0.3)
+        pids = {child.process.pid for child in children}
+        shown: dict[int, int] = {}
+        sizes: set[tuple[int, int]] = set()
+        front = 0
+        for poll in self.polls():
+            front += poll["front"] in pids
+            for pid, _layer, width, height in poll["windows"]:  # type: ignore[union-attr]
+                if pid in pids:
+                    shown[pid] = shown.get(pid, 0) + 1
+                    sizes.add((width, height))
+        return (
+            f"of {len(children)} children, {len(shown)} had a window of theirs on screen at a poll "
+            f"(polls with one, by child: {sorted(shown.values())}; sizes seen: {sorted(sizes)}); "
+            f"one of them was the front application at {front} polls"
+        )
+
+    def others(self, children: list[Child]) -> str:
+        """Windows of processes new since the poller started that are no child of the run."""
+        pids = {child.process.pid for child in children}
+        polls = self.polls()
+        strangers = sum(any(window[0] not in pids for window in poll["windows"]) for poll in polls)  # type: ignore[union-attr]
+        return f"a window of a process new since the run began that is no child of it: at {strangers} of {len(polls)} polls"
+
+    def stop(self) -> None:
+        assert self.process.stdin is not None
+        self.process.stdin.close()
+        self.process.wait(timeout=10)
+
+
+def stopped(what: str, child: Child, trace: Trace, screen: Screen) -> StoppedError:
+    if trace.failed:
+        return StoppedError(
+            f"THE PROBE'S OWN SCRIPT FAILED: {what}: its child ended with status {trace.code}, which no "
+            f"signal gives. Nothing is concluded from it. The run stops here; nothing further is run."
+        )
+    return StoppedError(
+        f"A LOAD DID NOT RETURN within {c.LIMIT:g} s and its child was killed by the run: {what}. The "
+        f"child's last word: {trace.last!r}. What was on screen: {screen.seen([child])}. The run stops "
+        f"here; nothing further is run."
+    )
+
+
+def mark(fired: object) -> str:
+    """Two loads' verdicts as two letters: A an alert, - none."""
+    return "".join("A" if one else "-" for one in fired)  # type: ignore[union-attr]
+
+
+def verdict_of(pending: list[tuple[str, bool, bool]]) -> str:
+    """The verdict of a text whose child died before reporting it, from the loads it said."""
+    if not pending:
+        return "!!"
+    letters = "".join(("A" if fired else "-") if returned else "X" for _, returned, fired in pending)
+    if all(returned for _, returned, _ in pending) and len(pending) >= 2:  # noqa: PLR2004
+        return letters[:2] + "+"
+    return letters.ljust(2, "?")
+
+
+def crashed(record: Record) -> bool:
+    return bool(record["signal"])
+
+
+def preflight(script: str) -> None:
+    """Run each mode of the child script once on the control text, a text that loads."""
+    head("0. the probe's own scripts: each mode of the child, once, on the control text (text 0, which loads)")
+    os.environ["PROBE_FIRST"] = "1"
+    try:
+        modes = (
+            ("one", WATCH, "0"),
+            ("batch", WATCH, "start"),
+            ("batch", WATCH, "sets"),
+            ("batch", WATCH, "older", "0"),
+            ("soak", WATCH),
+        )
+        for arguments in modes:
+            child = Child(*arguments, script=script)
+            trace = follow(child, c.LIMIT)
+            ran = trace.code == 0 and len(trace.results) == 1 and not trace.waited_out
+            print(f"  {' '.join(arguments)}: {'ran' if ran else 'FAILED'} (exit {trace.code}, results {len(trace.results)})", flush=True)
+            if not ran:
+                msg = "THE PROBE'S OWN SCRIPTS FAILED on the control text: nothing was measured, and the run stops here."
+                raise StoppedError(msg)
+    finally:
+        del os.environ["PROBE_FIRST"]
+
+
+def fresh_child(index: int, label: str, screen: Screen, script: str, children: list[Child]) -> Record:
+    """One text in a child of its own."""
+    child = Child("one", WATCH, str(index), script=script)
+    children.append(child)
+    trace = follow(child, c.LIMIT)
+    if trace.waited_out or trace.failed:
+        raise stopped(f"text {index}, {label}, in a fresh child", child, trace, screen)
+    if trace.died:
+        return {"verdict": verdict_of(trace.pending), "result": None, "signal": trace.signal, "pid": child.process.pid}
+    if len(trace.results) != 1:
+        msg = f"THE PROBE'S OWN SCRIPT FAILED: text {index}, {label}: its fresh child ended with status 0 and {len(trace.results)} results. The run stops here."
+        raise StoppedError(msg)
+    result = trace.results[0]
+    return {"verdict": mark(result["fired"]), "result": result, "signal": "", "pid": child.process.pid}
+
+
+def one_pass(
+    history: str, count: int, labels: list[str], screen: Screen, script: str, children: list[Child]
+) -> tuple[list[Record], Result | None, list[tuple[int, str]]]:
+    """Every text in turn on one instance; a new instance after a text that killed the last.
+
+    Returns each text's record, the last instance's closing result, and each restart: the text
+    the new instance began at, and why.
+    """
+    records: list[Record | None] = [None] * count
+    restarts: list[tuple[int, str]] = []
+    start = 0
+    stuck = -1
+    while True:
+        child = Child("batch", WATCH, history, str(start), script=script)
+        children.append(child)
+        pid = child.process.pid
+
+        def got(result: Result, pid: int = pid) -> None:
+            records[int(result["i"])] = {"verdict": mark(result["fired"]), "result": result, "signal": "", "pid": pid}  # type: ignore[call-overload]
+
+        trace = follow(child, c.LIMIT, got)
+        following = next((index for index in range(start, count) if records[index] is None), count)
+        if trace.waited_out or trace.failed:
+            raise stopped(f"the pass after the history {history!r}, at text {following}, {labels[min(following, count - 1)]}", child, trace, screen)
+        if not trace.died:
+            if following < count:
+                msg = f"the pass after the history {history!r} ended by itself at text {following} of {count}: THE PROBE'S OWN SCRIPT FAILED. The run stops here."
+                raise StoppedError(msg)
+            return [record for record in records if record is not None], trace.end, restarts
+        if trace.pending:
+            verdict = verdict_of(trace.pending)
+            records[following] = {"verdict": verdict, "result": None, "signal": trace.signal, "pid": pid}
+            why = f"text {following}, {labels[following]}, killed its instance ({trace.signal}, verdict {verdict})"
+            start = following + 1
+        elif stuck == following:
+            records[following] = {"verdict": "!!", "result": None, "signal": trace.signal, "pid": pid}
+            why = f"the instance died again ({trace.signal}) before text {following}'s first load was said; the text is passed over"
+            start = following + 1
+        else:
+            stuck = following
+            why = f"the instance died ({trace.signal}) with no load said, after text {following - 1} and before text {following}'s first load; that text is taken again"
+            start = following
+        restarts.append((start, why))
+        print(f"  {clock()}  RESTART of the pass after the history {history!r}: {why}. A new instance takes the texts from {start} on; they meet a shorter history.", flush=True)
+        if start >= count:
+            return [record for record in records if record is not None], None, restarts
+
+
+def collect(screen: Screen, count: int, labels: list[str], data: Data, script: str = CHILD3) -> None:
+    """Run every child of the run into `data`; StoppedError at a load that does not return."""
+    screens: dict[str, str] = {}
+    data["screens"] = screens
+    sources: dict[str, list[Record]] = {}
+    ends: dict[str, Result | None] = {}
+    restarts: dict[str, list[tuple[int, str]]] = {}
+    data["sources"], data["ends"], data["restarts"] = sources, ends, restarts
+    children: list[Child] = []
+    data["children"] = children
+
+    head("the run's children, as they go")
+    fresh: list[Record] = []
+    sources["fresh"] = fresh
+    mine: list[Child] = []
+    for index in range(count):
+        record = fresh_child(index, labels[index], screen, script, mine)
+        fresh.append(record)
+        if crashed(record):
+            print(f"  {clock()}  text {index}, {labels[index]}: its fresh child died ({record['signal']}), verdict {record['verdict']}", flush=True)
+        if (index + 1) % 50 == 0 or index + 1 == count:
+            print(f"  {clock()}  {index + 1} of {count} fresh children done", flush=True)
+    children += mine
+    screens["fresh"] = screen.seen(mine)
+    for history in HISTORIES:
+        mine = []
+        sources[history], ends[history], restarts[history] = one_pass(history, count, labels, screen, script, mine)
+        children += mine
+        screens[history] = screen.seen(mine)
+        print(f"  {clock()}  the pass after the history {history!r} done: {count} texts on {len(mine)} instances", flush=True)
+
+    crashing = sorted({index for records in sources.values() for index, record in enumerate(records) if crashed(record)})
+    again: dict[int, list[Record]] = {}
+    data["again"] = again
+    mine = []
+    for index in crashing:
+        again[index] = [fresh_child(index, labels[index], screen, script, mine) for _ in range(RERUNS)]
+        died = sum(crashed(record) for record in again[index])
+        print(f"  {clock()}  text {index}, {labels[index]}, again in {RERUNS} fresh children: died in {died}", flush=True)
+    children += mine
+    screens["again"] = screen.seen(mine)
+
+    child = Child("soak", WATCH, script=script)
+    children.append(child)
+    trace = follow(child, c.LIMIT)
+    if trace.waited_out or trace.failed or len(trace.results) != 1:
+        if trace.died:
+            data["soak_died"] = f"{trace.signal} after {len(trace.pending)} loads said"
+        else:
+            raise stopped("the soak", child, trace, screen)
+    else:
+        data["soak"] = trace.results[0]
+    screens["soak"] = screen.seen([child])
+    print(f"  {clock()}  the soak done", flush=True)
+    screens["others"] = screen.others(children)
+
+
+def changed_sections(text: bytes, start: dict[str, object]) -> list[str]:
+    """The sections a text does not hold as the start preset does, those it lacks among them."""
+    held = c.sections_of(text)
+    return sorted(name for name in set(start) | set(held) if held.get(name) != start.get(name))
+
+
+def kind_of(result: Result, changed: list[str]) -> str:
+    """What a load that raised no alert did, by the diagnostic read after it (history `older`)."""
+    if result["moved"] < result["markers"]:  # type: ignore[operator]
+        return "ignored whole"
+    if not changed:
+        return "loaded; the text changes no section"
+    status: dict[str, str] = result["status"]  # type: ignore[assignment]
+    not_given = set(result["not_given"])  # type: ignore[call-overload]
+    found = set()
+    for name in changed:
+        if name in HELD_AS_GIVEN and name not in not_given and status.get(name) is not None:
+            found.add("given")
+        else:
+            found.add(status.get(name, "absent"))
+    if found == {"given"}:
+        return "loaded; the changed section held as the text gives it"
+    if "before" in found:
+        return "loaded; a changed section KEPT from the preset before"
+    if found <= {"plain", "given"}:
+        return "loaded; the changed section read as the unchanged one"
+    if found <= {"plain", "given", "either"}:
+        return "loaded; the changed section as before and as unchanged alike"
+    return "loaded; a changed section made into something else"
+
+
+def percent(end: object) -> str:
+    return f"{float(end['rms_ratio']) * 100:.1f}" if isinstance(end, dict) else "none"  # type: ignore[arg-type]
+
+
+def place(symbol: str) -> str:
+    """A symbol without its arguments."""
+    return symbol.split("(")[0].strip()
+
+
+def crash_groups(dead: dict[int, tuple[int, str]], since: float, labels: list[str]) -> None:
+    """Print macOS's crash reports of the run's dead children, grouped by where in Vital they died.
+
+    `dead` gives, for each dead child's pid, the text it was loading and the source it ran in.
+    """
+    today = time.strftime("%Y-%m-%d")
+    deadline = time.time() + REPORT_WAIT
+    found: dict[int, dict[str, object]] = {}
+    while True:
+        for path in REPORTS.glob(f"python3.12-{today}-*.ips"):
+            if path.stat().st_mtime < since:
+                continue
+            try:
+                with path.open(encoding="utf-8", errors="replace") as report:
+                    report.readline()
+                    body = json.loads(report.read())
+            except (OSError, ValueError):
+                continue
+            if body.get("pid") in dead:
+                found[int(body["pid"])] = body
+        if len(found) == len(dead) or time.time() > deadline:
+            break
+        time.sleep(3.0)
+    print(f"children of the run that died of a signal: {len(dead)}; a crash report of the system's found for {len(found)} of them")
+    groups: dict[str, dict[str, object]] = {}
+    for pid, body in sorted(found.items()):
+        images: list[dict[str, object]] = body.get("usedImages", [])  # type: ignore[assignment]
+        thread = body["threads"][body.get("faultingThread", 0)]  # type: ignore[index]
+        frames = [(str(images[frame["imageIndex"]].get("name", "?")), str(frame.get("symbol", "<no symbol>"))) for frame in thread.get("frames", [])]
+        vital = [place(symbol) for image, symbol in frames if image == "Vital"]
+        where = " < ".join(vital[:3]) if vital else f"no frame of Vital on the faulting thread; its top frame: {frames[0][0]} {place(frames[0][1])}" if frames else "no frame at all"
+        exception: dict[str, object] = body.get("exception", {})  # type: ignore[assignment]
+        group = groups.setdefault(where, {"reports": 0, "texts": set(), "sources": collections.Counter(), "signals": collections.Counter(), "stack": frames, "main": collections.Counter()})
+        group["reports"] = int(group["reports"]) + 1  # type: ignore[call-overload]
+        index, source = dead[pid]
+        group["texts"].add(index)  # type: ignore[union-attr]
+        group["sources"][source] += 1  # type: ignore[index]
+        group["signals"][f"{exception.get('type')} {exception.get('signal')} {exception.get('subtype', '')}".strip()] += 1  # type: ignore[index]
+        group["main"]["the main thread" if body.get("faultingThread") == 0 else "another thread"] += 1  # type: ignore[index]
+    print(f"grouped by where in Vital the faulting thread was (its innermost frames of Vital, innermost first): {len(groups)} groups")
+    for where, group in sorted(groups.items(), key=lambda item: -len(item[1]["texts"])):  # type: ignore[arg-type]
+        texts = sorted(group["texts"])  # type: ignore[call-overload]
+        print(f"\n  {where}")
+        print(f"      texts: {len(texts)}; reports: {group['reports']}; by source: {dict(group['sources'])}; {dict(group['signals'])}; the faulting thread: {dict(group['main'])}")  # type: ignore[call-overload]
+        for index in texts:
+            print(f"        {index:>3}  {labels[index]}")
+        print("      the faulting thread's stack in the first of these reports, each frame its image and its symbol:")
+        for image, symbol in group["stack"][:24]:  # type: ignore[index]
+            print(f"          {image}  {symbol[:120]}")
+
+
+def report(texts: list[tuple[str, str | None, bytes]], judged: list[tuple[str, str]], data: Data) -> None:  # noqa: C901, PLR0912, PLR0915  one report, read top to bottom
+    """Print what the children found."""
+    count = len(texts)
+    labels = [label for label, _, _ in texts]
+    writable = [writer == "yes" for writer, _ in judged]
+    open_ = [writer == "yes" and guard == "passes" for writer, guard in judged]
+    start_sections = c.sections_of(c.START)
+    sources: dict[str, list[Record]] = data["sources"]  # type: ignore[assignment]
+    ends: dict[str, Result | None] = data["ends"]  # type: ignore[assignment]
+    restarts: dict[str, list[tuple[int, str]]] = data["restarts"]  # type: ignore[assignment]
+    screens: dict[str, str] = data["screens"]  # type: ignore[assignment]
+    again: dict[int, list[Record]] = data["again"]  # type: ignore[assignment]
+    names = list(sources)
+
+    head(f"4b. each text's verdict under the watch, side by side: in a fresh child, and on one instance after each of {len(HISTORIES)} histories")
+    print("a verdict: a letter for each of the text's two loads. A: the watch answered an alert. -: the load returned and none was raised.")
+    print("X: the child died of a signal during the load. ?: the load was not made, the child being dead. +: the child died after both")
+    print("loads returned. !!: the child died before the text's first load was said.")
+    print("fresh: a child of its own for each text, the start preset loaded twice, then the text twice.")
+    print("start, sets, older: one instance for every text in turn; before each text, the start preset twice; or every parameter")
+    print(f"set to an end of its range, a short render and the start preset twice; or {OLDER} twice and nothing after it.")
+    print(f"the screen, over the fresh children: {screens['fresh']}")
+    for history in HISTORIES:
+        print(f"the pass after the history {history!r}: restarted {len(restarts[history])} times; a note's RMS at its last instance's end over its start {percent(ends[history])} percent; the screen: {screens[history]}")
+        for began, why in restarts[history]:
+            print(f"    RESTART at text {began}: {why}")
+    after = {began - 1: [] for history in HISTORIES for began, _ in restarts[history]}
+    for history in HISTORIES:
+        for began, _ in restarts[history]:
+            after[began - 1].append(history)
+    kinds: list[str] = []
+    print(f"\n    #  the writer / the guard  {' '.join(f'{name:>5}' for name in names)}   what the load did (history older)                                  the text")
+    for index, label in enumerate(labels):
+        verdicts = [str(sources[name][index]["verdict"]) for name in names]
+        older = sources["older"][index]
+        if any(crashed(sources[name][index]) for name in names):
+            kind = "CRASHED: " + ", ".join(sorted({str(sources[name][index]["signal"]) for name in names if crashed(sources[name][index])}))
+        elif "A" in str(older["verdict"]):
+            kind = "an alert"
+        else:
+            kind = kind_of(older["result"], changed_sections(texts[index][2], start_sections))  # type: ignore[arg-type]
+        kinds.append(kind)
+        note = f"   [the pass restarts after this text: {', '.join(after[index])}]" if after.get(index) else ""
+        print(f"  {index:>3}  {judged[index][0][:3]:>3} / {judged[index][1].split(' (')[0]:<11}  {' '.join(f'{verdict:>5}' for verdict in verdicts)}   {kind:<62} {label}{note}")
+    same = [len({str(sources[name][index]["verdict"]) for name in names}) == 1 for index in range(count)]
+    print(f"\nthe same verdict in the fresh child and after every history: {sum(same)} of {count} texts. Each text whose verdict differs between them, by name:")
+    for index, agrees in enumerate(same):
+        if not agrees:
+            print(f"  {index:>3}  {labels[index]}: {', '.join(f'{name} {sources[name][index]["verdict"]}' for name in names)}")
+    if all(same):
+        print("  none")
+    for name in names:
+        tally = collections.Counter(str(record["verdict"]) for record in sources[name])
+        print(f"  {name:>5}, texts by verdict: {dict(sorted(tally.items()))}")
+    alerting = [index for index in range(count) if "A" in str(sources["fresh"][index]["verdict"])]
+    print(f"texts Vital answers with its alert (fresh child): {len(alerting)} of {count}; the writer can write {sum(writable[i] for i in alerting)} of them, and the guard passes {sum(open_[i] for i in alerting)} of those: these block today")
+    reported = [record["result"] for name in names for record in sources[name] if record["result"] is not None]
+    print(f"pedalboard raised on a load of a text, over every text and source that reported: {sum(any(result['raised']) for result in reported)} of {len(reported)}")  # type: ignore[index]
+    took = [float(ms) for record in sources["fresh"] if record["result"] is not None for ms, did in zip(record["result"]["ms"], record["result"]["fired"], strict=True) if did]  # type: ignore[index]
+    print(f"a load the watch answered an alert in, its time in the fresh children, ms: {c.spread(took or [0.0])}")
+
+    head("4c. the texts that crash: a child died of a signal while loading them")
+    crashing = sorted(again)
+    print(f"texts whose child died in any of the four sources: {len(crashing)} of {count}; the writer can write {sum(writable[i] for i in crashing)} of them, and the guard passes {sum(open_[i] for i in crashing)} of those: these kill the calling process today")
+    print(f"each loaded again in {RERUNS} more fresh children. The screen, over those: {screens['again']}")
+    print(f"\n    #  the writer / the guard  {' '.join(f'{name:>5}' for name in names)}   died in, of the {RERUNS} more   their verdicts                  the text")
+    always, sometimes, never = [], [], []
+    for index in crashing:
+        died = sum(crashed(record) for record in again[index])
+        first = crashed(sources["fresh"][index])
+        tally = collections.Counter(str(record["verdict"]) for record in again[index])
+        (always if died == RERUNS and first else never if died == 0 and not first else sometimes).append(index)
+        print(f"  {index:>3}  {judged[index][0][:3]:>3} / {judged[index][1].split(' (')[0]:<11}  {' '.join(f'{sources[name][index]["verdict"]!s:>5}' for name in names)}   {died:>2} of {RERUNS}                 {dict(sorted(tally.items()))!s:<30} {labels[index]}")
+    print(f"\nover its {RERUNS + 1} fresh children (the first and the {RERUNS} more), a text's child died in every one: {len(always)} texts; in none: {len(never)}; in some and not others: {len(sometimes)}")
+    for index in sometimes:
+        print(f"  SOMETIMES: {index} {labels[index]}: its first fresh child {'died' if crashed(sources['fresh'][index]) else 'did not die'}; of the {RERUNS} more, {sum(crashed(record) for record in again[index])} died")
+    for index in never:
+        print(f"  never in a fresh child, only on an instance with a history: {index} {labels[index]}: {', '.join(name for name in names if crashed(sources[name][index]))}")
+    signals = collections.Counter(str(record["signal"]) for index in crashing for record in again[index] if crashed(record))
+    print(f"the signals, over the {RERUNS} more of each: {dict(signals)}")
+
+    head("4d. the silent class: texts that raise no alert and kill no child, by what the diagnostic read shows after them (history older)")
+    print(f"the text is loaded twice over {OLDER}, so a section Vital keeps from before is told from one it read.")
+    print(f"the checks: the markers (one still at the value planted); the floats (a float of the text not held); the sections (one of {', '.join(HELD_AS_GIVEN)} not as the text holds it).")
+    quiet = [index for index in range(count) if not kinds[index].startswith("CRASHED") and kinds[index] != "an alert"]
+    table: dict[str, list[int]] = {}
+    for index in quiet:
+        table.setdefault(kinds[index], []).append(index)
+    for kind, members in sorted(table.items()):
+        results: list[Result] = [sources["older"][index]["result"] for index in members]  # type: ignore[misc]
+        by_marker = sum(result["moved"] < result["markers"] for result in results)  # type: ignore[operator]
+        by_floats = sum(result["not_text"] > 0 for result in results)  # type: ignore[operator]
+        by_sections = sum(bool(set(result["not_given"]) & set(HELD_AS_GIVEN)) for result in results)  # type: ignore[call-overload]
+        by_either = sum(
+            result["moved"] < result["markers"] or bool(set(result["not_given"]) & set(HELD_AS_GIVEN))  # type: ignore[operator, call-overload]
+            for result in results
+        )
+        hit: dict[str, int] = {}
+        for index in members:
+            for name in changed_sections(texts[index][2], start_sections):
+                hit[name] = hit.get(name, 0) + 1
+        print(f"  {kind}: {len(members)} texts; the writer can write and the guard passes {sum(open_[i] for i in members)} of them")
+        print(f"      flagged by the markers {by_marker}, by the floats {by_floats}, by the sections {by_sections}; by the markers or the sections {by_either}")
+        print(f"      by the section the text changes: {dict(sorted(hit.items()))}")
+    stray = 0
+    loaded = [index for index in quiet if kinds[index] != "ignored whole"]
+    for index in loaded:
+        status: dict[str, str] = sources["older"][index]["result"]["status"]  # type: ignore[index]
+        changed = set(changed_sections(texts[index][2], start_sections))
+        stray += any(state not in ("plain", "either") for name, state in status.items() if name not in changed)
+    print(f"  of the {len(loaded)} that load: a section the text does not change is not that of a plain load on {stray}")
+    partial: list[Result] = [sources["older"][index]["result"] for index in range(count) if kinds[index] == "an alert" and sources["older"][index]["result"] is not None]  # type: ignore[misc]
+    print(f"  for comparison, the {len(partial)} texts that alert here and reported: both markers already at the text's value on {sum(result['moved'] == result['markers'] for result in partial)}; at least one section changed by the load on {sum(bool(result['sections_changed']) for result in partial)}")
+
+    head("4e. after any of these texts, the start preset loaded twice under the watch; and a soak")
+    for name in names:
+        results = [record["result"] for record in sources[name] if record["result"] is not None]  # type: ignore[misc]
+        floats = sum(result["restored_floats_off"] == 0 for result in results)
+        sections = sum(not result["restored_sections_off"] for result in results)
+        fires = sum(int(result["false_fires"]) for result in results)  # type: ignore[call-overload]
+        print(f"  {name:>5}, the {len(results)} texts whose child reported: every one of the 903 floats the start's on {floats}; every section that of a plain double load on {sections}; the watch fired on the start preset's loads {fires} of {2 * len(results)}")
+    if "soak" in data:
+        soak: Result = data["soak"]  # type: ignore[assignment]
+        print(f"  the soak, one child (a labelled sample): {soak['rounds']} rounds of [three wavetables whose groups is a number, then the start preset twice], {float(soak['seconds']):.1f} s;")  # type: ignore[arg-type]
+        print(f"      the watch answered an alert on {soak['fired']} of {soak['rounds']} and fired on a start preset load {soak['false_fires']} of {2 * int(soak['rounds'])} times;")  # type: ignore[call-overload]
+        print(f"      the process's resident memory: {float(soak['memory_before']):.0f} MiB before the rounds, {float(soak['memory_after']):.0f} MiB after them;")  # type: ignore[arg-type]
+        print(f"      its windows, on screen or not, as the window server lists them: {soak['windows_before']} before, {soak['windows_after']} after; as the application counts its own: {soak['application_windows_before']} before, {soak['application_windows_after']} after;")
+        print(f"      then a good text, the start preset twice: {soak['good_load']}, an alert answered: {soak['good_load_alert']}; floats not the start's {soak['floats_off']} of 903; a note's RMS after over before {percent(soak)} percent")
+    else:
+        print(f"  the soak's child DIED: {data.get('soak_died')}")
+    print(f"      the screen: {screens['soak']}")
+    print(f"over the whole run: {screens['others']}")
+
+
+def dead_children(data: Data) -> dict[int, tuple[int, str]]:
+    """Each dead child's pid, with the text it was loading and the source it ran in."""
+    dead: dict[int, tuple[int, str]] = {}
+    sources: dict[str, list[Record]] = data.get("sources", {})  # type: ignore[assignment]
+    for name, records in sources.items():
+        for index, record in enumerate(records):
+            if crashed(record):
+                dead[int(record["pid"])] = (index, name)  # type: ignore[call-overload]
+    again: dict[int, list[Record]] = data.get("again", {})  # type: ignore[assignment]
+    for index, records in again.items():
+        for record in records:
+            if crashed(record):
+                dead[int(record["pid"])] = (index, "again")  # type: ignore[call-overload]
+    return dead
+
+
+def left(screen: Screen) -> None:
+    """Say what is left of the run: no child alive, no window of one on screen."""
+    head("at the end of the run: what is left of it")
+    for child in Child.every:
+        if child.process.poll() is None:
+            child.kill()
+            print(f"a child was still alive and is killed: {child.process.pid}")
+    time.sleep(0.6)
+    pids = {child.process.pid for child in Child.every}
+    alive = [child.process.pid for child in Child.every if child.process.poll() is None]
+    polls = screen.polls()
+    last_windows = [window for window in polls[-1]["windows"] if window[0] in pids]  # type: ignore[union-attr]
+    gaps = sorted(float(b["t"]) - float(a["t"]) for a, b in zip(polls, polls[1:], strict=False))  # type: ignore[arg-type]
+    codes = collections.Counter(child.process.returncode for child in Child.every)
+    print(f"children this run started: {len(Child.every)}; killed by the run: {sum(child.killed is not None for child in Child.every)}; still alive: {len(alive)} {alive}; by exit status: {dict(sorted(codes.items()))}")
+    print(f"windows on screen owned by any of them at the last poll ({time.time() - float(polls[-1]['t']):.2f} s ago): {len(last_windows)}")  # type: ignore[arg-type]
+    print(f"the poller: {len(polls)} polls, the median gap between two {gaps[len(gaps) // 2] * 1000:.0f} ms, the longest {gaps[-1] * 1000:.0f} ms")
+
+
+def main() -> None:
+    began = time.time()
+    print(f"Vital {c.MAP.vital_version} by the map, through pedalboard {importlib.metadata.version('pedalboard')}; this process loads no plugin")
+    print(f"machine {platform.machine()}, Python {platform.python_version()}, macOS {platform.mac_ver()[0]}")
+    print(f"a load that may block is given {c.LIMIT:g} s from the child's word, and is made on the main thread under the watch {WATCH!r} (objc.py)")
+    texts = texts3.every_text()
+    labels = [label for label, _, _ in texts]
+    judged = [texts3.judged(raw) for _, _, raw in texts]
+    writable = sum(writer == "yes" for writer, _ in judged)
+    open_ = sum(writer == "yes" and guard == "passes" for writer, guard in judged)
+    head("4a. the texts, the same as run 3's")
+    made = texts3.generated()
+    by_section: dict[str, int] = {}
+    for _, section, _ in made:
+        by_section[section] = by_section.get(section, 0) + 1
+    print(f"{len(texts)} texts: section 5's {len(c.CASES)}, then {len(made)} generated, each the start preset with one value inside one section")
+    print(f"replaced by another JSON type, removed, or its array one entry shorter or longer, to {texts3.DEPTH} levels below the section,")
+    print(f"each array through its first entry. Generated, by section: {by_section}. Distinct texts: {len({raw for _, _, raw in texts})}.")
+    print(f"the package's writer can write {writable} of the {len(texts)}; the instrument's guard passes {open_} of those and refuses {writable - open_}.")
+    screen = Screen()
+    data: Data = {}
+    try:
+        try:
+            preflight(CHILD3)
+            collect(screen, len(texts), labels, data)
+        except StoppedError as error:
+            print(f"\n{error}", flush=True)
+            return
+        report(texts, judged, data)
+        head("4f. macOS's crash reports of the children that died, grouped by where in Vital they died")
+        crash_groups(dead_children(data), began, labels)
+    finally:
+        left(screen)
+        screen.stop()
+        print(f"the poller's exit: {screen.process.poll()}")
+
+
+if __name__ == "__main__":
+    main()
+```
+
+--- <scratchpad>/i20/child.py
+```
+"""A child of a probe run: it hosts its own Vital and makes the loads its parent must not.
+
+usage: child.py <mode> [<argument>...] <the time it was started, as the parent's time.time()>
+
+  fresh <dead-man seconds>    read one text from stdin, load it twice, print one line of marks
+  kept <dead-man seconds>     load each text sent on stdin twice, one line a text, until stdin ends
+  detect <case>               section 5's case loaded twice over the start preset, with markers
+
+Before a load that may block it says ABOUT TO LOAD and after it RETURNED; its parent kills it
+when the second does not follow the first in time. It also ends itself: a dead-man timer that
+needs no GIL (faulthandler's) exits the process when a load outlives it, parent or no parent.
+"""
+
+import time
+
+MAIN = time.time()
+
+import ctypes  # noqa: E402
+import faulthandler  # noqa: E402
+import json  # noqa: E402
+import struct  # noqa: E402
+import sys  # noqa: E402
+
+ABOUT_TO_LOAD = "ABOUT TO LOAD"
+RETURNED = "RETURNED"
+DEAD_MAN = 8.0
+"""Seconds a load that may block is given before this process ends itself."""
+
+
+def _environment(library: ctypes.CDLL) -> bytes:
+    saved = ctypes.create_string_buffer(512)
+    library.fegetenv(saved)
+    return saved.raw
+
+
+def _subnormals_kept() -> bool:
+    tiny = sys.float_info.min
+    return tiny / 4.0 != 0.0
+
+
+def _load(host: object, text: bytes, dead_man: float) -> float:
+    """One load under the dead-man timer; its milliseconds."""
+    faulthandler.dump_traceback_later(dead_man, exit=True)
+    start = time.perf_counter()
+    host.load_state(text)  # type: ignore[attr-defined]
+    taken = (time.perf_counter() - start) * 1000.0
+    faulthandler.cancel_dump_traceback_later()
+    return taken
+
+
+def said(host: object, text: bytes, what: str) -> float:
+    """One load that may block, said before and after."""
+    print(f"{ABOUT_TO_LOAD}: {what}", flush=True)
+    taken = _load(host, text, DEAD_MAN)
+    print(f"{RETURNED} in {taken:.1f} ms", flush=True)
+    return taken
+
+
+def fresh(dead_man: float, spawned: float) -> None:
+    """What a trial in a child of its own costs: only the host is imported, as a remedy would."""
+    from patchbay_vital.host import _LIBC, VitalHost  # noqa: PLC0415
+
+    marks: dict[str, object] = {"spawned": spawned, "main": MAIN, "imported": time.time()}
+    host = VitalHost()
+    marks["hosted"] = time.time()
+    text = sys.stdin.buffer.read()
+    marks["read"] = time.time()
+    before = _environment(_LIBC)
+    marks["first_ms"] = _load(host, text, dead_man)
+    marks["second_ms"] = _load(host, text, dead_man)
+    marks["loaded"] = time.time()
+    marks["environment_kept"] = _environment(_LIBC) == before
+    marks["subnormals_kept"] = _subnormals_kept()
+    marks["done"] = time.time()
+    print(json.dumps(marks), flush=True)
+
+
+def kept(dead_man: float, spawned: float) -> None:
+    """A child kept up: each text sent as an 8-byte length and its bytes, one line back."""
+    from patchbay_vital.host import _LIBC, VitalHost  # noqa: PLC0415
+
+    imported = time.time()
+    host = VitalHost()
+    ready = {"spawned": spawned, "main": MAIN, "imported": imported, "hosted": time.time()}
+    print(json.dumps(ready), flush=True)
+    stdin = sys.stdin.buffer
+    while True:
+        head = stdin.read(8)
+        if len(head) < 8:  # noqa: PLR2004
+            return
+        (size,) = struct.unpack(">Q", head)
+        text = stdin.read(size)
+        before = _environment(_LIBC)
+        first = _load(host, text, dead_man)
+        second = _load(host, text, dead_man)
+        reply = {
+            "first_ms": first,
+            "second_ms": second,
+            "environment_kept": _environment(_LIBC) == before,
+            "subnormals_kept": _subnormals_kept(),
+        }
+        print(json.dumps(reply), flush=True)
+
+
+def detect(label: str) -> None:
+    """A text section 5 saw return wrong: what each check through the diagnostic read sees."""
+    import common as c  # noqa: PLC0415
+
+    host = c.VitalHost()
+    host.load_state(c.START)
+    host.load_state(c.START)
+    text = c.CASES[label]()
+    text_floats, text_sections = c.floats_of(text), c.sections_of(text)
+    planted = c.plant(host, text_floats)
+    before = host.state()
+    before_floats, before_sections = c.floats_of(before), c.sections_of(before)
+    said(host, text, "the first load")
+    said(host, text, "the second load")
+    moved, exact = c.markers_read(host, planted)
+    after = host.state()
+    after_floats, after_sections = c.floats_of(after), c.sections_of(after)
+    changed = sorted(k for k in c.KEYS if after_floats.get(k) != before_floats.get(k))
+    held, lacking = c.floats_off(after_floats, text_floats)
+    result = {
+        "markers": len(planted),
+        "moved": moved,
+        "exact": exact,
+        "floats_changed": len(changed),
+        "floats_not_the_text_s": len(held) + len(lacking),
+        "first_floats_not_the_text_s": (held + lacking)[:4],
+        "sections_changed": sorted(
+            k for k in before_sections if after_sections.get(k) != before_sections[k]
+        ),
+        "sections_not_the_text_s": c.sections_off(after_sections, text_sections),
+    }
+    print(f"RESULT {json.dumps(result)}", flush=True)
+
+
+if __name__ == "__main__":
+    mode, *arguments, started = sys.argv[1:]
+    if mode == "fresh":
+        fresh(float(arguments[0]), float(started))
+    elif mode == "kept":
+        kept(float(arguments[0]), float(started))
+    elif mode == "detect":
+        detect(arguments[0])
+    else:
+        sys.exit(f"no such mode: {mode}")
+```
+
+--- <scratchpad>/i20/texts3.py
+```
+"""The generated set of malformed texts for run 3 of issue #20's probes.
+
+Each is the start preset with one value inside one section replaced by another JSON type, or
+removed, or its array made one entry shorter or longer. Every value of every section is reached,
+down to DEPTH levels below the section, through the first entry of each array (the entries of an
+array in the start preset are alike). Section 5's 20 texts come first, under their own names.
+Nothing here loads a text into Vital.
+"""
+
+import copy
+import json
+from collections.abc import Iterator
+
+import common as c
+from patchbay_vital import check_loadable, loads
+from patchbay_vital.errors import VitalError
+
+SECTIONS = ("custom_warps", "lfos", "modulations", "random_values", "sample", "wavetables")
+DEPTH = 8
+"""Levels below a section that are reached: a wavetable's keyframe values are at the seventh."""
+REPLACEMENTS: dict[str, object] = {
+    "a number": 5,
+    "a string": "x",
+    "an empty array": [],
+    "an empty object": {},
+    "null": None,
+    "true": True,
+}
+
+Path = tuple[str | int, ...]
+
+
+def kind(value: object) -> str:
+    if isinstance(value, bool):
+        return "true"
+    if isinstance(value, (int, float)):
+        return "a number"
+    if isinstance(value, str):
+        return "a string"
+    if isinstance(value, list):
+        return "an empty array" if not value else "an array"
+    if isinstance(value, dict):
+        return "an empty object" if not value else "an object"
+    return "null"
+
+
+def nodes(value: object, path: Path = (), depth: int = 0) -> Iterator[tuple[Path, object]]:
+    """Every value at or below one, each array through its first entry, to DEPTH levels."""
+    yield path, value
+    if depth == DEPTH:
+        return
+    if isinstance(value, dict):
+        for key, inner in value.items():
+            yield from nodes(inner, (*path, key), depth + 1)
+    elif isinstance(value, list) and value:
+        yield from nodes(value[0], (*path, 0), depth + 1)
+
+
+def spelled(section: str, path: Path) -> str:
+    return section + "".join(f"[{step}]" if isinstance(step, int) else f".{step}" for step in path)
+
+
+def changed(section: object, path: Path, change: str) -> object:
+    """A copy of a section with the value at a path replaced, removed, shortened or lengthened."""
+    if not path:
+        return _one(section, change)
+    root = copy.deepcopy(section)
+    parent = root
+    for step in path[:-1]:
+        parent = parent[step]  # type: ignore[index]
+    last = path[-1]
+    if change == "removed":
+        del parent[last]  # type: ignore[attr-defined]
+    else:
+        parent[last] = _one(parent[last], change)  # type: ignore[index]
+    return root
+
+
+def _one(value: object, change: str) -> object:
+    if change == "one entry fewer":
+        return copy.deepcopy(value[:-1])  # type: ignore[index]
+    if change == "one entry more":
+        return copy.deepcopy([*value, value[-1]])  # type: ignore[misc, index]
+    return copy.deepcopy(REPLACEMENTS[change])
+
+
+def changes_of(path: Path, value: object) -> list[str]:
+    """What is done to one value: each other JSON type, and what its place allows."""
+    found = [name for name in REPLACEMENTS if name != kind(value)]
+    if path and isinstance(path[-1], str):
+        found.append("removed")
+    if isinstance(value, list) and value:
+        found += ["one entry fewer", "one entry more"]
+    return found
+
+
+def generated() -> list[tuple[str, str, bytes]]:
+    """Each generated text: its label, the section it changes, and its bytes."""
+    start = json.loads(c.START)
+    texts = []
+    for section in SECTIONS:
+        for path, value in nodes(start["settings"][section]):
+            for change in changes_of(path, value):
+                text = copy.deepcopy(start)
+                text["settings"][section] = changed(start["settings"][section], path, change)
+                label = f"{spelled(section, path)}: {change}"
+                raw = json.dumps(text, sort_keys=True, separators=(",", ":")).encode("utf-8")
+                texts.append((label, section, raw))
+    return texts
+
+
+def every_text() -> list[tuple[str, str | None, bytes]]:
+    """Section 5's 20 texts, then the generated ones."""
+    named: list[tuple[str, str | None, bytes]] = [
+        (label, None, build()) for label, build in c.CASES.items()
+    ]
+    return named + list(generated())
+
+
+def judged(text: bytes) -> tuple[str, str]:
+    """Whether the package's writer can write a text, and what the instrument's guard does."""
+    try:
+        preset = loads(text.decode("utf-8"))
+    except VitalError as error:
+        return f"no ({type(error).__name__})", "not reached"
+    except Exception as error:  # noqa: BLE001  a probe's read of a text that may be malformed
+        return f"no ({type(error).__name__}, not the package's error)", "not reached"
+    try:
+        check_loadable(preset, c.MAP)
+    except VitalError as error:
+        return "yes", f"refuses ({str(error)[:60]})"
+    return "yes", "passes"
+
+
+if __name__ == "__main__":
+    texts = every_text()
+    made = generated()
+    print(f"texts: {len(texts)}, of them generated {len(made)}, distinct {len({raw for _, _, raw in texts})}")
+    by_section: dict[str, int] = {}
+    for _, section, _ in made:
+        by_section[section] = by_section.get(section, 0) + 1
+    print(f"generated, by section: {by_section}")
+    verdicts: dict[tuple[str, str], int] = {}
+    for _, _, raw in texts:
+        writer, guard = judged(raw)
+        key = (writer.split(" (")[0], guard.split(" (")[0])
+        verdicts[key] = verdicts.get(key, 0) + 1
+    print(f"(the writer can write it, the guard): {verdicts}")
+    for label, _, _ in made[:6] + made[-6:]:
+        print("  ", label)
+```
+
+--- <scratchpad>/i20/poller.py
+```
+"""A second process that watches the screen while a probe run's children load.
+
+usage: poller.py <out file> [new]
+
+With `new`, only the windows of processes that owned none at the first poll are written: those
+of a run's children, and not those of what was on screen before it.
+
+20 times a second it writes one JSON line: the time, the front application's pid (lsappinfo),
+and every window on screen as [owner pid, layer, width, height] (CGWindowListCopyWindowInfo,
+which gives a window's owner and bounds without the Screen Recording permission). It ends when
+its input closes. It loads no plugin and opens no window.
+"""
+
+import ctypes
+import ctypes.util
+import json
+import subprocess
+import sys
+import threading
+import time
+
+_cg = ctypes.CDLL(ctypes.util.find_library("CoreGraphics"))
+_cf = ctypes.CDLL(ctypes.util.find_library("CoreFoundation"))
+
+_cg.CGWindowListCopyWindowInfo.restype = ctypes.c_void_p
+_cg.CGWindowListCopyWindowInfo.argtypes = [ctypes.c_uint32, ctypes.c_uint32]
+_cf.CFArrayGetCount.restype = ctypes.c_long
+_cf.CFArrayGetCount.argtypes = [ctypes.c_void_p]
+_cf.CFArrayGetValueAtIndex.restype = ctypes.c_void_p
+_cf.CFArrayGetValueAtIndex.argtypes = [ctypes.c_void_p, ctypes.c_long]
+_cf.CFDictionaryGetValue.restype = ctypes.c_void_p
+_cf.CFDictionaryGetValue.argtypes = [ctypes.c_void_p, ctypes.c_void_p]
+_cf.CFNumberGetValue.restype = ctypes.c_bool
+_cf.CFNumberGetValue.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_void_p]
+_cf.CFRelease.argtypes = [ctypes.c_void_p]
+
+
+class _Rect(ctypes.Structure):
+    _fields_ = (("x", ctypes.c_double), ("y", ctypes.c_double), ("w", ctypes.c_double), ("h", ctypes.c_double))
+
+
+_cg.CGRectMakeWithDictionaryRepresentation.restype = ctypes.c_bool
+_cg.CGRectMakeWithDictionaryRepresentation.argtypes = [ctypes.c_void_p, ctypes.POINTER(_Rect)]
+
+ON_SCREEN_ONLY = 1
+LONG_LONG = 11
+"""kCFNumberLongLongType."""
+PERIOD = 0.05
+
+
+def _key(name: str) -> int:
+    return int(ctypes.c_void_p.in_dll(_cg, name).value or 0)
+
+
+OWNER, LAYER, BOUNDS = _key("kCGWindowOwnerPID"), _key("kCGWindowLayer"), _key("kCGWindowBounds")
+
+
+def _number(dictionary: int, key: int) -> int:
+    value = ctypes.c_longlong(0)
+    number = _cf.CFDictionaryGetValue(dictionary, key)
+    if number:
+        _cf.CFNumberGetValue(number, LONG_LONG, ctypes.byref(value))
+    return int(value.value)
+
+
+def windows(everything: bool = False) -> list[list[int]]:
+    """Every window on screen, or every window there is: owner's pid, layer, width, height."""
+    found = []
+    array = _cg.CGWindowListCopyWindowInfo(0 if everything else ON_SCREEN_ONLY, 0)
+    if not array:
+        return found
+    for index in range(_cf.CFArrayGetCount(array)):
+        entry = _cf.CFArrayGetValueAtIndex(array, index)
+        rect = _Rect()
+        bounds = _cf.CFDictionaryGetValue(entry, BOUNDS)
+        if bounds:
+            _cg.CGRectMakeWithDictionaryRepresentation(bounds, ctypes.byref(rect))
+        found.append([_number(entry, OWNER), _number(entry, LAYER), round(rect.w), round(rect.h)])
+    _cf.CFRelease(array)
+    return found
+
+
+def front() -> int | None:
+    """The front application's pid, as lsappinfo gives it."""
+    asn = subprocess.run(["/usr/bin/lsappinfo", "front"], capture_output=True, text=True, check=False).stdout.strip()  # noqa: S603
+    if not asn:
+        return None
+    line = subprocess.run(["/usr/bin/lsappinfo", "info", "-only", "pid", asn], capture_output=True, text=True, check=False).stdout  # noqa: S603
+    digits = line.strip().rpartition("=")[2]
+    return int(digits) if digits.isdigit() else None
+
+
+def main(out: str, new_only: bool = False) -> None:
+    known: set[int] | None = None
+    done = threading.Event()
+    threading.Thread(target=lambda: (sys.stdin.read(), done.set()), daemon=True).start()
+    with open(out, "w", encoding="utf-8") as log:  # noqa: PTH123
+        print("ready", flush=True)
+        while not done.is_set():
+            started = time.time()
+            found = windows()
+            if new_only:
+                if known is None:
+                    known = {window[0] for window in found}
+                found = [window for window in found if window[0] not in known]
+            log.write(json.dumps({"t": started, "front": front(), "windows": found}) + "\n")
+            log.flush()
+            time.sleep(max(0.0, PERIOD - (time.time() - started)))
+
+
+if __name__ == "__main__":
+    main(sys.argv[1], new_only=sys.argv[2:] == ["new"])
+```
+
+--- <scratchpad>/i20/common.py
+```
+"""What the probes of issue #20 share: the texts, the reads of the plugin, and the checks.
+
+Run from the repository root. Nothing here loads a text into Vital; the callers do, and a load
+that may block is made in a child the caller can kill.
+"""
+
+import ctypes
+import json
+import statistics
+import sys
+import time
+from collections.abc import Callable
+from pathlib import Path
+
+from patchbay import ParameterId
+
+from patchbay_vital.host import _LIBC, VitalHost, _floats
+from patchbay_vital.parameters import parameter_map
+from patchbay_vital.start import start_text
+
+MAP = parameter_map()
+START = start_text(MAP).encode("utf-8")
+PRESETS = Path.home() / "Music" / "Vital"
+ROOT = Path.cwd()
+FIXTURE = ROOT / "tests" / "data" / "init-media-replaced.vital"
+MANIFEST = ROOT / "tests" / "data" / "factory-manifest.txt"
+KEYS = tuple(str(record.preset_key) for record in MAP.parameters)
+DEFAULTS = {str(record.preset_key): record.preset_default for record in MAP.parameters}
+LIMIT = 3.0
+"""Seconds a load is given, counted from the child saying it is about to make it."""
+MARKERS = ("filter_1_cutoff", "filter_1_on")
+"""The parameters planted before a load: one continuous, one a switch; Vital upgrades neither."""
+
+
+def good_texts() -> list[tuple[str, bytes]]:
+    """The 77 texts Vital is known to load: the start preset, the fixture, the 75 installed."""
+    manifest = [
+        line
+        for line in MANIFEST.read_text(encoding="utf-8").splitlines()
+        if line and not line.startswith("#")
+    ]
+    texts = [("the start preset", START), ("the fixture", FIXTURE.read_bytes())]
+    texts += [(name, (PRESETS / name).read_bytes()) for name in manifest]
+    return texts
+
+
+def variant(top: dict[str, object] | None = None, **settings: object) -> bytes:
+    """The start preset with settings replaced (None removes one) and top-level keys set."""
+    changed = json.loads(START)
+    for key, value in settings.items():
+        if value is None:
+            del changed["settings"][key]
+        else:
+            changed["settings"][key] = value
+    changed.update(top or {})
+    return json.dumps(changed, sort_keys=True, separators=(",", ":")).encode("utf-8")
+
+
+def no_sections() -> bytes:
+    changed = json.loads(START)
+    for name in ("wavetables", "lfos", "sample", "custom_warps", "random_values"):
+        del changed["settings"][name]
+    return json.dumps(changed, sort_keys=True, separators=(",", ":")).encode("utf-8")
+
+
+def routed(source: str, destination: str) -> bytes:
+    changed = json.loads(START)
+    changed["settings"]["modulations"][0] = {"source": source, "destination": destination}
+    return json.dumps(changed, sort_keys=True, separators=(",", ":")).encode("utf-8")
+
+
+_LFO = {"name": "x", "num_points": 2, "points": "x", "powers": [0.0, 0.0], "smooth": False}
+_SAMPLE = {"length": "x", "name": "x", "sample_rate": 44100, "samples": ""}
+
+CASES: dict[str, Callable[[], bytes]] = {
+    # The 20 texts of the instrument spec's probes.txt, section 5, built as they were there.
+    "the start preset rewritten by json.dumps (the control)": lambda: variant(),
+    "no section at all": no_sections,
+    "wavetables an empty array": lambda: variant(wavetables=[]),
+    "wavetables an array of one empty object": lambda: variant(wavetables=[{}]),
+    "wavetables an object": lambda: variant(wavetables={"x": 1}),
+    "lfos an empty array": lambda: variant(lfos=[]),
+    "sample an empty object": lambda: variant(sample={}),
+    "a routing whose source and destination are no names of Vital's": lambda: routed(
+        "nonsense", "nowhere"
+    ),
+    "synth_version 99.0.0": lambda: variant({"synth_version": "99.0.0"}),
+    "synth_version abc": lambda: variant({"synth_version": "abc"}),
+    "without filter_1_cutoff": lambda: variant(filter_1_cutoff=None),
+    "volume at 1e30, far outside its scale": lambda: variant(volume=1e30),
+    "three wavetables whose groups is a number": lambda: variant(wavetables=[{"groups": 5}] * 3),
+    "eight lfos whose points is a string": lambda: variant(lfos=[_LFO] * 8),
+    "a sample with its four keys, its length a string": lambda: variant(sample=_SAMPLE),
+    "an empty object": lambda: b"{}",
+    "settings empty": lambda: b'{"settings":{}}',
+    "a string where a float belongs": lambda: variant(volume="loud"),
+    "wavetables a string": lambda: variant(wavetables="x"),
+    "without modulations": lambda: variant(modulations=None),
+}
+
+BLOCKED_IN_SECTION_5 = (
+    "no section at all",
+    "wavetables an object",
+    "sample an empty object",
+    "synth_version abc",
+    "three wavetables whose groups is a number",
+    "eight lfos whose points is a string",
+    "a sample with its four keys, its length a string",
+    "an empty object",
+    "settings empty",
+    "a string where a float belongs",
+    "wavetables a string",
+)
+"""The 11 that never returned there."""
+
+RETURNED_WRONG_IN_SECTION_5 = (
+    "synth_version 99.0.0",
+    "wavetables an empty array",
+    "lfos an empty array",
+    "wavetables an array of one empty object",
+)
+"""The four that returned with no error and were not loaded as given."""
+
+
+def floats_of(text: bytes) -> dict[str, float]:
+    """A text's float settings by key, read as the package reads JSON; none where it has none."""
+    try:
+        return dict(_floats(text))
+    except Exception:  # noqa: BLE001  a probe's read of a text that may be malformed
+        return {}
+
+
+def sections_of(text: bytes) -> dict[str, object]:
+    """A text's settings that are not numbers: its sections, parsed."""
+    settings = json.loads(text).get("settings", {})
+    if not isinstance(settings, dict):
+        return {}
+    return {
+        key: value
+        for key, value in settings.items()
+        if isinstance(value, (dict, list, str))
+    }
+
+
+def environment() -> bytes:
+    """The process's floating-point environment, as fegetenv gives it."""
+    saved = ctypes.create_string_buffer(512)
+    _LIBC.fegetenv(saved)
+    return saved.raw
+
+
+def subnormals_kept() -> bool:
+    """Whether a subnormal result is still a subnormal, so flush-to-zero is off."""
+    tiny = sys.float_info.min
+    return tiny / 4.0 != 0.0
+
+
+def plant(host: VitalHost, text: dict[str, float]) -> dict[str, tuple[float, float]]:
+    """Set each marker to the end of its range the text's value is not near.
+
+    Returns, by marker, the normalized value planted and the one the text's value has, the
+    parameter's default where the text lacks the key.
+    """
+    planted = {}
+    for key in MARKERS:
+        record = MAP.find(ParameterId(key))
+        target = record.scale.to_normalized(text.get(key, record.preset_default))
+        normalized = 0.0 if target > 0.5 else 1.0
+        host.set(ParameterId(key), normalized)
+        planted[key] = (normalized, target)
+    return planted
+
+
+def markers_read(host: VitalHost, planted: dict[str, tuple[float, float]]) -> tuple[int, int]:
+    """How many markers moved off the planted value, and how many read the text's exactly."""
+    moved = exact = 0
+    for key, (normalized, target) in planted.items():
+        now = host.get(ParameterId(key))
+        moved += now != normalized
+        exact += now == target
+    return moved, exact
+
+
+def floats_off(state: dict[str, float], text: dict[str, float]) -> tuple[list[str], list[str]]:
+    """The map's keys whose float in the state is not the text's, and, for keys the text lacks,
+    those not at the parameter's default."""
+    held = [key for key in KEYS if key in text and state.get(key) != text[key]]
+    lacking = [key for key in KEYS if key not in text and state.get(key) != DEFAULTS[key]]
+    return held, lacking
+
+
+def sections_off(state: dict[str, object], text: dict[str, object]) -> list[str]:
+    """The names of the text's sections the state does not hold as the text does."""
+    return sorted(name for name in text if state.get(name) != text[name])
+
+
+def timed(call: Callable[[], object]) -> tuple[float, object]:
+    """Run a call; return its milliseconds and what it gave."""
+    start = time.perf_counter()
+    result = call()
+    return (time.perf_counter() - start) * 1000.0, result
+
+
+def spread(values: list[float]) -> str:
+    """A sample's least, median and greatest, to one decimal."""
+    return (
+        f"min {min(values):.1f}, median {statistics.median(values):.1f}, max {max(values):.1f}"
+    )
+```
+
+--- <scratchpad>/i20/runner.py
+```
+"""How a probe run starts a child, reads it under a time limit, and kills what does not return."""
+
+import queue
+import subprocess
+import sys
+import threading
+import time
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+CHILD = str(HERE / "child.py")
+ABOUT_TO_LOAD = "ABOUT TO LOAD"
+RETURNED = "RETURNED"
+START_UP = 60.0
+"""Seconds a child is given for everything that is not a load that may block."""
+
+
+class Child:
+    """A child process whose lines are read under a time limit."""
+
+    every: list["Child"] = []
+    """Each child a run started, so the run can show at its end that none is left."""
+
+    def __init__(self, *arguments: str, stdin: bool = False, script: str = CHILD) -> None:
+        Child.every.append(self)
+        self.started = time.time()
+        self.killed: float | None = None
+        self.ended = False
+        """Whether the child closed its output, which a line of None alone does not say."""
+        self.process = subprocess.Popen(  # noqa: S603  the probe's own interpreter and script
+            [sys.executable, "-u", "-B", script, *arguments, repr(self.started)],
+            stdin=subprocess.PIPE if stdin else subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+        )
+        self._lines: queue.Queue[bytes | None] = queue.Queue()
+        threading.Thread(target=self._read, daemon=True).start()
+
+    def _read(self) -> None:
+        assert self.process.stdout is not None
+        for line in self.process.stdout:
+            self._lines.put(line)
+        self.ended = True
+        self._lines.put(None)
+
+    def line(self, limit: float) -> str | None:
+        """The child's next line, or None when it ended or said nothing within the limit."""
+        try:
+            line = self._lines.get(timeout=limit)
+        except queue.Empty:
+            return None
+        return None if line is None else line.decode("utf-8", "replace").rstrip("\n")
+
+    def kill(self) -> float:
+        """Kill the child; return the milliseconds until it was gone."""
+        start = time.perf_counter()
+        self.killed = time.time()
+        self.process.kill()
+        self.process.wait()
+        return (time.perf_counter() - start) * 1000.0
+
+    def send(self, text: bytes) -> None:
+        """Send a kept child one text: an 8-byte length, then its bytes."""
+        assert self.process.stdin is not None
+        self.process.stdin.write(len(text).to_bytes(8, "big"))
+        self.process.stdin.write(text)
+        self.process.stdin.flush()
+
+    def close(self) -> int:
+        """Close the child's input and wait for it; kill it if it stays."""
+        if self.process.stdin is not None:
+            self.process.stdin.close()
+        try:
+            return self.process.wait(timeout=START_UP)
+        except subprocess.TimeoutExpired:
+            self.kill()
+            return self.process.returncode
+
+
+def watch(child: Child, limit: float, indent: str = "    ") -> tuple[bool, list[str]]:
+    """Print a child's lines until it ends; kill it when a load does not return within the limit.
+
+    The child says ABOUT TO LOAD before each load that may block and RETURNED after it. Returns
+    whether every load returned, and the lines.
+    """
+    lines: list[str] = []
+    waiting = False
+    while True:
+        line = child.line(limit if waiting else START_UP)
+        if line is None:
+            if child.process.poll() is not None and not waiting:
+                return True, lines
+            if child.process.poll() is not None:
+                print(f"{indent}THE CHILD ENDED DURING A LOAD, exit {child.process.returncode}")
+                return False, lines
+            what = f"within {limit:g} s" if waiting else f"within {START_UP:g} s of starting"
+            gone = child.kill()
+            print(
+                f"{indent}DID NOT RETURN {what}: the child is killed, by design "
+                f"(gone {gone:.0f} ms after the kill)"
+            )
+            return False, lines
+        if line.startswith(ABOUT_TO_LOAD):
+            waiting = True
+        elif line.startswith(RETURNED):
+            waiting = False
+        lines.append(line)
+        print(f"{indent}{line}", flush=True)
+
+
+def memory(pid: int) -> float:
+    """A process's resident memory in MiB, as ps gives it."""
+    done = subprocess.run(  # noqa: S603
+        ["/bin/ps", "-o", "rss=", "-p", str(pid)], capture_output=True, text=True, check=False
+    )
+    return int(done.stdout.strip() or 0) / 1024.0
+```
+
+--- <scratchpad>/i20/tree.sh
+```
+#!/usr/bin/env bash
+# usage: tree.sh   (run from the repository root)
+# Prints HEAD, git's status of the work tree and the blob of every path that status names, so two
+# calls can be compared with cmp: the tree a run read, and the tree it left.
+set -euo pipefail
+echo "  HEAD $(git rev-parse HEAD)"
+git status --porcelain=v1 --untracked-files=all > "${TMPDIR:-/tmp}/tree.$$"
+echo "  git status --porcelain=v1 --untracked-files=all, $(wc -l < "${TMPDIR:-/tmp}/tree.$$" | tr -d ' ') lines:"
+sed 's/^/    /' "${TMPDIR:-/tmp}/tree.$$"
+echo "  git hash-object of each of those paths (a deleted one marked so):"
+cut -c4- "${TMPDIR:-/tmp}/tree.$$" | LC_ALL=C sort | while IFS= read -r path; do
+  if [ -e "$path" ]; then echo "    $(git hash-object "$path")  $path"; else echo "    (deleted)  $path"; fi
+done
+rm -f "${TMPDIR:-/tmp}/tree.$$"
+```
+
+--- <scratchpad>/i20/machine.sh
+```
+#!/usr/bin/env bash
+# usage: machine.sh   Prints one line: the machine, its system, the locked Python and the load.
+set -euo pipefail
+echo "$(uname -m), $(sysctl -n machdep.cpu.brand_string), $(sysctl -n hw.ncpu) cores, macOS $(sw_vers -productVersion) ($(sw_vers -buildVersion)), Python $(uv run --locked python -c 'import platform; print(platform.python_version())'), load $(sysctl -n vm.loadavg | tr -d '{}' | xargs), at $(date '+%Y-%m-%d %H:%M %Z')"
+```
+
+--- <scratchpad>/i20/transcript.sh
+```
+#!/usr/bin/env bash
+# usage: transcript.sh <out file> <title> <script to embed>... -- <command...>   (from the repository root)
+# Writes one transcript outside the tree: its date and branch, the machine and the tree before,
+# the command's whole output, the tree and the machine after, the two trees compared, and every
+# script it ran, embedded. The caller copies the file into the spec's verification/ afterwards.
+set -uo pipefail
+R=$(cd "$(dirname "$0")" && pwd)
+out=$1; title=$2; shift 2
+scripts=()
+while [ "$1" != "--" ]; do scripts+=("$1"); shift; done
+shift
+{
+  echo "$title, run $(date '+%Y-%m-%d %H:%M %Z') on branch"
+  echo "$(git branch --show-current), Vital at /Library/Audio/Plug-Ins/VST3/Vital.vst3"
+  echo "the machine before the run: $(bash "$R/machine.sh")"
+  echo "the tree before the run (this transcript is written outside the tree and copied in afterwards):"
+  bash "$R/tree.sh" | tee "$R/out/tree-before.txt"
+  echo
+  echo "\$ $*" | sed "s|$R|<scratchpad>/i20|g"
+  "$@" 2>&1
+  echo "exit=$?"
+  echo
+  echo "the tree after the run:"
+  bash "$R/tree.sh" | tee "$R/out/tree-after.txt"
+  if cmp -s "$R/out/tree-before.txt" "$R/out/tree-after.txt"; then echo "cmp: the tree after the run is the tree before it"; else echo "cmp: THE TREE CHANGED DURING THE RUN"; fi
+  echo "the machine after the run: $(bash "$R/machine.sh")"
+  echo
+  echo "the scripts this run used, each embedded below with its blob:"
+  for s in "${scripts[@]}" "$R/tree.sh" "$R/machine.sh" "$R/transcript.sh"; do echo "    $(git hash-object "$s")  <scratchpad>/i20/$(basename "$s")"; done
+  for s in "${scripts[@]}" "$R/tree.sh" "$R/machine.sh" "$R/transcript.sh"; do
+    echo; echo "--- <scratchpad>/i20/$(basename "$s")"; echo '```'; cat "$s"; echo '```'
+  done
+} > "$out"
+```
