@@ -7,15 +7,18 @@ audio `vital/measures.md`'s. Written from `src/patchbay_vital/instrument.py`, `p
 and `start.py`; the evidence is the `verification/` of the spec of issue #8
 (`agent-os/specs/2026-11-15-1448-the-instrument/`), every measurement in it made on Vital 1.6.4
 through pedalboard 0.9.26 on arm64 (Apple M4 Pro, macOS 26.6.2): `probes.txt`, `probes-2.txt`,
-`contract-run.txt`, `carrying-count.txt`, `off-grid-count.txt` and `mutation.txt`, and of
-the revision after PR 23's review (`agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/`): `overlap-probe.txt`, `overlap-probe-2.txt`, `carrying-count.txt`, `load-and-set-sample.txt`,
-`check-cost.txt`, `contract-run.txt` and `mutation.txt`, and of the revision after its second
-review (`agent-os/specs/2026-11-16-1509-revision-after-pr-23-second-review/`):
-`upgraded-set-count.txt`, `mutation.txt` and `contract-run.txt`, and of the spec of issue #20
+`contract-run.txt`, `carrying-count.txt`, `off-grid-count.txt` and `mutation.txt`, and of the
+revision after PR 23's review (`agent-os/specs/2026-11-16-1334-revision-after-pr-23-review/`):
+`overlap-probe.txt`, `overlap-probe-2.txt`, `carrying-count.txt`, `load-and-set-sample.txt`,
+`check-cost.txt`, `contract-run.txt` and `mutation.txt`, and of the revision after its second review
+(`agent-os/specs/2026-11-16-1509-revision-after-pr-23-second-review/`): `upgraded-set-count.txt`,
+`mutation.txt` and `contract-run.txt`, and of the spec of issue #20
 (`agent-os/specs/2026-11-16-1641-a-load-that-cannot-block/`): `probes-4-counts.txt`,
 `arrays-seen.txt`, `rollback-count.txt`, `remedy-run.txt`, `silent-and-loaded.txt` and
-`mutation.txt`. Each rule names
-the test that holds it; a unit test runs over a fake plugin, so CI holds it, and a test of
+`mutation.txt`, and of the revision after the review of PR 26
+(`agent-os/specs/2026-11-17-1238-revision-after-pr-26-review/`): `rollback-count.txt`,
+`remedy-run.txt` and `mutation.txt`, made on its final tree. Each rule names the test that holds it;
+a unit test runs over a fake plugin, so CI holds it, and a test of
 `tests/integration/test_vital_instrument.py` runs against the installed Vital.
 
 ## The model
@@ -40,8 +43,8 @@ the test that holds it; a unit test runs over a fake plugin, so CI holds it, and
   there, the file byte for byte through the format),
   `test_the_three_committed_files_are_what_the_census_writes_from_the_committed_map`,
   `test_the_census_regenerates_the_three_committed_files`,
-  `test_a_rename_failing_at_the_start_preset_puts_the_key_list_and_the_map_back` and MS1, MS2 and
-  MC1.
+  `test_a_rename_failing_at_the_start_preset_puts_the_key_list_and_the_map_back` and the instrument
+  spec's MS1, MS2 and MC1.
 
 ## What a set holds
 
@@ -50,7 +53,7 @@ the test that holds it; a unit test runs over a fake plugin, so CI holds it, and
   be the held value nearest the one given: `beats_per_minute` given 216.85141355537831 holds
   216.8514347076416. A second rule beside the map's is what issue #16 removed. Verified against
   `test_a_set_holds_the_value_vital_holds_which_need_not_be_the_nearest`, in both test modules, its
-  expected value from primitives, and MR1.
+  expected value from primitives, and the instrument spec's MR1.
 - **A bound comes back exactly.** Verified against
   `test_every_bound_of_every_parameter_comes_back_exactly`, 1,806 counted, and core's
   `get_after_set_returns_what_was_set`.
@@ -107,7 +110,8 @@ the test that holds it; a unit test runs over a fake plugin, so CI holds it, and
   both: a patch that carries one parameter twice is refused by name. So every entry of `values` is
   one `set` takes. Verified against `test_a_float_is_in_values_or_in_the_entry_and_never_in_both`,
   `test_a_float_its_display_cannot_carry_rides_in_the_entry_though_it_is_in_range`,
-  `test_a_parameter_carried_in_both_places_is_refused_by_name` and MP1, MP2 and MP3.
+  `test_a_parameter_carried_in_both_places_is_refused_by_name` and the instrument spec's MP1, MP2
+  and MP3.
 - **A value is taken one way, by `load_patch` and by the carrying check alike.** On a linear scale,
   the curve's float32 for the display, kept within the scale's ends, where that float's own display
   is exactly the one given: the display names it, and it is stored. Any other value, and every
@@ -140,13 +144,13 @@ the test that holds it; a unit test runs over a fake plugin, so CI holds it, and
 - **A patch of values alone is the start preset with those values.** Entries without a `preset`
   entry are refused. Verified against
   `test_a_patch_of_values_alone_loads_as_the_start_preset_with_those_values`, in both test modules,
-  `test_an_entry_without_the_preset_entry_it_belongs_to_is_refused` and MP5.
+  `test_an_entry_without_the_preset_entry_it_belongs_to_is_refused` and the instrument spec's MP5.
 - **A patch is taken whole or refused, and the refusal names the first entry to refuse,** in a fixed
   order: the instrument's name, the `opaque` keys sorted, the `values` sorted by id, the preset they
   make. A refused patch leaves the model, the plugin and the bus as they were. Verified against
   `test_the_first_value_to_refuse_is_the_first_by_id`,
   `test_a_patch_refused_part_way_leaves_the_model_the_plugin_and_the_bus_as_they_were`, which unlike
-  core's contract test carries its sections, and MP6.
+  core's contract test carries its sections, and the instrument spec's MP6.
 
 ## What the instrument does about Vital's loads
 
@@ -176,10 +180,14 @@ rules on it.
   Vital's own words. Of 335 texts, 249 raise the alert: the guard refuses 28 of them and the
   watch the other 221, and none failed to return. On any other platform such a patch still
   blocks the calling process, and the instrument's docstring and the README say so. A patch
-  Vital dies on kills the calling process, but for the shapes the guard refuses. A patch Vital
-  loads in part is not detected: of the 83 texts that raise no alert the guard refuses 19, and
-  64 still load, 54 of them as a patch, 10 held as given and 3 changing no section among the
-  64 (`vital/plugin-state.md`). The crash and the part load are issue #25's. Verified against
+  Vital dies on kills the calling process, but for the shapes the guard refuses. A patch Vital loads
+  in part is not detected: of the 83 texts that raise no alert the guard refuses 19, and 64 still
+  load. By how they reach the plugin, 54 load as a patch through the instrument and 10 are texts
+  only the host can be given. By what the plugin then holds, 13 are held as given, 10 holding the
+  changed section as the text gives it and 3 changing no section, and 51 of the 64 are not held as
+  given: 15 hold it as the unchanged one, 1 keeps it from the preset before and 35 hold something
+  the read cannot name (`vital/plugin-state.md`, `silent-and-loaded.txt`). The crash and the part
+  load are issue #25's. Verified against
   `test_the_guard_does_not_read_inside_a_section`, `remedy-run.txt`, `silent-and-loaded.txt` and
   `test_a_patch_vital_answers_with_its_alert_is_refused_and_the_plugin_put_back`.
 - **A load Vital answers with its alert, or ignores, meets the rollback that was there.** The
@@ -190,10 +198,22 @@ rules on it.
   Verified against
   `test_a_load_vital_answers_with_its_alert_or_ignores_is_refused_and_the_model_s_text_put_back`
   and `rollback-count.txt`.
-- **A load from a thread that is not the main one changes nothing and is not a state error.**
-  On macOS the host's `PluginThreadError` leaves `load_patch` as itself: no rollback answers it,
-  the model, the plugin and the bus are as they were, and the instrument has not lost step.
-  Verified against `test_a_load_from_a_second_thread_changes_nothing_and_is_the_thread_s_error`.
+- **A load from a thread that is not the process's main one changes nothing and is refused as a
+  patch.** On macOS `load_patch` raises `PatchRefusedError`, core's `PatchRejectedError`, chained
+  from the host's `PluginThreadError`, as core's contract names that error for a patch the
+  instrument cannot load, changing nothing. Its reason says, in this order, that the call came from
+  a thread the plugin cannot be loaded from, naming it; that the patch passed the package's own
+  checks, which come first, so a patch they refuse is refused for their reason from any thread and
+  the thread is never asked; and that it was not given to Vital, so whether Vital takes it is
+  unknown. It is not a state error, so no rollback answers it: the model, the plugin and the bus are
+  as they were, and the instrument has not lost step. `VitalHost.load_state` and
+  `VitalInstrument.__init__` still raise `PluginThreadError` itself. This reverses, for `load_patch`
+  alone, the spec of issue #20's Decision 14 (the revision after the review of PR 26's finding 3);
+  whether core names an error for a call from a thread the instrument cannot serve is a question for
+  core. Verified against
+  `test_a_load_from_a_second_thread_changes_nothing_and_is_refused_as_a_patch`,
+  `test_a_patch_the_guard_refuses_is_refused_for_the_guard_s_reason_from_any_thread`, MR5 and MR6 in
+  the revision after the review of PR 26's `mutation.txt`.
 - **The host's marker never reaches the model.** It is set on the plugin and read there; `get`,
   `patch`, the preset and the bus never show it, on a load that succeeds or on one that fails.
   Verified against
@@ -201,7 +221,7 @@ rules on it.
 - **Every load is made twice.** A measured workaround with no known cause, on Vital 1.6.4 through
   pedalboard 0.9.26 on arm64 (Apple M4 Pro, macOS 26.6.2). Verified against
   `test_one_load_after_a_set_leaves_the_off_grid_floats_off_and_a_second_holds_them`, which a Vital
-  needing one load or three fails by name, and ML2 and MV1.
+  needing one load or three fails by name, and the instrument spec's ML2 and MV1.
 - **For a preset older than the plugin, the model keeps the file's floats.** Vital upgrades it, so
   `get` can report the file's value where Vital plays another, which for a choice is another setting
   by name: 46 floats on 11 of the 75 installed presets, measured on Vital 1.6.4 through pedalboard
@@ -212,18 +232,28 @@ rules on it.
 - **When the plugin refuses a text after the checks pass, the model's own text is sent again.** The
   call is refused as a patch, chained from the host's error, and the plugin holds the model's
   floats. Verified against
-  `test_a_load_the_plugin_refuses_puts_the_model_s_text_back_and_is_refused_as_a_patch` and ML1.
+  `test_a_load_the_plugin_refuses_puts_the_model_s_text_back_and_is_refused_as_a_patch` and the
+  instrument spec's ML1.
 - **When the plugin does not take the model's own text either, the instrument has lost step, and
   says so.** Refused, answered with the alert or ignored, alike. Its state is unknown, so core's
-  "changing nothing" cannot be claimed: `PluginStateError`, not
-  core's `PatchRejectedError`, names both refusals and says to build a new instrument. Every later
-  `set`, `load_patch` and `render` is refused with it before any other check, the plugin not
-  called and nothing published; `get` and `patch` answer from the model, which the plugin may no
-  longer match. Verified against
+  "changing nothing" cannot be claimed: `PluginStateError`, not core's `PatchRejectedError`, names
+  both refusals and says to build a new instrument. Every later `set`, `load_patch` and `render` is
+  refused with it before any other check, the plugin not called and nothing published; `get` and
+  `patch` answer from the model, which the plugin may no longer match. **So too when a load is cut
+  off by an error from outside the package,** a `KeyboardInterrupt` or a `MemoryError` among them,
+  once the text is being sent, or while the model's own text is sent again: the plugin may hold part
+  of a text the model does not, so the instrument loses step, no rollback is tried, and that error
+  leaves as itself, the same object. An error raised before the text is sent, by the checks or the
+  host's thread rule, changes nothing and loses no step; one from inside a load is told from it only
+  by where it leaves, so one that struck inside a load before the plugin was reached loses step too.
+  Verified against
   `test_a_plugin_that_refuses_the_model_s_own_text_too_leaves_the_instrument_out_of_step`,
   `test_a_rollback_vital_answers_the_same_way_leaves_the_instrument_out_of_step`,
   `test_once_out_of_step_every_call_that_reaches_the_plugin_is_refused_before_anything_else`,
-  `test_once_out_of_step_get_and_patch_answer_from_the_model` and MS1 to MS4.
+  `test_once_out_of_step_get_and_patch_answer_from_the_model`,
+  `test_an_error_from_outside_the_package_mid_load_leaves_as_itself_and_the_step_is_lost` (in the
+  first write, when the second load first reaches the plugin and in the second write), the first
+  revision's MS1 to MS4, and MR3 in the revision after the review of PR 26's `mutation.txt`.
 
 ## Events and errors
 
@@ -232,12 +262,13 @@ rules on it.
   publishes nothing. `PatchLoaded.parameter_count` is the number of values in the patch given.
   Verified against core's contract tests,
   `test_a_subscriber_that_raises_leaves_the_set_made_and_published`,
-  `test_parameter_count_is_the_number_of_values_in_the_patch_given` and ME1 and ML3.
+  `test_parameter_count_is_the_number_of_values_in_the_patch_given` and the instrument spec's ME1
+  and ML3.
 - **Nothing but the package's errors leaves the instrument, each core's own too.** What
   `Parameter.check` raises is raised again as the package's, with core's fields and core's error its
   cause. Verified against `test_every_refusal_is_the_package_s_error_and_core_s`,
   `test_a_set_it_refuses_is_the_package_s_error_with_core_s_fields_and_core_s_error_its_cause` and
-  MP7.
+  the instrument spec's MP7.
 
 ## A render
 
@@ -245,15 +276,17 @@ rules on it.
   naming the limit and its value: `MAX_SAMPLES`, 2 ** 24, a length Vital gives, and a rate from
   1,000 to 768,000 Hz, the range measured. Verified against
   `test_a_render_past_a_limit_is_refused_naming_the_limit_and_its_value`,
-  `test_the_longest_render_is_given_and_one_sample_more_is_refused` and MN2 and MN3.
+  `test_the_longest_render_is_given_and_one_sample_more_is_refused` and the instrument spec's MN2
+  and MN3.
 - **A render of no samples is an empty result, the plugin not called,** as core's reference gives
   it. Verified against `test_a_render_of_no_samples_is_an_empty_result_and_the_plugin_is_not_called`
-  and MN1.
+  and the instrument spec's MN1.
 - **A render that reaches full scale carries one warning saying the peak and where; the audio is
   never clipped here.** At full scale counts. Vital gives samples up to 2.1. Verified against
   `test_a_render_that_reaches_full_scale_carries_one_warning_saying_the_peak_and_where`,
   `test_a_render_whose_largest_sample_is_exactly_full_scale_carries_the_warning`,
-  `test_a_render_that_clips_carries_one_warning_and_the_event_carries_it` and MN4.
+  `test_a_render_that_clips_carries_one_warning_and_the_event_carries_it` and the instrument spec's
+  MN4.
 - **A render of most presets opens with the preset sounding though no note was played.** The warning
   counts that sound. On the start preset it is a transient of about 0.02; on installed presets it
   reaches full scale, measured on Vital 1.6.4 through pedalboard 0.9.26 on arm64 (Apple M4 Pro,
@@ -266,20 +299,20 @@ rules on it.
   time of the sample itself lands one sample early on some samples. A note that starts at the
   render's length is left out, and a note-off there too. Verified against `tests/unit/test_midi.py`,
   its bytes written out, `test_a_note_lands_on_the_sample_core_s_rule_gives_it`, at a sample where
-  the two differ, `probes.txt` section 1 and MM1 to MM4.
+  the two differ, `probes.txt` section 1 and the instrument spec's MM1 to MM4.
 - **Each note sounds for its own length, as core's reference instrument sums a sine per note.** On
   one channel Vital's first note-off releases every voice of its pitch, so a note whose pitch is
   already sounding on its channel goes out, on and off, on the lowest channel where it is not; of
   two struck on one sample the first in the pattern keeps its channel. A pitch sounds from its
   note-on to its note-off, so one released on a sample is free to a note struck there, and a note
   too short to last a sample is not. A seventeenth note of one pitch sounding at once is
-  `RenderRefusedError`, naming the pitch and the sample. Where core's protocol leaves a meaning
-  open and its reference instrument shows one, the reference decides, and a probe of Vital shows
-  how to reach it. Measured on Vital 1.6.4 through pedalboard 0.9.26 on arm64 (Apple M4 Pro, macOS
-  26.6.2), with Vital's MPE setting off and on. Verified against `tests/unit/test_midi.py`, its
-  bytes written out,
-  `test_two_notes_of_one_pitch_that_overlap_each_sound_for_their_own_length`, under the probes'
-  window with a named tolerance, `overlap-probe.txt`, `overlap-probe-2.txt` and MM5 to MM10.
+  `RenderRefusedError`, naming the pitch and the sample. Where core's protocol leaves a meaning open
+  and its reference instrument shows one, the reference decides, and a probe of Vital shows how to
+  reach it. Measured on Vital 1.6.4 through pedalboard 0.9.26 on arm64 (Apple M4 Pro, macOS 26.6.2),
+  with Vital's MPE setting off and on. Verified against `tests/unit/test_midi.py`, its bytes written
+  out, `test_two_notes_of_one_pitch_that_overlap_each_sound_for_their_own_length`, under the probes'
+  window with a named tolerance, `overlap-probe.txt`, `overlap-probe-2.txt` and the first revision's
+  MM5 to MM10.
 
 ## The contract suite
 
